@@ -16,7 +16,7 @@ Use cases and ports for AI completion, persistence, clocks, files, search, tools
 
 ### Infrastructure
 
-Implementations for provider APIs, persistence, operating-system services, networking, and other external boundaries.
+Implementations for provider APIs, persistence, operating-system services, networking, and other external boundaries. The local conversation slice currently provides JSON document persistence with detached aggregate reconstruction and an explicit composition object for the existing use cases.
 
 ### Presentation
 
