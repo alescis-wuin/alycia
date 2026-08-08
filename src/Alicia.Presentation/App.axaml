@@ -15,7 +15,9 @@
     <SolidColorBrush x:Key="AccentBrush" Color="#8C7CFF" />
     <SolidColorBrush x:Key="AccentSecondaryBrush" Color="#43E6D1" />
     <SolidColorBrush x:Key="SuccessBrush" Color="#72E6A7" />
-    <SolidColorBrush x:Key="DangerBrush" Color="#FF758C" />
+    <SolidColorBrush x:Key="EditBrush" Color="#FFB454" />
+    <SolidColorBrush x:Key="EditSurfaceBrush" Color="#3A2B19" />
+    <SolidColorBrush x:Key="DangerBrush" Color="#FF5F74" />
     <SolidColorBrush x:Key="DangerSurfaceBrush" Color="#391D2A" />
   </Application.Resources>
 
@@ -75,19 +77,77 @@
       <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
 
-    <Style Selector="Button.history-item">
-      <Setter Property="MinHeight" Value="74" />
-      <Setter Property="Padding" Value="0" />
+    <Style Selector="Border.history-row">
+      <Setter Property="MinHeight" Value="68" />
       <Setter Property="Margin" Value="0,0,0,8" />
       <Setter Property="CornerRadius" Value="14" />
-      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
       <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
       <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
       <Setter Property="BorderThickness" Value="1" />
     </Style>
 
-    <Style Selector="Button.history-item:pointerover">
+    <Style Selector="Border.history-row:pointerover">
       <Setter Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
+    </Style>
+
+    <Style Selector="Border.history-row:focus-within">
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentSecondaryBrush}" />
+    </Style>
+
+    <Style Selector="Button.history-item">
+      <Setter Property="MinHeight" Value="66" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="CornerRadius" Value="14" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+
+    <Style Selector="Border.history-row StackPanel.history-actions">
+      <Setter Property="Opacity" Value="0" />
+      <Setter Property="IsHitTestVisible" Value="False" />
+    </Style>
+
+    <Style Selector="Border.history-row:pointerover StackPanel.history-actions">
+      <Setter Property="Opacity" Value="1" />
+      <Setter Property="IsHitTestVisible" Value="True" />
+    </Style>
+
+    <Style Selector="Border.history-row:focus-within StackPanel.history-actions">
+      <Setter Property="Opacity" Value="1" />
+      <Setter Property="IsHitTestVisible" Value="True" />
+    </Style>
+
+    <Style Selector="Button.history-action">
+      <Setter Property="Width" Value="34" />
+      <Setter Property="Height" Value="34" />
+      <Setter Property="MinWidth" Value="34" />
+      <Setter Property="MinHeight" Value="34" />
+      <Setter Property="Padding" Value="7" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Background" Value="{DynamicResource SurfaceRaisedBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    </Style>
+
+    <Style Selector="Button.history-action.edit-history-action:pointerover">
+      <Setter Property="Background" Value="{DynamicResource EditSurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource EditBrush}" />
+    </Style>
+
+    <Style Selector="Button.history-action.delete-history-action:pointerover">
+      <Setter Property="Background" Value="{DynamicResource DangerSurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource DangerBrush}" />
+    </Style>
+
+    <Style Selector="Button:focus-visible">
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentSecondaryBrush}" />
+      <Setter Property="BorderThickness" Value="2" />
+    </Style>
+
+    <Style Selector="Button.history-item:focus-visible">
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentSecondaryBrush}" />
+      <Setter Property="BorderThickness" Value="2" />
     </Style>
 
     <Style Selector="Button:disabled">

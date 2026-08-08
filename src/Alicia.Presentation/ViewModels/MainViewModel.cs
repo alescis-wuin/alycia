@@ -48,6 +48,7 @@ public sealed class MainViewModel : ViewModelBase
         RequestDeleteCommand = new RelayCommand(RequestDelete);
         CancelDeleteCommand = new RelayCommand(CancelDelete);
         ConfirmDeleteCommand = new AsyncRelayCommand(ConfirmDeleteAsync);
+        CancelTransientActionCommand = new RelayCommand(CancelTransientAction);
         DismissErrorCommand = new RelayCommand(ClearError);
     }
 
@@ -72,6 +73,8 @@ public sealed class MainViewModel : ViewModelBase
     public IRelayCommand CancelDeleteCommand { get; }
 
     public IAsyncRelayCommand ConfirmDeleteCommand { get; }
+
+    public IRelayCommand CancelTransientActionCommand { get; }
 
     public IRelayCommand DismissErrorCommand { get; }
 
@@ -116,6 +119,11 @@ public sealed class MainViewModel : ViewModelBase
                 OnPropertyChanged(nameof(IsInteractionEnabled));
                 OnPropertyChanged(nameof(CanSaveRename));
                 OnPropertyChanged(nameof(StatusText));
+
+                foreach (ConversationListItemViewModel item in Conversations)
+                {
+                    item.NotifyInteractionStateChanged();
+                }
             }
         }
     }
@@ -284,6 +292,12 @@ public sealed class MainViewModel : ViewModelBase
         IsDeleteConfirmationVisible = false;
     }
 
+    private void CancelTransientAction()
+    {
+        CancelRename();
+        CancelDelete();
+    }
+
     private async Task ConfirmDeleteAsync()
     {
         if (SelectedConversation is null)
@@ -320,6 +334,48 @@ public sealed class MainViewModel : ViewModelBase
         }).ConfigureAwait(true);
     }
 
+    private async Task BeginRenameConversationAsync(ConversationListItemViewModel conversation)
+    {
+        ArgumentNullException.ThrowIfNull(conversation);
+
+        if (!await EnsureSelectedConversationAsync(conversation).ConfigureAwait(true))
+        {
+            return;
+        }
+
+        BeginRename();
+    }
+
+    private async Task RequestDeleteConversationAsync(ConversationListItemViewModel conversation)
+    {
+        ArgumentNullException.ThrowIfNull(conversation);
+
+        if (!await EnsureSelectedConversationAsync(conversation).ConfigureAwait(true))
+        {
+            return;
+        }
+
+        RequestDelete();
+    }
+
+    private async Task<bool> EnsureSelectedConversationAsync(ConversationListItemViewModel conversation)
+    {
+        if (IsBusy)
+        {
+            return false;
+        }
+
+        if (SelectedConversation?.Id != conversation.Id)
+        {
+            await ExecuteOperationAsync(async () =>
+            {
+                await LoadConversationAsync(conversation).ConfigureAwait(true);
+            }).ConfigureAwait(true);
+        }
+
+        return !HasError && SelectedConversation?.Id == conversation.Id;
+    }
+
     private async Task ReloadConversationsAsync(ConversationId? preferredConversationId)
     {
         IReadOnlyList<ConversationSummary> summaries = await _listConversations
@@ -330,7 +386,12 @@ public sealed class MainViewModel : ViewModelBase
 
         foreach (ConversationSummary summary in summaries)
         {
-            Conversations.Add(new ConversationListItemViewModel(summary, SelectConversationAsync));
+            Conversations.Add(new ConversationListItemViewModel(
+                summary,
+                SelectConversationAsync,
+                BeginRenameConversationAsync,
+                RequestDeleteConversationAsync,
+                () => IsInteractionEnabled));
         }
 
         RaiseHistoryStateChanged();

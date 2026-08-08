@@ -117,6 +117,99 @@ public sealed class MainViewModelTests
         Assert.Null(await repository.FindAsync(newer.Id, CancellationToken.None).ConfigureAwait(true));
     }
 
+    [Fact]
+    public async Task HistoryRenameCommandSelectsTargetBeforeOpeningRenameEditor()
+    {
+        DateTimeOffset createdAt = new(2026, 8, 8, 12, 0, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        Conversation older = new(ConversationId.New(), "Older", createdAt, createdAt);
+        Conversation newer = new(ConversationId.New(), "Newer", createdAt.AddMinutes(1), createdAt.AddMinutes(1));
+        repository.Seed(older);
+        repository.Seed(newer);
+        MainViewModel viewModel = CreateViewModel(repository, new MutableTimeProvider(createdAt.AddMinutes(2)));
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        ConversationListItemViewModel olderItem = Assert.Single(
+            viewModel.Conversations,
+            item => item.Id == older.Id);
+
+        await olderItem.RenameCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.Equal(older.Id, viewModel.SelectedConversation?.Id);
+        Assert.True(viewModel.IsRenaming);
+        Assert.False(viewModel.IsDeleteConfirmationVisible);
+        Assert.Equal("Older", viewModel.RenameTitle);
+    }
+
+    [Fact]
+    public async Task HistoryDeleteCommandSelectsTargetBeforeShowingConfirmation()
+    {
+        DateTimeOffset createdAt = new(2026, 8, 8, 13, 0, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        Conversation older = new(ConversationId.New(), "Older", createdAt, createdAt);
+        Conversation newer = new(ConversationId.New(), "Newer", createdAt.AddMinutes(1), createdAt.AddMinutes(1));
+        repository.Seed(older);
+        repository.Seed(newer);
+        MainViewModel viewModel = CreateViewModel(repository, new MutableTimeProvider(createdAt.AddMinutes(2)));
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        ConversationListItemViewModel olderItem = Assert.Single(
+            viewModel.Conversations,
+            item => item.Id == older.Id);
+
+        await olderItem.DeleteCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.Equal(older.Id, viewModel.SelectedConversation?.Id);
+        Assert.False(viewModel.IsRenaming);
+        Assert.True(viewModel.IsDeleteConfirmationVisible);
+        Assert.Contains("Older", viewModel.DeletePrompt, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task CancelTransientActionClosesRenameAndDeleteStates()
+    {
+        DateTimeOffset createdAt = new(2026, 8, 8, 14, 0, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        repository.Seed(new Conversation(ConversationId.New(), "Project", createdAt, createdAt));
+        MainViewModel viewModel = CreateViewModel(repository, new MutableTimeProvider(createdAt));
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        viewModel.BeginRenameCommand.Execute(null);
+        Assert.True(viewModel.IsRenaming);
+        viewModel.RequestDeleteCommand.Execute(null);
+        Assert.True(viewModel.IsDeleteConfirmationVisible);
+
+        viewModel.CancelTransientActionCommand.Execute(null);
+
+        Assert.False(viewModel.IsRenaming);
+        Assert.False(viewModel.IsDeleteConfirmationVisible);
+        Assert.Equal(string.Empty, viewModel.RenameTitle);
+    }
+
+    [Fact]
+    public void ConversationListItemProjectsAccessibleActionLabelsAndMetadata()
+    {
+        DateTimeOffset updatedAt = new(2026, 8, 8, 15, 0, 0, TimeSpan.Zero);
+        ConversationSummary summary = new(
+            ConversationId.New(),
+            "Project notes",
+            updatedAt.AddHours(-1),
+            updatedAt,
+            2);
+        ConversationListItemViewModel viewModel = new(
+            summary,
+            _ => Task.CompletedTask,
+            _ => Task.CompletedTask,
+            _ => Task.CompletedTask,
+            () => true);
+
+        Assert.Equal("2 messages", viewModel.MessageCountLabel);
+        Assert.Contains("2 messages", viewModel.MetadataLabel, StringComparison.Ordinal);
+        Assert.Equal("Open conversation Project notes", viewModel.SelectionAutomationName);
+        Assert.Equal("Rename conversation Project notes", viewModel.RenameAutomationName);
+        Assert.Equal("Delete conversation Project notes", viewModel.DeleteAutomationName);
+    }
+
     [Theory]
     [InlineData(MessageRole.System, "System")]
     [InlineData(MessageRole.User, "You")]
