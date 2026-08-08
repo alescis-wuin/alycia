@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "patch": {
+    "name": "alicia-example-patch",
+    "description": "Describe the patch purpose."
+  },
+  "repository": {
+    "project": "alicia",
+    "root_name": "alicia",
+    "start_branch": "develop",
+    "end_branch": "feature/example-patch",
+    "base_ref": "origin/develop",
+    "branch": {
+      "create": true,
+      "type": "feature",
+      "name": "example-patch",
+      "prefix": null,
+      "existing_policy": "fail"
+    }
+  },
+  "apply": {
+    "entrypoint": "apply.sh"
+  },
+  "package": {
+    "max_uncompressed_bytes": 52428800,
+    "files": [
+      {
+        "path": "apply.sh",
+        "kind": "shell",
+        "non_empty": true,
+        "sha256": ""
+      },
+      {
+        "path": "README.md",
+        "kind": "text",
+        "non_empty": true,
+        "sha256": ""
+      }
+    ]
+  },
+  "preconditions": {
+    "status": {
+      "mode": "exact",
+      "expected_count": 0,
+      "entries": []
+    },
+    "required_paths": [
+      "Makefile"
+    ]
+  },
+  "postconditions": {
+    "status": {
+      "mode": "exact",
+      "expected_count": 1,
+      "entries": [
+        "?? path/to/new-file"
+      ]
+    },
+    "changed_paths_mode": "exact",
+    "changed_paths": [
+      "path/to/new-file"
+    ]
+  },
+  "validation": {
+    "run_all": true,
+    "commands": [
+      {
+        "name": "build",
+        "command": "make build"
+      },
+      {
+        "name": "test",
+        "command": "make test"
+      },
+      {
+        "name": "verify-fast",
+        "command": "make verify-fast"
+      }
+    ]
+  },
+  "manual_test": {
+    "mode": "optional",
+    "prompt": "Run the Avalonia application now?",
+    "command": "dotnet run --project src/Alicia.Presentation/Alicia.Presentation.csproj",
+    "acceptance_prompt": "Did the application behave correctly?"
+  },
+  "stage": {
+    "paths": [
+      "path/to/new-file"
+    ]
+  },
+  "commit": {
+    "enabled": true,
+    "sign": true,
+    "mode": "automatic",
+    "header": "feature(example-patch): add example change",
+    "body": [
+      "- describe the first change",
+      "- describe the validation coverage"
+    ],
+    "footer": "Ticket: CALC-000"
+  },
+  "post_commit": {
+    "commands": [
+      {
+        "name": "verify",
+        "command": "BASE_REF=origin/develop make verify"
+      }
+    ]
+  }
+}

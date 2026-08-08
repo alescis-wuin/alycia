@@ -1,0 +1,70 @@
+# Repository-local SDK and caches
+.dotnet/
+.toolchain-cache/
+.support/
+.dotnet.bootstrap.lock/
+
+# .NET build outputs
+**/bin/
+**/obj/
+artifacts/
+
+# IDEs and user settings
+.vscode/
+.idea/
+.vs/
+*.sln.iml
+*.user
+*.suo
+*.userprefs
+*.rsuser
+
+# Tests and coverage
+TestResults/
+coverage/
+coverage.*
+*.trx
+*.coverage
+*.coveragexml
+
+# Packages
+*.nupkg
+*.snupkg
+packages/
+
+# Execution logs
+logs/
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Local databases
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+appsettings.Local.json
+secrets.json
+
+# Isolated patch runtime
+scripts/patch/apply-package.sh.runtime.*.sh
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
+
+# Operating systems
+.DS_Store
+Thumbs.db
+desktop.ini

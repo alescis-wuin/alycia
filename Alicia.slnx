@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Alicia.Application/Alicia.Application.csproj" />
+    <Project Path="src/Alicia.Desktop/Alicia.Desktop.csproj" />
+    <Project Path="src/Alicia.Domain/Alicia.Domain.csproj" />
+    <Project Path="src/Alicia.Infrastructure/Alicia.Infrastructure.csproj" />
+    <Project Path="src/Alicia.Presentation/Alicia.Presentation.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Alicia.Architecture.Tests/Alicia.Architecture.Tests.csproj" />
+    <Project Path="tests/Alicia.Presentation.Tests/Alicia.Presentation.Tests.csproj" />
+  </Folder>
+</Solution>

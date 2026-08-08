@@ -1,0 +1,14 @@
+{
+  "sdk": {
+    "rollForward": "latestPatch",
+    "version": "10.0.110",
+    "paths": [
+      ".dotnet",
+      "$host$"
+    ],
+    "errorMessage": "The required .NET SDK was not found. Run 'make toolchain-bootstrap' from the repository root."
+  },
+  "test": {
+    "runner": "Microsoft.Testing.Platform"
+  }
+}

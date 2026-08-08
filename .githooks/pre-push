@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+HOOK_DIRECTORY="$(
+    cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &&
+        pwd
+)"
+readonly HOOK_DIRECTORY
+
+REPOSITORY_ROOT="$(
+    cd -- "$HOOK_DIRECTORY/.." &&
+        pwd
+)"
+readonly REPOSITORY_ROOT
+
+exec "$REPOSITORY_ROOT/scripts/git/pre-push.sh" "$@"

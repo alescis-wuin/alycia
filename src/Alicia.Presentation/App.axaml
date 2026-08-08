@@ -1,0 +1,57 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Alicia.Presentation.App"
+             RequestedThemeVariant="Dark">
+  <Application.Resources>
+    <SolidColorBrush x:Key="AppBackgroundBrush" Color="#090D18" />
+    <SolidColorBrush x:Key="SidebarBrush" Color="#0E1423" />
+    <SolidColorBrush x:Key="SurfaceBrush" Color="#131B2E" />
+    <SolidColorBrush x:Key="SurfaceRaisedBrush" Color="#1A2540" />
+    <SolidColorBrush x:Key="BorderBrush" Color="#31405F" />
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="#F7F9FF" />
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#BBC5DD" />
+    <SolidColorBrush x:Key="TextOnAccentBrush" Color="#090D18" />
+    <SolidColorBrush x:Key="AccentBrush" Color="#8C7CFF" />
+    <SolidColorBrush x:Key="AccentSecondaryBrush" Color="#43E6D1" />
+    <SolidColorBrush x:Key="SuccessBrush" Color="#72E6A7" />
+  </Application.Resources>
+
+  <Application.Styles>
+    <FluentTheme />
+
+    <Style Selector="Window">
+      <Setter Property="Background" Value="{DynamicResource AppBackgroundBrush}" />
+      <Setter Property="FontSize" Value="16" />
+    </Style>
+
+    <Style Selector="Border.surface">
+      <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="24" />
+    </Style>
+
+    <Style Selector="Border.status-chip">
+      <Setter Property="Background" Value="{DynamicResource SurfaceRaisedBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="14" />
+      <Setter Property="Padding" Value="12,7" />
+    </Style>
+
+    <Style Selector="Button.primary-action">
+      <Setter Property="MinHeight" Value="46" />
+      <Setter Property="Padding" Value="18,10" />
+      <Setter Property="CornerRadius" Value="14" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Background" Value="{DynamicResource AccentSecondaryBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource TextOnAccentBrush}" />
+      <Setter Property="FontSize" Value="16" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <Style Selector="Button.primary-action:disabled">
+      <Setter Property="Opacity" Value="0.48" />
+    </Style>
+  </Application.Styles>
+</Application>

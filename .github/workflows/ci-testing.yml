@@ -1,0 +1,69 @@
+name: CI - Testing
+
+on:
+  pull_request:
+    branches: [testing]
+  push:
+    branches: [testing]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-testing-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  promotion-policy:
+    name: Testing / Promotion Policy
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require promotion from develop
+        if: github.event_name == 'pull_request'
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          if [[ "$HEAD_REF" != "develop" ]]; then
+            echo "Pull requests to testing must originate from develop."
+            exit 1
+          fi
+
+  cross-platform:
+    name: Testing / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68
+        with:
+          global-json-file: global.json
+      - name: Restore dependencies
+        run: dotnet restore Alicia.slnx
+      - name: Build solution in Release
+        run: dotnet build Alicia.slnx --configuration Release --no-restore
+      - name: Run automated tests in Release
+        run: dotnet test --solution Alicia.slnx --configuration Release --no-build --no-restore
+
+  required:
+    name: Testing / Required
+    if: always()
+    runs-on: ubuntu-latest
+    needs: [promotion-policy, cross-platform]
+    steps:
+      - name: Verify required jobs
+        env:
+          PROMOTION_RESULT: ${{ needs.promotion-policy.result }}
+          CROSS_PLATFORM_RESULT: ${{ needs.cross-platform.result }}
+        run: |
+          [[ "$PROMOTION_RESULT" == "success" ]]
+          [[ "$CROSS_PLATFORM_RESULT" == "success" ]]

@@ -1,0 +1,49 @@
+name: CI - Develop
+
+on:
+  pull_request:
+    branches: [develop]
+  push:
+    branches: [develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-develop-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Develop / Quality Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68
+        with:
+          global-json-file: global.json
+      - name: Install ShellCheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes shellcheck
+      - name: Validate syntax and dependency graph
+        run: make syntax dependency-graph
+      - name: Lint shell scripts
+        run: make lint
+      - name: Restore dependencies
+        run: dotnet restore Alicia.slnx
+      - name: Verify formatting
+        run: dotnet format Alicia.slnx --verify-no-changes --no-restore
+      - name: Build solution
+        run: dotnet build Alicia.slnx --configuration Debug --no-restore
+      - name: Run automated tests
+        run: dotnet test --solution Alicia.slnx --configuration Debug --no-build --no-restore
+      - name: Audit NuGet dependencies
+        run: make audit
