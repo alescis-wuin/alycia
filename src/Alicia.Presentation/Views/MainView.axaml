@@ -2,116 +2,325 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Alicia.Presentation.ViewModels"
              x:Class="Alicia.Presentation.Views.MainView"
-             x:DataType="vm:MainViewModel">
-  <Grid ColumnDefinitions="260,*">
+             x:DataType="vm:MainViewModel"
+             Loaded="OnLoaded">
+  <Grid ColumnDefinitions="300,*">
     <Border Grid.Column="0"
             Background="{DynamicResource SidebarBrush}"
             BorderBrush="{DynamicResource BorderBrush}"
             BorderThickness="0,0,1,0"
-            Padding="22">
-      <Grid RowDefinitions="Auto,32,Auto,*,Auto">
-        <StackPanel Spacing="5">
-          <TextBlock Text="{Binding ApplicationName}"
-                     FontSize="30"
-                     FontWeight="Bold"
-                     Foreground="{DynamicResource TextPrimaryBrush}" />
-          <TextBlock Text="AI CHAT"
-                     FontSize="12"
-                     FontWeight="SemiBold"
-                     Foreground="{DynamicResource AccentSecondaryBrush}" />
-        </StackPanel>
+            Padding="20">
+      <Grid RowDefinitions="Auto,18,Auto,18,Auto,*">
+        <Grid ColumnDefinitions="*,Auto">
+          <StackPanel Spacing="3">
+            <TextBlock Text="{Binding ApplicationName}"
+                       FontSize="30"
+                       FontWeight="Bold"
+                       Foreground="{DynamicResource TextPrimaryBrush}" />
+            <TextBlock Text="LOCAL CONVERSATIONS"
+                       FontSize="12"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource AccentSecondaryBrush}" />
+          </StackPanel>
+
+          <Button Grid.Column="1"
+                  Classes="secondary-action"
+                  Command="{Binding RefreshCommand}"
+                  IsEnabled="{Binding IsInteractionEnabled}"
+                  Content="Refresh"
+                  ToolTip.Tip="Refresh local conversation history" />
+        </Grid>
 
         <Button Grid.Row="2"
                 Classes="primary-action"
-                Content="New conversation"
-                IsEnabled="False"
-                ToolTip.Tip="Conversation creation will be implemented in a later feature package." />
+                Command="{Binding CreateConversationCommand}"
+                IsEnabled="{Binding IsInteractionEnabled}"
+                Content="+ New conversation" />
 
-        <StackPanel Grid.Row="4" Spacing="9">
-          <TextBlock Text="FOUNDATION"
-                     FontSize="12"
+        <Grid Grid.Row="4" ColumnDefinitions="*,Auto">
+          <TextBlock Text="History"
+                     FontSize="15"
                      FontWeight="SemiBold"
-                     Foreground="{DynamicResource TextSecondaryBrush}" />
-          <TextBlock Text="Avalonia desktop host"
-                     Foreground="{DynamicResource TextPrimaryBrush}" />
-          <TextBlock Text="Windows · Linux · macOS"
-                     FontSize="14"
-                     Foreground="{DynamicResource TextSecondaryBrush}" />
-        </StackPanel>
+                     Foreground="{DynamicResource TextPrimaryBrush}"
+                     VerticalAlignment="Center" />
+          <Border Grid.Column="1" Classes="status-chip">
+            <TextBlock Text="{Binding Conversations.Count}"
+                       FontSize="13"
+                       Foreground="{DynamicResource TextSecondaryBrush}" />
+          </Border>
+        </Grid>
+
+        <Grid Grid.Row="5" Margin="0,12,0,0">
+          <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <ItemsControl ItemsSource="{Binding Conversations}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:ConversationListItemViewModel">
+                  <Button Classes="history-item"
+                          Command="{Binding SelectCommand}">
+                    <Grid ColumnDefinitions="5,12,*" Margin="0">
+                      <Border Grid.Column="0"
+                              Margin="0,10,0,10"
+                              CornerRadius="3"
+                              Background="{DynamicResource AccentSecondaryBrush}"
+                              IsVisible="{Binding IsSelected}" />
+
+                      <StackPanel Grid.Column="2"
+                                  Margin="0,10,12,10"
+                                  Spacing="4">
+                        <TextBlock Text="{Binding Title}"
+
+                                   FontSize="15"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}" />
+                        <TextBlock Text="{Binding UpdatedAtLabel}"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" />
+                        <TextBlock Text="{Binding MessageCount, StringFormat={}{0} messages}"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" />
+                      </StackPanel>
+                    </Grid>
+                  </Button>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+
+          <Border Classes="surface"
+                  Padding="18"
+                  VerticalAlignment="Top"
+                  IsVisible="{Binding IsHistoryEmpty}">
+            <StackPanel Spacing="7">
+              <TextBlock Text="No conversations yet"
+                         FontWeight="SemiBold"
+                         Foreground="{DynamicResource TextPrimaryBrush}" />
+              <TextBlock Text="Create one to start building your local history."
+                         FontSize="13"
+                         TextWrapping="Wrap"
+                         Foreground="{DynamicResource TextSecondaryBrush}" />
+            </StackPanel>
+          </Border>
+        </Grid>
       </Grid>
     </Border>
 
-    <Grid Grid.Column="1" RowDefinitions="Auto,*,Auto" Margin="32">
-      <Grid ColumnDefinitions="*,Auto">
+    <Grid Grid.Column="1" RowDefinitions="Auto,Auto,*" Margin="28">
+      <Border Grid.Row="0"
+              Classes="surface"
+              Padding="16"
+              Margin="0,0,0,16"
+              IsVisible="{Binding HasError}">
+        <Grid ColumnDefinitions="*,Auto">
+          <StackPanel Spacing="4">
+            <TextBlock Text="Something needs attention"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource DangerBrush}" />
+            <TextBlock Text="{Binding ErrorMessage}"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource TextPrimaryBrush}" />
+          </StackPanel>
+          <Button Grid.Column="1"
+                  Classes="secondary-action"
+                  Command="{Binding DismissErrorCommand}"
+                  Content="Dismiss" />
+        </Grid>
+      </Border>
+
+      <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="2,0,2,18">
         <StackPanel Spacing="4">
-          <TextBlock Text="{Binding Headline}"
-                     FontSize="18"
-                     FontWeight="SemiBold"
+          <TextBlock Text="{Binding SelectedConversationTitle}"
+                     FontSize="24"
+                     FontWeight="Bold"
                      Foreground="{DynamicResource TextPrimaryBrush}" />
-          <TextBlock Text="Minimal, accessible, provider-agnostic foundation"
+          <TextBlock Text="{Binding SelectedConversationMeta}"
                      FontSize="14"
                      Foreground="{DynamicResource TextSecondaryBrush}" />
         </StackPanel>
 
-        <Border Grid.Column="1" Classes="status-chip" VerticalAlignment="Center">
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <Border Width="9" Height="9" CornerRadius="5" Background="{DynamicResource SuccessBrush}" />
-            <TextBlock Text="{Binding FoundationStatus}"
-                       FontSize="14"
-                       Foreground="{DynamicResource TextPrimaryBrush}" />
-          </StackPanel>
-        </Border>
+        <StackPanel Grid.Column="1"
+                    Orientation="Horizontal"
+                    Spacing="10"
+                    VerticalAlignment="Center"
+                    IsVisible="{Binding HasSelectedConversation}">
+          <Button Classes="secondary-action"
+                  Command="{Binding BeginRenameCommand}"
+                  IsEnabled="{Binding IsInteractionEnabled}"
+                  Content="Rename" />
+          <Button Classes="danger-action"
+                  Command="{Binding RequestDeleteCommand}"
+                  IsEnabled="{Binding IsInteractionEnabled}"
+                  Content="Delete" />
+        </StackPanel>
       </Grid>
 
-      <Border Grid.Row="1"
-              Classes="surface"
-              MaxWidth="760"
-              Padding="44"
-              HorizontalAlignment="Center"
-              VerticalAlignment="Center">
-        <StackPanel Spacing="18" HorizontalAlignment="Center">
-          <Border Width="72"
-                  Height="72"
-                  CornerRadius="22"
-                  Background="{DynamicResource AccentBrush}"
-                  HorizontalAlignment="Center">
-            <TextBlock Text="A"
-                       FontSize="38"
-                       FontWeight="Bold"
-                       Foreground="{DynamicResource TextOnAccentBrush}"
-                       HorizontalAlignment="Center"
-                       VerticalAlignment="Center" />
-          </Border>
+      <Grid Grid.Row="2" RowDefinitions="Auto,Auto,*">
+        <Border Grid.Row="0"
+                Classes="surface"
+                Padding="16"
+                Margin="0,0,0,14"
+                IsVisible="{Binding IsRenaming}">
+          <Grid ColumnDefinitions="*,Auto,Auto">
+            <TextBox Classes="rename-input"
+                     Text="{Binding RenameTitle, Mode=TwoWay}"
+                     PlaceholderText="Conversation title"
+                     MaxLength="120" />
+            <Button Grid.Column="1"
+                    Margin="10,0,0,0"
+                    Classes="primary-action"
+                    Command="{Binding SaveRenameCommand}"
+                    IsEnabled="{Binding CanSaveRename}"
+                    Content="Save" />
+            <Button Grid.Column="2"
+                    Margin="10,0,0,0"
+                    Classes="secondary-action"
+                    Command="{Binding CancelRenameCommand}"
+                    Content="Cancel" />
+          </Grid>
+        </Border>
 
-          <TextBlock Text="Alicia"
-                     FontSize="40"
-                     FontWeight="Bold"
-                     Foreground="{DynamicResource TextPrimaryBrush}"
-                     TextAlignment="Center" />
+        <Border Grid.Row="1"
+                Background="{DynamicResource DangerSurfaceBrush}"
+                BorderBrush="{DynamicResource DangerBrush}"
+                BorderThickness="1"
+                CornerRadius="16"
+                Padding="16"
+                Margin="0,0,0,14"
+                IsVisible="{Binding IsDeleteConfirmationVisible}">
+          <Grid ColumnDefinitions="*,Auto,Auto">
+            <StackPanel Spacing="4">
+              <TextBlock Text="{Binding DeletePrompt}"
+                         FontWeight="SemiBold"
+                         Foreground="{DynamicResource TextPrimaryBrush}" />
+              <TextBlock Text="This removes the local conversation file."
+                         FontSize="13"
+                         Foreground="{DynamicResource TextSecondaryBrush}" />
+            </StackPanel>
+            <Button Grid.Column="1"
+                    Margin="10,0,0,0"
+                    Classes="danger-action"
+                    Command="{Binding ConfirmDeleteCommand}"
+                    Content="Confirm delete" />
+            <Button Grid.Column="2"
+                    Margin="10,0,0,0"
+                    Classes="secondary-action"
+                    Command="{Binding CancelDeleteCommand}"
+                    Content="Cancel" />
+          </Grid>
+        </Border>
 
-          <TextBlock Text="The repository, architecture, validation tooling, and shared Avalonia UI shell are ready."
-                     MaxWidth="620"
-                     FontSize="18"
-                     LineHeight="28"
-                     Foreground="{DynamicResource TextSecondaryBrush}"
-                     TextAlignment="Center"
-                     TextWrapping="Wrap" />
+        <Border Grid.Row="2" Classes="surface" Padding="22">
+          <Grid>
+            <StackPanel HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Spacing="12"
+                        IsVisible="{Binding ShowLoadingState}">
+              <TextBlock Text="Loading local history…"
+                         FontSize="20"
+                         FontWeight="SemiBold"
+                         Foreground="{DynamicResource TextPrimaryBrush}" />
+              <TextBlock Text="Alicia is reading the conversations stored on this device."
+                         Foreground="{DynamicResource TextSecondaryBrush}" />
+            </StackPanel>
 
-          <Border Classes="status-chip" HorizontalAlignment="Center">
-            <TextBlock Text="{Binding ProviderStatus}"
-                       FontSize="14"
-                       Foreground="{DynamicResource TextSecondaryBrush}" />
-          </Border>
-        </StackPanel>
-      </Border>
+            <StackPanel HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Spacing="14"
+                        MaxWidth="560"
+                        IsVisible="{Binding IsHistoryEmpty}">
+              <Border Width="72"
+                      Height="72"
+                      CornerRadius="22"
+                      Background="{DynamicResource AccentBrush}"
+                      HorizontalAlignment="Center">
+                <TextBlock Text="A"
+                           FontSize="38"
+                           FontWeight="Bold"
+                           Foreground="{DynamicResource TextOnAccentBrush}"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center" />
+              </Border>
+              <TextBlock Text="Start your first conversation"
+                         FontSize="28"
+                         FontWeight="Bold"
+                         TextAlignment="Center"
+                         Foreground="{DynamicResource TextPrimaryBrush}" />
+              <TextBlock Text="Create a local conversation now. Messaging and model integration will be added in a later package."
+                         FontSize="16"
+                         LineHeight="24"
+                         TextAlignment="Center"
+                         TextWrapping="Wrap"
+                         Foreground="{DynamicResource TextSecondaryBrush}" />
+              <Button Classes="primary-action"
+                      Command="{Binding CreateConversationCommand}"
+                      HorizontalAlignment="Center"
+                      Content="Create conversation" />
+            </StackPanel>
 
-      <TextBlock Grid.Row="2"
-                 Text="The next feature package can introduce the conversation domain and AI provider abstraction."
-                 FontSize="14"
-                 Foreground="{DynamicResource TextSecondaryBrush}"
-                 HorizontalAlignment="Center"
-                 TextWrapping="Wrap"
-                 TextAlignment="Center" />
+            <StackPanel HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Spacing="10"
+                        IsVisible="{Binding ShowNoSelectionState}">
+              <TextBlock Text="Select a conversation"
+                         FontSize="24"
+                         FontWeight="Bold"
+                         Foreground="{DynamicResource TextPrimaryBrush}" />
+              <TextBlock Text="Choose an item from the history sidebar."
+                         Foreground="{DynamicResource TextSecondaryBrush}" />
+            </StackPanel>
+
+            <StackPanel HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Spacing="12"
+                        MaxWidth="560"
+                        IsVisible="{Binding IsSelectedConversationEmpty}">
+              <TextBlock Text="This conversation is empty"
+                         FontSize="26"
+                         FontWeight="Bold"
+                         TextAlignment="Center"
+                         Foreground="{DynamicResource TextPrimaryBrush}" />
+              <TextBlock Text="There are no messages to display yet. Message composition will be connected in a later package."
+                         FontSize="16"
+                         LineHeight="24"
+                         TextWrapping="Wrap"
+                         TextAlignment="Center"
+                         Foreground="{DynamicResource TextSecondaryBrush}" />
+            </StackPanel>
+
+            <ScrollViewer VerticalScrollBarVisibility="Auto"
+                          IsVisible="{Binding HasMessages}">
+              <ItemsControl ItemsSource="{Binding Messages}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:MessageViewModel">
+                    <Border Background="{DynamicResource SurfaceRaisedBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="16"
+                            Padding="18"
+                            Margin="0,0,0,12">
+                      <StackPanel Spacing="8">
+                        <Grid ColumnDefinitions="*,Auto">
+                          <TextBlock Text="{Binding RoleLabel}"
+                                     FontWeight="SemiBold"
+                                     Foreground="{DynamicResource AccentSecondaryBrush}" />
+                          <TextBlock Grid.Column="1"
+                                     Text="{Binding CreatedAtLabel}"
+                                     FontSize="12"
+                                     Foreground="{DynamicResource TextSecondaryBrush}" />
+                        </Grid>
+                        <TextBlock Text="{Binding Content}"
+                                   FontSize="16"
+                                   LineHeight="24"
+                                   TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextPrimaryBrush}" />
+                      </StackPanel>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </ScrollViewer>
+          </Grid>
+        </Border>
+      </Grid>
     </Grid>
   </Grid>
 </UserControl>

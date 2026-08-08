@@ -1,12 +1,462 @@
+using System.Collections.ObjectModel;
+using Alicia.Application.Conversations;
+using Alicia.Domain.Conversations;
+using CommunityToolkit.Mvvm.Input;
+
 namespace Alicia.Presentation.ViewModels;
 
 public sealed class MainViewModel : ViewModelBase
 {
+    private readonly CreateConversationUseCase _createConversation;
+    private readonly DeleteConversationUseCase _deleteConversation;
+    private readonly ListConversationsUseCase _listConversations;
+    private readonly LoadConversationUseCase _loadConversation;
+    private readonly RenameConversationUseCase _renameConversation;
+
+    private bool _isBusy;
+    private bool _isDeleteConfirmationVisible;
+    private bool _isInitialized;
+    private bool _isRenaming;
+    private ConversationListItemViewModel? _selectedConversation;
+    private string? _errorMessage;
+    private string _renameTitle = string.Empty;
+
+    public MainViewModel(
+        CreateConversationUseCase createConversation,
+        LoadConversationUseCase loadConversation,
+        ListConversationsUseCase listConversations,
+        RenameConversationUseCase renameConversation,
+        DeleteConversationUseCase deleteConversation)
+    {
+        ArgumentNullException.ThrowIfNull(createConversation);
+        ArgumentNullException.ThrowIfNull(loadConversation);
+        ArgumentNullException.ThrowIfNull(listConversations);
+        ArgumentNullException.ThrowIfNull(renameConversation);
+        ArgumentNullException.ThrowIfNull(deleteConversation);
+
+        _createConversation = createConversation;
+        _loadConversation = loadConversation;
+        _listConversations = listConversations;
+        _renameConversation = renameConversation;
+        _deleteConversation = deleteConversation;
+
+        CreateConversationCommand = new AsyncRelayCommand(CreateConversationAsync);
+        RefreshCommand = new AsyncRelayCommand(RefreshAsync);
+        BeginRenameCommand = new RelayCommand(BeginRename);
+        CancelRenameCommand = new RelayCommand(CancelRename);
+        SaveRenameCommand = new AsyncRelayCommand(SaveRenameAsync);
+        RequestDeleteCommand = new RelayCommand(RequestDelete);
+        CancelDeleteCommand = new RelayCommand(CancelDelete);
+        ConfirmDeleteCommand = new AsyncRelayCommand(ConfirmDeleteAsync);
+        DismissErrorCommand = new RelayCommand(ClearError);
+    }
+
     public string ApplicationName { get; } = "Alicia";
 
-    public string Headline { get; } = "Your AI workspace";
+    public ObservableCollection<ConversationListItemViewModel> Conversations { get; } = [];
 
-    public string FoundationStatus { get; } = "Repository foundation ready";
+    public ObservableCollection<MessageViewModel> Messages { get; } = [];
 
-    public string ProviderStatus { get; } = "AI provider not configured";
+    public IAsyncRelayCommand CreateConversationCommand { get; }
+
+    public IAsyncRelayCommand RefreshCommand { get; }
+
+    public IRelayCommand BeginRenameCommand { get; }
+
+    public IRelayCommand CancelRenameCommand { get; }
+
+    public IAsyncRelayCommand SaveRenameCommand { get; }
+
+    public IRelayCommand RequestDeleteCommand { get; }
+
+    public IRelayCommand CancelDeleteCommand { get; }
+
+    public IAsyncRelayCommand ConfirmDeleteCommand { get; }
+
+    public IRelayCommand DismissErrorCommand { get; }
+
+    public ConversationListItemViewModel? SelectedConversation
+    {
+        get => _selectedConversation;
+        private set
+        {
+            if (_selectedConversation == value)
+            {
+                return;
+            }
+
+            _selectedConversation?.SetSelected(false);
+            _selectedConversation = value;
+            _selectedConversation?.SetSelected(true);
+
+            OnPropertyChanged();
+            RaiseSelectionStateChanged();
+        }
+    }
+
+    public string RenameTitle
+    {
+        get => _renameTitle;
+        set
+        {
+            if (SetProperty(ref _renameTitle, value))
+            {
+                OnPropertyChanged(nameof(CanSaveRename));
+            }
+        }
+    }
+
+    public bool IsBusy
+    {
+        get => _isBusy;
+        private set
+        {
+            if (SetProperty(ref _isBusy, value))
+            {
+                OnPropertyChanged(nameof(IsInteractionEnabled));
+                OnPropertyChanged(nameof(CanSaveRename));
+                OnPropertyChanged(nameof(StatusText));
+            }
+        }
+    }
+
+    public bool IsInteractionEnabled => !IsBusy;
+
+    public bool IsInitialized
+    {
+        get => _isInitialized;
+        private set
+        {
+            if (SetProperty(ref _isInitialized, value))
+            {
+                RaiseEmptyStateChanged();
+            }
+        }
+    }
+
+    public bool IsRenaming
+    {
+        get => _isRenaming;
+        private set => SetProperty(ref _isRenaming, value);
+    }
+
+    public bool IsDeleteConfirmationVisible
+    {
+        get => _isDeleteConfirmationVisible;
+        private set => SetProperty(ref _isDeleteConfirmationVisible, value);
+    }
+
+    public string? ErrorMessage
+    {
+        get => _errorMessage;
+        private set
+        {
+            if (SetProperty(ref _errorMessage, value))
+            {
+                OnPropertyChanged(nameof(HasError));
+            }
+        }
+    }
+
+    public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
+
+    public bool HasConversationHistory => Conversations.Count > 0;
+
+    public bool IsHistoryEmpty => IsInitialized && Conversations.Count == 0;
+
+    public bool HasSelectedConversation => SelectedConversation is not null;
+
+    public bool HasMessages => Messages.Count > 0;
+
+    public bool IsSelectedConversationEmpty => IsInitialized && HasSelectedConversation && Messages.Count == 0;
+
+    public bool ShowNoSelectionState => IsInitialized && HasConversationHistory && !HasSelectedConversation;
+
+    public bool ShowLoadingState => !IsInitialized;
+
+    public string SelectedConversationTitle => SelectedConversation?.Title ?? "No conversation selected";
+
+    public string SelectedConversationMeta => SelectedConversation is null
+        ? "Choose a conversation from history."
+        : $"{Messages.Count} message{(Messages.Count == 1 ? string.Empty : "s")}";
+
+    public string DeletePrompt => SelectedConversation is null
+        ? "Delete this conversation?"
+        : $"Delete ‘{SelectedConversation.Title}’?";
+
+    public bool CanSaveRename => IsInteractionEnabled
+        && HasSelectedConversation
+        && !string.IsNullOrWhiteSpace(RenameTitle)
+        && RenameTitle.Trim().Length <= Conversation.MaxTitleLength;
+
+    public string StatusText => IsBusy ? "Working…" : "Local history ready";
+
+    public async Task InitializeAsync()
+    {
+        if (IsInitialized || IsBusy)
+        {
+            return;
+        }
+
+        await ExecuteOperationAsync(async () =>
+        {
+            await ReloadConversationsAsync(preferredConversationId: null).ConfigureAwait(true);
+        }).ConfigureAwait(true);
+
+        IsInitialized = true;
+    }
+
+    private async Task CreateConversationAsync()
+    {
+        await ExecuteOperationAsync(async () =>
+        {
+            Conversation conversation = await _createConversation
+                .ExecuteAsync()
+                .ConfigureAwait(true);
+
+            await ReloadConversationsAsync(conversation.Id).ConfigureAwait(true);
+        }).ConfigureAwait(true);
+    }
+
+    private async Task RefreshAsync()
+    {
+        ConversationId? selectedId = SelectedConversation?.Id;
+
+        await ExecuteOperationAsync(async () =>
+        {
+            await ReloadConversationsAsync(selectedId).ConfigureAwait(true);
+        }).ConfigureAwait(true);
+    }
+
+    private void BeginRename()
+    {
+        if (SelectedConversation is null || IsBusy)
+        {
+            return;
+        }
+
+        RenameTitle = SelectedConversation.Title;
+        IsDeleteConfirmationVisible = false;
+        IsRenaming = true;
+    }
+
+    private void CancelRename()
+    {
+        IsRenaming = false;
+        RenameTitle = string.Empty;
+    }
+
+    private async Task SaveRenameAsync()
+    {
+        if (SelectedConversation is null || !CanSaveRename)
+        {
+            return;
+        }
+
+        ConversationId conversationId = SelectedConversation.Id;
+        string title = RenameTitle;
+
+        await ExecuteOperationAsync(async () =>
+        {
+            await _renameConversation
+                .ExecuteAsync(conversationId, title)
+                .ConfigureAwait(true);
+
+            IsRenaming = false;
+            RenameTitle = string.Empty;
+            await ReloadConversationsAsync(conversationId).ConfigureAwait(true);
+        }).ConfigureAwait(true);
+    }
+
+    private void RequestDelete()
+    {
+        if (SelectedConversation is null || IsBusy)
+        {
+            return;
+        }
+
+        IsRenaming = false;
+        IsDeleteConfirmationVisible = true;
+    }
+
+    private void CancelDelete()
+    {
+        IsDeleteConfirmationVisible = false;
+    }
+
+    private async Task ConfirmDeleteAsync()
+    {
+        if (SelectedConversation is null)
+        {
+            return;
+        }
+
+        ConversationId conversationId = SelectedConversation.Id;
+
+        await ExecuteOperationAsync(async () =>
+        {
+            await _deleteConversation
+                .ExecuteAsync(conversationId)
+                .ConfigureAwait(true);
+
+            IsDeleteConfirmationVisible = false;
+            ClearSelection();
+            await ReloadConversationsAsync(preferredConversationId: null).ConfigureAwait(true);
+        }).ConfigureAwait(true);
+    }
+
+    private async Task SelectConversationAsync(ConversationListItemViewModel conversation)
+    {
+        ArgumentNullException.ThrowIfNull(conversation);
+
+        if (IsBusy || SelectedConversation?.Id == conversation.Id)
+        {
+            return;
+        }
+
+        await ExecuteOperationAsync(async () =>
+        {
+            await LoadConversationAsync(conversation).ConfigureAwait(true);
+        }).ConfigureAwait(true);
+    }
+
+    private async Task ReloadConversationsAsync(ConversationId? preferredConversationId)
+    {
+        IReadOnlyList<ConversationSummary> summaries = await _listConversations
+            .ExecuteAsync()
+            .ConfigureAwait(true);
+
+        Conversations.Clear();
+
+        foreach (ConversationSummary summary in summaries)
+        {
+            Conversations.Add(new ConversationListItemViewModel(summary, SelectConversationAsync));
+        }
+
+        RaiseHistoryStateChanged();
+
+        if (Conversations.Count == 0)
+        {
+            ClearSelection();
+            return;
+        }
+
+        ConversationListItemViewModel target = preferredConversationId is ConversationId preferredId
+            ? Conversations.FirstOrDefault(item => item.Id == preferredId) ?? Conversations[0]
+            : Conversations[0];
+
+        await LoadConversationAsync(target).ConfigureAwait(true);
+    }
+
+    private async Task LoadConversationAsync(ConversationListItemViewModel item)
+    {
+        Conversation conversation = await _loadConversation
+            .ExecuteAsync(item.Id)
+            .ConfigureAwait(true);
+
+        SelectedConversation = item;
+        Messages.Clear();
+
+        foreach (ChatMessage message in conversation.Messages)
+        {
+            Messages.Add(new MessageViewModel(message));
+        }
+
+        IsRenaming = false;
+        RenameTitle = string.Empty;
+        IsDeleteConfirmationVisible = false;
+        RaiseMessageStateChanged();
+    }
+
+    private void ClearSelection()
+    {
+        SelectedConversation = null;
+        Messages.Clear();
+        IsRenaming = false;
+        RenameTitle = string.Empty;
+        IsDeleteConfirmationVisible = false;
+        RaiseMessageStateChanged();
+    }
+
+    private async Task ExecuteOperationAsync(Func<Task> operation)
+    {
+        ArgumentNullException.ThrowIfNull(operation);
+
+        if (IsBusy)
+        {
+            return;
+        }
+
+        IsBusy = true;
+        ClearError();
+
+        try
+        {
+            await operation().ConfigureAwait(true);
+        }
+        catch (InvalidDataException exception)
+        {
+            ErrorMessage = exception.Message;
+        }
+        catch (IOException exception)
+        {
+            ErrorMessage = exception.Message;
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            ErrorMessage = exception.Message;
+        }
+        catch (KeyNotFoundException exception)
+        {
+            ErrorMessage = exception.Message;
+        }
+        catch (ArgumentException exception)
+        {
+            ErrorMessage = exception.Message;
+        }
+        catch (InvalidOperationException exception)
+        {
+            ErrorMessage = exception.Message;
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private void ClearError()
+    {
+        ErrorMessage = null;
+    }
+
+    private void RaiseHistoryStateChanged()
+    {
+        OnPropertyChanged(nameof(HasConversationHistory));
+        RaiseEmptyStateChanged();
+    }
+
+    private void RaiseSelectionStateChanged()
+    {
+        OnPropertyChanged(nameof(HasSelectedConversation));
+        OnPropertyChanged(nameof(SelectedConversationTitle));
+        OnPropertyChanged(nameof(DeletePrompt));
+        OnPropertyChanged(nameof(CanSaveRename));
+        RaiseMessageStateChanged();
+        RaiseEmptyStateChanged();
+    }
+
+    private void RaiseMessageStateChanged()
+    {
+        OnPropertyChanged(nameof(HasMessages));
+        OnPropertyChanged(nameof(IsSelectedConversationEmpty));
+        OnPropertyChanged(nameof(SelectedConversationMeta));
+    }
+
+    private void RaiseEmptyStateChanged()
+    {
+        OnPropertyChanged(nameof(IsHistoryEmpty));
+        OnPropertyChanged(nameof(IsSelectedConversationEmpty));
+        OnPropertyChanged(nameof(ShowNoSelectionState));
+        OnPropertyChanged(nameof(ShowLoadingState));
+    }
 }

@@ -1,4 +1,6 @@
+using Alicia.Infrastructure.Conversations;
 using Alicia.Presentation;
+using Alicia.Presentation.ViewModels;
 using Avalonia;
 
 namespace Alicia.Desktop;
@@ -8,6 +10,7 @@ internal static class Program
     [STAThread]
     public static void Main(string[] args)
     {
+        App.ConfigureMainViewModelFactory(CreateMainViewModel);
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
     }
 
@@ -20,5 +23,19 @@ internal static class Program
 #endif
             .WithInterFont()
             .LogToTrace();
+    }
+
+    private static MainViewModel CreateMainViewModel()
+    {
+        string localApplicationData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        string storageDirectory = Path.Combine(localApplicationData, "Alicia", "conversations");
+        LocalConversationRuntime runtime = LocalConversationRuntime.Create(storageDirectory);
+
+        return new MainViewModel(
+            runtime.CreateConversation,
+            runtime.LoadConversation,
+            runtime.ListConversations,
+            runtime.RenameConversation,
+            runtime.DeleteConversation);
     }
 }

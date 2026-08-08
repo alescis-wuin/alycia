@@ -4,7 +4,7 @@ Alicia is a cross-platform AI chat application built with C#, .NET, and Avalonia
 
 ## Status
 
-The repository contains the engineering foundation, a minimal accessible UI shell, a provider-neutral conversation core, local JSON conversation persistence, and tested conversation lifecycle operations for creation, loading, listing, renaming, message appending, and deletion. AI providers, tool calling, retrieval, attachments, richer presentation workflows, and additional platform hosts are intentionally deferred to later atomic work packages.
+The repository contains the engineering foundation, a provider-neutral conversation core, local JSON conversation persistence, tested conversation lifecycle operations, and a functional Avalonia conversation workspace. The desktop UI can create, select, rename, delete, list, and inspect locally persisted conversations and their messages. Message composition, AI providers, tool calling, retrieval, attachments, and additional platform hosts are intentionally deferred to later atomic work packages.
 
 ## Current platform target
 
@@ -14,12 +14,12 @@ The first executable host uses `Avalonia.Desktop`, which targets Windows, Linux,
 
 ```text
 Alicia.Desktop ───────→ Alicia.Presentation ───────→ Alicia.Application ───────→ Alicia.Domain
-                                               └──→ Alicia.Domain
-Alicia.Infrastructure ─────────────────────────────→ Alicia.Application
-                     └────────────────────────────→ Alicia.Domain
+       │                                       └──→ Alicia.Domain
+       └──────────────→ Alicia.Infrastructure ─────→ Alicia.Application
+                                          └───────→ Alicia.Domain
 ```
 
-The dependency graph is checked automatically. Presentation code must not depend directly on infrastructure implementations.
+The dependency graph is checked automatically. Presentation code must not depend directly on infrastructure implementations; the desktop executable is the platform composition root that selects and injects those implementations.
 
 ## Prerequisites
 
@@ -43,16 +43,20 @@ make dependency-graph
 make verify
 ```
 
-## UI baseline
+## Conversation workspace
 
-The initial shell establishes:
+The current Avalonia presentation provides:
 
-- a low-noise dark visual system;
-- high-contrast foreground/background tokens;
-- large base typography and control targets;
-- a shared Avalonia view that can be hosted outside desktop later;
-- visible text labels rather than icon-only critical actions;
-- a design-token foundation for future light, dark, high-contrast, and reduced-motion work.
+- a persistent history sidebar ordered by recent activity;
+- conversation creation and selection;
+- inline renaming with domain validation;
+- explicit two-step deletion confirmation;
+- message history rendering with role and timestamp projection;
+- dedicated loading, no-history, no-selection, and empty-conversation states;
+- visible error projection and refresh controls;
+- a high-contrast dark visual system with large text and control targets.
+
+Message composition and model responses are intentionally not wired yet.
 
 ## Documentation
 
@@ -61,6 +65,7 @@ The initial shell establishes:
 - `docs/decisions/0002-provider-neutral-conversation-core.md`
 - `docs/decisions/0003-local-conversation-persistence.md`
 - `docs/decisions/0004-conversation-lifecycle.md`
+- `docs/decisions/0005-desktop-composition-root.md`
 - `docs/development/project-profile.md`
 - `docs/local-dotnet-toolchain.md`
 - `docs/patch-packages.md`

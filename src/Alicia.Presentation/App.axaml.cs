@@ -7,6 +7,14 @@ namespace Alicia.Presentation;
 
 public partial class App : global::Avalonia.Application
 {
+    private static Func<MainViewModel>? _mainViewModelFactory;
+
+    public static void ConfigureMainViewModelFactory(Func<MainViewModel> factory)
+    {
+        ArgumentNullException.ThrowIfNull(factory);
+        _mainViewModelFactory = factory;
+    }
+
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
@@ -14,7 +22,8 @@ public partial class App : global::Avalonia.Application
 
     public override void OnFrameworkInitializationCompleted()
     {
-        MainViewModel viewModel = new();
+        MainViewModel viewModel = _mainViewModelFactory?.Invoke()
+            ?? throw new InvalidOperationException("The platform host must configure the Alicia presentation runtime before startup.");
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {

@@ -13,7 +13,7 @@ ALLOWED: dict[str, set[str]] = {
     "Alicia.Application": {"Alicia.Domain"},
     "Alicia.Infrastructure": {"Alicia.Application", "Alicia.Domain"},
     "Alicia.Presentation": {"Alicia.Application", "Alicia.Domain"},
-    "Alicia.Desktop": {"Alicia.Presentation"},
+    "Alicia.Desktop": {"Alicia.Infrastructure", "Alicia.Presentation"},
 }
 
 

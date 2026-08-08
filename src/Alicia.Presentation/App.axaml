@@ -7,6 +7,7 @@
     <SolidColorBrush x:Key="SidebarBrush" Color="#0E1423" />
     <SolidColorBrush x:Key="SurfaceBrush" Color="#131B2E" />
     <SolidColorBrush x:Key="SurfaceRaisedBrush" Color="#1A2540" />
+    <SolidColorBrush x:Key="SurfaceHoverBrush" Color="#22304E" />
     <SolidColorBrush x:Key="BorderBrush" Color="#31405F" />
     <SolidColorBrush x:Key="TextPrimaryBrush" Color="#F7F9FF" />
     <SolidColorBrush x:Key="TextSecondaryBrush" Color="#BBC5DD" />
@@ -14,6 +15,8 @@
     <SolidColorBrush x:Key="AccentBrush" Color="#8C7CFF" />
     <SolidColorBrush x:Key="AccentSecondaryBrush" Color="#43E6D1" />
     <SolidColorBrush x:Key="SuccessBrush" Color="#72E6A7" />
+    <SolidColorBrush x:Key="DangerBrush" Color="#FF758C" />
+    <SolidColorBrush x:Key="DangerSurfaceBrush" Color="#391D2A" />
   </Application.Resources>
 
   <Application.Styles>
@@ -28,7 +31,7 @@
       <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
       <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
       <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="24" />
+      <Setter Property="CornerRadius" Value="18" />
     </Style>
 
     <Style Selector="Border.status-chip">
@@ -50,8 +53,51 @@
       <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
 
-    <Style Selector="Button.primary-action:disabled">
+    <Style Selector="Button.secondary-action">
+      <Setter Property="MinHeight" Value="42" />
+      <Setter Property="Padding" Value="14,8" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Background" Value="{DynamicResource SurfaceRaisedBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <Style Selector="Button.danger-action">
+      <Setter Property="MinHeight" Value="42" />
+      <Setter Property="Padding" Value="14,8" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Background" Value="{DynamicResource DangerSurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource DangerBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <Style Selector="Button.history-item">
+      <Setter Property="MinHeight" Value="74" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Margin" Value="0,0,0,8" />
+      <Setter Property="CornerRadius" Value="14" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+
+    <Style Selector="Button.history-item:pointerover">
+      <Setter Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
+    </Style>
+
+    <Style Selector="Button:disabled">
       <Setter Property="Opacity" Value="0.48" />
+    </Style>
+
+    <Style Selector="TextBox.rename-input">
+      <Setter Property="MinHeight" Value="44" />
+      <Setter Property="FontSize" Value="17" />
+      <Setter Property="CornerRadius" Value="12" />
     </Style>
   </Application.Styles>
 </Application>
