@@ -7,7 +7,24 @@ internal sealed class InMemoryConversationRepository : IConversationRepository
 {
     private readonly Dictionary<ConversationId, Conversation> _conversations = [];
 
+    public int DeleteCount { get; private set; }
+
     public int SaveCount { get; private set; }
+
+    public Task<bool> DeleteAsync(
+        ConversationId conversationId,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        bool deleted = _conversations.Remove(conversationId);
+
+        if (deleted)
+        {
+            DeleteCount++;
+        }
+
+        return Task.FromResult(deleted);
+    }
 
     public Task<Conversation?> FindAsync(
         ConversationId conversationId,
@@ -16,6 +33,21 @@ internal sealed class InMemoryConversationRepository : IConversationRepository
         cancellationToken.ThrowIfCancellationRequested();
         _conversations.TryGetValue(conversationId, out Conversation? conversation);
         return Task.FromResult(conversation);
+    }
+
+    public Task<IReadOnlyList<ConversationSummary>> ListAsync(
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        IReadOnlyList<ConversationSummary> conversations = _conversations.Values
+            .Select(ConversationSummary.FromConversation)
+            .OrderByDescending(conversation => conversation.UpdatedAt)
+            .ThenByDescending(conversation => conversation.CreatedAt)
+            .ThenBy(conversation => conversation.Id.Value)
+            .ToArray();
+
+        return Task.FromResult(conversations);
     }
 
     public Task SaveAsync(

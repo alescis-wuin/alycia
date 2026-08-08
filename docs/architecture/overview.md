@@ -8,15 +8,15 @@ Alicia separates conversation rules, application orchestration, external AI/prov
 
 ### Domain
 
-Framework-independent domain concepts and invariants. The conversation core currently owns typed conversation/message identifiers, message roles, immutable message data, and aggregate-level message invariants.
+Framework-independent domain concepts and invariants. The conversation core owns typed conversation/message identifiers, normalized titles, creation/activity metadata, message roles, immutable message data, and aggregate-level lifecycle invariants.
 
 ### Application
 
-Use cases and ports for AI completion, persistence, clocks, files, search, tools, and other external capabilities. The first application slice exposes conversation creation, message appending, and an `IConversationRepository` persistence port without selecting an infrastructure implementation.
+Use cases and ports for AI completion, persistence, clocks, files, search, tools, and other external capabilities. The conversation application slice exposes creation, loading, summary listing, renaming, message appending, deletion, and an `IConversationRepository` persistence port without selecting an infrastructure implementation.
 
 ### Infrastructure
 
-Implementations for provider APIs, persistence, operating-system services, networking, and other external boundaries. The local conversation slice currently provides JSON document persistence with detached aggregate reconstruction and an explicit composition object for the existing use cases.
+Implementations for provider APIs, persistence, operating-system services, networking, and other external boundaries. The local conversation slice provides versioned JSON document persistence, legacy document reads, recent-activity summary listing, deletion, detached aggregate reconstruction, and an explicit composition object for the lifecycle use cases.
 
 ### Presentation
 

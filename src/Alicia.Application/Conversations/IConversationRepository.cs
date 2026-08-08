@@ -8,7 +8,14 @@ public interface IConversationRepository
         ConversationId conversationId,
         CancellationToken cancellationToken);
 
+    Task<IReadOnlyList<ConversationSummary>> ListAsync(
+        CancellationToken cancellationToken);
+
     Task SaveAsync(
         Conversation conversation,
+        CancellationToken cancellationToken);
+
+    Task<bool> DeleteAsync(
+        ConversationId conversationId,
         CancellationToken cancellationToken);
 }

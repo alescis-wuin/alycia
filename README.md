@@ -4,7 +4,7 @@ Alicia is a cross-platform AI chat application built with C#, .NET, and Avalonia
 
 ## Status
 
-The repository contains the engineering foundation, a minimal accessible UI shell, a provider-neutral conversation core, and local JSON conversation persistence with tested creation and message-append workflows. AI providers, tool calling, retrieval, attachments, richer conversation management, and additional platform hosts are intentionally deferred to later atomic work packages.
+The repository contains the engineering foundation, a minimal accessible UI shell, a provider-neutral conversation core, local JSON conversation persistence, and tested conversation lifecycle operations for creation, loading, listing, renaming, message appending, and deletion. AI providers, tool calling, retrieval, attachments, richer presentation workflows, and additional platform hosts are intentionally deferred to later atomic work packages.
 
 ## Current platform target
 
@@ -60,6 +60,7 @@ The initial shell establishes:
 - `docs/decisions/0001-foundation-architecture.md`
 - `docs/decisions/0002-provider-neutral-conversation-core.md`
 - `docs/decisions/0003-local-conversation-persistence.md`
+- `docs/decisions/0004-conversation-lifecycle.md`
 - `docs/development/project-profile.md`
 - `docs/local-dotnet-toolchain.md`
 - `docs/patch-packages.md`

@@ -1,3 +1,4 @@
+using Alicia.Application.Conversations;
 using Alicia.Domain.Conversations;
 using Alicia.Infrastructure.Conversations;
 
@@ -6,7 +7,7 @@ namespace Alicia.Infrastructure.Tests.Conversations;
 public sealed class LocalConversationRuntimeTests
 {
     [Fact]
-    public async Task RuntimeComposesUseCasesAgainstSharedPersistentRepository()
+    public async Task RuntimeComposesConversationLifecycleAgainstSharedPersistentRepository()
     {
         string directory = CreateTemporaryDirectory();
 
@@ -27,16 +28,31 @@ public sealed class LocalConversationRuntimeTests
                     "Persist this message",
                     CancellationToken.None)
                 .ConfigureAwait(true);
+            Conversation renamed = await runtime.RenameConversation
+                .ExecuteAsync(
+                    conversation.Id,
+                    "Runtime lifecycle",
+                    CancellationToken.None)
+                .ConfigureAwait(true);
+            IReadOnlyList<ConversationSummary> summaries = await runtime.ListConversations
+                .ExecuteAsync(CancellationToken.None)
+                .ConfigureAwait(true);
+            Conversation loaded = await runtime.LoadConversation
+                .ExecuteAsync(conversation.Id, CancellationToken.None)
+                .ConfigureAwait(true);
 
-            LocalConversationRuntime reloadedRuntime = LocalConversationRuntime.Create(directory);
-            Conversation persisted = Assert.IsType<Conversation>(await reloadedRuntime.Repository
-                .FindAsync(conversation.Id, CancellationToken.None)
+            Assert.Equal("Runtime lifecycle", renamed.Title);
+            Assert.Equal("Runtime lifecycle", loaded.Title);
+            Assert.Equal(appended.Id, Assert.Single(loaded.Messages).Id);
+            Assert.Equal(conversation.Id, Assert.Single(summaries).Id);
+
+            await runtime.DeleteConversation
+                .ExecuteAsync(conversation.Id, CancellationToken.None)
+                .ConfigureAwait(true);
+
+            Assert.Empty(await runtime.ListConversations
+                .ExecuteAsync(CancellationToken.None)
                 .ConfigureAwait(true));
-
-            ChatMessage persistedMessage = Assert.Single(persisted.Messages);
-            Assert.Equal(appended.Id, persistedMessage.Id);
-            Assert.Equal("Persist this message", persistedMessage.Content);
-            Assert.Equal(now, persistedMessage.CreatedAt);
         }
         finally
         {

@@ -18,7 +18,9 @@ public sealed class CreateConversationUseCaseTests
             CancellationToken.None).ConfigureAwait(true);
 
         Assert.False(conversation.Id.IsEmpty);
+        Assert.Equal(Conversation.DefaultTitle, conversation.Title);
         Assert.Equal(now, conversation.CreatedAt);
+        Assert.Equal(now, conversation.UpdatedAt);
         Assert.Empty(conversation.Messages);
         Assert.Same(conversation, persisted);
         Assert.Equal(1, repository.SaveCount);
