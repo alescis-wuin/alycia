@@ -8,11 +8,11 @@ Alicia separates conversation rules, application orchestration, external AI/prov
 
 ### Domain
 
-Framework-independent domain concepts and invariants.
+Framework-independent domain concepts and invariants. The conversation core currently owns typed conversation/message identifiers, message roles, immutable message data, and aggregate-level message invariants.
 
 ### Application
 
-Use cases and ports for AI completion, persistence, clocks, files, search, tools, and other external capabilities.
+Use cases and ports for AI completion, persistence, clocks, files, search, tools, and other external capabilities. The first application slice exposes conversation creation, message appending, and an `IConversationRepository` persistence port without selecting an infrastructure implementation.
 
 ### Infrastructure
 
