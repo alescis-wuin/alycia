@@ -50,15 +50,17 @@ The current Avalonia presentation provides:
 - a persistent history sidebar ordered by recent activity;
 - conversation creation and selection;
 - contextual rename and delete actions revealed on pointer hover or keyboard focus;
-- orange edit and red delete icon actions with accessible names and tooltips;
-- inline renaming with domain validation and Enter/Escape keyboard handling;
+- orange edit and red delete icon actions with contextual tooltips and accessible names;
+- direct inline renaming that replaces the history title in place, focuses the editor, and selects the current title automatically;
+- Enter/Escape and inline save/cancel actions with presentation-side validation before domain persistence;
 - explicit two-step deletion confirmation with irreversible-action warning;
 - message history rendering with role and timestamp projection;
 - dedicated loading, no-history, no-selection, and empty-conversation states;
-- visible error projection, busy progress, and refresh controls;
+- visible error projection, busy progress, live-region announcements, and refresh controls;
 - keyboard shortcuts for creation, refresh, rename, and cancellation;
 - responsive sidebar and content spacing driven by Avalonia container queries;
-- a high-contrast dark visual system with visible keyboard focus and large control targets.
+- navigation/main accessibility landmarks, heading metadata, visible keyboard focus, and large control targets;
+- a high-contrast dark visual system with distinct selected, editing, success, and destructive states.
 
 Message composition and model responses are intentionally not wired yet.
 

@@ -15,6 +15,7 @@
     <SolidColorBrush x:Key="AccentBrush" Color="#8C7CFF" />
     <SolidColorBrush x:Key="AccentSecondaryBrush" Color="#43E6D1" />
     <SolidColorBrush x:Key="SuccessBrush" Color="#72E6A7" />
+    <SolidColorBrush x:Key="SuccessSurfaceBrush" Color="#173329" />
     <SolidColorBrush x:Key="EditBrush" Color="#FFB454" />
     <SolidColorBrush x:Key="EditSurfaceBrush" Color="#3A2B19" />
     <SolidColorBrush x:Key="DangerBrush" Color="#FF5F74" />
@@ -94,6 +95,17 @@
       <Setter Property="BorderBrush" Value="{DynamicResource AccentSecondaryBrush}" />
     </Style>
 
+    <Style Selector="Border.history-row.selected">
+      <Setter Property="Background" Value="{DynamicResource SurfaceRaisedBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentSecondaryBrush}" />
+    </Style>
+
+    <Style Selector="Border.history-row.editing">
+      <Setter Property="Background" Value="{DynamicResource EditSurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource EditBrush}" />
+      <Setter Property="BorderThickness" Value="2" />
+    </Style>
+
     <Style Selector="Button.history-item">
       <Setter Property="MinHeight" Value="66" />
       <Setter Property="Padding" Value="0" />
@@ -140,6 +152,23 @@
       <Setter Property="BorderBrush" Value="{DynamicResource DangerBrush}" />
     </Style>
 
+    <Style Selector="Button.history-action.save-history-action:pointerover">
+      <Setter Property="Background" Value="{DynamicResource SuccessSurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource SuccessBrush}" />
+    </Style>
+
+    <Style Selector="Button.history-action.edit-history-action:focus-visible">
+      <Setter Property="BorderBrush" Value="{DynamicResource EditBrush}" />
+    </Style>
+
+    <Style Selector="Button.history-action.delete-history-action:focus-visible">
+      <Setter Property="BorderBrush" Value="{DynamicResource DangerBrush}" />
+    </Style>
+
+    <Style Selector="Button.history-action.save-history-action:focus-visible">
+      <Setter Property="BorderBrush" Value="{DynamicResource SuccessBrush}" />
+    </Style>
+
     <Style Selector="Button:focus-visible">
       <Setter Property="BorderBrush" Value="{DynamicResource AccentSecondaryBrush}" />
       <Setter Property="BorderThickness" Value="2" />
@@ -154,10 +183,24 @@
       <Setter Property="Opacity" Value="0.48" />
     </Style>
 
-    <Style Selector="TextBox.rename-input">
-      <Setter Property="MinHeight" Value="44" />
-      <Setter Property="FontSize" Value="17" />
-      <Setter Property="CornerRadius" Value="12" />
+    <Style Selector="TextBox.inline-rename">
+      <Setter Property="MinHeight" Value="42" />
+      <Setter Property="Padding" Value="10,6" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource EditBrush}" />
+      <Setter Property="BorderThickness" Value="2" />
+      <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+      <Setter Property="FontSize" Value="15" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="SelectionBrush" Value="{DynamicResource EditBrush}" />
+      <Setter Property="SelectionForegroundBrush" Value="{DynamicResource TextOnAccentBrush}" />
+      <Setter Property="CaretBrush" Value="{DynamicResource EditBrush}" />
+    </Style>
+
+    <Style Selector="TextBox.inline-rename:focus">
+      <Setter Property="BorderBrush" Value="{DynamicResource EditBrush}" />
+      <Setter Property="BorderThickness" Value="2" />
     </Style>
   </Application.Styles>
 </Application>

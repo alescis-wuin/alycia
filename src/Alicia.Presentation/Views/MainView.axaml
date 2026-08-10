@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:Alicia.Presentation.Controls"
              xmlns:vm="using:Alicia.Presentation.ViewModels"
              x:Class="Alicia.Presentation.Views.MainView"
              x:DataType="vm:MainViewModel"
@@ -61,13 +62,17 @@
             Background="{DynamicResource SidebarBrush}"
             BorderBrush="{DynamicResource BorderBrush}"
             BorderThickness="0,0,1,0"
-            Padding="20">
+            Padding="20"
+            AutomationProperties.Name="Conversation history"
+            AutomationProperties.LandmarkType="Navigation"
+            AutomationProperties.AccessibilityView="Control">
       <Grid RowDefinitions="Auto,18,Auto,18,Auto,*,Auto">
         <Grid ColumnDefinitions="*,Auto">
           <StackPanel Spacing="3">
             <TextBlock Classes="brand-title"
                        Text="{Binding ApplicationName}"
                        FontSize="30"
+                       AutomationProperties.HeadingLevel="1"
                        FontWeight="Bold"
                        Foreground="{DynamicResource TextPrimaryBrush}" />
             <TextBlock Classes="brand-subtitle"
@@ -83,6 +88,8 @@
                   IsEnabled="{Binding IsInteractionEnabled}"
                   Content="Refresh"
                   AutomationProperties.Name="Refresh conversation history"
+                  AutomationProperties.HelpText="Reload conversations stored on this device."
+                  AutomationProperties.AcceleratorKey="F5"
                   ToolTip.Tip="Refresh local conversation history (F5)" />
         </Grid>
 
@@ -92,11 +99,14 @@
                 IsEnabled="{Binding IsInteractionEnabled}"
                 Content="+ New conversation"
                 AutomationProperties.Name="Create new conversation"
+                AutomationProperties.HelpText="Create and select a new local conversation."
+                AutomationProperties.AcceleratorKey="Ctrl+N"
                 ToolTip.Tip="Create a new local conversation (Ctrl+N)" />
 
         <Grid Grid.Row="4" ColumnDefinitions="*,Auto">
           <TextBlock Text="History"
                      FontSize="15"
+                     AutomationProperties.HeadingLevel="2"
                      FontWeight="SemiBold"
                      Foreground="{DynamicResource TextPrimaryBrush}"
                      VerticalAlignment="Center" />
@@ -114,12 +124,17 @@
                           KeyboardNavigation.TabNavigation="Continue">
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:ConversationListItemViewModel">
-                  <Border Classes="history-row">
+                  <Border Classes="history-row"
+                          Classes.selected="{Binding IsSelected}"
+                          Classes.editing="{Binding IsRenaming}">
                     <Grid>
                       <Button Classes="history-item"
                               Command="{Binding SelectCommand}"
+                              IsVisible="{Binding IsTitleVisible}"
                               AutomationProperties.Name="{Binding SelectionAutomationName}"
-                              AutomationProperties.HelpText="Open this conversation. Hover or focus the row for rename and delete actions.">
+                              AutomationProperties.HelpText="Open this conversation. Hover or focus the row for rename and delete actions."
+                              AutomationProperties.ItemStatus="{Binding MetadataLabel}"
+                              ToolTip.Tip="{Binding SelectionToolTip}">
                         <Grid ColumnDefinitions="5,12,*" Margin="0">
                           <Border Grid.Column="0"
                                   Margin="0,10,0,10"
@@ -134,6 +149,7 @@
                                        FontSize="15"
                                        FontWeight="SemiBold"
                                        TextTrimming="CharacterEllipsis"
+                                       ToolTip.Tip="{Binding Title}"
                                        Foreground="{DynamicResource TextPrimaryBrush}" />
                             <TextBlock Classes="history-meta"
                                        Text="{Binding MetadataLabel}"
@@ -149,11 +165,13 @@
                                   Spacing="6"
                                   Margin="0,0,10,0"
                                   HorizontalAlignment="Right"
-                                  VerticalAlignment="Center">
+                                  VerticalAlignment="Center"
+                                  IsVisible="{Binding IsTitleVisible}">
                         <Button Classes="history-action edit-history-action"
                                 Command="{Binding RenameCommand}"
                                 AutomationProperties.Name="{Binding RenameAutomationName}"
-                                ToolTip.Tip="Rename conversation">
+                                AutomationProperties.HelpText="Edit the title inline. Enter saves the new title; Escape cancels."
+                                ToolTip.Tip="{Binding RenameToolTip}">
                           <PathIcon Width="17"
                                     Height="17"
                                     Foreground="{DynamicResource EditBrush}"
@@ -162,13 +180,67 @@
                         <Button Classes="history-action delete-history-action"
                                 Command="{Binding DeleteCommand}"
                                 AutomationProperties.Name="{Binding DeleteAutomationName}"
-                                ToolTip.Tip="Delete conversation">
+                                AutomationProperties.HelpText="Open a confirmation before permanently deleting this local conversation."
+                                ToolTip.Tip="{Binding DeleteToolTip}">
                           <PathIcon Width="17"
                                     Height="17"
                                     Foreground="{DynamicResource DangerBrush}"
                                     Data="M6,19 C6,20.1 6.9,21 8,21 H16 C17.1,21 18,20.1 18,19 V7 H6 V19 M8,9 H16 V19 H8 V9 M15.5,4 L14.5,3 H9.5 L8.5,4 H5 V6 H19 V4 H15.5 Z" />
                         </Button>
                       </StackPanel>
+
+                      <Grid ColumnDefinitions="5,12,*,Auto,Auto"
+                            IsVisible="{Binding IsRenaming}">
+                        <Border Grid.Column="0"
+                                Margin="0,10,0,10"
+                                CornerRadius="3"
+                                Background="{DynamicResource EditBrush}" />
+
+                        <controls:InlineRenameTextBox Grid.Column="2"
+                                                      Classes="inline-rename"
+                                                      Margin="0,10,8,10"
+                                                      Text="{Binding RenameTitle, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                      MaxLength="120"
+                                                      AutomationProperties.Name="{Binding RenameInputAutomationName}"
+                                                      AutomationProperties.HelpText="Type a new conversation title. The current title is selected automatically. Press Enter to save or Escape to cancel."
+                                                      ToolTip.Tip="{Binding RenameInputToolTip}">
+                          <controls:InlineRenameTextBox.KeyBindings>
+                            <KeyBinding Gesture="Enter" Command="{Binding SaveRenameCommand}" />
+                            <KeyBinding Gesture="Escape" Command="{Binding CancelRenameCommand}" />
+                          </controls:InlineRenameTextBox.KeyBindings>
+                        </controls:InlineRenameTextBox>
+
+                        <Button Grid.Column="3"
+                                Classes="history-action save-history-action"
+                                Margin="0,0,6,0"
+                                VerticalAlignment="Center"
+                                Command="{Binding SaveRenameCommand}"
+                                IsEnabled="{Binding CanSaveRename}"
+                                AutomationProperties.Name="{Binding SaveRenameAutomationName}"
+                                AutomationProperties.HelpText="Save the edited title. The same action is available with Enter."
+                                AutomationProperties.AcceleratorKey="Enter"
+                                ToolTip.Tip="Save title (Enter)">
+                          <PathIcon Width="17"
+                                    Height="17"
+                                    Foreground="{DynamicResource SuccessBrush}"
+                                    Data="M9,16.17 L4.83,12 L3.41,13.41 L9,19 L21,7 L19.59,5.59 Z" />
+                        </Button>
+
+                        <Button Grid.Column="4"
+                                Classes="history-action"
+                                Margin="0,0,10,0"
+                                VerticalAlignment="Center"
+                                Command="{Binding CancelRenameCommand}"
+                                AutomationProperties.Name="{Binding CancelRenameAutomationName}"
+                                AutomationProperties.HelpText="Cancel title editing and restore the previous title. The same action is available with Escape."
+                                AutomationProperties.AcceleratorKey="Escape"
+                                ToolTip.Tip="Cancel rename (Escape)">
+                          <PathIcon Width="17"
+                                    Height="17"
+                                    Foreground="{DynamicResource TextSecondaryBrush}"
+                                    Data="M18.3,5.71 L12,12 L5.7,5.71 L4.29,7.12 L10.59,13.41 L4.29,19.71 L5.7,21.12 L12,14.83 L18.3,21.12 L19.71,19.71 L13.41,13.41 L19.71,7.12 Z" />
+                        </Button>
+                      </Grid>
                     </Grid>
                   </Border>
                 </DataTemplate>
@@ -198,6 +270,7 @@
                        IsVisible="{Binding IsBusy}" />
           <TextBlock Text="{Binding StatusText}"
                      FontSize="12"
+                     AutomationProperties.LiveSetting="Polite"
                      Foreground="{DynamicResource TextSecondaryBrush}" />
           <TextBlock Classes="sidebar-shortcuts"
                      Text="Ctrl+N new • F5 refresh • F2 rename • Esc cancel"
@@ -211,7 +284,10 @@
     <Grid Grid.Column="1"
           Classes="content-shell"
           RowDefinitions="Auto,Auto,*"
-          Margin="28">
+          Margin="28"
+          AutomationProperties.Name="Conversation workspace"
+          AutomationProperties.LandmarkType="Main"
+          AutomationProperties.AccessibilityView="Control">
       <Border Grid.Row="0"
               Classes="surface"
               Padding="16"
@@ -225,69 +301,33 @@
                        Foreground="{DynamicResource DangerBrush}" />
             <TextBlock Text="{Binding ErrorMessage}"
                        TextWrapping="Wrap"
+                       AutomationProperties.LiveSetting="Assertive"
                        Foreground="{DynamicResource TextPrimaryBrush}" />
           </StackPanel>
           <Button Grid.Column="1"
                   Classes="secondary-action"
                   Command="{Binding DismissErrorCommand}"
-                  Content="Dismiss" />
+                  Content="Dismiss"
+                  AutomationProperties.Name="Dismiss error notification"
+                  ToolTip.Tip="Dismiss this error" />
         </Grid>
       </Border>
 
       <StackPanel Grid.Row="1" Margin="2,0,2,18" Spacing="4">
         <TextBlock Text="{Binding SelectedConversationTitle}"
                    FontSize="24"
+                   AutomationProperties.HeadingLevel="2"
                    FontWeight="Bold"
                    TextTrimming="CharacterEllipsis"
+                   ToolTip.Tip="{Binding SelectedConversationTitle}"
                    Foreground="{DynamicResource TextPrimaryBrush}" />
         <TextBlock Text="{Binding SelectedConversationMeta}"
                    FontSize="14"
                    Foreground="{DynamicResource TextSecondaryBrush}" />
-        <TextBlock Text="Hover or focus a history item for rename and delete actions. Press F2 to rename the selected conversation."
-                   FontSize="12"
-                   TextWrapping="Wrap"
-                   IsVisible="{Binding HasSelectedConversation}"
-                   Foreground="{DynamicResource TextSecondaryBrush}" />
       </StackPanel>
 
-      <Grid Grid.Row="2" RowDefinitions="Auto,Auto,*">
+      <Grid Grid.Row="2" RowDefinitions="Auto,*">
         <Border Grid.Row="0"
-                Classes="surface"
-                Padding="16"
-                Margin="0,0,0,14"
-                IsVisible="{Binding IsRenaming}">
-          <StackPanel Spacing="9">
-            <TextBlock Text="Rename conversation"
-                       FontWeight="SemiBold"
-                       Foreground="{DynamicResource EditBrush}" />
-            <Grid ColumnDefinitions="*,Auto,Auto">
-              <TextBox Classes="rename-input"
-                       Text="{Binding RenameTitle, Mode=TwoWay}"
-                       PlaceholderText="Conversation title"
-                       MaxLength="120"
-                       AutomationProperties.Name="Conversation title"
-                       AutomationProperties.HelpText="Enter a title of up to 120 characters. Press Enter to save or Escape to cancel.">
-                <TextBox.KeyBindings>
-                  <KeyBinding Gesture="Enter" Command="{Binding SaveRenameCommand}" />
-                  <KeyBinding Gesture="Escape" Command="{Binding CancelTransientActionCommand}" />
-                </TextBox.KeyBindings>
-              </TextBox>
-              <Button Grid.Column="1"
-                      Margin="10,0,0,0"
-                      Classes="primary-action"
-                      Command="{Binding SaveRenameCommand}"
-                      IsEnabled="{Binding CanSaveRename}"
-                      Content="Save" />
-              <Button Grid.Column="2"
-                      Margin="10,0,0,0"
-                      Classes="secondary-action"
-                      Command="{Binding CancelRenameCommand}"
-                      Content="Cancel" />
-            </Grid>
-          </StackPanel>
-        </Border>
-
-        <Border Grid.Row="1"
                 Background="{DynamicResource DangerSurfaceBrush}"
                 BorderBrush="{DynamicResource DangerBrush}"
                 BorderThickness="1"
@@ -295,7 +335,8 @@
                 Padding="16"
                 Margin="0,0,0,14"
                 IsVisible="{Binding IsDeleteConfirmationVisible}"
-                AutomationProperties.Name="Delete conversation confirmation">
+                AutomationProperties.Name="Delete conversation confirmation"
+                AutomationProperties.LiveSetting="Assertive">
           <Grid ColumnDefinitions="*,Auto,Auto">
             <StackPanel Spacing="4">
               <TextBlock Text="Delete conversation?"
@@ -313,16 +354,21 @@
                     Margin="10,0,0,0"
                     Classes="danger-action"
                     Command="{Binding ConfirmDeleteCommand}"
-                    Content="Confirm delete" />
+                    Content="Confirm delete"
+                    AutomationProperties.Name="Permanently delete selected conversation"
+                    AutomationProperties.HelpText="This permanently removes the local conversation file and cannot be undone."
+                    ToolTip.Tip="Permanently delete this conversation" />
             <Button Grid.Column="2"
                     Margin="10,0,0,0"
                     Classes="secondary-action"
                     Command="{Binding CancelDeleteCommand}"
-                    Content="Cancel" />
+                    Content="Cancel"
+                    AutomationProperties.Name="Keep selected conversation"
+                    ToolTip.Tip="Cancel deletion (Escape)" />
           </Grid>
         </Border>
 
-        <Border Grid.Row="2" Classes="surface" Padding="22">
+        <Border Grid.Row="1" Classes="surface" Padding="22">
           <Grid>
             <StackPanel HorizontalAlignment="Center"
                         VerticalAlignment="Center"
@@ -371,7 +417,9 @@
               <Button Classes="primary-action"
                       Command="{Binding CreateConversationCommand}"
                       HorizontalAlignment="Center"
-                      Content="Create conversation" />
+                      Content="Create conversation"
+                      AutomationProperties.Name="Create first conversation"
+                      ToolTip.Tip="Create a new local conversation (Ctrl+N)" />
             </StackPanel>
 
             <StackPanel HorizontalAlignment="Center"

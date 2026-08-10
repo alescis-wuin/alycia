@@ -16,10 +16,8 @@ public sealed class MainViewModel : ViewModelBase
     private bool _isBusy;
     private bool _isDeleteConfirmationVisible;
     private bool _isInitialized;
-    private bool _isRenaming;
     private ConversationListItemViewModel? _selectedConversation;
     private string? _errorMessage;
-    private string _renameTitle = string.Empty;
 
     public MainViewModel(
         CreateConversationUseCase createConversation,
@@ -43,8 +41,6 @@ public sealed class MainViewModel : ViewModelBase
         CreateConversationCommand = new AsyncRelayCommand(CreateConversationAsync);
         RefreshCommand = new AsyncRelayCommand(RefreshAsync);
         BeginRenameCommand = new RelayCommand(BeginRename);
-        CancelRenameCommand = new RelayCommand(CancelRename);
-        SaveRenameCommand = new AsyncRelayCommand(SaveRenameAsync);
         RequestDeleteCommand = new RelayCommand(RequestDelete);
         CancelDeleteCommand = new RelayCommand(CancelDelete);
         ConfirmDeleteCommand = new AsyncRelayCommand(ConfirmDeleteAsync);
@@ -63,10 +59,6 @@ public sealed class MainViewModel : ViewModelBase
     public IAsyncRelayCommand RefreshCommand { get; }
 
     public IRelayCommand BeginRenameCommand { get; }
-
-    public IRelayCommand CancelRenameCommand { get; }
-
-    public IAsyncRelayCommand SaveRenameCommand { get; }
 
     public IRelayCommand RequestDeleteCommand { get; }
 
@@ -97,18 +89,6 @@ public sealed class MainViewModel : ViewModelBase
         }
     }
 
-    public string RenameTitle
-    {
-        get => _renameTitle;
-        set
-        {
-            if (SetProperty(ref _renameTitle, value))
-            {
-                OnPropertyChanged(nameof(CanSaveRename));
-            }
-        }
-    }
-
     public bool IsBusy
     {
         get => _isBusy;
@@ -117,7 +97,6 @@ public sealed class MainViewModel : ViewModelBase
             if (SetProperty(ref _isBusy, value))
             {
                 OnPropertyChanged(nameof(IsInteractionEnabled));
-                OnPropertyChanged(nameof(CanSaveRename));
                 OnPropertyChanged(nameof(StatusText));
 
                 foreach (ConversationListItemViewModel item in Conversations)
@@ -140,12 +119,6 @@ public sealed class MainViewModel : ViewModelBase
                 RaiseEmptyStateChanged();
             }
         }
-    }
-
-    public bool IsRenaming
-    {
-        get => _isRenaming;
-        private set => SetProperty(ref _isRenaming, value);
     }
 
     public bool IsDeleteConfirmationVisible
@@ -191,11 +164,6 @@ public sealed class MainViewModel : ViewModelBase
     public string DeletePrompt => SelectedConversation is null
         ? "Delete this conversation?"
         : $"Delete ‘{SelectedConversation.Title}’?";
-
-    public bool CanSaveRename => IsInteractionEnabled
-        && HasSelectedConversation
-        && !string.IsNullOrWhiteSpace(RenameTitle)
-        && RenameTitle.Trim().Length <= Conversation.MaxTitleLength;
 
     public string StatusText => IsBusy ? "Working…" : "Local history ready";
 
@@ -243,37 +211,9 @@ public sealed class MainViewModel : ViewModelBase
             return;
         }
 
-        RenameTitle = SelectedConversation.Title;
+        CancelAllRenames();
         IsDeleteConfirmationVisible = false;
-        IsRenaming = true;
-    }
-
-    private void CancelRename()
-    {
-        IsRenaming = false;
-        RenameTitle = string.Empty;
-    }
-
-    private async Task SaveRenameAsync()
-    {
-        if (SelectedConversation is null || !CanSaveRename)
-        {
-            return;
-        }
-
-        ConversationId conversationId = SelectedConversation.Id;
-        string title = RenameTitle;
-
-        await ExecuteOperationAsync(async () =>
-        {
-            await _renameConversation
-                .ExecuteAsync(conversationId, title)
-                .ConfigureAwait(true);
-
-            IsRenaming = false;
-            RenameTitle = string.Empty;
-            await ReloadConversationsAsync(conversationId).ConfigureAwait(true);
-        }).ConfigureAwait(true);
+        SelectedConversation.BeginRename();
     }
 
     private void RequestDelete()
@@ -283,7 +223,7 @@ public sealed class MainViewModel : ViewModelBase
             return;
         }
 
-        IsRenaming = false;
+        CancelAllRenames();
         IsDeleteConfirmationVisible = true;
     }
 
@@ -294,7 +234,7 @@ public sealed class MainViewModel : ViewModelBase
 
     private void CancelTransientAction()
     {
-        CancelRename();
+        CancelAllRenames();
         CancelDelete();
     }
 
@@ -343,7 +283,33 @@ public sealed class MainViewModel : ViewModelBase
             return;
         }
 
-        BeginRename();
+        CancelAllRenames();
+        IsDeleteConfirmationVisible = false;
+        conversation.BeginRename();
+    }
+
+    private async Task SaveRenameConversationAsync(ConversationListItemViewModel conversation)
+    {
+        ArgumentNullException.ThrowIfNull(conversation);
+
+        if (IsBusy
+            || SelectedConversation?.Id != conversation.Id
+            || !conversation.CanSaveRename)
+        {
+            return;
+        }
+
+        ConversationId conversationId = conversation.Id;
+        string title = conversation.RenameTitle;
+
+        await ExecuteOperationAsync(async () =>
+        {
+            await _renameConversation
+                .ExecuteAsync(conversationId, title)
+                .ConfigureAwait(true);
+
+            await ReloadConversationsAsync(conversationId).ConfigureAwait(true);
+        }).ConfigureAwait(true);
     }
 
     private async Task RequestDeleteConversationAsync(ConversationListItemViewModel conversation)
@@ -390,6 +356,7 @@ public sealed class MainViewModel : ViewModelBase
                 summary,
                 SelectConversationAsync,
                 BeginRenameConversationAsync,
+                SaveRenameConversationAsync,
                 RequestDeleteConversationAsync,
                 () => IsInteractionEnabled));
         }
@@ -415,6 +382,7 @@ public sealed class MainViewModel : ViewModelBase
             .ExecuteAsync(item.Id)
             .ConfigureAwait(true);
 
+        CancelAllRenames();
         SelectedConversation = item;
         Messages.Clear();
 
@@ -423,20 +391,25 @@ public sealed class MainViewModel : ViewModelBase
             Messages.Add(new MessageViewModel(message));
         }
 
-        IsRenaming = false;
-        RenameTitle = string.Empty;
         IsDeleteConfirmationVisible = false;
         RaiseMessageStateChanged();
     }
 
     private void ClearSelection()
     {
+        CancelAllRenames();
         SelectedConversation = null;
         Messages.Clear();
-        IsRenaming = false;
-        RenameTitle = string.Empty;
         IsDeleteConfirmationVisible = false;
         RaiseMessageStateChanged();
+    }
+
+    private void CancelAllRenames()
+    {
+        foreach (ConversationListItemViewModel item in Conversations)
+        {
+            item.CancelRename();
+        }
     }
 
     private async Task ExecuteOperationAsync(Func<Task> operation)
@@ -501,7 +474,6 @@ public sealed class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasSelectedConversation));
         OnPropertyChanged(nameof(SelectedConversationTitle));
         OnPropertyChanged(nameof(DeletePrompt));
-        OnPropertyChanged(nameof(CanSaveRename));
         RaiseMessageStateChanged();
         RaiseEmptyStateChanged();
     }
