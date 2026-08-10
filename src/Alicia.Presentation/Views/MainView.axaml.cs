@@ -15,6 +15,12 @@ public partial class MainView : UserControl
     public MainView()
     {
         InitializeComponent();
+
+        MessageComposer.AddHandler(
+            InputElement.KeyDownEvent,
+            OnMessageComposerKeyDown,
+            RoutingStrategies.Tunnel,
+            handledEventsToo: true);
     }
 
     private async void OnLoaded(object? sender, RoutedEventArgs eventArgs)
