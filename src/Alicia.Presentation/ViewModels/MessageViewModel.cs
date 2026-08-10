@@ -21,6 +21,11 @@ public sealed class MessageViewModel
         CreatedAtLabel = message.CreatedAt
             .ToLocalTime()
             .ToString("g", CultureInfo.CurrentCulture);
+
+        IsSystem = message.Role == MessageRole.System;
+        IsUser = message.Role == MessageRole.User;
+        IsAssistant = message.Role == MessageRole.Assistant;
+        AutomationName = $"{RoleLabel} message at {CreatedAtLabel}";
     }
 
     public string RoleLabel { get; }
@@ -28,4 +33,12 @@ public sealed class MessageViewModel
     public string Content { get; }
 
     public string CreatedAtLabel { get; }
+
+    public bool IsSystem { get; }
+
+    public bool IsUser { get; }
+
+    public bool IsAssistant { get; }
+
+    public string AutomationName { get; }
 }

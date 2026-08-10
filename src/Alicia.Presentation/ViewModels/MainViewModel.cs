@@ -7,6 +7,7 @@ namespace Alicia.Presentation.ViewModels;
 
 public sealed class MainViewModel : ViewModelBase
 {
+    private readonly AppendMessageUseCase _appendMessage;
     private readonly CreateConversationUseCase _createConversation;
     private readonly DeleteConversationUseCase _deleteConversation;
     private readonly ListConversationsUseCase _listConversations;
@@ -16,23 +17,28 @@ public sealed class MainViewModel : ViewModelBase
     private bool _isBusy;
     private bool _isDeleteConfirmationVisible;
     private bool _isInitialized;
+    private bool _isSendingMessage;
     private ConversationListItemViewModel? _selectedConversation;
     private string? _errorMessage;
+    private string _messageDraft = string.Empty;
 
     public MainViewModel(
         CreateConversationUseCase createConversation,
+        AppendMessageUseCase appendMessage,
         LoadConversationUseCase loadConversation,
         ListConversationsUseCase listConversations,
         RenameConversationUseCase renameConversation,
         DeleteConversationUseCase deleteConversation)
     {
         ArgumentNullException.ThrowIfNull(createConversation);
+        ArgumentNullException.ThrowIfNull(appendMessage);
         ArgumentNullException.ThrowIfNull(loadConversation);
         ArgumentNullException.ThrowIfNull(listConversations);
         ArgumentNullException.ThrowIfNull(renameConversation);
         ArgumentNullException.ThrowIfNull(deleteConversation);
 
         _createConversation = createConversation;
+        _appendMessage = appendMessage;
         _loadConversation = loadConversation;
         _listConversations = listConversations;
         _renameConversation = renameConversation;
@@ -40,6 +46,7 @@ public sealed class MainViewModel : ViewModelBase
 
         CreateConversationCommand = new AsyncRelayCommand(CreateConversationAsync);
         RefreshCommand = new AsyncRelayCommand(RefreshAsync);
+        SendMessageCommand = new AsyncRelayCommand(SendMessageAsync, () => CanSendMessage);
         BeginRenameCommand = new RelayCommand(BeginRename);
         RequestDeleteCommand = new RelayCommand(RequestDelete);
         CancelDeleteCommand = new RelayCommand(CancelDelete);
@@ -57,6 +64,8 @@ public sealed class MainViewModel : ViewModelBase
     public IAsyncRelayCommand CreateConversationCommand { get; }
 
     public IAsyncRelayCommand RefreshCommand { get; }
+
+    public IAsyncRelayCommand SendMessageCommand { get; }
 
     public IRelayCommand BeginRenameCommand { get; }
 
@@ -80,12 +89,32 @@ public sealed class MainViewModel : ViewModelBase
                 return;
             }
 
+            bool conversationChanged = _selectedConversation?.Id != value?.Id;
+
             _selectedConversation?.SetSelected(false);
             _selectedConversation = value;
             _selectedConversation?.SetSelected(true);
 
+            if (conversationChanged)
+            {
+                MessageDraft = string.Empty;
+            }
+
             OnPropertyChanged();
             RaiseSelectionStateChanged();
+        }
+    }
+
+    public string MessageDraft
+    {
+        get => _messageDraft;
+        set
+        {
+            if (SetProperty(ref _messageDraft, value))
+            {
+                OnPropertyChanged(nameof(CanSendMessage));
+                SendMessageCommand.NotifyCanExecuteChanged();
+            }
         }
     }
 
@@ -97,7 +126,12 @@ public sealed class MainViewModel : ViewModelBase
             if (SetProperty(ref _isBusy, value))
             {
                 OnPropertyChanged(nameof(IsInteractionEnabled));
+                OnPropertyChanged(nameof(CanSendMessage));
+                OnPropertyChanged(nameof(IsComposerEnabled));
+                OnPropertyChanged(nameof(SendButtonLabel));
+                OnPropertyChanged(nameof(ComposerStatusText));
                 OnPropertyChanged(nameof(StatusText));
+                SendMessageCommand.NotifyCanExecuteChanged();
 
                 foreach (ConversationListItemViewModel item in Conversations)
                 {
@@ -108,6 +142,26 @@ public sealed class MainViewModel : ViewModelBase
     }
 
     public bool IsInteractionEnabled => !IsBusy;
+
+    public bool IsComposerEnabled => IsInteractionEnabled
+        && HasSelectedConversation
+        && !IsDeleteConfirmationVisible;
+
+    public bool CanSendMessage => IsComposerEnabled && !string.IsNullOrWhiteSpace(MessageDraft);
+
+    public bool IsSendingMessage
+    {
+        get => _isSendingMessage;
+        private set
+        {
+            if (SetProperty(ref _isSendingMessage, value))
+            {
+                OnPropertyChanged(nameof(SendButtonLabel));
+                OnPropertyChanged(nameof(ComposerStatusText));
+                OnPropertyChanged(nameof(StatusText));
+            }
+        }
+    }
 
     public bool IsInitialized
     {
@@ -124,7 +178,15 @@ public sealed class MainViewModel : ViewModelBase
     public bool IsDeleteConfirmationVisible
     {
         get => _isDeleteConfirmationVisible;
-        private set => SetProperty(ref _isDeleteConfirmationVisible, value);
+        private set
+        {
+            if (SetProperty(ref _isDeleteConfirmationVisible, value))
+            {
+                OnPropertyChanged(nameof(CanSendMessage));
+                OnPropertyChanged(nameof(IsComposerEnabled));
+                SendMessageCommand.NotifyCanExecuteChanged();
+            }
+        }
     }
 
     public string? ErrorMessage
@@ -165,7 +227,21 @@ public sealed class MainViewModel : ViewModelBase
         ? "Delete this conversation?"
         : $"Delete ‘{SelectedConversation.Title}’?";
 
-    public string StatusText => IsBusy ? "Working…" : "Local history ready";
+    public string ComposerPlaceholder => HasSelectedConversation
+        ? "Write a local message…"
+        : "Select a conversation to write a message";
+
+    public string ComposerStatusText => IsSendingMessage
+        ? "Saving message locally…"
+        : "Enter sends • Shift+Enter adds a new line • Local storage only";
+
+    public string SendButtonLabel => IsSendingMessage ? "Saving…" : "Send";
+
+    public string StatusText => IsSendingMessage
+        ? "Saving message…"
+        : IsBusy
+            ? "Working…"
+            : "Local history ready";
 
     public async Task InitializeAsync()
     {
@@ -202,6 +278,39 @@ public sealed class MainViewModel : ViewModelBase
         {
             await ReloadConversationsAsync(selectedId).ConfigureAwait(true);
         }).ConfigureAwait(true);
+    }
+
+    private async Task SendMessageAsync()
+    {
+        if (!CanSendMessage || SelectedConversation is null)
+        {
+            return;
+        }
+
+        ConversationId conversationId = SelectedConversation.Id;
+        string content = MessageDraft.Trim();
+
+        IsSendingMessage = true;
+
+        try
+        {
+            await ExecuteOperationAsync(async () =>
+            {
+                CancelAllRenames();
+                IsDeleteConfirmationVisible = false;
+
+                await _appendMessage
+                    .ExecuteAsync(conversationId, MessageRole.User, content)
+                    .ConfigureAwait(true);
+
+                MessageDraft = string.Empty;
+                await ReloadConversationsAsync(conversationId).ConfigureAwait(true);
+            }).ConfigureAwait(true);
+        }
+        finally
+        {
+            IsSendingMessage = false;
+        }
     }
 
     private void BeginRename()
@@ -474,6 +583,10 @@ public sealed class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasSelectedConversation));
         OnPropertyChanged(nameof(SelectedConversationTitle));
         OnPropertyChanged(nameof(DeletePrompt));
+        OnPropertyChanged(nameof(CanSendMessage));
+        OnPropertyChanged(nameof(IsComposerEnabled));
+        OnPropertyChanged(nameof(ComposerPlaceholder));
+        SendMessageCommand.NotifyCanExecuteChanged();
         RaiseMessageStateChanged();
         RaiseEmptyStateChanged();
     }

@@ -7,6 +7,8 @@ internal sealed class InMemoryConversationRepository : IConversationRepository
 {
     private readonly Dictionary<ConversationId, Conversation> _conversations = [];
 
+    public Exception? SaveException { get; set; }
+
     public Task<bool> DeleteAsync(
         ConversationId conversationId,
         CancellationToken cancellationToken)
@@ -45,6 +47,12 @@ internal sealed class InMemoryConversationRepository : IConversationRepository
     {
         ArgumentNullException.ThrowIfNull(conversation);
         cancellationToken.ThrowIfCancellationRequested();
+
+        if (SaveException is not null)
+        {
+            return Task.FromException(SaveException);
+        }
+
         _conversations[conversation.Id] = conversation;
         return Task.CompletedTask;
     }

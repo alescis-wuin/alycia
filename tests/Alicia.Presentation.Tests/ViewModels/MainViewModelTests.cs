@@ -140,6 +140,7 @@ public sealed class MainViewModelTests
         Assert.Equal(newer.Id, viewModel.SelectedConversation?.Id);
         viewModel.RequestDeleteCommand.Execute(null);
         Assert.True(viewModel.IsDeleteConfirmationVisible);
+        Assert.False(viewModel.IsComposerEnabled);
 
         await viewModel.ConfirmDeleteCommand.ExecuteAsync(null).ConfigureAwait(true);
 
@@ -246,10 +247,12 @@ public sealed class MainViewModelTests
 
         viewModel.RequestDeleteCommand.Execute(null);
         Assert.True(viewModel.IsDeleteConfirmationVisible);
+        Assert.False(viewModel.IsComposerEnabled);
         viewModel.CancelTransientActionCommand.Execute(null);
 
         Assert.False(item.IsRenaming);
         Assert.False(viewModel.IsDeleteConfirmationVisible);
+        Assert.True(viewModel.IsComposerEnabled);
         Assert.Equal("Project", item.RenameTitle);
     }
 
@@ -284,6 +287,145 @@ public sealed class MainViewModelTests
         Assert.Contains("Project notes", viewModel.DeleteToolTip, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task SendMessageCommandPersistsUserMessageClearsDraftAndRefreshesProjection()
+    {
+        DateTimeOffset createdAt = new(2026, 8, 10, 20, 0, 0, TimeSpan.Zero);
+        MutableTimeProvider timeProvider = new(createdAt.AddMinutes(5));
+        InMemoryConversationRepository repository = new();
+        Conversation conversation = new(ConversationId.New(), "Project", createdAt, createdAt);
+        repository.Seed(conversation);
+        MainViewModel viewModel = CreateViewModel(repository, timeProvider);
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        viewModel.MessageDraft = "  First line\nSecond line  ";
+
+        Assert.True(viewModel.CanSendMessage);
+        await viewModel.SendMessageCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.Equal(string.Empty, viewModel.MessageDraft);
+        Assert.False(viewModel.CanSendMessage);
+        Assert.False(viewModel.IsSendingMessage);
+
+        MessageViewModel projectedMessage = Assert.Single(viewModel.Messages);
+        Assert.Equal("You", projectedMessage.RoleLabel);
+        Assert.Equal("First line\nSecond line", projectedMessage.Content);
+        Assert.True(projectedMessage.IsUser);
+        Assert.False(projectedMessage.IsAssistant);
+        Assert.False(projectedMessage.IsSystem);
+
+        ConversationListItemViewModel item = Assert.Single(viewModel.Conversations);
+        Assert.Equal(conversation.Id, item.Id);
+        Assert.Equal(1, item.MessageCount);
+        Assert.Contains("1 message", item.MetadataLabel, StringComparison.Ordinal);
+
+        Conversation? persisted = await repository
+            .FindAsync(conversation.Id, CancellationToken.None)
+            .ConfigureAwait(true);
+        Conversation persistedConversation = Assert.IsType<Conversation>(persisted);
+        ChatMessage persistedMessage = Assert.Single(persistedConversation.Messages);
+        Assert.Equal(MessageRole.User, persistedMessage.Role);
+        Assert.Equal("First line\nSecond line", persistedMessage.Content);
+        Assert.Equal(timeProvider.UtcNow, persistedConversation.UpdatedAt);
+    }
+
+    [Fact]
+    public async Task SendMessageCommandRequiresSelectionAndMeaningfulDraft()
+    {
+        DateTimeOffset now = new(2026, 8, 10, 20, 30, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        MainViewModel viewModel = CreateViewModel(repository, new MutableTimeProvider(now));
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        viewModel.MessageDraft = "Hello";
+        Assert.False(viewModel.CanSendMessage);
+        Assert.False(viewModel.SendMessageCommand.CanExecute(null));
+
+        await viewModel.CreateConversationCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        viewModel.MessageDraft = "   ";
+        Assert.False(viewModel.CanSendMessage);
+        Assert.False(viewModel.SendMessageCommand.CanExecute(null));
+
+        viewModel.MessageDraft = "Hello";
+        Assert.True(viewModel.CanSendMessage);
+        Assert.True(viewModel.SendMessageCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public async Task SendMessageFailureKeepsDraftAvailableForRetry()
+    {
+        DateTimeOffset createdAt = new(2026, 8, 10, 20, 45, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        Conversation conversation = new(ConversationId.New(), "Project", createdAt, createdAt);
+        repository.Seed(conversation);
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(createdAt.AddMinutes(1)));
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        repository.SaveException = new IOException("Local storage is unavailable.");
+        viewModel.MessageDraft = "Retry this message";
+
+        await viewModel.SendMessageCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.Equal("Retry this message", viewModel.MessageDraft);
+        Assert.True(viewModel.HasError);
+        string errorMessage = Assert.IsType<string>(viewModel.ErrorMessage);
+        Assert.Contains("Local storage is unavailable", errorMessage, StringComparison.Ordinal);
+        Assert.Empty(viewModel.Messages);
+        Assert.True(viewModel.CanSendMessage);
+        Assert.False(viewModel.IsSendingMessage);
+    }
+
+    [Fact]
+    public async Task SelectingAnotherConversationClearsDraftToPreventCrossConversationSend()
+    {
+        DateTimeOffset createdAt = new(2026, 8, 10, 21, 0, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        Conversation older = new(ConversationId.New(), "Older", createdAt, createdAt);
+        Conversation newer = new(
+            ConversationId.New(),
+            "Newer",
+            createdAt.AddMinutes(1),
+            createdAt.AddMinutes(1));
+        repository.Seed(older);
+        repository.Seed(newer);
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(createdAt.AddMinutes(2)));
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        viewModel.MessageDraft = "Draft for newer";
+        ConversationListItemViewModel olderItem = Assert.Single(
+            viewModel.Conversations,
+            item => item.Id == older.Id);
+
+        await olderItem.SelectCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.Equal(older.Id, viewModel.SelectedConversation?.Id);
+        Assert.Equal(string.Empty, viewModel.MessageDraft);
+        Assert.False(viewModel.CanSendMessage);
+    }
+
+    [Fact]
+    public async Task ReloadingSameConversationPreservesDraft()
+    {
+        DateTimeOffset createdAt = new(2026, 8, 10, 21, 30, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        Conversation conversation = new(ConversationId.New(), "Project", createdAt, createdAt);
+        repository.Seed(conversation);
+        MainViewModel viewModel = CreateViewModel(repository, new MutableTimeProvider(createdAt));
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        viewModel.MessageDraft = "Keep this draft";
+        await viewModel.RefreshCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.Equal(conversation.Id, viewModel.SelectedConversation?.Id);
+        Assert.Equal("Keep this draft", viewModel.MessageDraft);
+        Assert.True(viewModel.CanSendMessage);
+    }
+
     [Theory]
     [InlineData(MessageRole.System, "System")]
     [InlineData(MessageRole.User, "You")]
@@ -300,6 +442,10 @@ public sealed class MainViewModelTests
 
         Assert.Equal(expectedLabel, viewModel.RoleLabel);
         Assert.Equal("Message", viewModel.Content);
+        Assert.Equal(role == MessageRole.System, viewModel.IsSystem);
+        Assert.Equal(role == MessageRole.User, viewModel.IsUser);
+        Assert.Equal(role == MessageRole.Assistant, viewModel.IsAssistant);
+        Assert.Contains(expectedLabel, viewModel.AutomationName, StringComparison.Ordinal);
     }
 
     private static MainViewModel CreateViewModel(
@@ -308,6 +454,7 @@ public sealed class MainViewModelTests
     {
         return new MainViewModel(
             new CreateConversationUseCase(repository, timeProvider),
+            new AppendMessageUseCase(repository, timeProvider),
             new LoadConversationUseCase(repository),
             new ListConversationsUseCase(repository),
             new RenameConversationUseCase(repository, timeProvider),

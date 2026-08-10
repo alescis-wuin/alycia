@@ -4,7 +4,7 @@ Alicia is a cross-platform AI chat application built with C#, .NET, and Avalonia
 
 ## Status
 
-The repository contains the engineering foundation, a provider-neutral conversation core, local JSON conversation persistence, tested conversation lifecycle operations, and a functional Avalonia conversation workspace. The desktop UI can create, select, rename, delete, list, and inspect locally persisted conversations and their messages. Message composition, AI providers, tool calling, retrieval, attachments, and additional platform hosts are intentionally deferred to later atomic work packages.
+The repository contains the engineering foundation, a provider-neutral conversation core, local JSON conversation persistence, tested conversation lifecycle operations, and a functional Avalonia conversation workspace. The desktop UI can create, select, rename, delete, list, inspect, compose, and persist local user messages inside conversations. Automated responses, external providers, tool calling, retrieval, attachments, and additional platform hosts are intentionally deferred to later atomic work packages.
 
 ## Current platform target
 
@@ -54,6 +54,10 @@ The current Avalonia presentation provides:
 - direct inline renaming that replaces the history title in place, focuses the editor, and selects the current title automatically;
 - Enter/Escape and inline save/cancel actions with presentation-side validation before domain persistence;
 - explicit two-step deletion confirmation with irreversible-action warning;
+- a multiline local message composer with Enter-to-send and Shift+Enter newline behavior;
+- user-message persistence through the existing provider-neutral append-message application use case;
+- automatic message-list scrolling plus recent-activity/sidebar refresh after successful sends;
+- visually distinct user, assistant, and system message projections with accessible labels;
 - message history rendering with role and timestamp projection;
 - dedicated loading, no-history, no-selection, and empty-conversation states;
 - visible error projection, busy progress, live-region announcements, and refresh controls;
@@ -62,7 +66,7 @@ The current Avalonia presentation provides:
 - navigation/main accessibility landmarks, heading metadata, visible keyboard focus, and large control targets;
 - a high-contrast dark visual system with distinct selected, editing, success, and destructive states.
 
-Message composition and model responses are intentionally not wired yet.
+Local user-message composition is wired and persisted. Automated/model responses are intentionally not wired yet.
 
 ## Documentation
 
@@ -72,6 +76,7 @@ Message composition and model responses are intentionally not wired yet.
 - `docs/decisions/0003-local-conversation-persistence.md`
 - `docs/decisions/0004-conversation-lifecycle.md`
 - `docs/decisions/0005-desktop-composition-root.md`
+- `docs/decisions/0006-local-message-composition.md`
 - `docs/development/project-profile.md`
 - `docs/local-dotnet-toolchain.md`
 - `docs/patch-packages.md`

@@ -20,11 +20,11 @@ Implementations for provider APIs, persistence, operating-system services, netwo
 
 ### Presentation
 
-Shared Avalonia views and ViewModels for conversation history, selection, lifecycle actions, message projection, empty/loading states, accessibility metadata, and user-facing error projection. Presentation consumes Application use cases and Domain value types but does not select persistence implementations.
+Shared Avalonia views and ViewModels for conversation history, selection, lifecycle actions, local user-message composition, message projection, empty/loading states, accessibility metadata, and user-facing error projection. Presentation owns transient draft/focus/scroll behavior, invokes the Application append-message use case, and does not select persistence implementations.
 
 ### Desktop
 
-The desktop executable composition root for Windows, Linux, and macOS. It selects the local JSON conversation runtime, chooses the platform-local data directory, injects use cases into Presentation, and starts Avalonia. Other hosts can make different infrastructure choices while reusing `Alicia.Presentation`.
+The desktop executable composition root for Windows, Linux, and macOS. It selects the local JSON conversation runtime, chooses the platform-local data directory, injects lifecycle and append-message use cases into Presentation, and starts Avalonia. Other hosts can make different infrastructure choices while reusing `Alicia.Presentation`.
 
 ## Dependency rules
 

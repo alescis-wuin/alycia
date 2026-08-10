@@ -33,6 +33,7 @@ internal static class Program
 
         return new MainViewModel(
             runtime.CreateConversation,
+            runtime.AppendMessage,
             runtime.LoadConversation,
             runtime.ListConversations,
             runtime.RenameConversation,

@@ -16,6 +16,9 @@
     <SolidColorBrush x:Key="AccentSecondaryBrush" Color="#43E6D1" />
     <SolidColorBrush x:Key="SuccessBrush" Color="#72E6A7" />
     <SolidColorBrush x:Key="SuccessSurfaceBrush" Color="#173329" />
+    <SolidColorBrush x:Key="UserMessageSurfaceBrush" Color="#24204A" />
+    <SolidColorBrush x:Key="AssistantMessageSurfaceBrush" Color="#132B2D" />
+    <SolidColorBrush x:Key="SystemMessageSurfaceBrush" Color="#20283A" />
     <SolidColorBrush x:Key="EditBrush" Color="#FFB454" />
     <SolidColorBrush x:Key="EditSurfaceBrush" Color="#3A2B19" />
     <SolidColorBrush x:Key="DangerBrush" Color="#FF5F74" />
@@ -200,6 +203,91 @@
 
     <Style Selector="TextBox.inline-rename:focus">
       <Setter Property="BorderBrush" Value="{DynamicResource EditBrush}" />
+      <Setter Property="BorderThickness" Value="2" />
+    </Style>
+
+    <Style Selector="Border.message-bubble">
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="16" />
+      <Setter Property="Padding" Value="18" />
+      <Setter Property="Margin" Value="0,0,0,12" />
+      <Setter Property="MaxWidth" Value="840" />
+    </Style>
+
+    <Style Selector="Border.message-bubble.user-message">
+      <Setter Property="Background" Value="{DynamicResource UserMessageSurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+      <Setter Property="HorizontalAlignment" Value="Right" />
+      <Setter Property="MaxWidth" Value="760" />
+    </Style>
+
+    <Style Selector="Border.message-bubble.assistant-message">
+      <Setter Property="Background" Value="{DynamicResource AssistantMessageSurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentSecondaryBrush}" />
+      <Setter Property="HorizontalAlignment" Value="Left" />
+    </Style>
+
+    <Style Selector="Border.message-bubble.system-message">
+      <Setter Property="Background" Value="{DynamicResource SystemMessageSurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+      <Setter Property="HorizontalAlignment" Value="Center" />
+      <Setter Property="MaxWidth" Value="640" />
+    </Style>
+
+    <Style Selector="TextBlock.message-role.user-message-role">
+      <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+    </Style>
+
+    <Style Selector="TextBlock.message-role.assistant-message-role">
+      <Setter Property="Foreground" Value="{DynamicResource AccentSecondaryBrush}" />
+    </Style>
+
+    <Style Selector="TextBlock.message-role.system-message-role">
+      <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+    </Style>
+
+    <Style Selector="Border.message-composer-shell">
+      <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="18" />
+      <Setter Property="Padding" Value="12" />
+    </Style>
+
+    <Style Selector="TextBox.message-composer">
+      <Setter Property="MinHeight" Value="54" />
+      <Setter Property="MaxHeight" Value="160" />
+      <Setter Property="Padding" Value="14,12" />
+      <Setter Property="CornerRadius" Value="14" />
+      <Setter Property="Background" Value="{DynamicResource SurfaceRaisedBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+      <Setter Property="FontSize" Value="16" />
+      <Setter Property="CaretBrush" Value="{DynamicResource AccentSecondaryBrush}" />
+      <Setter Property="SelectionBrush" Value="{DynamicResource AccentSecondaryBrush}" />
+      <Setter Property="SelectionForegroundBrush" Value="{DynamicResource TextOnAccentBrush}" />
+    </Style>
+
+    <Style Selector="TextBox.message-composer:focus">
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentSecondaryBrush}" />
+      <Setter Property="BorderThickness" Value="2" />
+    </Style>
+
+    <Style Selector="Button.send-action">
+      <Setter Property="MinWidth" Value="92" />
+      <Setter Property="MinHeight" Value="54" />
+      <Setter Property="Padding" Value="18,12" />
+      <Setter Property="CornerRadius" Value="14" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Background" Value="{DynamicResource AccentSecondaryBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource TextOnAccentBrush}" />
+      <Setter Property="FontSize" Value="16" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <Style Selector="Button.send-action:focus-visible">
+      <Setter Property="BorderBrush" Value="{DynamicResource TextPrimaryBrush}" />
       <Setter Property="BorderThickness" Value="2" />
     </Style>
   </Application.Styles>

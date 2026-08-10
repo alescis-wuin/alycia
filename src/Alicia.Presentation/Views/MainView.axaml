@@ -4,7 +4,8 @@
              xmlns:vm="using:Alicia.Presentation.ViewModels"
              x:Class="Alicia.Presentation.Views.MainView"
              x:DataType="vm:MainViewModel"
-             Loaded="OnLoaded">
+             Loaded="OnLoaded"
+             Unloaded="OnUnloaded">
   <UserControl.KeyBindings>
     <KeyBinding Gesture="Ctrl+N" Command="{Binding CreateConversationCommand}" />
     <KeyBinding Gesture="F5" Command="{Binding RefreshCommand}" />
@@ -326,7 +327,7 @@
                    Foreground="{DynamicResource TextSecondaryBrush}" />
       </StackPanel>
 
-      <Grid Grid.Row="2" RowDefinitions="Auto,*">
+      <Grid Grid.Row="2" RowDefinitions="Auto,*,Auto">
         <Border Grid.Row="0"
                 Background="{DynamicResource DangerSurfaceBrush}"
                 BorderBrush="{DynamicResource DangerBrush}"
@@ -444,7 +445,7 @@
                          FontWeight="Bold"
                          TextAlignment="Center"
                          Foreground="{DynamicResource TextPrimaryBrush}" />
-              <TextBlock Text="There are no messages to display yet. Message composition will be connected in a later package."
+              <TextBlock Text="Write the first message below. It will be stored locally; automated responses are not connected yet."
                          FontSize="16"
                          LineHeight="24"
                          TextWrapping="Wrap"
@@ -452,25 +453,28 @@
                          Foreground="{DynamicResource TextSecondaryBrush}" />
             </StackPanel>
 
-            <ScrollViewer VerticalScrollBarVisibility="Auto"
+            <ScrollViewer x:Name="MessagesScrollViewer"
+                          VerticalScrollBarVisibility="Auto"
                           HorizontalScrollBarVisibility="Disabled"
                           IsVisible="{Binding HasMessages}">
-              <ItemsControl ItemsSource="{Binding Messages}">
+              <ItemsControl ItemsSource="{Binding Messages}"
+                            AutomationProperties.Name="Conversation messages"
+                            AutomationProperties.LiveSetting="Polite">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:MessageViewModel">
-                    <Border Background="{DynamicResource SurfaceRaisedBrush}"
-                            BorderBrush="{DynamicResource BorderBrush}"
-                            BorderThickness="1"
-                            CornerRadius="16"
-                            Padding="18"
-                            Margin="0,0,0,12"
-                            MaxWidth="840"
-                            HorizontalAlignment="Stretch">
+                    <Border Classes="message-bubble"
+                            Classes.user-message="{Binding IsUser}"
+                            Classes.assistant-message="{Binding IsAssistant}"
+                            Classes.system-message="{Binding IsSystem}"
+                            AutomationProperties.Name="{Binding AutomationName}">
                       <StackPanel Spacing="8">
                         <Grid ColumnDefinitions="*,Auto">
-                          <TextBlock Text="{Binding RoleLabel}"
-                                     FontWeight="SemiBold"
-                                     Foreground="{DynamicResource AccentSecondaryBrush}" />
+                          <TextBlock Classes="message-role"
+                                     Classes.user-message-role="{Binding IsUser}"
+                                     Classes.assistant-message-role="{Binding IsAssistant}"
+                                     Classes.system-message-role="{Binding IsSystem}"
+                                     Text="{Binding RoleLabel}"
+                                     FontWeight="SemiBold" />
                           <TextBlock Grid.Column="1"
                                      Text="{Binding CreatedAtLabel}"
                                      FontSize="12"
@@ -487,6 +491,52 @@
                 </ItemsControl.ItemTemplate>
               </ItemsControl>
             </ScrollViewer>
+          </Grid>
+        </Border>
+
+        <Border Grid.Row="2"
+                Classes="message-composer-shell"
+                Margin="0,14,0,0"
+                IsVisible="{Binding HasSelectedConversation}"
+                AutomationProperties.Name="Message composer"
+                AutomationProperties.HelpText="Write a local user message. Enter sends; Shift+Enter inserts a new line.">
+          <Grid RowDefinitions="Auto,Auto"
+                ColumnDefinitions="*,Auto">
+            <TextBox x:Name="MessageComposer"
+                     Grid.Column="0"
+                     Classes="message-composer"
+                     Text="{Binding MessageDraft, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                     PlaceholderText="{Binding ComposerPlaceholder}"
+                     AcceptsReturn="True"
+                     AcceptsTab="False"
+                     TextWrapping="Wrap"
+                     IsEnabled="{Binding IsComposerEnabled}"
+                     KeyDown="OnMessageComposerKeyDown"
+                     AutomationProperties.Name="Message text"
+                     AutomationProperties.HelpText="Type a local user message. Press Enter to send or Shift+Enter for a new line."
+                     AutomationProperties.AcceleratorKey="Enter"
+                     ToolTip.Tip="Enter sends • Shift+Enter adds a new line" />
+
+            <Button Grid.Column="1"
+                    Classes="send-action"
+                    Margin="10,0,0,0"
+                    VerticalAlignment="Bottom"
+                    IsEnabled="{Binding CanSendMessage}"
+                    Content="{Binding SendButtonLabel}"
+                    Click="OnSendMessageClick"
+                    AutomationProperties.Name="Send message"
+                    AutomationProperties.HelpText="Save this user message to the selected local conversation."
+                    AutomationProperties.AcceleratorKey="Enter"
+                    ToolTip.Tip="Send message (Enter)" />
+
+            <TextBlock Grid.Row="1"
+                       Grid.ColumnSpan="2"
+                       Margin="4,8,4,0"
+                       Text="{Binding ComposerStatusText}"
+                       FontSize="12"
+                       TextWrapping="Wrap"
+                       AutomationProperties.LiveSetting="Polite"
+                       Foreground="{DynamicResource TextSecondaryBrush}" />
           </Grid>
         </Border>
       </Grid>
