@@ -4,7 +4,7 @@ Alicia is a cross-platform AI chat application built with C#, .NET, and Avalonia
 
 ## Status
 
-The repository contains the engineering foundation, a provider-neutral conversation core, local JSON conversation persistence, tested conversation lifecycle operations, and a functional Avalonia conversation workspace. The desktop UI can create, select, rename, delete, list, inspect, compose, and persist local user messages inside conversations. Automated responses, external providers, tool calling, retrieval, attachments, and additional platform hosts are intentionally deferred to later atomic work packages.
+The repository contains the engineering foundation, a provider-neutral conversation core, local JSON conversation persistence, tested conversation lifecycle operations, a functional Avalonia conversation workspace, and a provider-neutral response-generation port in the Application layer. The desktop UI can create, select, rename, delete, list, inspect, compose, and persist local user messages inside conversations. Automated response orchestration, external provider adapters, streaming, tool calling, retrieval, attachments, and additional platform hosts are intentionally deferred to later atomic work packages.
 
 ## Current platform target
 
@@ -66,7 +66,7 @@ The current Avalonia presentation provides:
 - navigation/main accessibility landmarks, heading metadata, visible keyboard focus, and large control targets;
 - a high-contrast dark visual system with distinct selected, editing, success, and destructive states.
 
-Local user-message composition is wired and persisted. Automated/model responses are intentionally not wired yet.
+Local user-message composition is wired and persisted. Application can request a response through a provider-neutral responder port, but the desktop UI intentionally does not invoke or persist automated responses yet.
 
 ## Documentation
 
@@ -77,6 +77,7 @@ Local user-message composition is wired and persisted. Automated/model responses
 - `docs/decisions/0004-conversation-lifecycle.md`
 - `docs/decisions/0005-desktop-composition-root.md`
 - `docs/decisions/0006-local-message-composition.md`
+- `docs/decisions/0007-provider-neutral-response-generation.md`
 - `docs/development/project-profile.md`
 - `docs/local-dotnet-toolchain.md`
 - `docs/patch-packages.md`

@@ -12,11 +12,11 @@ Framework-independent domain concepts and invariants. The conversation core owns
 
 ### Application
 
-Use cases and ports for AI completion, persistence, clocks, files, search, tools, and other external capabilities. The conversation application slice exposes creation, loading, summary listing, renaming, message appending, deletion, and an `IConversationRepository` persistence port without selecting an infrastructure implementation.
+Use cases and ports for response generation, persistence, clocks, files, search, tools, and other external capabilities. The conversation application slice exposes creation, loading, summary listing, renaming, message appending, deletion, a provider-neutral `IConversationResponder` response port, a response-generation use case, and an `IConversationRepository` persistence port without selecting an infrastructure implementation.
 
 ### Infrastructure
 
-Implementations for provider APIs, persistence, operating-system services, networking, and other external boundaries. The local conversation slice provides versioned JSON document persistence, legacy document reads, recent-activity summary listing, deletion, detached aggregate reconstruction, and an explicit composition object for the lifecycle use cases.
+Implementations for provider APIs, persistence, operating-system services, networking, and other external boundaries. The local conversation slice provides versioned JSON document persistence, legacy document reads, recent-activity summary listing, deletion, detached aggregate reconstruction, and an explicit composition object for the lifecycle use cases. Future external response adapters implement the Application `IConversationResponder` port here rather than leaking provider SDK types into higher layers.
 
 ### Presentation
 
