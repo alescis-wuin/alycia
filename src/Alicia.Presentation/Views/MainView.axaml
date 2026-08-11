@@ -67,7 +67,7 @@
             AutomationProperties.Name="Conversation history"
             AutomationProperties.LandmarkType="Navigation"
             AutomationProperties.AccessibilityView="Control">
-      <Grid RowDefinitions="Auto,18,Auto,18,Auto,*,Auto">
+      <Grid RowDefinitions="Auto,18,Auto,18,Auto,*,12,Auto,12,Auto">
         <Grid ColumnDefinitions="*,Auto">
           <StackPanel Spacing="3">
             <TextBlock Classes="brand-title"
@@ -265,7 +265,101 @@
           </Border>
         </Grid>
 
-        <StackPanel Grid.Row="6" Margin="0,12,0,0" Spacing="7">
+        <Border Grid.Row="7"
+                Classes="surface"
+                Padding="12"
+                AutomationProperties.Name="Local AI provider"
+                AutomationProperties.AccessibilityView="Control">
+          <StackPanel Spacing="8">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Text="{Binding ProviderName}"
+                         FontSize="14"
+                         FontWeight="SemiBold"
+                         Foreground="{DynamicResource TextPrimaryBrush}"
+                         VerticalAlignment="Center" />
+              <Border Grid.Column="1" Classes="status-chip">
+                <TextBlock Text="{Binding ProviderStatusText}"
+                           FontSize="11"
+                           Foreground="{DynamicResource TextSecondaryBrush}" />
+              </Border>
+            </Grid>
+
+            <TextBlock Text="{Binding ProviderVersionText}"
+                       FontSize="11"
+                       Foreground="{DynamicResource TextSecondaryBrush}" />
+
+            <TextBlock Text="{Binding ProviderDetailText}"
+                       FontSize="12"
+                       TextWrapping="Wrap"
+                       AutomationProperties.LiveSetting="Polite"
+                       Foreground="{DynamicResource TextSecondaryBrush}" />
+
+            <StackPanel Spacing="4"
+                        IsVisible="{Binding IsProviderProgressVisible}"
+                        AutomationProperties.Name="llama.cpp installation progress"
+                        AutomationProperties.AccessibilityView="Control">
+              <TextBlock Text="{Binding ProviderProgressText}"
+                         FontSize="12"
+                         FontWeight="SemiBold"
+                         AutomationProperties.LiveSetting="Polite"
+                         Foreground="{DynamicResource TextPrimaryBrush}" />
+              <ProgressBar Height="5"
+                           Minimum="0"
+                           Maximum="100"
+                           Value="{Binding ProviderProgressValue}"
+                           IsIndeterminate="{Binding IsProviderProgressIndeterminate}" />
+              <TextBlock Text="{Binding ProviderProgressDetailText}"
+                         FontSize="11"
+                         TextWrapping="Wrap"
+                         AutomationProperties.LiveSetting="Polite"
+                         Foreground="{DynamicResource TextSecondaryBrush}" />
+            </StackPanel>
+
+            <TextBox Text="{Binding ProviderModelReference, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                     PlaceholderText="owner/model-GGUF[:quant]"
+                     IsEnabled="{Binding IsProviderModelEditable}"
+                     AutomationProperties.Name="Hugging Face model repository"
+                     AutomationProperties.HelpText="Enter a llama.cpp-compatible Hugging Face GGUF repository. Optional quantization can follow a colon, for example Q4_K_M."
+                     ToolTip.Tip="Model passed directly to llama-server with -hf" />
+
+            <Grid ColumnDefinitions="*,8,*,8,*">
+              <Button Grid.Column="0"
+                      Classes="secondary-action"
+                      Command="{Binding DetectProviderCommand}"
+                      IsEnabled="{Binding CanDetectProvider}"
+                      Content="Detect"
+                      AutomationProperties.Name="Detect llama.cpp CUDA"
+                      ToolTip.Tip="Detect a managed or system llama-server with an active CUDA backend" />
+              <Button Grid.Column="2"
+                      Classes="secondary-action"
+                      Command="{Binding InstallProviderCommand}"
+                      IsEnabled="{Binding CanInstallProvider}"
+                      Content="Install"
+                      AutomationProperties.Name="Install llama.cpp CUDA"
+                      AutomationProperties.HelpText="Download the latest official llama.cpp source release and compile llama-server locally with CUDA."
+                      ToolTip.Tip="Install a managed CUDA build without changing system packages" />
+              <Button Grid.Column="4"
+                      Classes="primary-action"
+                      Command="{Binding StartProviderCommand}"
+                      IsEnabled="{Binding CanStartProvider}"
+                      Content="Start"
+                      AutomationProperties.Name="Start llama.cpp model"
+                      AutomationProperties.HelpText="Launch llama-server using the entered Hugging Face repository through the -hf option."
+                      ToolTip.Tip="Start the selected Hugging Face model" />
+            </Grid>
+
+            <Button Classes="secondary-action"
+                    Command="{Binding StopProviderCommand}"
+                    IsEnabled="{Binding CanStopProvider}"
+                    Content="Stop local AI"
+                    AutomationProperties.Name="Stop llama.cpp server"
+                    AutomationProperties.HelpText="Stop the llama-server process managed by Alicia."
+                    ToolTip.Tip="Stop the managed llama-server process" />
+
+          </StackPanel>
+        </Border>
+
+        <StackPanel Grid.Row="9" Margin="0" Spacing="7">
           <ProgressBar Height="3"
                        IsIndeterminate="True"
                        IsVisible="{Binding IsBusy}" />
@@ -409,7 +503,7 @@
                          FontWeight="Bold"
                          TextAlignment="Center"
                          Foreground="{DynamicResource TextPrimaryBrush}" />
-              <TextBlock Text="Create a local conversation and send a message. Alicia currently answers through a local development responder."
+              <TextBlock Text="Create a local conversation, start a local model from the provider panel, and send a message to Alicia."
                          FontSize="16"
                          LineHeight="24"
                          TextAlignment="Center"
@@ -445,7 +539,7 @@
                          FontWeight="Bold"
                          TextAlignment="Center"
                          Foreground="{DynamicResource TextPrimaryBrush}" />
-              <TextBlock Text="Write the first message below. It is stored locally before Alicia starts a streamed development response."
+              <TextBlock Text="Write the first message below. It is stored locally before Alicia starts the streamed local-model response."
                          FontSize="16"
                          LineHeight="24"
                          TextWrapping="Wrap"

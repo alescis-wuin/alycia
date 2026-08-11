@@ -1,4 +1,5 @@
 using Alicia.Application.Conversations;
+using Alicia.Application.Providers;
 using Alicia.Domain.Conversations;
 using Alicia.Presentation.ViewModels;
 
@@ -690,13 +691,168 @@ public sealed class MainViewModelTests
         Assert.Contains("in progress", viewModel.AutomationName, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task InitializeAsyncDetectsProviderAndRestoresModelReference()
+    {
+        InMemoryConversationRepository repository = new();
+        StubInferenceProviderRuntime provider = new(InferenceProviderState.Running);
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(new DateTimeOffset(2026, 8, 11, 21, 0, 0, TimeSpan.Zero)),
+            inferenceProvider: provider);
+
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        Assert.Equal(1, provider.DetectCount);
+        Assert.True(viewModel.IsProviderRunning);
+        Assert.Equal("Running", viewModel.ProviderStatusText);
+        Assert.Equal("owner/model-GGUF:Q4_K_M", viewModel.ProviderModelReference);
+        Assert.False(viewModel.CanInstallProvider);
+    }
+
+    [Fact]
+    public async Task MissingProviderCanBeInstalledWithoutTerminalCommands()
+    {
+        InMemoryConversationRepository repository = new();
+        StubInferenceProviderRuntime provider = new(InferenceProviderState.Missing);
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(new DateTimeOffset(2026, 8, 11, 21, 10, 0, TimeSpan.Zero)),
+            inferenceProvider: provider);
+
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        Assert.True(viewModel.CanInstallProvider);
+        Assert.False(viewModel.IsProviderRunning);
+
+        await viewModel.InstallProviderCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.Equal(1, provider.InstallCount);
+        Assert.Equal("Ready", viewModel.ProviderStatusText);
+        Assert.False(viewModel.CanInstallProvider);
+        Assert.False(viewModel.IsProviderRunning);
+    }
+
+    [Fact]
+    public async Task ProviderInstallationSurfacesStructuredProgress()
+    {
+        InMemoryConversationRepository repository = new();
+        StubInferenceProviderRuntime provider = new(InferenceProviderState.Missing);
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(new DateTimeOffset(2026, 8, 11, 21, 15, 0, TimeSpan.Zero)),
+            inferenceProvider: provider);
+
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+        await viewModel.InstallProviderCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.True(viewModel.IsProviderProgressVisible);
+        Assert.False(viewModel.IsProviderProgressIndeterminate);
+        Assert.Equal(100d, viewModel.ProviderProgressValue);
+        Assert.Contains("Installation complete", viewModel.ProviderProgressText, StringComparison.Ordinal);
+        Assert.Equal("Test provider installed.", viewModel.ProviderProgressDetailText);
+    }
+
+    [Fact]
+    public async Task StartProviderPassesHuggingFaceModelReferenceAndEnablesChat()
+    {
+        InMemoryConversationRepository repository = new();
+        StubInferenceProviderRuntime provider = new(InferenceProviderState.Ready);
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(new DateTimeOffset(2026, 8, 11, 21, 20, 0, TimeSpan.Zero)),
+            inferenceProvider: provider);
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+        viewModel.ProviderModelReference = "ggml-org/gemma-3-1b-it-GGUF:Q4_K_M";
+
+        Assert.True(viewModel.CanStartProvider);
+
+        await viewModel.StartProviderCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.Equal(1, provider.StartCount);
+        Assert.Equal(
+            "ggml-org/gemma-3-1b-it-GGUF:Q4_K_M",
+            provider.LastStartedModel);
+        Assert.True(viewModel.IsProviderRunning);
+        Assert.Equal("Running", viewModel.ProviderStatusText);
+    }
+
+    [Fact]
+    public async Task FailedModelStartReturnsToReadyAndCanRetryWithoutReinstalling()
+    {
+        InMemoryConversationRepository repository = new();
+        StubInferenceProviderRuntime provider = new(InferenceProviderState.Ready)
+        {
+            StartException = new InvalidOperationException("Model could not be loaded."),
+        };
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(new DateTimeOffset(2026, 8, 11, 21, 25, 0, TimeSpan.Zero)),
+            inferenceProvider: provider);
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+        viewModel.ProviderModelReference = "owner/model-GGUF:Q4_K_M";
+
+        await viewModel.StartProviderCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.True(viewModel.HasError);
+        Assert.Equal("Ready", viewModel.ProviderStatusText);
+        Assert.True(viewModel.CanStartProvider);
+        Assert.False(viewModel.CanInstallProvider);
+        Assert.Equal(2, provider.DetectCount);
+    }
+
+    [Fact]
+    public async Task MissingProviderPreventsSendingUntilLocalAiIsRunning()
+    {
+        DateTimeOffset createdAt = new(2026, 8, 11, 21, 27, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        repository.Seed(new Conversation(
+            ConversationId.New(),
+            "Provider gate",
+            createdAt,
+            createdAt));
+        StubInferenceProviderRuntime provider = new(InferenceProviderState.Missing);
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(createdAt.AddMinutes(1)),
+            inferenceProvider: provider);
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+        viewModel.MessageDraft = "Hello";
+
+        Assert.True(viewModel.IsComposerEnabled);
+        Assert.False(viewModel.CanSendMessage);
+        Assert.Contains("Start llama.cpp CUDA", viewModel.ComposerStatusText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task StopProviderReturnsRuntimeToReadyState()
+    {
+        InMemoryConversationRepository repository = new();
+        StubInferenceProviderRuntime provider = new(InferenceProviderState.Running);
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(new DateTimeOffset(2026, 8, 11, 21, 30, 0, TimeSpan.Zero)),
+            inferenceProvider: provider);
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        Assert.True(viewModel.CanStopProvider);
+        await viewModel.StopProviderCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.Equal(1, provider.StopCount);
+        Assert.False(viewModel.IsProviderRunning);
+        Assert.Equal("Ready", viewModel.ProviderStatusText);
+    }
+
     private static MainViewModel CreateViewModel(
         IConversationRepository repository,
         TimeProvider timeProvider,
-        IStreamingConversationResponder? responder = null)
+        IStreamingConversationResponder? responder = null,
+        IInferenceProviderRuntime? inferenceProvider = null)
     {
         IStreamingConversationResponder resolvedResponder =
             responder ?? new DeterministicConversationResponder("Development response");
+        IInferenceProviderRuntime resolvedProvider =
+            inferenceProvider ?? new StubInferenceProviderRuntime();
 
         return new MainViewModel(
             new CreateConversationUseCase(repository, timeProvider),
@@ -708,6 +864,7 @@ public sealed class MainViewModelTests
             new LoadConversationUseCase(repository),
             new ListConversationsUseCase(repository),
             new RenameConversationUseCase(repository, timeProvider),
-            new DeleteConversationUseCase(repository));
+            new DeleteConversationUseCase(repository),
+            resolvedProvider);
     }
 }

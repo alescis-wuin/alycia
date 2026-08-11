@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using Alicia.Application.Conversations;
+using Alicia.Application.Providers;
 using Alicia.Domain.Conversations;
 using CommunityToolkit.Mvvm.Input;
 
@@ -14,18 +15,24 @@ public sealed class MainViewModel : ViewModelBase
     private readonly ListConversationsUseCase _listConversations;
     private readonly LoadConversationUseCase _loadConversation;
     private readonly RenameConversationUseCase _renameConversation;
+    private readonly IInferenceProviderRuntime _inferenceProvider;
 
     private bool _isBusy;
     private bool _isDeleteConfirmationVisible;
     private bool _isGeneratingResponse;
     private bool _isInitialized;
     private bool _isSendingMessage;
+    private bool _isProviderBusy;
     private ConversationId? _retryConversationId;
     private MessageId? _retryTriggeringMessageId;
     private CancellationTokenSource? _responseCancellation;
+    private CancellationTokenSource? _providerOperationCancellation;
     private ConversationListItemViewModel? _selectedConversation;
     private string? _errorMessage;
     private string _messageDraft = string.Empty;
+    private string _providerModelReference = string.Empty;
+    private InferenceProviderProgress? _providerProgress;
+    private InferenceProviderSnapshot? _providerSnapshot;
 
     public MainViewModel(
         CreateConversationUseCase createConversation,
@@ -34,7 +41,8 @@ public sealed class MainViewModel : ViewModelBase
         LoadConversationUseCase loadConversation,
         ListConversationsUseCase listConversations,
         RenameConversationUseCase renameConversation,
-        DeleteConversationUseCase deleteConversation)
+        DeleteConversationUseCase deleteConversation,
+        IInferenceProviderRuntime inferenceProvider)
     {
         ArgumentNullException.ThrowIfNull(createConversation);
         ArgumentNullException.ThrowIfNull(appendMessage);
@@ -43,6 +51,7 @@ public sealed class MainViewModel : ViewModelBase
         ArgumentNullException.ThrowIfNull(listConversations);
         ArgumentNullException.ThrowIfNull(renameConversation);
         ArgumentNullException.ThrowIfNull(deleteConversation);
+        ArgumentNullException.ThrowIfNull(inferenceProvider);
 
         _createConversation = createConversation;
         _appendMessage = appendMessage;
@@ -51,6 +60,7 @@ public sealed class MainViewModel : ViewModelBase
         _listConversations = listConversations;
         _renameConversation = renameConversation;
         _deleteConversation = deleteConversation;
+        _inferenceProvider = inferenceProvider;
 
         CreateConversationCommand = new AsyncRelayCommand(CreateConversationAsync);
         RefreshCommand = new AsyncRelayCommand(RefreshAsync);
@@ -63,6 +73,10 @@ public sealed class MainViewModel : ViewModelBase
         ConfirmDeleteCommand = new AsyncRelayCommand(ConfirmDeleteAsync);
         CancelTransientActionCommand = new RelayCommand(CancelTransientAction);
         DismissErrorCommand = new RelayCommand(ClearError);
+        DetectProviderCommand = new AsyncRelayCommand(DetectProviderAsync, () => CanDetectProvider);
+        InstallProviderCommand = new AsyncRelayCommand(InstallProviderAsync, () => CanInstallProvider);
+        StartProviderCommand = new AsyncRelayCommand(StartProviderAsync, () => CanStartProvider);
+        StopProviderCommand = new AsyncRelayCommand(StopProviderAsync, () => CanStopProvider);
     }
 
     public string ApplicationName { get; } = "Alicia";
@@ -92,6 +106,14 @@ public sealed class MainViewModel : ViewModelBase
     public IRelayCommand CancelTransientActionCommand { get; }
 
     public IRelayCommand DismissErrorCommand { get; }
+
+    public IAsyncRelayCommand DetectProviderCommand { get; }
+
+    public IAsyncRelayCommand InstallProviderCommand { get; }
+
+    public IAsyncRelayCommand StartProviderCommand { get; }
+
+    public IAsyncRelayCommand StopProviderCommand { get; }
 
     public ConversationListItemViewModel? SelectedConversation
     {
@@ -133,6 +155,19 @@ public sealed class MainViewModel : ViewModelBase
         }
     }
 
+    public string ProviderModelReference
+    {
+        get => _providerModelReference;
+        set
+        {
+            if (SetProperty(ref _providerModelReference, value))
+            {
+                OnPropertyChanged(nameof(CanStartProvider));
+                StartProviderCommand.NotifyCanExecuteChanged();
+            }
+        }
+    }
+
     public bool IsBusy
     {
         get => _isBusy;
@@ -164,7 +199,79 @@ public sealed class MainViewModel : ViewModelBase
         && HasSelectedConversation
         && !IsDeleteConfirmationVisible;
 
-    public bool CanSendMessage => IsComposerEnabled && !string.IsNullOrWhiteSpace(MessageDraft);
+    public bool CanSendMessage => IsComposerEnabled
+        && IsProviderRunning
+        && !string.IsNullOrWhiteSpace(MessageDraft);
+
+    public bool IsProviderBusy
+    {
+        get => _isProviderBusy;
+        private set
+        {
+            if (SetProperty(ref _isProviderBusy, value))
+            {
+                RaiseProviderStateChanged();
+            }
+        }
+    }
+
+    public bool IsProviderRunning => _providerSnapshot?.State == InferenceProviderState.Running;
+
+    public bool CanDetectProvider => !IsProviderBusy && !IsGeneratingResponse;
+
+    public bool CanInstallProvider => !IsProviderBusy
+        && !IsGeneratingResponse
+        && _providerSnapshot?.State is InferenceProviderState.Missing
+            or InferenceProviderState.Unsupported
+            or InferenceProviderState.Faulted;
+
+    public bool CanStartProvider => !IsProviderBusy
+        && !IsGeneratingResponse
+        && _providerSnapshot?.State == InferenceProviderState.Ready
+        && !string.IsNullOrWhiteSpace(ProviderModelReference);
+
+    public bool CanStopProvider => IsProviderRunning
+        || _providerSnapshot?.State == InferenceProviderState.Starting;
+
+    public bool IsProviderModelEditable => !IsProviderBusy && !IsProviderRunning;
+
+    public string ProviderName => _providerSnapshot?.Name ?? "llama.cpp CUDA";
+
+    public string ProviderStatusText => _providerSnapshot?.State switch
+    {
+        InferenceProviderState.Detecting => "Detecting",
+        InferenceProviderState.Missing => "Not installed",
+        InferenceProviderState.Ready => "Ready",
+        InferenceProviderState.Installing => "Installing",
+        InferenceProviderState.Starting => "Starting",
+        InferenceProviderState.Running => "Running",
+        InferenceProviderState.Stopping => "Stopping",
+        InferenceProviderState.Unsupported => "CUDA unavailable",
+        InferenceProviderState.Faulted => "Needs attention",
+        _ => "Detecting",
+    };
+
+    public string ProviderDetailText => _providerSnapshot?.Detail
+        ?? "Detecting the local inference provider…";
+
+    public string ProviderVersionText => string.IsNullOrWhiteSpace(_providerSnapshot?.Version)
+        ? "Version not detected"
+        : $"Version {_providerSnapshot.Version}";
+
+    public bool IsProviderProgressVisible => _providerProgress is not null;
+
+    public bool IsProviderProgressIndeterminate => IsProviderBusy
+        && _providerProgress?.Fraction is null;
+
+    public double ProviderProgressValue => (_providerProgress?.Fraction ?? 0) * 100;
+
+    public string ProviderProgressText => _providerProgress is null
+        ? string.Empty
+        : _providerProgress.Fraction is double fraction
+            ? $"{_providerProgress.Stage} • {fraction:P0}"
+            : _providerProgress.Stage;
+
+    public string ProviderProgressDetailText => _providerProgress?.Detail ?? string.Empty;
 
     public bool IsSendingMessage
     {
@@ -193,6 +300,7 @@ public sealed class MainViewModel : ViewModelBase
                 OnPropertyChanged(nameof(StatusText));
                 StopResponseCommand.NotifyCanExecuteChanged();
                 RetryResponseCommand.NotifyCanExecuteChanged();
+                RaiseProviderStateChanged();
             }
         }
     }
@@ -270,9 +378,11 @@ public sealed class MainViewModel : ViewModelBase
         ? "Delete this conversation?"
         : $"Delete ‘{SelectedConversation.Title}’?";
 
-    public string ComposerPlaceholder => HasSelectedConversation
-        ? "Write a local message…"
-        : "Select a conversation to write a message";
+    public string ComposerPlaceholder => !IsProviderRunning
+        ? "Start llama.cpp CUDA to enable local AI chat"
+        : HasSelectedConversation
+            ? "Write a local message…"
+            : "Select a conversation to write a message";
 
     public string ComposerStatusText => IsSendingMessage
         ? "Saving message locally…"
@@ -280,7 +390,9 @@ public sealed class MainViewModel : ViewModelBase
             ? "Alicia is streaming a response… Stop is available."
             : CanRetryResponse
                 ? "Response not completed • Retry response is available"
-                : "Enter sends • Shift+Enter adds a new line • Local development responder";
+                : !IsProviderRunning
+                    ? "Start llama.cpp CUDA before sending messages"
+                    : $"Enter sends • Shift+Enter adds a new line • {ProviderModelReference}";
 
     public string SendButtonLabel => IsSendingMessage ? "Saving…" : "Send";
 
@@ -292,7 +404,9 @@ public sealed class MainViewModel : ViewModelBase
                 ? "Response incomplete"
                 : IsBusy
                     ? "Working…"
-                    : "Local history ready";
+                    : IsProviderRunning
+                        ? "Local AI ready"
+                        : "Local history ready • AI provider stopped";
 
     public async Task InitializeAsync()
     {
@@ -301,12 +415,296 @@ public sealed class MainViewModel : ViewModelBase
             return;
         }
 
+        await DetectProviderAsync().ConfigureAwait(true);
+
         await ExecuteOperationAsync(async () =>
         {
             await ReloadConversationsAsync(preferredConversationId: null).ConfigureAwait(true);
         }).ConfigureAwait(true);
 
         IsInitialized = true;
+    }
+
+    private async Task DetectProviderAsync()
+    {
+        ClearProviderProgress();
+
+        await ExecuteProviderOperationAsync(
+            InferenceProviderState.Detecting,
+            "Detecting llama.cpp and CUDA support…",
+            async cancellationToken => await _inferenceProvider
+                .DetectAsync(cancellationToken)
+                .ConfigureAwait(true)).ConfigureAwait(true);
+    }
+
+    private async Task InstallProviderAsync()
+    {
+        if (!CanInstallProvider)
+        {
+            return;
+        }
+
+        ClearProviderProgress();
+        Progress<InferenceProviderProgress> progress = new(ApplyProviderProgress);
+
+        await ExecuteProviderOperationAsync(
+            InferenceProviderState.Installing,
+            "Preparing the managed llama.cpp CUDA installation…",
+            async cancellationToken => await _inferenceProvider
+                .InstallAsync(progress, cancellationToken)
+                .ConfigureAwait(true)).ConfigureAwait(true);
+    }
+
+    private async Task StartProviderAsync()
+    {
+        if (!CanStartProvider)
+        {
+            return;
+        }
+
+        string modelReference = ProviderModelReference.Trim();
+        ClearProviderProgress();
+
+        await ExecuteProviderOperationAsync(
+            InferenceProviderState.Starting,
+            $"Starting llama-server with -hf {modelReference}…",
+            async cancellationToken => await _inferenceProvider
+                .StartAsync(modelReference, cancellationToken)
+                .ConfigureAwait(true),
+            allowStop: true).ConfigureAwait(true);
+    }
+
+    private async Task StopProviderAsync()
+    {
+        if (!CanStopProvider)
+        {
+            return;
+        }
+
+        ClearProviderProgress();
+        _responseCancellation?.Cancel();
+        _providerOperationCancellation?.Cancel();
+        SetProviderTransientState(
+            InferenceProviderState.Stopping,
+            "Stopping the managed llama-server process…");
+
+        try
+        {
+            InferenceProviderSnapshot snapshot = await _inferenceProvider
+                .StopAsync(CancellationToken.None)
+                .ConfigureAwait(true);
+            ApplyProviderSnapshot(snapshot);
+            ClearError();
+        }
+        catch (InvalidOperationException exception)
+        {
+            ErrorMessage = exception.Message;
+        }
+        catch (IOException exception)
+        {
+            ErrorMessage = exception.Message;
+        }
+    }
+
+    private async Task ExecuteProviderOperationAsync(
+        InferenceProviderState transientState,
+        string transientDetail,
+        Func<CancellationToken, Task<InferenceProviderSnapshot>> operation,
+        bool allowStop = false)
+    {
+        ArgumentNullException.ThrowIfNull(operation);
+
+        if (IsProviderBusy)
+        {
+            return;
+        }
+
+        using CancellationTokenSource cancellationSource = new();
+        _providerOperationCancellation = cancellationSource;
+        IsProviderBusy = true;
+        ClearError();
+        SetProviderTransientState(transientState, transientDetail);
+
+        if (allowStop)
+        {
+            OnPropertyChanged(nameof(CanStopProvider));
+            StopProviderCommand.NotifyCanExecuteChanged();
+        }
+
+        try
+        {
+            InferenceProviderSnapshot snapshot = await operation(cancellationSource.Token)
+                .ConfigureAwait(true);
+            ApplyProviderSnapshot(snapshot);
+        }
+        catch (OperationCanceledException) when (cancellationSource.IsCancellationRequested)
+        {
+            ClearError();
+            InferenceProviderSnapshot snapshot = await _inferenceProvider
+                .DetectAsync(CancellationToken.None)
+                .ConfigureAwait(true);
+            ApplyProviderSnapshot(snapshot);
+        }
+        catch (PlatformNotSupportedException exception)
+        {
+            SetProviderFault(exception.Message, InferenceProviderState.Unsupported);
+        }
+        catch (HttpRequestException exception)
+        {
+            await RestoreProviderAfterFailureAsync(exception.Message).ConfigureAwait(true);
+        }
+        catch (InvalidDataException exception)
+        {
+            await RestoreProviderAfterFailureAsync(exception.Message).ConfigureAwait(true);
+        }
+        catch (IOException exception)
+        {
+            await RestoreProviderAfterFailureAsync(exception.Message).ConfigureAwait(true);
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            await RestoreProviderAfterFailureAsync(exception.Message).ConfigureAwait(true);
+        }
+        catch (ArgumentException exception)
+        {
+            await RestoreProviderAfterFailureAsync(exception.Message).ConfigureAwait(true);
+        }
+        catch (InvalidOperationException exception)
+        {
+            await RestoreProviderAfterFailureAsync(exception.Message).ConfigureAwait(true);
+        }
+        finally
+        {
+            if (ReferenceEquals(_providerOperationCancellation, cancellationSource))
+            {
+                _providerOperationCancellation = null;
+            }
+
+            IsProviderBusy = false;
+        }
+    }
+
+    private async Task RestoreProviderAfterFailureAsync(string errorMessage)
+    {
+        ErrorMessage = errorMessage;
+
+        try
+        {
+            InferenceProviderSnapshot snapshot = await _inferenceProvider
+                .DetectAsync(CancellationToken.None)
+                .ConfigureAwait(true);
+            ApplyProviderSnapshot(snapshot);
+        }
+        catch (PlatformNotSupportedException exception)
+        {
+            SetProviderFault(
+                $"{errorMessage} {exception.Message}",
+                InferenceProviderState.Unsupported);
+        }
+        catch (HttpRequestException exception)
+        {
+            SetProviderRedetectionFault(errorMessage, exception.Message);
+        }
+        catch (InvalidDataException exception)
+        {
+            SetProviderRedetectionFault(errorMessage, exception.Message);
+        }
+        catch (IOException exception)
+        {
+            SetProviderRedetectionFault(errorMessage, exception.Message);
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            SetProviderRedetectionFault(errorMessage, exception.Message);
+        }
+        catch (ArgumentException exception)
+        {
+            SetProviderRedetectionFault(errorMessage, exception.Message);
+        }
+        catch (InvalidOperationException exception)
+        {
+            SetProviderRedetectionFault(errorMessage, exception.Message);
+        }
+    }
+
+    private void SetProviderRedetectionFault(
+        string originalError,
+        string detectionError)
+    {
+        SetProviderFault(
+            $"{originalError} Provider re-detection also failed: {detectionError}",
+            InferenceProviderState.Faulted);
+    }
+
+    private void ApplyProviderProgress(InferenceProviderProgress progress)
+    {
+        ArgumentNullException.ThrowIfNull(progress);
+        _providerProgress = progress;
+        RaiseProviderProgressChanged();
+    }
+
+    private void ClearProviderProgress()
+    {
+        if (_providerProgress is null)
+        {
+            return;
+        }
+
+        _providerProgress = null;
+        RaiseProviderProgressChanged();
+    }
+
+    private void RaiseProviderProgressChanged()
+    {
+        OnPropertyChanged(nameof(IsProviderProgressVisible));
+        OnPropertyChanged(nameof(IsProviderProgressIndeterminate));
+        OnPropertyChanged(nameof(ProviderProgressValue));
+        OnPropertyChanged(nameof(ProviderProgressText));
+        OnPropertyChanged(nameof(ProviderProgressDetailText));
+    }
+
+    private void ApplyProviderSnapshot(InferenceProviderSnapshot snapshot)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        _providerSnapshot = snapshot;
+
+        if (!string.IsNullOrWhiteSpace(snapshot.ModelReference))
+        {
+            ProviderModelReference = snapshot.ModelReference;
+        }
+
+        RaiseProviderStateChanged();
+    }
+
+    private void SetProviderTransientState(
+        InferenceProviderState state,
+        string detail)
+    {
+        _providerSnapshot = new InferenceProviderSnapshot(
+            _providerSnapshot?.Name ?? "llama.cpp CUDA",
+            state,
+            _providerSnapshot?.Version,
+            _providerSnapshot?.IsCudaEnabled ?? false,
+            _providerSnapshot?.ExecutablePath,
+            string.IsNullOrWhiteSpace(ProviderModelReference) ? null : ProviderModelReference,
+            _providerSnapshot?.Endpoint,
+            detail);
+        RaiseProviderStateChanged();
+    }
+
+    private void SetProviderFault(string detail, InferenceProviderState state)
+    {
+        ErrorMessage = detail;
+        _providerSnapshot = new InferenceProviderSnapshot(
+            _providerSnapshot?.Name ?? "llama.cpp CUDA",
+            state,
+            _providerSnapshot?.Version,
+            _providerSnapshot?.IsCudaEnabled ?? false,
+            _providerSnapshot?.ExecutablePath,
+            string.IsNullOrWhiteSpace(ProviderModelReference) ? null : ProviderModelReference,
+            endpoint: null,
+            detail: detail);
+        RaiseProviderStateChanged();
     }
 
     private async Task CreateConversationAsync()
@@ -694,6 +1092,10 @@ public sealed class MainViewModel : ViewModelBase
         {
             ErrorMessage = exception.Message;
         }
+        catch (HttpRequestException exception)
+        {
+            ErrorMessage = exception.Message;
+        }
         catch (IOException exception)
         {
             ErrorMessage = exception.Message;
@@ -750,6 +1152,35 @@ public sealed class MainViewModel : ViewModelBase
     private void ClearError()
     {
         ErrorMessage = null;
+    }
+
+    private void RaiseProviderStateChanged()
+    {
+        OnPropertyChanged(nameof(IsProviderRunning));
+        OnPropertyChanged(nameof(CanDetectProvider));
+        OnPropertyChanged(nameof(CanInstallProvider));
+        OnPropertyChanged(nameof(CanStartProvider));
+        OnPropertyChanged(nameof(CanStopProvider));
+        OnPropertyChanged(nameof(IsProviderModelEditable));
+        OnPropertyChanged(nameof(ProviderName));
+        OnPropertyChanged(nameof(ProviderStatusText));
+        OnPropertyChanged(nameof(ProviderDetailText));
+        OnPropertyChanged(nameof(ProviderVersionText));
+        OnPropertyChanged(nameof(IsProviderProgressVisible));
+        OnPropertyChanged(nameof(IsProviderProgressIndeterminate));
+        OnPropertyChanged(nameof(ProviderProgressValue));
+        OnPropertyChanged(nameof(ProviderProgressText));
+        OnPropertyChanged(nameof(ProviderProgressDetailText));
+        OnPropertyChanged(nameof(CanSendMessage));
+        OnPropertyChanged(nameof(IsComposerEnabled));
+        OnPropertyChanged(nameof(ComposerPlaceholder));
+        OnPropertyChanged(nameof(ComposerStatusText));
+        OnPropertyChanged(nameof(StatusText));
+        DetectProviderCommand.NotifyCanExecuteChanged();
+        InstallProviderCommand.NotifyCanExecuteChanged();
+        StartProviderCommand.NotifyCanExecuteChanged();
+        StopProviderCommand.NotifyCanExecuteChanged();
+        SendMessageCommand.NotifyCanExecuteChanged();
     }
 
     private void RaiseHistoryStateChanged()

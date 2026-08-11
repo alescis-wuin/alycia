@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using Alicia.Application.Conversations;
+using Alicia.Application.Providers;
 using Alicia.Domain.Conversations;
 
 namespace Alicia.Presentation.Tests.ViewModels;
@@ -227,6 +228,100 @@ internal sealed class FailOnceConversationResponder :
 
         await Task.Yield();
         yield return new ConversationResponseChunk(_response.Content);
+    }
+}
+
+internal sealed class StubInferenceProviderRuntime : IInferenceProviderRuntime
+{
+    private const string ProviderName = "llama.cpp CUDA";
+
+    public StubInferenceProviderRuntime(InferenceProviderState initialState = InferenceProviderState.Running)
+    {
+        Current = CreateSnapshot(initialState, modelReference: initialState == InferenceProviderState.Running
+            ? "owner/model-GGUF:Q4_K_M"
+            : null);
+    }
+
+    public InferenceProviderSnapshot Current { get; private set; }
+
+    public int DetectCount { get; private set; }
+
+    public int InstallCount { get; private set; }
+
+    public int StartCount { get; private set; }
+
+    public int StopCount { get; private set; }
+
+    public string? LastStartedModel { get; private set; }
+
+    public Exception? StartException { get; set; }
+
+    public Task<InferenceProviderSnapshot> DetectAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        DetectCount++;
+        return Task.FromResult(Current);
+    }
+
+    public async Task<InferenceProviderSnapshot> InstallAsync(
+        IProgress<InferenceProviderProgress>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        InstallCount++;
+        progress?.Report(new InferenceProviderProgress(
+            "Checking prerequisites",
+            "Test prerequisites ready.",
+            0.10));
+        progress?.Report(new InferenceProviderProgress(
+            "Installation complete",
+            "Test provider installed.",
+            1.0));
+        await Task.Yield();
+        Current = CreateSnapshot(InferenceProviderState.Ready);
+        return Current;
+    }
+
+    public Task<InferenceProviderSnapshot> StartAsync(
+        string modelReference,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        StartCount++;
+        LastStartedModel = modelReference;
+
+        if (StartException is not null)
+        {
+            throw StartException;
+        }
+
+        Current = CreateSnapshot(InferenceProviderState.Running, modelReference);
+        return Task.FromResult(Current);
+    }
+
+    public Task<InferenceProviderSnapshot> StopAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        StopCount++;
+        Current = CreateSnapshot(InferenceProviderState.Ready, Current.ModelReference);
+        return Task.FromResult(Current);
+    }
+
+    private static InferenceProviderSnapshot CreateSnapshot(
+        InferenceProviderState state,
+        string? modelReference = null)
+    {
+        return new InferenceProviderSnapshot(
+            ProviderName,
+            state,
+            version: "test",
+            isCudaEnabled: state != InferenceProviderState.Missing,
+            executablePath: state == InferenceProviderState.Missing ? null : "/test/llama-server",
+            modelReference: modelReference,
+            endpoint: state == InferenceProviderState.Running
+                ? new Uri("http://127.0.0.1:8080/")
+                : null,
+            detail: state.ToString());
     }
 }
 
