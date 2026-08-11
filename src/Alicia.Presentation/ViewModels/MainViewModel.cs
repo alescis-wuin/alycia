@@ -8,7 +8,7 @@ namespace Alicia.Presentation.ViewModels;
 public sealed class MainViewModel : ViewModelBase
 {
     private readonly AppendMessageUseCase _appendMessage;
-    private readonly CompleteConversationTurnUseCase _completeConversationTurn;
+    private readonly StreamConversationTurnUseCase _streamConversationTurn;
     private readonly CreateConversationUseCase _createConversation;
     private readonly DeleteConversationUseCase _deleteConversation;
     private readonly ListConversationsUseCase _listConversations;
@@ -30,7 +30,7 @@ public sealed class MainViewModel : ViewModelBase
     public MainViewModel(
         CreateConversationUseCase createConversation,
         AppendMessageUseCase appendMessage,
-        CompleteConversationTurnUseCase completeConversationTurn,
+        StreamConversationTurnUseCase streamConversationTurn,
         LoadConversationUseCase loadConversation,
         ListConversationsUseCase listConversations,
         RenameConversationUseCase renameConversation,
@@ -38,7 +38,7 @@ public sealed class MainViewModel : ViewModelBase
     {
         ArgumentNullException.ThrowIfNull(createConversation);
         ArgumentNullException.ThrowIfNull(appendMessage);
-        ArgumentNullException.ThrowIfNull(completeConversationTurn);
+        ArgumentNullException.ThrowIfNull(streamConversationTurn);
         ArgumentNullException.ThrowIfNull(loadConversation);
         ArgumentNullException.ThrowIfNull(listConversations);
         ArgumentNullException.ThrowIfNull(renameConversation);
@@ -46,7 +46,7 @@ public sealed class MainViewModel : ViewModelBase
 
         _createConversation = createConversation;
         _appendMessage = appendMessage;
-        _completeConversationTurn = completeConversationTurn;
+        _streamConversationTurn = streamConversationTurn;
         _loadConversation = loadConversation;
         _listConversations = listConversations;
         _renameConversation = renameConversation;
@@ -277,7 +277,7 @@ public sealed class MainViewModel : ViewModelBase
     public string ComposerStatusText => IsSendingMessage
         ? "Saving message locally…"
         : IsGeneratingResponse
-            ? "Alicia is responding… Stop is available."
+            ? "Alicia is streaming a response… Stop is available."
             : CanRetryResponse
                 ? "Response not completed • Retry response is available"
                 : "Enter sends • Shift+Enter adds a new line • Local development responder";
@@ -287,7 +287,7 @@ public sealed class MainViewModel : ViewModelBase
     public string StatusText => IsSendingMessage
         ? "Saving message…"
         : IsGeneratingResponse
-            ? "Alicia is responding…"
+            ? "Alicia is streaming a response…"
             : CanRetryResponse
                 ? "Response incomplete"
                 : IsBusy
@@ -395,22 +395,34 @@ public sealed class MainViewModel : ViewModelBase
         using CancellationTokenSource cancellationSource = new();
         _responseCancellation = cancellationSource;
         IsGeneratingResponse = true;
+        MessageViewModel streamingMessage = MessageViewModel.CreateStreamingAssistant();
+        Messages.Add(streamingMessage);
+        RaiseMessageStateChanged();
 
         try
         {
-            await _completeConversationTurn
+            await foreach (ConversationResponseChunk chunk in _streamConversationTurn
                 .ExecuteAsync(
                     conversationId,
                     triggeringMessageId,
                     cancellationSource.Token)
-                .ConfigureAwait(true);
+                .ConfigureAwait(true))
+            {
+                streamingMessage.AppendContentDelta(chunk.ContentDelta);
+            }
 
             ClearRetryResponse();
             await ReloadConversationsAsync(conversationId).ConfigureAwait(true);
         }
         catch (OperationCanceledException) when (cancellationSource.IsCancellationRequested)
         {
+            RemoveStreamingMessage(streamingMessage);
             ClearError();
+        }
+        catch
+        {
+            RemoveStreamingMessage(streamingMessage);
+            throw;
         }
         finally
         {
@@ -423,6 +435,14 @@ public sealed class MainViewModel : ViewModelBase
 
             OnPropertyChanged(nameof(CanStopResponse));
             StopResponseCommand.NotifyCanExecuteChanged();
+        }
+    }
+
+    private void RemoveStreamingMessage(MessageViewModel streamingMessage)
+    {
+        if (Messages.Remove(streamingMessage))
+        {
+            RaiseMessageStateChanged();
         }
     }
 

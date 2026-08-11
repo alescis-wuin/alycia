@@ -4,7 +4,7 @@ Alicia is a cross-platform AI chat application built with C#, .NET, and Avalonia
 
 ## Status
 
-The repository contains the engineering foundation, a provider-neutral conversation core, local JSON conversation persistence, tested conversation lifecycle operations, a functional Avalonia conversation workspace, provider-neutral response generation, and complete non-streaming turn orchestration. The desktop UI can persist a user message, generate and persist an assistant reply through a cancellable deterministic development responder, stop generation, and retry the same unanswered user message without duplicating it. External provider adapters, streaming, tool calling, retrieval, attachments, and additional platform hosts are intentionally deferred to later atomic work packages.
+The repository contains the engineering foundation, a provider-neutral conversation core, local JSON conversation persistence, tested conversation lifecycle operations, a functional Avalonia conversation workspace, provider-neutral response generation, non-streaming turn completion, and provider-neutral response streaming. The desktop UI can persist a user message, project deterministic assistant output incrementally, persist only the completed assistant message, stop an active stream, and retry the same unanswered user message without duplicating it. External provider adapters, tool calling, retrieval, attachments, and additional platform hosts are intentionally deferred to later atomic work packages.
 
 ## Current platform target
 
@@ -56,11 +56,13 @@ The current Avalonia presentation provides:
 - explicit two-step deletion confirmation with irreversible-action warning;
 - a multiline local message composer with Enter-to-send and Shift+Enter newline behavior;
 - user-message persistence through the existing provider-neutral append-message application use case;
-- complete non-streaming `User → Assistant` turn orchestration tied to the triggering user-message identifier;
-- a cancellable local development responder selected only by the desktop composition root;
-- Stop and retry actions that preserve the persisted user message and avoid resending it;
-- stale-history detection before assistant persistence so responses generated from changed history are rejected;
-- automatic message-list scrolling plus recent-activity/sidebar refresh after successful sends and responses;
+- complete non-streaming `User → Assistant` turn orchestration plus an additive streaming turn use case tied to the triggering user-message identifier;
+- a provider-neutral `IStreamingConversationResponder` boundary that delivers validated content deltas without replacing the existing non-streaming port;
+- a cancellable local development responder that emits deterministic chunks and is selected only by the desktop composition root;
+- transient streamed Assistant projection in the workspace, with no partial response written to conversation history;
+- Stop and retry actions that discard partial output, preserve the persisted user message, and avoid resending it;
+- stale-history detection after streaming and before final assistant persistence so responses generated from changed history are rejected;
+- automatic message-list scrolling while streamed content grows plus recent-activity/sidebar refresh after successful completion;
 - visually distinct user, assistant, and system message projections with accessible labels;
 - message history rendering with role and timestamp projection;
 - dedicated loading, no-history, no-selection, and empty-conversation states;
@@ -70,7 +72,7 @@ The current Avalonia presentation provides:
 - navigation/main accessibility landmarks, heading metadata, visible keyboard focus, and large control targets;
 - a high-contrast dark visual system with distinct selected, editing, success, and destructive states.
 
-Local user-message composition and non-streaming assistant-response persistence are wired end to end. The current desktop responder is deliberately deterministic and local so cancellation, retry, concurrency checks, focus, scrolling, and persistence can be validated before introducing a real model provider.
+Local user-message composition and streamed assistant-response persistence are wired end to end. Partial deltas exist only in Presentation; Application concatenates the completed stream, revalidates conversation history, and persists one immutable Assistant message. The current desktop responder is deliberately deterministic and local so incremental rendering, cancellation, retry, concurrency checks, focus, scrolling, and final-only persistence can be validated before introducing a real model provider.
 
 ## Documentation
 
@@ -83,6 +85,7 @@ Local user-message composition and non-streaming assistant-response persistence 
 - `docs/decisions/0006-local-message-composition.md`
 - `docs/decisions/0007-provider-neutral-response-generation.md`
 - `docs/decisions/0008-non-streaming-conversation-turn.md`
+- `docs/decisions/0009-provider-neutral-response-streaming.md`
 - `docs/development/project-profile.md`
 - `docs/local-dotnet-toolchain.md`
 - `docs/patch-packages.md`

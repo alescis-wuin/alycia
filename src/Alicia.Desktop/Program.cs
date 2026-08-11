@@ -35,8 +35,10 @@ internal static class Program
             storageDirectory,
             timeProvider);
         DevelopmentConversationResponder responder = new(
-            TimeSpan.FromSeconds(1.5));
-        CompleteConversationTurnUseCase completeConversationTurn = new(
+            TimeSpan.FromMilliseconds(450),
+            TimeSpan.FromMilliseconds(55),
+            chunkSize: 10);
+        StreamConversationTurnUseCase streamConversationTurn = new(
             runtime.Repository,
             responder,
             timeProvider);
@@ -44,7 +46,7 @@ internal static class Program
         return new MainViewModel(
             runtime.CreateConversation,
             runtime.AppendMessage,
-            completeConversationTurn,
+            streamConversationTurn,
             runtime.LoadConversation,
             runtime.ListConversations,
             runtime.RenameConversation,

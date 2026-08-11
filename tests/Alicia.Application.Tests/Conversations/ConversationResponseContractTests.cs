@@ -12,6 +12,16 @@ public sealed class ConversationResponseContractTests
     }
 
     [Fact]
+    public void StreamingChunkRejectsEmptyButPreservesWhitespaceDelta()
+    {
+        Assert.Throws<ArgumentException>(() => new ConversationResponseChunk(string.Empty));
+
+        ConversationResponseChunk chunk = new(" ");
+
+        Assert.Equal(" ", chunk.ContentDelta);
+    }
+
+    [Fact]
     public void ResponsePreservesResponderContentExactly()
     {
         const string content = "  First line\nSecond line  ";

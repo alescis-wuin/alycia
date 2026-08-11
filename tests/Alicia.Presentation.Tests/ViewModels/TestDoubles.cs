@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Alicia.Application.Conversations;
 using Alicia.Domain.Conversations;
 
@@ -64,8 +65,9 @@ internal sealed class InMemoryConversationRepository : IConversationRepository
     }
 }
 
-
-internal sealed class DeterministicConversationResponder : IConversationResponder
+internal sealed class DeterministicConversationResponder :
+    IConversationResponder,
+    IStreamingConversationResponder
 {
     private readonly ConversationResponse _response;
 
@@ -86,9 +88,23 @@ internal sealed class DeterministicConversationResponder : IConversationResponde
         CallCount++;
         return Task.FromResult(_response);
     }
+
+    public async IAsyncEnumerable<ConversationResponseChunk> StreamAsync(
+        ConversationResponseRequest request,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        CallCount++;
+        await Task.Yield();
+        yield return new ConversationResponseChunk(_response.Content);
+    }
 }
 
-internal sealed class CancellableConversationResponder : IConversationResponder
+internal sealed class CancellableConversationResponder :
+    IConversationResponder,
+    IStreamingConversationResponder
 {
     private readonly TaskCompletionSource _started =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -108,9 +124,66 @@ internal sealed class CancellableConversationResponder : IConversationResponder
 
         return new ConversationResponse("Unreachable response");
     }
+
+    public async IAsyncEnumerable<ConversationResponseChunk> StreamAsync(
+        ConversationResponseRequest request,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        _started.TrySetResult();
+
+        await Task.Delay(
+            Timeout.InfiniteTimeSpan,
+            cancellationToken).ConfigureAwait(false);
+
+        yield break;
+    }
 }
 
-internal sealed class FailOnceConversationResponder : IConversationResponder
+internal sealed class PausingStreamingConversationResponder : IStreamingConversationResponder
+{
+    private readonly TaskCompletionSource _firstChunkObserved =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly TaskCompletionSource _release =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly ConversationResponseChunk _firstChunk;
+    private readonly ConversationResponseChunk _secondChunk;
+
+    public PausingStreamingConversationResponder(
+        string firstContentDelta,
+        string secondContentDelta)
+    {
+        _firstChunk = new ConversationResponseChunk(firstContentDelta);
+        _secondChunk = new ConversationResponseChunk(secondContentDelta);
+    }
+
+    public Task FirstChunkObserved => _firstChunkObserved.Task;
+
+    public int CallCount { get; private set; }
+
+    public async IAsyncEnumerable<ConversationResponseChunk> StreamAsync(
+        ConversationResponseRequest request,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        CallCount++;
+        yield return _firstChunk;
+        _firstChunkObserved.TrySetResult();
+        await _release.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        yield return _secondChunk;
+    }
+
+    public void Release()
+    {
+        _release.TrySetResult();
+    }
+}
+
+internal sealed class FailOnceConversationResponder :
+    IConversationResponder,
+    IStreamingConversationResponder
 {
     private readonly ConversationResponse _response;
 
@@ -134,6 +207,26 @@ internal sealed class FailOnceConversationResponder : IConversationResponder
             ? Task.FromException<ConversationResponse>(
                 new InvalidOperationException("Development responder failed."))
             : Task.FromResult(_response);
+    }
+
+    public async IAsyncEnumerable<ConversationResponseChunk> StreamAsync(
+        ConversationResponseRequest request,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        CallCount++;
+
+        if (CallCount == 1)
+        {
+            yield return new ConversationResponseChunk("Discarded partial response");
+            await Task.Yield();
+            throw new InvalidOperationException("Development responder failed.");
+        }
+
+        await Task.Yield();
+        yield return new ConversationResponseChunk(_response.Content);
     }
 }
 

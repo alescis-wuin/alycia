@@ -445,7 +445,7 @@
                          FontWeight="Bold"
                          TextAlignment="Center"
                          Foreground="{DynamicResource TextPrimaryBrush}" />
-              <TextBlock Text="Write the first message below. It is stored locally before Alicia requests a development response."
+              <TextBlock Text="Write the first message below. It is stored locally before Alicia starts a streamed development response."
                          FontSize="16"
                          LineHeight="24"
                          TextWrapping="Wrap"
@@ -499,7 +499,7 @@
                 Margin="0,14,0,0"
                 IsVisible="{Binding HasSelectedConversation}"
                 AutomationProperties.Name="Message composer"
-                AutomationProperties.HelpText="Write a user message. Enter sends; Shift+Enter inserts a new line. Stop cancels an active response.">
+                AutomationProperties.HelpText="Write a user message. Enter sends; Shift+Enter inserts a new line. Stop cancels the active streamed response.">
           <Grid RowDefinitions="Auto,Auto"
                 ColumnDefinitions="*,Auto">
             <TextBox x:Name="MessageComposer"
@@ -527,7 +527,7 @@
                       Content="{Binding SendButtonLabel}"
                       Click="OnSendMessageClick"
                       AutomationProperties.Name="Send message"
-                      AutomationProperties.HelpText="Persist this user message and request an Alicia response."
+                      AutomationProperties.HelpText="Persist this user message and start an Alicia streamed response."
                       AutomationProperties.AcceleratorKey="Enter"
                       ToolTip.Tip="Send message (Enter)" />
               <Button Classes="secondary-action"
@@ -536,7 +536,7 @@
                       IsEnabled="{Binding CanStopResponse}"
                       Content="Stop"
                       AutomationProperties.Name="Stop Alicia response"
-                      AutomationProperties.HelpText="Cancel the active response without removing the user message."
+                      AutomationProperties.HelpText="Cancel the active streamed response without removing the user message or saving partial output."
                       AutomationProperties.AcceleratorKey="Escape"
                       ToolTip.Tip="Stop response (Escape)" />
               <Button Classes="secondary-action"

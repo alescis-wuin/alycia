@@ -1,4 +1,5 @@
 using System.Collections.Specialized;
+using System.ComponentModel;
 using Alicia.Presentation.ViewModels;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -10,7 +11,9 @@ namespace Alicia.Presentation.Views;
 public partial class MainView : UserControl
 {
     private bool _initialized;
+    private bool _messageScrollPending;
     private MainViewModel? _subscribedViewModel;
+    private readonly HashSet<MessageViewModel> _subscribedMessages = [];
 
     public MainView()
     {
@@ -99,30 +102,81 @@ public partial class MainView : UserControl
         UnsubscribeFromMessages();
         _subscribedViewModel = viewModel;
         _subscribedViewModel.Messages.CollectionChanged += OnMessagesCollectionChanged;
+        SynchronizeMessageSubscriptions();
     }
 
     private void UnsubscribeFromMessages()
     {
-        if (_subscribedViewModel is null)
+        if (_subscribedViewModel is not null)
         {
-            return;
+            _subscribedViewModel.Messages.CollectionChanged -= OnMessagesCollectionChanged;
+            _subscribedViewModel = null;
         }
 
-        _subscribedViewModel.Messages.CollectionChanged -= OnMessagesCollectionChanged;
-        _subscribedViewModel = null;
+        foreach (MessageViewModel message in _subscribedMessages)
+        {
+            message.PropertyChanged -= OnMessagePropertyChanged;
+        }
+
+        _subscribedMessages.Clear();
     }
 
     private void OnMessagesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs eventArgs)
     {
         _ = sender;
         _ = eventArgs;
+        SynchronizeMessageSubscriptions();
         ScrollMessagesToEnd();
+    }
+
+    private void OnMessagePropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
+    {
+        _ = sender;
+
+        if (string.Equals(
+            eventArgs.PropertyName,
+            nameof(MessageViewModel.Content),
+            StringComparison.Ordinal))
+        {
+            ScrollMessagesToEnd();
+        }
+    }
+
+    private void SynchronizeMessageSubscriptions()
+    {
+        if (_subscribedViewModel is null)
+        {
+            return;
+        }
+
+        foreach (MessageViewModel message in _subscribedMessages)
+        {
+            message.PropertyChanged -= OnMessagePropertyChanged;
+        }
+
+        _subscribedMessages.Clear();
+
+        foreach (MessageViewModel message in _subscribedViewModel.Messages)
+        {
+            message.PropertyChanged += OnMessagePropertyChanged;
+            _subscribedMessages.Add(message);
+        }
     }
 
     private void ScrollMessagesToEnd()
     {
+        if (_messageScrollPending)
+        {
+            return;
+        }
+
+        _messageScrollPending = true;
         Dispatcher.UIThread.Post(
-            MessagesScrollViewer.ScrollToEnd,
+            () =>
+            {
+                _messageScrollPending = false;
+                MessagesScrollViewer.ScrollToEnd();
+            },
             DispatcherPriority.Background);
     }
 }

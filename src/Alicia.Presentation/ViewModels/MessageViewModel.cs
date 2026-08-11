@@ -3,8 +3,10 @@ using Alicia.Domain.Conversations;
 
 namespace Alicia.Presentation.ViewModels;
 
-public sealed class MessageViewModel
+public sealed class MessageViewModel : ViewModelBase
 {
+    private string _content;
+
     public MessageViewModel(ChatMessage message)
     {
         ArgumentNullException.ThrowIfNull(message);
@@ -17,7 +19,7 @@ public sealed class MessageViewModel
             _ => throw new ArgumentOutOfRangeException(nameof(message), message.Role, "Unsupported message role."),
         };
 
-        Content = message.Content;
+        _content = message.Content;
         CreatedAtLabel = message.CreatedAt
             .ToLocalTime()
             .ToString("g", CultureInfo.CurrentCulture);
@@ -28,9 +30,23 @@ public sealed class MessageViewModel
         AutomationName = $"{RoleLabel} message at {CreatedAtLabel}";
     }
 
+    private MessageViewModel()
+    {
+        RoleLabel = "Alicia";
+        _content = string.Empty;
+        CreatedAtLabel = "Streaming…";
+        IsAssistant = true;
+        IsStreaming = true;
+        AutomationName = "Alicia response in progress";
+    }
+
     public string RoleLabel { get; }
 
-    public string Content { get; }
+    public string Content
+    {
+        get => _content;
+        private set => SetProperty(ref _content, value);
+    }
 
     public string CreatedAtLabel { get; }
 
@@ -40,5 +56,32 @@ public sealed class MessageViewModel
 
     public bool IsAssistant { get; }
 
+    public bool IsStreaming { get; }
+
     public string AutomationName { get; }
+
+    public static MessageViewModel CreateStreamingAssistant()
+    {
+        return new MessageViewModel();
+    }
+
+    public void AppendContentDelta(string contentDelta)
+    {
+        ArgumentNullException.ThrowIfNull(contentDelta);
+
+        if (!IsStreaming)
+        {
+            throw new InvalidOperationException(
+                "Only a streaming assistant projection can accept response deltas.");
+        }
+
+        if (contentDelta.Length == 0)
+        {
+            throw new ArgumentException(
+                "Streaming content delta cannot be empty.",
+                nameof(contentDelta));
+        }
+
+        Content += contentDelta;
+    }
 }

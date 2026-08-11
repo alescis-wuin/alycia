@@ -288,6 +288,75 @@ public sealed class MainViewModelTests
     }
 
     [Fact]
+    public async Task SendMessageCommandProjectsStreamingAssistantBeforeFinalPersistence()
+    {
+        DateTimeOffset createdAt = new(2026, 8, 11, 17, 0, 0, TimeSpan.Zero);
+        MutableTimeProvider timeProvider = new(createdAt.AddMinutes(2));
+        InMemoryConversationRepository repository = new();
+        Conversation conversation = new(ConversationId.New(), "Project", createdAt, createdAt);
+        repository.Seed(conversation);
+        PausingStreamingConversationResponder responder = new(
+            "Partial ",
+            "response");
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            timeProvider,
+            responder);
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+        viewModel.MessageDraft = "Stream this";
+
+        Task sendTask = viewModel.SendMessageCommand.ExecuteAsync(null);
+        await responder.FirstChunkObserved.ConfigureAwait(true);
+
+        Assert.True(viewModel.IsGeneratingResponse);
+        Assert.True(viewModel.CanStopResponse);
+        Assert.Collection(
+            viewModel.Messages,
+            message =>
+            {
+                Assert.True(message.IsUser);
+                Assert.Equal("Stream this", message.Content);
+            },
+            message =>
+            {
+                Assert.True(message.IsAssistant);
+                Assert.True(message.IsStreaming);
+                Assert.Equal("Partial ", message.Content);
+                Assert.Equal("Streaming…", message.CreatedAtLabel);
+            });
+
+        Conversation? duringStream = await repository
+            .FindAsync(conversation.Id, CancellationToken.None)
+            .ConfigureAwait(true);
+        Conversation persistedDuringStream = Assert.IsType<Conversation>(duringStream);
+        ChatMessage persistedUser = Assert.Single(persistedDuringStream.Messages);
+        Assert.Equal(MessageRole.User, persistedUser.Role);
+
+        responder.Release();
+        await sendTask.ConfigureAwait(true);
+
+        Assert.False(viewModel.IsGeneratingResponse);
+        Assert.False(viewModel.CanRetryResponse);
+        Assert.Collection(
+            viewModel.Messages,
+            message => Assert.True(message.IsUser),
+            message =>
+            {
+                Assert.True(message.IsAssistant);
+                Assert.False(message.IsStreaming);
+                Assert.Equal("Partial response", message.Content);
+            });
+        Assert.Collection(
+            persistedDuringStream.Messages,
+            message => Assert.Equal(MessageRole.User, message.Role),
+            message =>
+            {
+                Assert.Equal(MessageRole.Assistant, message.Role);
+                Assert.Equal("Partial response", message.Content);
+            });
+    }
+
+    [Fact]
     public async Task SendMessageCommandPersistsCompleteTurnAndRefreshesProjection()
     {
         DateTimeOffset createdAt = new(2026, 8, 10, 20, 0, 0, TimeSpan.Zero);
@@ -452,14 +521,16 @@ public sealed class MainViewModelTests
     }
 
     [Fact]
-    public async Task StopResponseKeepsUserMessageAndEnablesRetry()
+    public async Task StopResponseDiscardsPartialProjectionKeepsUserMessageAndEnablesRetry()
     {
         DateTimeOffset createdAt = new(2026, 8, 11, 16, 30, 0, TimeSpan.Zero);
         MutableTimeProvider timeProvider = new(createdAt.AddMinutes(1));
         InMemoryConversationRepository repository = new();
         Conversation conversation = new(ConversationId.New(), "Project", createdAt, createdAt);
         repository.Seed(conversation);
-        CancellableConversationResponder responder = new();
+        PausingStreamingConversationResponder responder = new(
+            "Partial response",
+            " that must not persist");
         MainViewModel viewModel = CreateViewModel(
             repository,
             timeProvider,
@@ -468,12 +539,15 @@ public sealed class MainViewModelTests
         viewModel.MessageDraft = "Stop this";
 
         Task sendTask = viewModel.SendMessageCommand.ExecuteAsync(null);
-        await responder.Started.ConfigureAwait(true);
+        await responder.FirstChunkObserved.ConfigureAwait(true);
 
         Assert.True(viewModel.IsGeneratingResponse);
         Assert.True(viewModel.CanStopResponse);
         Assert.True(viewModel.IsBusy);
         Assert.False(viewModel.IsComposerEnabled);
+        Assert.Equal(2, viewModel.Messages.Count);
+        Assert.True(viewModel.Messages[1].IsStreaming);
+        Assert.Equal("Partial response", viewModel.Messages[1].Content);
 
         viewModel.StopResponseCommand.Execute(null);
         await sendTask.ConfigureAwait(true);
@@ -596,21 +670,38 @@ public sealed class MainViewModelTests
         Assert.Equal(role == MessageRole.System, viewModel.IsSystem);
         Assert.Equal(role == MessageRole.User, viewModel.IsUser);
         Assert.Equal(role == MessageRole.Assistant, viewModel.IsAssistant);
+        Assert.False(viewModel.IsStreaming);
         Assert.Contains(expectedLabel, viewModel.AutomationName, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void StreamingMessageViewModelAppendsDeltasWithoutCreatingDomainMessage()
+    {
+        MessageViewModel viewModel = MessageViewModel.CreateStreamingAssistant();
+
+        viewModel.AppendContentDelta("Hello");
+        viewModel.AppendContentDelta(" world");
+
+        Assert.True(viewModel.IsAssistant);
+        Assert.True(viewModel.IsStreaming);
+        Assert.Equal("Alicia", viewModel.RoleLabel);
+        Assert.Equal("Hello world", viewModel.Content);
+        Assert.Equal("Streaming…", viewModel.CreatedAtLabel);
+        Assert.Contains("in progress", viewModel.AutomationName, StringComparison.Ordinal);
     }
 
     private static MainViewModel CreateViewModel(
         IConversationRepository repository,
         TimeProvider timeProvider,
-        IConversationResponder? responder = null)
+        IStreamingConversationResponder? responder = null)
     {
-        IConversationResponder resolvedResponder =
+        IStreamingConversationResponder resolvedResponder =
             responder ?? new DeterministicConversationResponder("Development response");
 
         return new MainViewModel(
             new CreateConversationUseCase(repository, timeProvider),
             new AppendMessageUseCase(repository, timeProvider),
-            new CompleteConversationTurnUseCase(
+            new StreamConversationTurnUseCase(
                 repository,
                 resolvedResponder,
                 timeProvider),

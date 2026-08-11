@@ -1,16 +1,18 @@
+using System.Runtime.CompilerServices;
+using System.Text;
 using Alicia.Domain.Conversations;
 
 namespace Alicia.Application.Conversations;
 
-public sealed class CompleteConversationTurnUseCase
+public sealed class StreamConversationTurnUseCase
 {
     private readonly IConversationRepository _repository;
-    private readonly IConversationResponder _responder;
+    private readonly IStreamingConversationResponder _responder;
     private readonly TimeProvider _timeProvider;
 
-    public CompleteConversationTurnUseCase(
+    public StreamConversationTurnUseCase(
         IConversationRepository repository,
-        IConversationResponder responder,
+        IStreamingConversationResponder responder,
         TimeProvider timeProvider)
     {
         ArgumentNullException.ThrowIfNull(repository);
@@ -22,10 +24,10 @@ public sealed class CompleteConversationTurnUseCase
         _timeProvider = timeProvider;
     }
 
-    public async Task<ChatMessage> ExecuteAsync(
+    public async IAsyncEnumerable<ConversationResponseChunk> ExecuteAsync(
         ConversationId conversationId,
         MessageId triggeringUserMessageId,
-        CancellationToken cancellationToken = default)
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         if (conversationId.IsEmpty)
         {
@@ -56,19 +58,34 @@ public sealed class CompleteConversationTurnUseCase
             triggeringUserMessageId);
         ConversationResponseRequest request =
             ConversationResponseRequest.FromConversation(conversation);
+        StringBuilder responseContent = new();
 
-        ConversationResponse? response = await _responder
-            .GenerateAsync(request, cancellationToken)
-            .ConfigureAwait(false);
-
-        if (response is null)
+        await foreach (ConversationResponseChunk chunk in _responder
+            .StreamAsync(request, cancellationToken)
+            .WithCancellation(cancellationToken)
+            .ConfigureAwait(false))
         {
-            throw new InvalidOperationException(
-                "Conversation responder returned no response.");
+            if (chunk is null)
+            {
+                throw new InvalidOperationException(
+                    "Streaming conversation responder returned an invalid response chunk.");
+            }
+
+            responseContent.Append(chunk.ContentDelta);
+            yield return chunk;
         }
 
         cancellationToken.ThrowIfCancellationRequested();
 
+        string content = responseContent.ToString();
+
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            throw new InvalidOperationException(
+                "Streaming conversation responder returned no response content.");
+        }
+
+        ConversationResponse response = new(content);
         Conversation? reloadedConversation = await _repository
             .FindAsync(conversationId, cancellationToken)
             .ConfigureAwait(false);
@@ -85,7 +102,5 @@ public sealed class CompleteConversationTurnUseCase
         await _repository
             .SaveAsync(currentConversation, cancellationToken)
             .ConfigureAwait(false);
-
-        return assistantMessage;
     }
 }
