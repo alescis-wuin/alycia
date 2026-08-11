@@ -288,14 +288,19 @@ public sealed class MainViewModelTests
     }
 
     [Fact]
-    public async Task SendMessageCommandPersistsUserMessageClearsDraftAndRefreshesProjection()
+    public async Task SendMessageCommandPersistsCompleteTurnAndRefreshesProjection()
     {
         DateTimeOffset createdAt = new(2026, 8, 10, 20, 0, 0, TimeSpan.Zero);
         MutableTimeProvider timeProvider = new(createdAt.AddMinutes(5));
         InMemoryConversationRepository repository = new();
         Conversation conversation = new(ConversationId.New(), "Project", createdAt, createdAt);
         repository.Seed(conversation);
-        MainViewModel viewModel = CreateViewModel(repository, timeProvider);
+        DeterministicConversationResponder responder =
+            new("Development response");
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            timeProvider,
+            responder);
         await viewModel.InitializeAsync().ConfigureAwait(true);
 
         viewModel.MessageDraft = "  First line\nSecond line  ";
@@ -306,26 +311,46 @@ public sealed class MainViewModelTests
         Assert.Equal(string.Empty, viewModel.MessageDraft);
         Assert.False(viewModel.CanSendMessage);
         Assert.False(viewModel.IsSendingMessage);
+        Assert.False(viewModel.IsGeneratingResponse);
+        Assert.False(viewModel.CanRetryResponse);
+        Assert.Equal(1, responder.CallCount);
 
-        MessageViewModel projectedMessage = Assert.Single(viewModel.Messages);
-        Assert.Equal("You", projectedMessage.RoleLabel);
-        Assert.Equal("First line\nSecond line", projectedMessage.Content);
-        Assert.True(projectedMessage.IsUser);
-        Assert.False(projectedMessage.IsAssistant);
-        Assert.False(projectedMessage.IsSystem);
+        Assert.Collection(
+            viewModel.Messages,
+            message =>
+            {
+                Assert.Equal("You", message.RoleLabel);
+                Assert.Equal("First line\nSecond line", message.Content);
+                Assert.True(message.IsUser);
+            },
+            message =>
+            {
+                Assert.Equal("Alicia", message.RoleLabel);
+                Assert.Equal("Development response", message.Content);
+                Assert.True(message.IsAssistant);
+            });
 
         ConversationListItemViewModel item = Assert.Single(viewModel.Conversations);
         Assert.Equal(conversation.Id, item.Id);
-        Assert.Equal(1, item.MessageCount);
-        Assert.Contains("1 message", item.MetadataLabel, StringComparison.Ordinal);
+        Assert.Equal(2, item.MessageCount);
+        Assert.Contains("2 messages", item.MetadataLabel, StringComparison.Ordinal);
 
         Conversation? persisted = await repository
             .FindAsync(conversation.Id, CancellationToken.None)
             .ConfigureAwait(true);
         Conversation persistedConversation = Assert.IsType<Conversation>(persisted);
-        ChatMessage persistedMessage = Assert.Single(persistedConversation.Messages);
-        Assert.Equal(MessageRole.User, persistedMessage.Role);
-        Assert.Equal("First line\nSecond line", persistedMessage.Content);
+        Assert.Collection(
+            persistedConversation.Messages,
+            message =>
+            {
+                Assert.Equal(MessageRole.User, message.Role);
+                Assert.Equal("First line\nSecond line", message.Content);
+            },
+            message =>
+            {
+                Assert.Equal(MessageRole.Assistant, message.Role);
+                Assert.Equal("Development response", message.Content);
+            });
         Assert.Equal(timeProvider.UtcNow, persistedConversation.UpdatedAt);
     }
 
@@ -426,6 +451,132 @@ public sealed class MainViewModelTests
         Assert.True(viewModel.CanSendMessage);
     }
 
+    [Fact]
+    public async Task StopResponseKeepsUserMessageAndEnablesRetry()
+    {
+        DateTimeOffset createdAt = new(2026, 8, 11, 16, 30, 0, TimeSpan.Zero);
+        MutableTimeProvider timeProvider = new(createdAt.AddMinutes(1));
+        InMemoryConversationRepository repository = new();
+        Conversation conversation = new(ConversationId.New(), "Project", createdAt, createdAt);
+        repository.Seed(conversation);
+        CancellableConversationResponder responder = new();
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            timeProvider,
+            responder);
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+        viewModel.MessageDraft = "Stop this";
+
+        Task sendTask = viewModel.SendMessageCommand.ExecuteAsync(null);
+        await responder.Started.ConfigureAwait(true);
+
+        Assert.True(viewModel.IsGeneratingResponse);
+        Assert.True(viewModel.CanStopResponse);
+        Assert.True(viewModel.IsBusy);
+        Assert.False(viewModel.IsComposerEnabled);
+
+        viewModel.StopResponseCommand.Execute(null);
+        await sendTask.ConfigureAwait(true);
+
+        Assert.False(viewModel.IsGeneratingResponse);
+        Assert.False(viewModel.CanStopResponse);
+        Assert.True(viewModel.CanRetryResponse);
+        Assert.False(viewModel.HasError);
+        MessageViewModel userMessage = Assert.Single(viewModel.Messages);
+        Assert.True(userMessage.IsUser);
+        Assert.Equal("Stop this", userMessage.Content);
+
+        Conversation? persisted = await repository
+            .FindAsync(conversation.Id, CancellationToken.None)
+            .ConfigureAwait(true);
+        Conversation persistedConversation = Assert.IsType<Conversation>(persisted);
+        ChatMessage persistedMessage = Assert.Single(persistedConversation.Messages);
+        Assert.Equal(MessageRole.User, persistedMessage.Role);
+    }
+
+    [Fact]
+    public async Task RetryResponseCompletesExistingUserMessageWithoutDuplicatingIt()
+    {
+        DateTimeOffset createdAt = new(2026, 8, 11, 16, 40, 0, TimeSpan.Zero);
+        MutableTimeProvider timeProvider = new(createdAt.AddMinutes(1));
+        InMemoryConversationRepository repository = new();
+        Conversation conversation = new(ConversationId.New(), "Project", createdAt, createdAt);
+        repository.Seed(conversation);
+        FailOnceConversationResponder responder =
+            new("Recovered response");
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            timeProvider,
+            responder);
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+        viewModel.MessageDraft = "Retry me";
+
+        await viewModel.SendMessageCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.True(viewModel.HasError);
+        Assert.True(viewModel.CanRetryResponse);
+        Assert.Equal(1, responder.CallCount);
+        MessageViewModel firstProjection = Assert.Single(viewModel.Messages);
+        Assert.True(firstProjection.IsUser);
+
+        await viewModel.RetryResponseCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.False(viewModel.HasError);
+        Assert.False(viewModel.CanRetryResponse);
+        Assert.Equal(2, responder.CallCount);
+        Assert.Collection(
+            viewModel.Messages,
+            message =>
+            {
+                Assert.True(message.IsUser);
+                Assert.Equal("Retry me", message.Content);
+            },
+            message =>
+            {
+                Assert.True(message.IsAssistant);
+                Assert.Equal("Recovered response", message.Content);
+            });
+
+        Conversation? persisted = await repository
+            .FindAsync(conversation.Id, CancellationToken.None)
+            .ConfigureAwait(true);
+        Conversation persistedConversation = Assert.IsType<Conversation>(persisted);
+        Assert.Equal(
+            1,
+            persistedConversation.Messages.Count(
+                message => message.Role == MessageRole.User));
+        Assert.Equal(
+            1,
+            persistedConversation.Messages.Count(
+                message => message.Role == MessageRole.Assistant));
+    }
+
+    [Fact]
+    public async Task EscapeCancellationStopsActiveResponse()
+    {
+        DateTimeOffset createdAt = new(2026, 8, 11, 16, 50, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        Conversation conversation = new(ConversationId.New(), "Project", createdAt, createdAt);
+        repository.Seed(conversation);
+        CancellableConversationResponder responder = new();
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(createdAt.AddMinutes(1)),
+            responder);
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+        viewModel.MessageDraft = "Escape";
+
+        Task sendTask = viewModel.SendMessageCommand.ExecuteAsync(null);
+        await responder.Started.ConfigureAwait(true);
+
+        viewModel.CancelTransientActionCommand.Execute(null);
+        await sendTask.ConfigureAwait(true);
+
+        Assert.False(viewModel.IsGeneratingResponse);
+        Assert.True(viewModel.CanRetryResponse);
+        Assert.False(viewModel.HasError);
+    }
+
     [Theory]
     [InlineData(MessageRole.System, "System")]
     [InlineData(MessageRole.User, "You")]
@@ -450,11 +601,19 @@ public sealed class MainViewModelTests
 
     private static MainViewModel CreateViewModel(
         IConversationRepository repository,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider,
+        IConversationResponder? responder = null)
     {
+        IConversationResponder resolvedResponder =
+            responder ?? new DeterministicConversationResponder("Development response");
+
         return new MainViewModel(
             new CreateConversationUseCase(repository, timeProvider),
             new AppendMessageUseCase(repository, timeProvider),
+            new CompleteConversationTurnUseCase(
+                repository,
+                resolvedResponder,
+                timeProvider),
             new LoadConversationUseCase(repository),
             new ListConversationsUseCase(repository),
             new RenameConversationUseCase(repository, timeProvider),

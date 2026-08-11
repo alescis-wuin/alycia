@@ -127,6 +127,30 @@ internal sealed class NullConversationResponder : IConversationResponder
     }
 }
 
+
+internal sealed class DelegateConversationResponder : IConversationResponder
+{
+    private readonly Func<ConversationResponseRequest, CancellationToken, Task<ConversationResponse>> _generate;
+
+    public DelegateConversationResponder(
+        Func<ConversationResponseRequest, CancellationToken, Task<ConversationResponse>> generate)
+    {
+        ArgumentNullException.ThrowIfNull(generate);
+        _generate = generate;
+    }
+
+    public int CallCount { get; private set; }
+
+    public Task<ConversationResponse> GenerateAsync(
+        ConversationResponseRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        CallCount++;
+        return _generate(request, cancellationToken);
+    }
+}
+
 internal sealed class FixedTimeProvider : TimeProvider
 {
     private readonly DateTimeOffset _utcNow;

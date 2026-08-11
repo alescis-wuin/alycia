@@ -8,6 +8,7 @@ namespace Alicia.Presentation.ViewModels;
 public sealed class MainViewModel : ViewModelBase
 {
     private readonly AppendMessageUseCase _appendMessage;
+    private readonly CompleteConversationTurnUseCase _completeConversationTurn;
     private readonly CreateConversationUseCase _createConversation;
     private readonly DeleteConversationUseCase _deleteConversation;
     private readonly ListConversationsUseCase _listConversations;
@@ -16,8 +17,12 @@ public sealed class MainViewModel : ViewModelBase
 
     private bool _isBusy;
     private bool _isDeleteConfirmationVisible;
+    private bool _isGeneratingResponse;
     private bool _isInitialized;
     private bool _isSendingMessage;
+    private ConversationId? _retryConversationId;
+    private MessageId? _retryTriggeringMessageId;
+    private CancellationTokenSource? _responseCancellation;
     private ConversationListItemViewModel? _selectedConversation;
     private string? _errorMessage;
     private string _messageDraft = string.Empty;
@@ -25,6 +30,7 @@ public sealed class MainViewModel : ViewModelBase
     public MainViewModel(
         CreateConversationUseCase createConversation,
         AppendMessageUseCase appendMessage,
+        CompleteConversationTurnUseCase completeConversationTurn,
         LoadConversationUseCase loadConversation,
         ListConversationsUseCase listConversations,
         RenameConversationUseCase renameConversation,
@@ -32,6 +38,7 @@ public sealed class MainViewModel : ViewModelBase
     {
         ArgumentNullException.ThrowIfNull(createConversation);
         ArgumentNullException.ThrowIfNull(appendMessage);
+        ArgumentNullException.ThrowIfNull(completeConversationTurn);
         ArgumentNullException.ThrowIfNull(loadConversation);
         ArgumentNullException.ThrowIfNull(listConversations);
         ArgumentNullException.ThrowIfNull(renameConversation);
@@ -39,6 +46,7 @@ public sealed class MainViewModel : ViewModelBase
 
         _createConversation = createConversation;
         _appendMessage = appendMessage;
+        _completeConversationTurn = completeConversationTurn;
         _loadConversation = loadConversation;
         _listConversations = listConversations;
         _renameConversation = renameConversation;
@@ -47,6 +55,8 @@ public sealed class MainViewModel : ViewModelBase
         CreateConversationCommand = new AsyncRelayCommand(CreateConversationAsync);
         RefreshCommand = new AsyncRelayCommand(RefreshAsync);
         SendMessageCommand = new AsyncRelayCommand(SendMessageAsync, () => CanSendMessage);
+        RetryResponseCommand = new AsyncRelayCommand(RetryResponseAsync, () => CanRetryResponse);
+        StopResponseCommand = new RelayCommand(StopResponse, () => CanStopResponse);
         BeginRenameCommand = new RelayCommand(BeginRename);
         RequestDeleteCommand = new RelayCommand(RequestDelete);
         CancelDeleteCommand = new RelayCommand(CancelDelete);
@@ -66,6 +76,10 @@ public sealed class MainViewModel : ViewModelBase
     public IAsyncRelayCommand RefreshCommand { get; }
 
     public IAsyncRelayCommand SendMessageCommand { get; }
+
+    public IAsyncRelayCommand RetryResponseCommand { get; }
+
+    public IRelayCommand StopResponseCommand { get; }
 
     public IRelayCommand BeginRenameCommand { get; }
 
@@ -98,6 +112,7 @@ public sealed class MainViewModel : ViewModelBase
             if (conversationChanged)
             {
                 MessageDraft = string.Empty;
+                ClearRetryResponse();
             }
 
             OnPropertyChanged();
@@ -131,7 +146,9 @@ public sealed class MainViewModel : ViewModelBase
                 OnPropertyChanged(nameof(SendButtonLabel));
                 OnPropertyChanged(nameof(ComposerStatusText));
                 OnPropertyChanged(nameof(StatusText));
+                OnPropertyChanged(nameof(CanRetryResponse));
                 SendMessageCommand.NotifyCanExecuteChanged();
+                RetryResponseCommand.NotifyCanExecuteChanged();
 
                 foreach (ConversationListItemViewModel item in Conversations)
                 {
@@ -162,6 +179,32 @@ public sealed class MainViewModel : ViewModelBase
             }
         }
     }
+
+    public bool IsGeneratingResponse
+    {
+        get => _isGeneratingResponse;
+        private set
+        {
+            if (SetProperty(ref _isGeneratingResponse, value))
+            {
+                OnPropertyChanged(nameof(CanStopResponse));
+                OnPropertyChanged(nameof(CanRetryResponse));
+                OnPropertyChanged(nameof(ComposerStatusText));
+                OnPropertyChanged(nameof(StatusText));
+                StopResponseCommand.NotifyCanExecuteChanged();
+                RetryResponseCommand.NotifyCanExecuteChanged();
+            }
+        }
+    }
+
+    public bool CanStopResponse => IsGeneratingResponse
+        && _responseCancellation is { IsCancellationRequested: false };
+
+    public bool CanRetryResponse => !IsBusy
+        && !IsGeneratingResponse
+        && _retryConversationId is ConversationId retryConversationId
+        && _retryTriggeringMessageId is not null
+        && SelectedConversation?.Id == retryConversationId;
 
     public bool IsInitialized
     {
@@ -233,15 +276,23 @@ public sealed class MainViewModel : ViewModelBase
 
     public string ComposerStatusText => IsSendingMessage
         ? "Saving message locally…"
-        : "Enter sends • Shift+Enter adds a new line • Local storage only";
+        : IsGeneratingResponse
+            ? "Alicia is responding… Stop is available."
+            : CanRetryResponse
+                ? "Response not completed • Retry response is available"
+                : "Enter sends • Shift+Enter adds a new line • Local development responder";
 
     public string SendButtonLabel => IsSendingMessage ? "Saving…" : "Send";
 
     public string StatusText => IsSendingMessage
         ? "Saving message…"
-        : IsBusy
-            ? "Working…"
-            : "Local history ready";
+        : IsGeneratingResponse
+            ? "Alicia is responding…"
+            : CanRetryResponse
+                ? "Response incomplete"
+                : IsBusy
+                    ? "Working…"
+                    : "Local history ready";
 
     public async Task InitializeAsync()
     {
@@ -290,27 +341,103 @@ public sealed class MainViewModel : ViewModelBase
         ConversationId conversationId = SelectedConversation.Id;
         string content = MessageDraft.Trim();
 
-        IsSendingMessage = true;
-
-        try
+        await ExecuteOperationAsync(async () =>
         {
-            await ExecuteOperationAsync(async () =>
-            {
-                CancelAllRenames();
-                IsDeleteConfirmationVisible = false;
+            CancelAllRenames();
+            IsDeleteConfirmationVisible = false;
+            IsSendingMessage = true;
 
-                await _appendMessage
+            ChatMessage userMessage;
+
+            try
+            {
+                userMessage = await _appendMessage
                     .ExecuteAsync(conversationId, MessageRole.User, content)
                     .ConfigureAwait(true);
 
                 MessageDraft = string.Empty;
                 await ReloadConversationsAsync(conversationId).ConfigureAwait(true);
-            }).ConfigureAwait(true);
+            }
+            finally
+            {
+                IsSendingMessage = false;
+            }
+
+            await GenerateResponseAsync(
+                conversationId,
+                userMessage.Id).ConfigureAwait(true);
+        }).ConfigureAwait(true);
+    }
+
+    private async Task RetryResponseAsync()
+    {
+        if (!CanRetryResponse
+            || _retryConversationId is not ConversationId conversationId
+            || _retryTriggeringMessageId is not MessageId triggeringMessageId)
+        {
+            return;
+        }
+
+        await ExecuteOperationAsync(async () =>
+        {
+            await GenerateResponseAsync(
+                conversationId,
+                triggeringMessageId).ConfigureAwait(true);
+        }).ConfigureAwait(true);
+    }
+
+    private async Task GenerateResponseAsync(
+        ConversationId conversationId,
+        MessageId triggeringMessageId)
+    {
+        SetRetryResponse(conversationId, triggeringMessageId);
+
+        using CancellationTokenSource cancellationSource = new();
+        _responseCancellation = cancellationSource;
+        IsGeneratingResponse = true;
+
+        try
+        {
+            await _completeConversationTurn
+                .ExecuteAsync(
+                    conversationId,
+                    triggeringMessageId,
+                    cancellationSource.Token)
+                .ConfigureAwait(true);
+
+            ClearRetryResponse();
+            await ReloadConversationsAsync(conversationId).ConfigureAwait(true);
+        }
+        catch (OperationCanceledException) when (cancellationSource.IsCancellationRequested)
+        {
+            ClearError();
         }
         finally
         {
-            IsSendingMessage = false;
+            IsGeneratingResponse = false;
+
+            if (ReferenceEquals(_responseCancellation, cancellationSource))
+            {
+                _responseCancellation = null;
+            }
+
+            OnPropertyChanged(nameof(CanStopResponse));
+            StopResponseCommand.NotifyCanExecuteChanged();
         }
+    }
+
+    private void StopResponse()
+    {
+        if (!CanStopResponse)
+        {
+            return;
+        }
+
+        _responseCancellation?.Cancel();
+        OnPropertyChanged(nameof(CanStopResponse));
+        OnPropertyChanged(nameof(ComposerStatusText));
+        OnPropertyChanged(nameof(StatusText));
+        StopResponseCommand.NotifyCanExecuteChanged();
     }
 
     private void BeginRename()
@@ -343,6 +470,12 @@ public sealed class MainViewModel : ViewModelBase
 
     private void CancelTransientAction()
     {
+        if (CanStopResponse)
+        {
+            StopResponse();
+            return;
+        }
+
         CancelAllRenames();
         CancelDelete();
     }
@@ -567,6 +700,33 @@ public sealed class MainViewModel : ViewModelBase
         }
     }
 
+    private void SetRetryResponse(
+        ConversationId conversationId,
+        MessageId triggeringMessageId)
+    {
+        _retryConversationId = conversationId;
+        _retryTriggeringMessageId = triggeringMessageId;
+        OnPropertyChanged(nameof(CanRetryResponse));
+        OnPropertyChanged(nameof(ComposerStatusText));
+        OnPropertyChanged(nameof(StatusText));
+        RetryResponseCommand.NotifyCanExecuteChanged();
+    }
+
+    private void ClearRetryResponse()
+    {
+        if (_retryConversationId is null && _retryTriggeringMessageId is null)
+        {
+            return;
+        }
+
+        _retryConversationId = null;
+        _retryTriggeringMessageId = null;
+        OnPropertyChanged(nameof(CanRetryResponse));
+        OnPropertyChanged(nameof(ComposerStatusText));
+        OnPropertyChanged(nameof(StatusText));
+        RetryResponseCommand.NotifyCanExecuteChanged();
+    }
+
     private void ClearError()
     {
         ErrorMessage = null;
@@ -586,7 +746,9 @@ public sealed class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(CanSendMessage));
         OnPropertyChanged(nameof(IsComposerEnabled));
         OnPropertyChanged(nameof(ComposerPlaceholder));
+        OnPropertyChanged(nameof(CanRetryResponse));
         SendMessageCommand.NotifyCanExecuteChanged();
+        RetryResponseCommand.NotifyCanExecuteChanged();
         RaiseMessageStateChanged();
         RaiseEmptyStateChanged();
     }

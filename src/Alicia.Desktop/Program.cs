@@ -1,3 +1,4 @@
+using Alicia.Application.Conversations;
 using Alicia.Infrastructure.Conversations;
 using Alicia.Presentation;
 using Alicia.Presentation.ViewModels;
@@ -29,11 +30,21 @@ internal static class Program
     {
         string localApplicationData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         string storageDirectory = Path.Combine(localApplicationData, "Alicia", "conversations");
-        LocalConversationRuntime runtime = LocalConversationRuntime.Create(storageDirectory);
+        TimeProvider timeProvider = TimeProvider.System;
+        LocalConversationRuntime runtime = LocalConversationRuntime.Create(
+            storageDirectory,
+            timeProvider);
+        DevelopmentConversationResponder responder = new(
+            TimeSpan.FromSeconds(1.5));
+        CompleteConversationTurnUseCase completeConversationTurn = new(
+            runtime.Repository,
+            responder,
+            timeProvider);
 
         return new MainViewModel(
             runtime.CreateConversation,
             runtime.AppendMessage,
+            completeConversationTurn,
             runtime.LoadConversation,
             runtime.ListConversations,
             runtime.RenameConversation,

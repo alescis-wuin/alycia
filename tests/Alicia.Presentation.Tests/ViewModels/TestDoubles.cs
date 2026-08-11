@@ -64,6 +64,79 @@ internal sealed class InMemoryConversationRepository : IConversationRepository
     }
 }
 
+
+internal sealed class DeterministicConversationResponder : IConversationResponder
+{
+    private readonly ConversationResponse _response;
+
+    public DeterministicConversationResponder(string responseContent)
+    {
+        _response = new ConversationResponse(responseContent);
+    }
+
+    public int CallCount { get; private set; }
+
+    public Task<ConversationResponse> GenerateAsync(
+        ConversationResponseRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        CallCount++;
+        return Task.FromResult(_response);
+    }
+}
+
+internal sealed class CancellableConversationResponder : IConversationResponder
+{
+    private readonly TaskCompletionSource _started =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    public Task Started => _started.Task;
+
+    public async Task<ConversationResponse> GenerateAsync(
+        ConversationResponseRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        _started.TrySetResult();
+
+        await Task.Delay(
+            Timeout.InfiniteTimeSpan,
+            cancellationToken).ConfigureAwait(false);
+
+        return new ConversationResponse("Unreachable response");
+    }
+}
+
+internal sealed class FailOnceConversationResponder : IConversationResponder
+{
+    private readonly ConversationResponse _response;
+
+    public FailOnceConversationResponder(string responseContent)
+    {
+        _response = new ConversationResponse(responseContent);
+    }
+
+    public int CallCount { get; private set; }
+
+    public Task<ConversationResponse> GenerateAsync(
+        ConversationResponseRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        CallCount++;
+
+        return CallCount == 1
+            ? Task.FromException<ConversationResponse>(
+                new InvalidOperationException("Development responder failed."))
+            : Task.FromResult(_response);
+    }
+}
+
 internal sealed class MutableTimeProvider : TimeProvider
 {
     public MutableTimeProvider(DateTimeOffset utcNow)
