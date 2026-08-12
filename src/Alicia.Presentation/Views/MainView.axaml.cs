@@ -1,6 +1,7 @@
 using System.Collections.Specialized;
 using System.ComponentModel;
 using Alicia.Presentation.ViewModels;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -66,6 +67,34 @@ public partial class MainView : UserControl
         }
 
         await item.EnsurePreviewLoadedAsync().ConfigureAwait(true);
+    }
+
+    private void OnMessageComposerShellPointerPressed(
+        object? sender,
+        PointerPressedEventArgs eventArgs)
+    {
+        if (!eventArgs.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+        {
+            return;
+        }
+
+        if (eventArgs.Source is StyledElement source)
+        {
+            for (StyledElement? current = source; current is not null; current = current.Parent)
+            {
+                if (current is Button)
+                {
+                    return;
+                }
+
+                if (ReferenceEquals(current, sender))
+                {
+                    break;
+                }
+            }
+        }
+
+        _ = MessageComposer.Focus();
     }
 
     private async void OnMessageComposerKeyDown(object? sender, KeyEventArgs eventArgs)

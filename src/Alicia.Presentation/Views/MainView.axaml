@@ -46,76 +46,91 @@
             Classes="sidebar-shell"
             Width="300"
             Background="{DynamicResource SidebarBrush}"
-            BorderBrush="{DynamicResource BorderBrush}"
-            BorderThickness="0,0,1,0"
+            BorderThickness="0"
             Padding="14"
             IsVisible="{Binding IsConversationHistoryExpanded}"
             AutomationProperties.Name="Conversation history"
             AutomationProperties.LandmarkType="Navigation"
             AutomationProperties.AccessibilityView="Control">
-      <Grid RowDefinitions="Auto,10,Auto,4,*">
-        <Grid ColumnDefinitions="*,Auto,8,Auto">
-          <TextBlock Text="Conversations"
+      <Grid RowDefinitions="Auto,12,Auto,2,*">
+        <Grid ColumnDefinitions="36,*,36">
+          <Border Grid.Column="0"
+                  Width="36"
+                  Height="36"
+                  Background="Transparent" />
+
+          <TextBlock Grid.Column="1"
+                     Text="Conversations"
                      FontSize="16"
                      FontWeight="SemiBold"
+                     HorizontalAlignment="Center"
                      VerticalAlignment="Center"
+                     TextAlignment="Center"
                      AutomationProperties.HeadingLevel="2"
                      Foreground="{DynamicResource TextPrimaryBrush}" />
 
-          <Button Grid.Column="1"
-                  Classes="history-action"
+          <Button Grid.Column="2"
+                  Classes="history-collapse-action"
                   Command="{Binding ToggleConversationHistoryCommand}"
-                  Content="‹"
-                  FontSize="22"
                   AutomationProperties.Name="Collapse conversation history"
                   AutomationProperties.HelpText="Hide the conversation history panel."
-                  ToolTip.Tip="Collapse conversation history" />
+                  ToolTip.Tip="Collapse conversation history">
+            <PathIcon Width="18"
+                      Height="18"
+                      Foreground="{DynamicResource TextSecondaryBrush}"
+                      Data="M15.41,7.41 L14,6 L8,12 L14,18 L15.41,16.59 L10.83,12 Z" />
+          </Button>
+        </Grid>
 
-          <Button Grid.Column="3"
-                  Width="38"
-                  Height="38"
-                  MinWidth="38"
-                  MinHeight="38"
-                  Padding="0"
-                  CornerRadius="12"
-                  BorderThickness="0"
-                  Background="{DynamicResource AccentSecondaryBrush}"
-                  Foreground="{DynamicResource TextOnAccentBrush}"
+        <Grid Grid.Row="2"
+              ColumnDefinitions="*,10,40">
+          <TextBox Grid.Column="0"
+                   Classes="history-search"
+                   Text="{Binding HistorySearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, Delay=250}"
+                   PlaceholderText="Search conversations"
+                   IsEnabled="{Binding IsInteractionEnabled}"
+                   AutomationProperties.Name="Search conversations"
+                   AutomationProperties.HelpText="Search conversation titles and message content." />
+
+          <Button Grid.Column="2"
+                  Classes="create-conversation-action"
                   Command="{Binding CreateConversationCommand}"
                   IsEnabled="{Binding IsInteractionEnabled}"
-                  Content="+"
-                  FontSize="23"
-                  FontWeight="SemiBold"
                   AutomationProperties.Name="Create new conversation"
                   AutomationProperties.HelpText="Create and select a new local conversation."
                   AutomationProperties.AcceleratorKey="Ctrl+N"
-                  ToolTip.Tip="Create a new conversation (Ctrl+N)" />
+                  ToolTip.Tip="Create a new conversation (Ctrl+N)">
+            <PathIcon Width="20"
+                      Height="20"
+                      Foreground="{DynamicResource TextOnAccentBrush}"
+                      Data="M11,5 H13 V11 H19 V13 H13 V19 H11 V13 H5 V11 H11 Z" />
+          </Button>
         </Grid>
-
-        <TextBox Grid.Row="2"
-                 Classes="history-search"
-                 Text="{Binding HistorySearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, Delay=250}"
-                 PlaceholderText="Search conversations"
-                 IsEnabled="{Binding IsInteractionEnabled}"
-                 AutomationProperties.Name="Search conversations"
-                 AutomationProperties.HelpText="Search conversation titles and message content." />
 
         <ProgressBar Grid.Row="3"
                      Height="2"
-                     Margin="4,1"
+                     Margin="4,0"
                      IsIndeterminate="True"
                      IsVisible="{Binding IsHistorySearchBusy}"
                      AutomationProperties.Name="Searching conversation history" />
 
-        <Grid Grid.Row="4">
+        <Grid Grid.Row="4"
+              Margin="0,10,0,0">
           <ScrollViewer VerticalScrollBarVisibility="Auto"
                         HorizontalScrollBarVisibility="Disabled">
             <ItemsControl ItemsSource="{Binding Conversations}"
+                          HorizontalAlignment="Stretch"
                           KeyboardNavigation.TabNavigation="Continue">
+              <ItemsControl.Styles>
+                <Style Selector="ContentPresenter">
+                  <Setter Property="HorizontalAlignment" Value="Stretch" />
+                </Style>
+              </ItemsControl.Styles>
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:ConversationListItemViewModel">
                   <Border Classes="history-row"
                           MinHeight="54"
+                          HorizontalAlignment="Stretch"
                           Classes.selected="{Binding IsSelected}"
                           Classes.editing="{Binding IsRenaming}">
                     <Border.ContextMenu>
@@ -128,9 +143,11 @@
                       </ContextMenu>
                     </Border.ContextMenu>
 
-                    <Grid>
+                    <Grid HorizontalAlignment="Stretch">
                       <Button Classes="history-item"
                               MinHeight="52"
+                              HorizontalAlignment="Stretch"
+                              HorizontalContentAlignment="Stretch"
                               Command="{Binding SelectCommand}"
                               IsVisible="{Binding IsTitleVisible}"
                               PointerEntered="OnConversationPreviewPointerEntered"
@@ -180,7 +197,8 @@
                           </Border>
                         </ToolTip.Tip>
 
-                        <Grid ColumnDefinitions="5,10,*">
+                        <Grid ColumnDefinitions="5,10,*"
+                              HorizontalAlignment="Stretch">
                           <Border Grid.Column="0"
                                   Margin="0,9,0,9"
                                   CornerRadius="3"
@@ -223,6 +241,7 @@
                       </StackPanel>
 
                       <Grid ColumnDefinitions="5,10,*,Auto,Auto"
+                            HorizontalAlignment="Stretch"
                             IsVisible="{Binding IsRenaming}">
                         <Border Grid.Column="0"
                                 Margin="0,8,0,8"
@@ -316,18 +335,21 @@
             Height="42"
             MinWidth="34"
             MinHeight="42"
-            Margin="10,18,0,0"
+            Margin="8,18,0,0"
             Padding="0"
             HorizontalAlignment="Left"
             VerticalAlignment="Top"
             ZIndex="20"
             IsVisible="{Binding IsConversationHistoryCollapsed}"
             Command="{Binding ToggleConversationHistoryCommand}"
-            Content="›"
-            FontSize="22"
             AutomationProperties.Name="Show conversation history"
             AutomationProperties.HelpText="Show the hidden conversation history panel."
-            ToolTip.Tip="Show conversation history" />
+            ToolTip.Tip="Show conversation history">
+      <PathIcon Width="18"
+                Height="18"
+                Foreground="{DynamicResource TextSecondaryBrush}"
+                Data="M8.59,16.59 L10,18 L16,12 L10,6 L8.59,7.41 L13.17,12 Z" />
+    </Button>
 
     <Grid Grid.Column="1"
           Classes="content-shell"
@@ -404,7 +426,9 @@
           </Grid>
         </Border>
 
-        <Border Grid.Row="1" Classes="surface" Padding="22">
+        <Border Grid.Row="1"
+                Classes="conversation-thread-shell"
+                Padding="12,16,0,16">
           <Grid>
             <StackPanel HorizontalAlignment="Center"
                         VerticalAlignment="Center"
@@ -493,6 +517,7 @@
                           HorizontalScrollBarVisibility="Disabled"
                           IsVisible="{Binding HasMessages}">
               <ItemsControl ItemsSource="{Binding Messages}"
+                            Margin="0,0,18,0"
                             AutomationProperties.Name="Conversation messages"
                             AutomationProperties.LiveSetting="Polite">
                 <ItemsControl.ItemTemplate>
@@ -519,10 +544,11 @@
                 Classes="message-composer-shell"
                 Margin="0,14,0,0"
                 IsVisible="{Binding HasSelectedConversation}"
+                Cursor="Ibeam"
+                PointerPressed="OnMessageComposerShellPointerPressed"
                 AutomationProperties.Name="Message composer"
                 AutomationProperties.HelpText="Write a user message. Enter sends; Shift+Enter inserts a new line. Stop cancels the active streamed response.">
-          <Grid RowDefinitions="Auto,Auto"
-                ColumnDefinitions="*,Auto">
+          <Grid ColumnDefinitions="*,Auto">
             <TextBox x:Name="MessageComposer"
                      Grid.Column="0"
                      Classes="message-composer"
@@ -545,13 +571,17 @@
                         Spacing="8">
               <Button Classes="send-action"
                       IsEnabled="{Binding CanSendMessage}"
-                      Content="{Binding SendButtonLabel}"
                       Click="OnSendMessageClick"
                       AutomationProperties.Name="Send message"
                       AutomationProperties.HelpText="Persist this user message and start an Alicia streamed response."
                       AutomationProperties.AcceleratorKey="Enter"
-                      ToolTip.Tip="Send message (Enter)" />
-              <Button Classes="secondary-action"
+                      ToolTip.Tip="Send message (Enter)">
+                <PathIcon Width="22"
+                          Height="22"
+                          Foreground="{DynamicResource TextOnAccentBrush}"
+                          Data="M7,5 L20,12 L7,19 Z" />
+              </Button>
+              <Button Classes="secondary-action composer-secondary-action"
                       Command="{Binding StopResponseCommand}"
                       IsVisible="{Binding IsGeneratingResponse}"
                       IsEnabled="{Binding CanStopResponse}"
@@ -560,7 +590,7 @@
                       AutomationProperties.HelpText="Cancel the active streamed response without removing the user message or saving partial output."
                       AutomationProperties.AcceleratorKey="Escape"
                       ToolTip.Tip="Stop response (Escape)" />
-              <Button Classes="secondary-action"
+              <Button Classes="secondary-action composer-secondary-action"
                       Command="{Binding RetryResponseCommand}"
                       IsVisible="{Binding CanRetryResponse}"
                       IsEnabled="{Binding CanRetryResponse}"
@@ -569,15 +599,6 @@
                       AutomationProperties.HelpText="Generate another response for the existing unanswered user message."
                       ToolTip.Tip="Retry response without resending your message" />
             </StackPanel>
-
-            <TextBlock Grid.Row="1"
-                       Grid.ColumnSpan="2"
-                       Margin="4,8,4,0"
-                       Text="{Binding ComposerStatusText}"
-                       FontSize="12"
-                       TextWrapping="Wrap"
-                       AutomationProperties.LiveSetting="Polite"
-                       Foreground="{DynamicResource TextSecondaryBrush}" />
           </Grid>
         </Border>
       </Grid>

@@ -4,7 +4,7 @@
              RequestedThemeVariant="Dark">
   <Application.Resources>
     <SolidColorBrush x:Key="AppBackgroundBrush" Color="#090D18" />
-    <SolidColorBrush x:Key="SidebarBrush" Color="#0E1423" />
+    <SolidColorBrush x:Key="SidebarBrush" Color="#0D1321" />
     <SolidColorBrush x:Key="SurfaceBrush" Color="#131B2E" />
     <SolidColorBrush x:Key="SurfaceRaisedBrush" Color="#1A2540" />
     <SolidColorBrush x:Key="SurfaceHoverBrush" Color="#22304E" />
@@ -83,7 +83,7 @@
 
     <Style Selector="Border.history-row">
       <Setter Property="MinHeight" Value="68" />
-      <Setter Property="Margin" Value="0,0,0,8" />
+      <Setter Property="Margin" Value="0,0,0,10" />
       <Setter Property="CornerRadius" Value="14" />
       <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
       <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
@@ -176,7 +176,7 @@
       <Setter Property="MinHeight" Value="40" />
       <Setter Property="Padding" Value="11,7" />
       <Setter Property="CornerRadius" Value="12" />
-      <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+      <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
@@ -190,6 +190,35 @@
       <Setter Property="BorderThickness" Value="2" />
     </Style>
 
+    <Style Selector="Button.history-collapse-action">
+      <Setter Property="Width" Value="36" />
+      <Setter Property="Height" Value="36" />
+      <Setter Property="MinWidth" Value="36" />
+      <Setter Property="MinHeight" Value="36" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+
+    <Style Selector="Button.history-collapse-action:pointerover">
+      <Setter Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
+    </Style>
+
+    <Style Selector="Button.create-conversation-action">
+      <Setter Property="Width" Value="40" />
+      <Setter Property="Height" Value="40" />
+      <Setter Property="MinWidth" Value="40" />
+      <Setter Property="MinHeight" Value="40" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Background" Value="{DynamicResource AccentSecondaryBrush}" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+
     <Style Selector="Border.history-preview-card">
       <Setter Property="Background" Value="{DynamicResource SurfaceRaisedBrush}" />
       <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
@@ -198,9 +227,9 @@
     </Style>
 
     <Style Selector="Button.history-reopen-action">
-      <Setter Property="CornerRadius" Value="12" />
-      <Setter Property="Background" Value="{DynamicResource SurfaceRaisedBrush}" />
-      <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
     </Style>
@@ -244,29 +273,35 @@
       <Setter Property="BorderThickness" Value="2" />
     </Style>
 
+    <Style Selector="Border.conversation-thread-shell">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+
     <Style Selector="Border.message-bubble">
+      <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="CornerRadius" Value="16" />
-      <Setter Property="Padding" Value="18" />
+      <Setter Property="Padding" Value="16" />
       <Setter Property="Margin" Value="0,0,0,12" />
       <Setter Property="MaxWidth" Value="840" />
     </Style>
 
     <Style Selector="Border.message-bubble.user-message">
-      <Setter Property="Background" Value="{DynamicResource UserMessageSurfaceBrush}" />
+      <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
       <Setter Property="HorizontalAlignment" Value="Right" />
       <Setter Property="MaxWidth" Value="760" />
     </Style>
 
     <Style Selector="Border.message-bubble.assistant-message">
-      <Setter Property="Background" Value="{DynamicResource AssistantMessageSurfaceBrush}" />
+      <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderBrush" Value="{DynamicResource AccentSecondaryBrush}" />
       <Setter Property="HorizontalAlignment" Value="Left" />
     </Style>
 
     <Style Selector="Border.message-bubble.system-message">
-      <Setter Property="Background" Value="{DynamicResource SystemMessageSurfaceBrush}" />
+      <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
       <Setter Property="HorizontalAlignment" Value="Center" />
       <Setter Property="MaxWidth" Value="640" />
@@ -285,21 +320,29 @@
     </Style>
 
     <Style Selector="Border.message-composer-shell">
-      <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+      <Setter Property="Background" Value="{DynamicResource SurfaceRaisedBrush}" />
       <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="CornerRadius" Value="18" />
-      <Setter Property="Padding" Value="12" />
+      <Setter Property="Padding" Value="10" />
+    </Style>
+
+    <Style Selector="Border.message-composer-shell:focus-within">
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentSecondaryBrush}" />
+    </Style>
+
+    <Style Selector="Border.message-composer-shell Button">
+      <Setter Property="Cursor" Value="Hand" />
     </Style>
 
     <Style Selector="TextBox.message-composer">
       <Setter Property="MinHeight" Value="54" />
-      <Setter Property="MaxHeight" Value="160" />
-      <Setter Property="Padding" Value="14,12" />
-      <Setter Property="CornerRadius" Value="14" />
-      <Setter Property="Background" Value="{DynamicResource SurfaceRaisedBrush}" />
-      <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
-      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="MaxHeight" Value="180" />
+      <Setter Property="Padding" Value="12,11" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
       <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
       <Setter Property="FontSize" Value="16" />
       <Setter Property="CaretBrush" Value="{DynamicResource AccentSecondaryBrush}" />
@@ -308,20 +351,26 @@
     </Style>
 
     <Style Selector="TextBox.message-composer:focus">
-      <Setter Property="BorderBrush" Value="{DynamicResource AccentSecondaryBrush}" />
-      <Setter Property="BorderThickness" Value="2" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
     </Style>
 
     <Style Selector="Button.send-action">
-      <Setter Property="MinWidth" Value="92" />
-      <Setter Property="MinHeight" Value="54" />
-      <Setter Property="Padding" Value="18,12" />
+      <Setter Property="Width" Value="48" />
+      <Setter Property="Height" Value="48" />
+      <Setter Property="MinWidth" Value="48" />
+      <Setter Property="MinHeight" Value="48" />
+      <Setter Property="Padding" Value="0" />
       <Setter Property="CornerRadius" Value="14" />
       <Setter Property="BorderThickness" Value="0" />
       <Setter Property="Background" Value="{DynamicResource AccentSecondaryBrush}" />
       <Setter Property="Foreground" Value="{DynamicResource TextOnAccentBrush}" />
-      <Setter Property="FontSize" Value="16" />
-      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+
+    <Style Selector="Button.composer-secondary-action">
+      <Setter Property="MinHeight" Value="48" />
     </Style>
 
     <Style Selector="Button.send-action:focus-visible">

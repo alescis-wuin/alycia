@@ -43,8 +43,7 @@
 
   <Border Width="56"
           Background="{DynamicResource AppBackgroundBrush}"
-          BorderBrush="{DynamicResource BorderBrush}"
-          BorderThickness="0,0,1,0">
+          BorderThickness="0">
     <StackPanel Margin="6,12"
                 Spacing="8"
                 HorizontalAlignment="Center">
