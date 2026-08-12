@@ -1,7 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:controls="using:Alicia.Presentation.Controls"
-             xmlns:providers="using:Alicia.Application.Providers"
              xmlns:vm="using:Alicia.Presentation.ViewModels"
              x:Class="Alicia.Presentation.Views.MainView"
              x:DataType="vm:MainViewModel"
@@ -20,36 +19,21 @@
     <Grid.Styles>
       <ContainerQuery Name="workspace" Query="max-width:980">
         <Style Selector="Border.sidebar-shell">
-          <Setter Property="Width" Value="250" />
-          <Setter Property="Padding" Value="16" />
+          <Setter Property="Width" Value="260" />
+          <Setter Property="Padding" Value="14" />
         </Style>
         <Style Selector="Grid.content-shell">
           <Setter Property="Margin" Value="18" />
-        </Style>
-        <Style Selector="TextBlock.brand-title">
-          <Setter Property="FontSize" Value="26" />
         </Style>
       </ContainerQuery>
 
       <ContainerQuery Name="workspace" Query="max-width:780">
         <Style Selector="Border.sidebar-shell">
           <Setter Property="Width" Value="220" />
-          <Setter Property="Padding" Value="14" />
+          <Setter Property="Padding" Value="12" />
         </Style>
         <Style Selector="Grid.content-shell">
           <Setter Property="Margin" Value="14" />
-        </Style>
-        <Style Selector="TextBlock.brand-title">
-          <Setter Property="FontSize" Value="23" />
-        </Style>
-        <Style Selector="TextBlock.brand-subtitle">
-          <Setter Property="IsVisible" Value="False" />
-        </Style>
-        <Style Selector="TextBlock.history-meta">
-          <Setter Property="IsVisible" Value="False" />
-        </Style>
-        <Style Selector="TextBlock.sidebar-shortcuts">
-          <Setter Property="IsVisible" Value="False" />
         </Style>
         <Style Selector="Border.history-row StackPanel.history-actions">
           <Setter Property="Opacity" Value="1" />
@@ -64,62 +48,41 @@
             Background="{DynamicResource SidebarBrush}"
             BorderBrush="{DynamicResource BorderBrush}"
             BorderThickness="0,0,1,0"
-            Padding="20"
+            Padding="14"
             AutomationProperties.Name="Conversation history"
             AutomationProperties.LandmarkType="Navigation"
             AutomationProperties.AccessibilityView="Control">
-      <Grid RowDefinitions="Auto,18,Auto,18,Auto,*,12,Auto,12,Auto">
+      <Grid RowDefinitions="Auto,12,*">
         <Grid ColumnDefinitions="*,Auto">
-          <StackPanel Spacing="3">
-            <TextBlock Classes="brand-title"
-                       Text="{Binding ApplicationName}"
-                       FontSize="30"
-                       AutomationProperties.HeadingLevel="1"
-                       FontWeight="Bold"
-                       Foreground="{DynamicResource TextPrimaryBrush}" />
-            <TextBlock Classes="brand-subtitle"
-                       Text="LOCAL CONVERSATIONS"
-                       FontSize="12"
-                       FontWeight="SemiBold"
-                       Foreground="{DynamicResource AccentSecondaryBrush}" />
-          </StackPanel>
+          <TextBlock Text="Conversations"
+                     FontSize="16"
+                     FontWeight="SemiBold"
+                     VerticalAlignment="Center"
+                     AutomationProperties.HeadingLevel="2"
+                     Foreground="{DynamicResource TextPrimaryBrush}" />
 
           <Button Grid.Column="1"
-                  Classes="secondary-action"
-                  Command="{Binding RefreshCommand}"
+                  Width="38"
+                  Height="38"
+                  MinWidth="38"
+                  MinHeight="38"
+                  Padding="0"
+                  CornerRadius="12"
+                  BorderThickness="0"
+                  Background="{DynamicResource AccentSecondaryBrush}"
+                  Foreground="{DynamicResource TextOnAccentBrush}"
+                  Command="{Binding CreateConversationCommand}"
                   IsEnabled="{Binding IsInteractionEnabled}"
-                  Content="Refresh"
-                  AutomationProperties.Name="Refresh conversation history"
-                  AutomationProperties.HelpText="Reload conversations stored on this device."
-                  AutomationProperties.AcceleratorKey="F5"
-                  ToolTip.Tip="Refresh local conversation history (F5)" />
+                  Content="+"
+                  FontSize="23"
+                  FontWeight="SemiBold"
+                  AutomationProperties.Name="Create new conversation"
+                  AutomationProperties.HelpText="Create and select a new local conversation."
+                  AutomationProperties.AcceleratorKey="Ctrl+N"
+                  ToolTip.Tip="Create a new conversation (Ctrl+N)" />
         </Grid>
 
-        <Button Grid.Row="2"
-                Classes="primary-action"
-                Command="{Binding CreateConversationCommand}"
-                IsEnabled="{Binding IsInteractionEnabled}"
-                Content="+ New conversation"
-                AutomationProperties.Name="Create new conversation"
-                AutomationProperties.HelpText="Create and select a new local conversation."
-                AutomationProperties.AcceleratorKey="Ctrl+N"
-                ToolTip.Tip="Create a new local conversation (Ctrl+N)" />
-
-        <Grid Grid.Row="4" ColumnDefinitions="*,Auto">
-          <TextBlock Text="History"
-                     FontSize="15"
-                     AutomationProperties.HeadingLevel="2"
-                     FontWeight="SemiBold"
-                     Foreground="{DynamicResource TextPrimaryBrush}"
-                     VerticalAlignment="Center" />
-          <Border Grid.Column="1" Classes="status-chip">
-            <TextBlock Text="{Binding Conversations.Count}"
-                       FontSize="13"
-                       Foreground="{DynamicResource TextSecondaryBrush}" />
-          </Border>
-        </Grid>
-
-        <Grid Grid.Row="5" Margin="0,12,0,0">
+        <Grid Grid.Row="2">
           <ScrollViewer VerticalScrollBarVisibility="Auto"
                         HorizontalScrollBarVisibility="Disabled">
             <ItemsControl ItemsSource="{Binding Conversations}"
@@ -127,38 +90,34 @@
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:ConversationListItemViewModel">
                   <Border Classes="history-row"
+                          MinHeight="54"
                           Classes.selected="{Binding IsSelected}"
                           Classes.editing="{Binding IsRenaming}">
                     <Grid>
                       <Button Classes="history-item"
+                              MinHeight="52"
                               Command="{Binding SelectCommand}"
                               IsVisible="{Binding IsTitleVisible}"
                               AutomationProperties.Name="{Binding SelectionAutomationName}"
-                              AutomationProperties.HelpText="Open this conversation. Hover or focus the row for rename and delete actions."
+                              AutomationProperties.HelpText="Open this conversation. Hover or focus the row for available actions."
                               AutomationProperties.ItemStatus="{Binding MetadataLabel}"
                               ToolTip.Tip="{Binding SelectionToolTip}">
-                        <Grid ColumnDefinitions="5,12,*" Margin="0">
+                        <Grid ColumnDefinitions="5,10,*">
                           <Border Grid.Column="0"
-                                  Margin="0,10,0,10"
+                                  Margin="0,9,0,9"
                                   CornerRadius="3"
                                   Background="{DynamicResource AccentSecondaryBrush}"
                                   IsVisible="{Binding IsSelected}" />
 
-                          <StackPanel Grid.Column="2"
-                                      Margin="0,10,88,10"
-                                      Spacing="5">
-                            <TextBlock Text="{Binding Title}"
-                                       FontSize="15"
-                                       FontWeight="SemiBold"
-                                       TextTrimming="CharacterEllipsis"
-                                       ToolTip.Tip="{Binding Title}"
-                                       Foreground="{DynamicResource TextPrimaryBrush}" />
-                            <TextBlock Classes="history-meta"
-                                       Text="{Binding MetadataLabel}"
-                                       FontSize="12"
-                                       TextTrimming="CharacterEllipsis"
-                                       Foreground="{DynamicResource TextSecondaryBrush}" />
-                          </StackPanel>
+                          <TextBlock Grid.Column="2"
+                                     Margin="0,0,84,0"
+                                     Text="{Binding Title}"
+                                     FontSize="15"
+                                     FontWeight="SemiBold"
+                                     VerticalAlignment="Center"
+                                     TextTrimming="CharacterEllipsis"
+                                     ToolTip.Tip="{Binding Title}"
+                                     Foreground="{DynamicResource TextPrimaryBrush}" />
                         </Grid>
                       </Button>
 
@@ -172,7 +131,7 @@
                         <Button Classes="history-action edit-history-action"
                                 Command="{Binding RenameCommand}"
                                 AutomationProperties.Name="{Binding RenameAutomationName}"
-                                AutomationProperties.HelpText="Edit the title inline. Enter saves the new title; Escape cancels."
+                                AutomationProperties.HelpText="Edit the title inline. Enter saves; Escape cancels."
                                 ToolTip.Tip="{Binding RenameToolTip}">
                           <PathIcon Width="17"
                                     Height="17"
@@ -182,7 +141,7 @@
                         <Button Classes="history-action delete-history-action"
                                 Command="{Binding DeleteCommand}"
                                 AutomationProperties.Name="{Binding DeleteAutomationName}"
-                                AutomationProperties.HelpText="Open a confirmation before permanently deleting this local conversation."
+                                AutomationProperties.HelpText="Open a confirmation before permanently deleting this conversation."
                                 ToolTip.Tip="{Binding DeleteToolTip}">
                           <PathIcon Width="17"
                                     Height="17"
@@ -191,20 +150,20 @@
                         </Button>
                       </StackPanel>
 
-                      <Grid ColumnDefinitions="5,12,*,Auto,Auto"
+                      <Grid ColumnDefinitions="5,10,*,Auto,Auto"
                             IsVisible="{Binding IsRenaming}">
                         <Border Grid.Column="0"
-                                Margin="0,10,0,10"
+                                Margin="0,8,0,8"
                                 CornerRadius="3"
                                 Background="{DynamicResource EditBrush}" />
 
                         <controls:InlineRenameTextBox Grid.Column="2"
                                                       Classes="inline-rename"
-                                                      Margin="0,10,8,10"
+                                                      Margin="0,7,8,7"
                                                       Text="{Binding RenameTitle, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                                       MaxLength="120"
                                                       AutomationProperties.Name="{Binding RenameInputAutomationName}"
-                                                      AutomationProperties.HelpText="Type a new conversation title. The current title is selected automatically. Press Enter to save or Escape to cancel."
+                                                      AutomationProperties.HelpText="Type a new title. Press Enter to save or Escape to cancel."
                                                       ToolTip.Tip="{Binding RenameInputToolTip}">
                           <controls:InlineRenameTextBox.KeyBindings>
                             <KeyBinding Gesture="Enter" Command="{Binding SaveRenameCommand}" />
@@ -219,7 +178,7 @@
                                 Command="{Binding SaveRenameCommand}"
                                 IsEnabled="{Binding CanSaveRename}"
                                 AutomationProperties.Name="{Binding SaveRenameAutomationName}"
-                                AutomationProperties.HelpText="Save the edited title. The same action is available with Enter."
+                                AutomationProperties.HelpText="Save the edited title."
                                 AutomationProperties.AcceleratorKey="Enter"
                                 ToolTip.Tip="Save title (Enter)">
                           <PathIcon Width="17"
@@ -234,7 +193,7 @@
                                 VerticalAlignment="Center"
                                 Command="{Binding CancelRenameCommand}"
                                 AutomationProperties.Name="{Binding CancelRenameAutomationName}"
-                                AutomationProperties.HelpText="Cancel title editing and restore the previous title. The same action is available with Escape."
+                                AutomationProperties.HelpText="Cancel title editing."
                                 AutomationProperties.AcceleratorKey="Escape"
                                 ToolTip.Tip="Cancel rename (Escape)">
                           <PathIcon Width="17"
@@ -251,202 +210,21 @@
           </ScrollViewer>
 
           <Border Classes="surface"
-                  Padding="18"
+                  Padding="14"
                   VerticalAlignment="Top"
                   IsVisible="{Binding IsHistoryEmpty}">
-            <StackPanel Spacing="7">
-              <TextBlock Text="No conversations yet"
-                         FontWeight="SemiBold"
-                         Foreground="{DynamicResource TextPrimaryBrush}" />
-              <TextBlock Text="Create one to start building your local conversation history."
-                         FontSize="13"
-                         TextWrapping="Wrap"
-                         Foreground="{DynamicResource TextSecondaryBrush}" />
-            </StackPanel>
+            <TextBlock Text="No conversations yet"
+                       FontSize="13"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource TextSecondaryBrush}" />
           </Border>
         </Grid>
-
-        <Border Grid.Row="7"
-                Classes="surface"
-                Padding="12"
-                AutomationProperties.Name="Local AI provider settings"
-                AutomationProperties.AccessibilityView="Control">
-          <StackPanel Spacing="8">
-            <Grid ColumnDefinitions="*,Auto">
-              <TextBlock Text="{Binding ProviderName}"
-                         FontSize="14"
-                         FontWeight="SemiBold"
-                         Foreground="{DynamicResource TextPrimaryBrush}"
-                         VerticalAlignment="Center" />
-              <Border Grid.Column="1" Classes="status-chip">
-                <TextBlock Text="{Binding ProviderStatusText}"
-                           FontSize="11"
-                           Foreground="{DynamicResource TextSecondaryBrush}" />
-              </Border>
-            </Grid>
-
-            <ComboBox ItemsSource="{Binding ProviderOptions}"
-                      SelectedItem="{Binding SelectedProvider, Mode=TwoWay}"
-                      IsEnabled="{Binding IsProviderSelectionEditable}"
-                      AutomationProperties.Name="Inference provider"
-                      AutomationProperties.HelpText="Choose the inference provider explicitly. Alicia does not switch providers automatically.">
-              <ComboBox.ItemTemplate>
-                <DataTemplate x:DataType="providers:InferenceProviderDescriptor">
-                  <TextBlock Text="{Binding Name}" />
-                </DataTemplate>
-              </ComboBox.ItemTemplate>
-            </ComboBox>
-
-            <TextBlock Text="{Binding ProviderFallbackText}"
-                       FontSize="10"
-                       TextWrapping="Wrap"
-                       Foreground="{DynamicResource TextSecondaryBrush}" />
-
-            <TextBlock Text="{Binding ProviderVersionText}"
-                       FontSize="11"
-                       Foreground="{DynamicResource TextSecondaryBrush}" />
-
-            <TextBlock Text="{Binding ProviderDetailText}"
-                       FontSize="12"
-                       TextWrapping="Wrap"
-                       AutomationProperties.LiveSetting="Polite"
-                       Foreground="{DynamicResource TextSecondaryBrush}" />
-
-            <StackPanel Spacing="4"
-                        IsVisible="{Binding IsProviderProgressVisible}"
-                        AutomationProperties.Name="Provider installation progress"
-                        AutomationProperties.AccessibilityView="Control">
-              <TextBlock Text="{Binding ProviderProgressText}"
-                         FontSize="12"
-                         FontWeight="SemiBold"
-                         AutomationProperties.LiveSetting="Polite"
-                         Foreground="{DynamicResource TextPrimaryBrush}" />
-              <ProgressBar Height="5"
-                           Minimum="0"
-                           Maximum="100"
-                           Value="{Binding ProviderProgressValue}"
-                           IsIndeterminate="{Binding IsProviderProgressIndeterminate}" />
-              <TextBlock Text="{Binding ProviderProgressDetailText}"
-                         FontSize="11"
-                         TextWrapping="Wrap"
-                         AutomationProperties.LiveSetting="Polite"
-                         Foreground="{DynamicResource TextSecondaryBrush}" />
-            </StackPanel>
-
-            <TextBox Text="{Binding ProviderModelReference, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                     PlaceholderText="owner/model-GGUF[:quant]"
-                     IsEnabled="{Binding IsProviderModelEditable}"
-                     AutomationProperties.Name="Model reference"
-                     AutomationProperties.HelpText="For llama.cpp, enter a compatible Hugging Face GGUF repository. Optional quantization can follow a colon."
-                     ToolTip.Tip="Model passed directly to llama-server with -hf" />
-
-            <Expander Header="Model &amp; generation settings"
-                      IsEnabled="{Binding IsProviderSettingsEditable}"
-                      AutomationProperties.Name="Model and generation settings">
-              <StackPanel Spacing="7" Margin="0,8,0,0">
-                <TextBox Text="{Binding ProviderContextSizeText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                         PlaceholderText="Context size • model default"
-                         AutomationProperties.Name="Context size"
-                         AutomationProperties.HelpText="Optional prompt context size. Leave blank to use the model or provider default." />
-                <TextBox Text="{Binding ProviderMaxOutputTokensText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                         PlaceholderText="Max output tokens • provider default"
-                         AutomationProperties.Name="Maximum output tokens"
-                         AutomationProperties.HelpText="Optional maximum generated tokens. Leave blank to use the provider default." />
-                <TextBox Text="{Binding ProviderTemperatureText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                         PlaceholderText="Temperature • provider default"
-                         AutomationProperties.Name="Temperature"
-                         AutomationProperties.HelpText="Optional sampling temperature greater than or equal to zero. Leave blank to use the provider default." />
-                <TextBox Text="{Binding ProviderTopPText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                         PlaceholderText="Top-p • provider default"
-                         AutomationProperties.Name="Top-p"
-                         AutomationProperties.HelpText="Optional top-p from zero to one. Leave blank to use the provider default." />
-                <TextBox Text="{Binding ProviderTopKText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                         PlaceholderText="Top-k • provider default"
-                         AutomationProperties.Name="Top-k"
-                         AutomationProperties.HelpText="Optional top-k greater than or equal to zero. Leave blank to use the provider default." />
-                <TextBox Text="{Binding ProviderSeedText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                         PlaceholderText="Seed • provider random"
-                         AutomationProperties.Name="Random seed"
-                         AutomationProperties.HelpText="Optional non-negative deterministic seed. Leave blank for provider-random behavior." />
-              </StackPanel>
-            </Expander>
-
-            <TextBlock Text="{Binding ProviderConfigurationValidationText}"
-                       IsVisible="{Binding HasProviderConfigurationValidationError}"
-                       FontSize="11"
-                       TextWrapping="Wrap"
-                       AutomationProperties.LiveSetting="Polite"
-                       Foreground="{DynamicResource DangerBrush}" />
-
-            <TextBlock Text="{Binding ProviderConfigurationStatusText}"
-                       FontSize="11"
-                       TextWrapping="Wrap"
-                       AutomationProperties.LiveSetting="Polite"
-                       Foreground="{DynamicResource TextSecondaryBrush}" />
-
-            <Button Classes="secondary-action"
-                    Command="{Binding SaveProviderConfigurationCommand}"
-                    IsEnabled="{Binding CanSaveProviderConfiguration}"
-                    Content="Save settings"
-                    AutomationProperties.Name="Save inference provider settings"
-                    AutomationProperties.HelpText="Validate and save the selected provider, model, and optional generation settings." />
-
-            <Grid ColumnDefinitions="*,8,*,8,*">
-              <Button Grid.Column="0"
-                      Classes="secondary-action"
-                      Command="{Binding DetectProviderCommand}"
-                      IsEnabled="{Binding CanDetectProvider}"
-                      Content="Detect"
-                      AutomationProperties.Name="Detect selected provider"
-                      ToolTip.Tip="Detect the selected provider runtime" />
-              <Button Grid.Column="2"
-                      Classes="secondary-action"
-                      Command="{Binding InstallProviderCommand}"
-                      IsEnabled="{Binding CanInstallProvider}"
-                      Content="Install"
-                      AutomationProperties.Name="Install selected provider"
-                      AutomationProperties.HelpText="For llama.cpp CUDA, download the latest official source release and compile llama-server locally."
-                      ToolTip.Tip="Install the selected managed provider without changing system packages" />
-              <Button Grid.Column="4"
-                      Classes="primary-action"
-                      Command="{Binding StartProviderCommand}"
-                      IsEnabled="{Binding CanStartProvider}"
-                      Content="Start"
-                      AutomationProperties.Name="Start selected provider"
-                      AutomationProperties.HelpText="Start the explicitly selected provider using the saved model configuration."
-                      ToolTip.Tip="Save settings, then start the selected model" />
-            </Grid>
-
-            <Button Classes="secondary-action"
-                    Command="{Binding StopProviderCommand}"
-                    IsEnabled="{Binding CanStopProvider}"
-                    Content="Stop local AI"
-                    AutomationProperties.Name="Stop selected provider"
-                    AutomationProperties.HelpText="Stop the currently running local inference provider."
-                    ToolTip.Tip="Stop the local inference process" />
-          </StackPanel>
-        </Border>
-
-        <StackPanel Grid.Row="9" Margin="0" Spacing="7">
-          <ProgressBar Height="3"
-                       IsIndeterminate="True"
-                       IsVisible="{Binding IsBusy}" />
-          <TextBlock Text="{Binding StatusText}"
-                     FontSize="12"
-                     AutomationProperties.LiveSetting="Polite"
-                     Foreground="{DynamicResource TextSecondaryBrush}" />
-          <TextBlock Classes="sidebar-shortcuts"
-                     Text="Ctrl+N new • F5 refresh • F2 rename • Esc cancel"
-                     FontSize="11"
-                     TextWrapping="Wrap"
-                     Foreground="{DynamicResource TextSecondaryBrush}" />
-        </StackPanel>
       </Grid>
     </Border>
 
     <Grid Grid.Column="1"
           Classes="content-shell"
-          RowDefinitions="Auto,Auto,*"
+          RowDefinitions="Auto,*"
           Margin="28"
           AutomationProperties.Name="Conversation workspace"
           AutomationProperties.LandmarkType="Main"
@@ -476,20 +254,8 @@
         </Grid>
       </Border>
 
-      <StackPanel Grid.Row="1" Margin="2,0,2,18" Spacing="4">
-        <TextBlock Text="{Binding SelectedConversationTitle}"
-                   FontSize="24"
-                   AutomationProperties.HeadingLevel="2"
-                   FontWeight="Bold"
-                   TextTrimming="CharacterEllipsis"
-                   ToolTip.Tip="{Binding SelectedConversationTitle}"
-                   Foreground="{DynamicResource TextPrimaryBrush}" />
-        <TextBlock Text="{Binding SelectedConversationMeta}"
-                   FontSize="14"
-                   Foreground="{DynamicResource TextSecondaryBrush}" />
-      </StackPanel>
 
-      <Grid Grid.Row="2" RowDefinitions="Auto,*,Auto">
+      <Grid Grid.Row="1" RowDefinitions="Auto,*,Auto">
         <Border Grid.Row="0"
                 Background="{DynamicResource DangerSurfaceBrush}"
                 BorderBrush="{DynamicResource DangerBrush}"
@@ -566,12 +332,12 @@
                            HorizontalAlignment="Center"
                            VerticalAlignment="Center" />
               </Border>
-              <TextBlock Text="Start your first conversation"
+              <TextBlock Text="Start a conversation"
                          FontSize="28"
                          FontWeight="Bold"
                          TextAlignment="Center"
                          Foreground="{DynamicResource TextPrimaryBrush}" />
-              <TextBlock Text="Create a local conversation, start a local model from the provider panel, and send a message to Alicia."
+              <TextBlock Text="Create a local conversation here. Provider and model setup live in the global Provider and Models workspaces."
                          FontSize="16"
                          LineHeight="24"
                          TextAlignment="Center"
@@ -629,25 +395,11 @@
                             Classes.assistant-message="{Binding IsAssistant}"
                             Classes.system-message="{Binding IsSystem}"
                             AutomationProperties.Name="{Binding AutomationName}">
-                      <StackPanel Spacing="8">
-                        <Grid ColumnDefinitions="*,Auto">
-                          <TextBlock Classes="message-role"
-                                     Classes.user-message-role="{Binding IsUser}"
-                                     Classes.assistant-message-role="{Binding IsAssistant}"
-                                     Classes.system-message-role="{Binding IsSystem}"
-                                     Text="{Binding RoleLabel}"
-                                     FontWeight="SemiBold" />
-                          <TextBlock Grid.Column="1"
-                                     Text="{Binding CreatedAtLabel}"
-                                     FontSize="12"
-                                     Foreground="{DynamicResource TextSecondaryBrush}" />
-                        </Grid>
-                        <TextBlock Text="{Binding Content}"
-                                   FontSize="16"
-                                   LineHeight="24"
-                                   TextWrapping="Wrap"
-                                   Foreground="{DynamicResource TextPrimaryBrush}" />
-                      </StackPanel>
+                      <TextBlock Text="{Binding Content}"
+                                 FontSize="16"
+                                 LineHeight="24"
+                                 TextWrapping="Wrap"
+                                 Foreground="{DynamicResource TextPrimaryBrush}" />
                     </Border>
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>
