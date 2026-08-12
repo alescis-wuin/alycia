@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using Alicia.Application.Conversations;
 using Alicia.Application.Providers;
 using Alicia.Domain.Conversations;
+using Alicia.Presentation.Threading;
 using CommunityToolkit.Mvvm.Input;
 
 namespace Alicia.Presentation.ViewModels;
@@ -952,7 +953,7 @@ public sealed class MainViewModel : ViewModelBase
         }
 
         ClearProviderProgress();
-        Progress<InferenceProviderProgress> progress = new(ApplyProviderProgress);
+        SerializedProgress<InferenceProviderProgress> progress = new(ApplyProviderProgress);
 
         await ExecuteProviderOperationAsync(
             InferenceProviderState.Installing,
