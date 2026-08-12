@@ -49,11 +49,12 @@
             BorderBrush="{DynamicResource BorderBrush}"
             BorderThickness="0,0,1,0"
             Padding="14"
+            IsVisible="{Binding IsConversationHistoryExpanded}"
             AutomationProperties.Name="Conversation history"
             AutomationProperties.LandmarkType="Navigation"
             AutomationProperties.AccessibilityView="Control">
-      <Grid RowDefinitions="Auto,12,*">
-        <Grid ColumnDefinitions="*,Auto">
+      <Grid RowDefinitions="Auto,10,Auto,4,*">
+        <Grid ColumnDefinitions="*,Auto,8,Auto">
           <TextBlock Text="Conversations"
                      FontSize="16"
                      FontWeight="SemiBold"
@@ -62,6 +63,15 @@
                      Foreground="{DynamicResource TextPrimaryBrush}" />
 
           <Button Grid.Column="1"
+                  Classes="history-action"
+                  Command="{Binding ToggleConversationHistoryCommand}"
+                  Content="‹"
+                  FontSize="22"
+                  AutomationProperties.Name="Collapse conversation history"
+                  AutomationProperties.HelpText="Hide the conversation history panel."
+                  ToolTip.Tip="Collapse conversation history" />
+
+          <Button Grid.Column="3"
                   Width="38"
                   Height="38"
                   MinWidth="38"
@@ -82,7 +92,22 @@
                   ToolTip.Tip="Create a new conversation (Ctrl+N)" />
         </Grid>
 
-        <Grid Grid.Row="2">
+        <TextBox Grid.Row="2"
+                 Classes="history-search"
+                 Text="{Binding HistorySearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, Delay=250}"
+                 PlaceholderText="Search conversations"
+                 IsEnabled="{Binding IsInteractionEnabled}"
+                 AutomationProperties.Name="Search conversations"
+                 AutomationProperties.HelpText="Search conversation titles and message content." />
+
+        <ProgressBar Grid.Row="3"
+                     Height="2"
+                     Margin="4,1"
+                     IsIndeterminate="True"
+                     IsVisible="{Binding IsHistorySearchBusy}"
+                     AutomationProperties.Name="Searching conversation history" />
+
+        <Grid Grid.Row="4">
           <ScrollViewer VerticalScrollBarVisibility="Auto"
                         HorizontalScrollBarVisibility="Disabled">
             <ItemsControl ItemsSource="{Binding Conversations}"
@@ -93,15 +118,68 @@
                           MinHeight="54"
                           Classes.selected="{Binding IsSelected}"
                           Classes.editing="{Binding IsRenaming}">
+                    <Border.ContextMenu>
+                      <ContextMenu>
+                        <MenuItem Header="Rename"
+                                  Command="{Binding RenameCommand}" />
+                        <Separator />
+                        <MenuItem Header="Delete"
+                                  Command="{Binding DeleteCommand}" />
+                      </ContextMenu>
+                    </Border.ContextMenu>
+
                     <Grid>
                       <Button Classes="history-item"
                               MinHeight="52"
                               Command="{Binding SelectCommand}"
                               IsVisible="{Binding IsTitleVisible}"
+                              PointerEntered="OnConversationPreviewPointerEntered"
+                              ToolTip.Placement="RightEdgeAlignedTop"
+                              ToolTip.ShowDelay="350"
+                              ToolTip.BetweenShowDelay="-1"
+                              ToolTip.HorizontalOffset="12"
                               AutomationProperties.Name="{Binding SelectionAutomationName}"
-                              AutomationProperties.HelpText="Open this conversation. Hover or focus the row for available actions."
-                              AutomationProperties.ItemStatus="{Binding MetadataLabel}"
-                              ToolTip.Tip="{Binding SelectionToolTip}">
+                              AutomationProperties.HelpText="Open this conversation. Hover for a short preview or use the actions menu."
+                              AutomationProperties.ItemStatus="{Binding MetadataLabel}">
+                        <ToolTip.Tip>
+                          <Border Classes="history-preview-card"
+                                  Width="360"
+                                  Padding="14">
+                            <StackPanel Spacing="10">
+                              <TextBlock Text="{Binding Title}"
+                                         FontSize="15"
+                                         FontWeight="SemiBold"
+                                         TextTrimming="CharacterEllipsis"
+                                         Foreground="{DynamicResource TextPrimaryBrush}" />
+
+                              <ItemsControl ItemsSource="{Binding PreviewMessages}">
+                                <ItemsControl.ItemTemplate>
+                                  <DataTemplate x:DataType="vm:ConversationPreviewMessageViewModel">
+                                    <StackPanel Spacing="3"
+                                                Margin="0,0,0,7">
+                                      <TextBlock Text="{Binding RoleLabel}"
+                                                 FontSize="11"
+                                                 FontWeight="SemiBold"
+                                                 Foreground="{DynamicResource AccentSecondaryBrush}" />
+                                      <TextBlock Text="{Binding Content}"
+                                                 FontSize="13"
+                                                 MaxLines="3"
+                                                 TextWrapping="Wrap"
+                                                 TextTrimming="CharacterEllipsis"
+                                                 Foreground="{DynamicResource TextSecondaryBrush}" />
+                                    </StackPanel>
+                                  </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                              </ItemsControl>
+
+                              <TextBlock Text="{Binding PreviewStatusText}"
+                                         IsVisible="{Binding HasPreviewStatusText}"
+                                         FontSize="12"
+                                         Foreground="{DynamicResource TextSecondaryBrush}" />
+                            </StackPanel>
+                          </Border>
+                        </ToolTip.Tip>
+
                         <Grid ColumnDefinitions="5,10,*">
                           <Border Grid.Column="0"
                                   Margin="0,9,0,9"
@@ -110,43 +188,37 @@
                                   IsVisible="{Binding IsSelected}" />
 
                           <TextBlock Grid.Column="2"
-                                     Margin="0,0,84,0"
+                                     Margin="0,0,48,0"
                                      Text="{Binding Title}"
                                      FontSize="15"
                                      FontWeight="SemiBold"
                                      VerticalAlignment="Center"
                                      TextTrimming="CharacterEllipsis"
-                                     ToolTip.Tip="{Binding Title}"
                                      Foreground="{DynamicResource TextPrimaryBrush}" />
                         </Grid>
                       </Button>
 
                       <StackPanel Classes="history-actions"
                                   Orientation="Horizontal"
-                                  Spacing="6"
                                   Margin="0,0,10,0"
                                   HorizontalAlignment="Right"
                                   VerticalAlignment="Center"
                                   IsVisible="{Binding IsTitleVisible}">
-                        <Button Classes="history-action edit-history-action"
-                                Command="{Binding RenameCommand}"
-                                AutomationProperties.Name="{Binding RenameAutomationName}"
-                                AutomationProperties.HelpText="Edit the title inline. Enter saves; Escape cancels."
-                                ToolTip.Tip="{Binding RenameToolTip}">
-                          <PathIcon Width="17"
-                                    Height="17"
-                                    Foreground="{DynamicResource EditBrush}"
-                                    Data="M3,17.25 V21 H6.75 L17.81,9.94 L14.06,6.19 L3,17.25 M20.71,7.04 C21.1,6.65 21.1,6 20.71,5.63 L18.37,3.29 C18,2.9 17.35,2.9 16.96,3.29 L15.12,5.12 L18.87,8.87 L20.71,7.04 Z" />
-                        </Button>
-                        <Button Classes="history-action delete-history-action"
-                                Command="{Binding DeleteCommand}"
-                                AutomationProperties.Name="{Binding DeleteAutomationName}"
-                                AutomationProperties.HelpText="Open a confirmation before permanently deleting this conversation."
-                                ToolTip.Tip="{Binding DeleteToolTip}">
-                          <PathIcon Width="17"
-                                    Height="17"
-                                    Foreground="{DynamicResource DangerBrush}"
-                                    Data="M6,19 C6,20.1 6.9,21 8,21 H16 C17.1,21 18,20.1 18,19 V7 H6 V19 M8,9 H16 V19 H8 V9 M15.5,4 L14.5,3 H9.5 L8.5,4 H5 V6 H19 V4 H15.5 Z" />
+                        <Button Classes="history-action"
+                                Content="⋯"
+                                FontSize="19"
+                                AutomationProperties.Name="Conversation actions"
+                                AutomationProperties.HelpText="Open actions for this conversation."
+                                ToolTip.Tip="Conversation actions">
+                          <Button.Flyout>
+                            <MenuFlyout Placement="BottomEdgeAlignedRight">
+                              <MenuItem Header="Rename"
+                                        Command="{Binding RenameCommand}" />
+                              <Separator />
+                              <MenuItem Header="Delete"
+                                        Command="{Binding DeleteCommand}" />
+                            </MenuFlyout>
+                          </Button.Flyout>
                         </Button>
                       </StackPanel>
 
@@ -218,9 +290,44 @@
                        TextWrapping="Wrap"
                        Foreground="{DynamicResource TextSecondaryBrush}" />
           </Border>
+
+          <Border Classes="surface"
+                  Padding="14"
+                  VerticalAlignment="Top"
+                  IsVisible="{Binding ShowNoHistorySearchResults}">
+            <StackPanel Spacing="4">
+              <TextBlock Text="No matching conversations"
+                         FontSize="13"
+                         FontWeight="SemiBold"
+                         Foreground="{DynamicResource TextPrimaryBrush}" />
+              <TextBlock Text="Try another title or a phrase from a message."
+                         FontSize="12"
+                         TextWrapping="Wrap"
+                         Foreground="{DynamicResource TextSecondaryBrush}" />
+            </StackPanel>
+          </Border>
         </Grid>
       </Grid>
     </Border>
+
+    <Button Grid.Column="1"
+            Classes="history-reopen-action"
+            Width="34"
+            Height="42"
+            MinWidth="34"
+            MinHeight="42"
+            Margin="10,18,0,0"
+            Padding="0"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Top"
+            ZIndex="20"
+            IsVisible="{Binding IsConversationHistoryCollapsed}"
+            Command="{Binding ToggleConversationHistoryCommand}"
+            Content="›"
+            FontSize="22"
+            AutomationProperties.Name="Show conversation history"
+            AutomationProperties.HelpText="Show the hidden conversation history panel."
+            ToolTip.Tip="Show conversation history" />
 
     <Grid Grid.Column="1"
           Classes="content-shell"

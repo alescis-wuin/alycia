@@ -172,6 +172,44 @@
       <Setter Property="BorderBrush" Value="{DynamicResource SuccessBrush}" />
     </Style>
 
+    <Style Selector="TextBox.history-search">
+      <Setter Property="MinHeight" Value="40" />
+      <Setter Property="Padding" Value="11,7" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+      <Setter Property="SelectionBrush" Value="{DynamicResource AccentSecondaryBrush}" />
+      <Setter Property="SelectionForegroundBrush" Value="{DynamicResource TextOnAccentBrush}" />
+      <Setter Property="CaretBrush" Value="{DynamicResource AccentSecondaryBrush}" />
+    </Style>
+
+    <Style Selector="TextBox.history-search:focus">
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentSecondaryBrush}" />
+      <Setter Property="BorderThickness" Value="2" />
+    </Style>
+
+    <Style Selector="Border.history-preview-card">
+      <Setter Property="Background" Value="{DynamicResource SurfaceRaisedBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="14" />
+    </Style>
+
+    <Style Selector="Button.history-reopen-action">
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Background" Value="{DynamicResource SurfaceRaisedBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    </Style>
+
+    <Style Selector="Button.history-reopen-action:pointerover">
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentSecondaryBrush}" />
+      <Setter Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
+    </Style>
+
     <Style Selector="Button:focus-visible">
       <Setter Property="BorderBrush" Value="{DynamicResource AccentSecondaryBrush}" />
       <Setter Property="BorderThickness" Value="2" />

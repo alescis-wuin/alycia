@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Globalization;
 using Alicia.Application.Conversations;
 using Alicia.Domain.Conversations;
@@ -8,8 +9,17 @@ namespace Alicia.Presentation.ViewModels;
 public sealed class ConversationListItemViewModel : ViewModelBase
 {
     private readonly Func<bool> _canInteract;
+    private readonly Func<
+        ConversationListItemViewModel,
+        CancellationToken,
+        Task<IReadOnlyList<ConversationPreviewMessageViewModel>>> _loadPreviewAsync;
+    private bool _isPreviewLoaded;
+    private bool _isPreviewLoading;
+    private bool _isPreviewUnavailable;
     private bool _isRenaming;
     private bool _isSelected;
+    private int _previewGeneration;
+    private Task? _previewLoadTask;
     private string _renameTitle;
 
     public ConversationListItemViewModel(
@@ -19,14 +29,39 @@ public sealed class ConversationListItemViewModel : ViewModelBase
         Func<ConversationListItemViewModel, Task> saveRenameAsync,
         Func<ConversationListItemViewModel, Task> deleteAsync,
         Func<bool> canInteract)
+        : this(
+            summary,
+            selectAsync,
+            beginRenameAsync,
+            saveRenameAsync,
+            deleteAsync,
+            static (_, _) =>
+                Task.FromResult<IReadOnlyList<ConversationPreviewMessageViewModel>>([]),
+            canInteract)
+    {
+    }
+
+    public ConversationListItemViewModel(
+        ConversationSummary summary,
+        Func<ConversationListItemViewModel, Task> selectAsync,
+        Func<ConversationListItemViewModel, Task> beginRenameAsync,
+        Func<ConversationListItemViewModel, Task> saveRenameAsync,
+        Func<ConversationListItemViewModel, Task> deleteAsync,
+        Func<
+            ConversationListItemViewModel,
+            CancellationToken,
+            Task<IReadOnlyList<ConversationPreviewMessageViewModel>>> loadPreviewAsync,
+        Func<bool> canInteract)
     {
         ArgumentNullException.ThrowIfNull(summary);
         ArgumentNullException.ThrowIfNull(selectAsync);
         ArgumentNullException.ThrowIfNull(beginRenameAsync);
         ArgumentNullException.ThrowIfNull(saveRenameAsync);
         ArgumentNullException.ThrowIfNull(deleteAsync);
+        ArgumentNullException.ThrowIfNull(loadPreviewAsync);
         ArgumentNullException.ThrowIfNull(canInteract);
 
+        _loadPreviewAsync = loadPreviewAsync;
         _canInteract = canInteract;
 
         Id = summary.Id;
@@ -93,6 +128,8 @@ public sealed class ConversationListItemViewModel : ViewModelBase
 
     public string RenameInputToolTip { get; }
 
+    public ObservableCollection<ConversationPreviewMessageViewModel> PreviewMessages { get; } = [];
+
     public IAsyncRelayCommand SelectCommand { get; }
 
     public IAsyncRelayCommand RenameCommand { get; }
@@ -140,6 +177,50 @@ public sealed class ConversationListItemViewModel : ViewModelBase
         private set => SetProperty(ref _isSelected, value);
     }
 
+    public bool IsPreviewLoading
+    {
+        get => _isPreviewLoading;
+        private set
+        {
+            if (SetProperty(ref _isPreviewLoading, value))
+            {
+                RaisePreviewStateChanged();
+            }
+        }
+    }
+
+    public bool HasPreviewMessages => PreviewMessages.Count > 0;
+
+    public bool HasPreviewStatusText => IsPreviewLoading
+        || _isPreviewUnavailable
+        || (_isPreviewLoaded && PreviewMessages.Count == 0);
+
+    public string PreviewStatusText => IsPreviewLoading
+        ? "Loading preview…"
+        : _isPreviewUnavailable
+            ? "Preview unavailable"
+            : _isPreviewLoaded && PreviewMessages.Count == 0
+                ? "No messages yet"
+                : string.Empty;
+
+    public Task EnsurePreviewLoadedAsync()
+    {
+        if (_isPreviewLoaded)
+        {
+            return Task.CompletedTask;
+        }
+
+        if (_previewLoadTask is not null)
+        {
+            return _previewLoadTask;
+        }
+
+        int generation = _previewGeneration;
+        IsPreviewLoading = true;
+        _previewLoadTask = LoadPreviewCoreAsync(generation);
+        return _previewLoadTask;
+    }
+
     internal void BeginRename()
     {
         RenameTitle = Title;
@@ -161,9 +242,107 @@ public sealed class ConversationListItemViewModel : ViewModelBase
         OnPropertyChanged(nameof(CanSaveRename));
     }
 
+    internal void ResetPreview()
+    {
+        _previewGeneration++;
+        _previewLoadTask = null;
+        _isPreviewLoaded = false;
+        _isPreviewUnavailable = false;
+        _isPreviewLoading = false;
+        PreviewMessages.Clear();
+        RaisePreviewStateChanged();
+    }
+
+    internal void SetSearchPreview(
+        IReadOnlyList<ConversationPreviewMessageViewModel> messages)
+    {
+        ArgumentNullException.ThrowIfNull(messages);
+
+        _previewGeneration++;
+        _previewLoadTask = null;
+        _isPreviewLoading = false;
+        _isPreviewUnavailable = false;
+        _isPreviewLoaded = true;
+        ReplacePreviewMessages(messages);
+        RaisePreviewStateChanged();
+    }
+
     internal void SetSelected(bool isSelected)
     {
         IsSelected = isSelected;
+    }
+
+    private async Task LoadPreviewCoreAsync(int generation)
+    {
+        try
+        {
+            IReadOnlyList<ConversationPreviewMessageViewModel> messages =
+                await _loadPreviewAsync(this, CancellationToken.None).ConfigureAwait(true);
+
+            if (generation != _previewGeneration)
+            {
+                return;
+            }
+
+            ReplacePreviewMessages(messages);
+            _isPreviewLoaded = true;
+            _isPreviewUnavailable = false;
+        }
+        catch (InvalidDataException)
+        {
+            MarkPreviewUnavailable(generation);
+        }
+        catch (IOException)
+        {
+            MarkPreviewUnavailable(generation);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            MarkPreviewUnavailable(generation);
+        }
+        catch (KeyNotFoundException)
+        {
+            MarkPreviewUnavailable(generation);
+        }
+        finally
+        {
+            if (generation == _previewGeneration)
+            {
+                _previewLoadTask = null;
+                IsPreviewLoading = false;
+                RaisePreviewStateChanged();
+            }
+        }
+    }
+
+    private void MarkPreviewUnavailable(int generation)
+    {
+        if (generation != _previewGeneration)
+        {
+            return;
+        }
+
+        PreviewMessages.Clear();
+        _isPreviewLoaded = true;
+        _isPreviewUnavailable = true;
+    }
+
+    private void ReplacePreviewMessages(
+        IReadOnlyList<ConversationPreviewMessageViewModel> messages)
+    {
+        PreviewMessages.Clear();
+
+        foreach (ConversationPreviewMessageViewModel message in messages)
+        {
+            PreviewMessages.Add(message);
+        }
+    }
+
+    private void RaisePreviewStateChanged()
+    {
+        OnPropertyChanged(nameof(HasPreviewMessages));
+        OnPropertyChanged(nameof(HasPreviewStatusText));
+        OnPropertyChanged(nameof(PreviewStatusText));
     }
 
     private bool CanExecuteSaveRename()

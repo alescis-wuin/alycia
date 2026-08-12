@@ -54,6 +54,20 @@ public partial class MainView : UserControl
         UnsubscribeFromMessages();
     }
 
+    private async void OnConversationPreviewPointerEntered(
+        object? sender,
+        PointerEventArgs eventArgs)
+    {
+        _ = eventArgs;
+
+        if (sender is not Control { DataContext: ConversationListItemViewModel item })
+        {
+            return;
+        }
+
+        await item.EnsurePreviewLoadedAsync().ConfigureAwait(true);
+    }
+
     private async void OnMessageComposerKeyDown(object? sender, KeyEventArgs eventArgs)
     {
         _ = sender;

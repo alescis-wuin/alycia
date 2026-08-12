@@ -20,8 +20,13 @@ public sealed class MainViewModel : ViewModelBase
     private readonly IInferenceProviderConfigurationStore _providerConfigurationStore;
     private readonly Dictionary<string, InferenceProviderConfiguration?> _providerConfigurations =
         new(StringComparer.Ordinal);
+    private readonly List<ConversationListItemViewModel> _allConversations = [];
+    private CancellationTokenSource? _historySearchCancellation;
+    private Task _historySearchTask = Task.CompletedTask;
 
     private bool _isBusy;
+    private bool _isConversationHistoryExpanded = true;
+    private bool _isHistorySearchBusy;
     private bool _isDeleteConfirmationVisible;
     private bool _isGeneratingResponse;
     private bool _isInitialized;
@@ -33,6 +38,7 @@ public sealed class MainViewModel : ViewModelBase
     private CancellationTokenSource? _providerOperationCancellation;
     private ConversationListItemViewModel? _selectedConversation;
     private string? _errorMessage;
+    private string _historySearchText = string.Empty;
     private string _messageDraft = string.Empty;
     private string _providerModelReference = string.Empty;
     private string _providerContextSizeText = string.Empty;
@@ -91,6 +97,7 @@ public sealed class MainViewModel : ViewModelBase
         ConfirmDeleteCommand = new AsyncRelayCommand(ConfirmDeleteAsync);
         CancelTransientActionCommand = new RelayCommand(CancelTransientAction);
         DismissErrorCommand = new RelayCommand(ClearError);
+        ToggleConversationHistoryCommand = new RelayCommand(ToggleConversationHistory);
         DetectProviderCommand = new AsyncRelayCommand(DetectProviderAsync, () => CanDetectProvider);
         InstallProviderCommand = new AsyncRelayCommand(InstallProviderAsync, () => CanInstallProvider);
         StartProviderCommand = new AsyncRelayCommand(StartProviderAsync, () => CanStartProvider);
@@ -128,6 +135,8 @@ public sealed class MainViewModel : ViewModelBase
 
     public IRelayCommand DismissErrorCommand { get; }
 
+    public IRelayCommand ToggleConversationHistoryCommand { get; }
+
     public IAsyncRelayCommand DetectProviderCommand { get; }
 
     public IAsyncRelayCommand InstallProviderCommand { get; }
@@ -137,6 +146,19 @@ public sealed class MainViewModel : ViewModelBase
     public IAsyncRelayCommand StopProviderCommand { get; }
 
     public IAsyncRelayCommand SaveProviderConfigurationCommand { get; }
+
+    public string HistorySearchText
+    {
+        get => _historySearchText;
+        set
+        {
+            if (SetProperty(ref _historySearchText, value))
+            {
+                OnPropertyChanged(nameof(HasHistorySearch));
+                RestartHistorySearch();
+            }
+        }
+    }
 
     public ConversationListItemViewModel? SelectedConversation
     {
@@ -304,7 +326,7 @@ public sealed class MainViewModel : ViewModelBase
                 RetryResponseCommand.NotifyCanExecuteChanged();
                 SaveProviderConfigurationCommand.NotifyCanExecuteChanged();
 
-                foreach (ConversationListItemViewModel item in Conversations)
+                foreach (ConversationListItemViewModel item in _allConversations)
                 {
                     item.NotifyInteractionStateChanged();
                 }
@@ -541,9 +563,43 @@ public sealed class MainViewModel : ViewModelBase
 
     public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
 
-    public bool HasConversationHistory => Conversations.Count > 0;
+    public bool IsConversationHistoryExpanded
+    {
+        get => _isConversationHistoryExpanded;
+        private set
+        {
+            if (SetProperty(ref _isConversationHistoryExpanded, value))
+            {
+                OnPropertyChanged(nameof(IsConversationHistoryCollapsed));
+            }
+        }
+    }
 
-    public bool IsHistoryEmpty => IsInitialized && Conversations.Count == 0;
+    public bool IsConversationHistoryCollapsed => !IsConversationHistoryExpanded;
+
+    public bool IsHistorySearchBusy
+    {
+        get => _isHistorySearchBusy;
+        private set
+        {
+            if (SetProperty(ref _isHistorySearchBusy, value))
+            {
+                OnPropertyChanged(nameof(ShowNoHistorySearchResults));
+            }
+        }
+    }
+
+    public bool HasHistorySearch => !string.IsNullOrWhiteSpace(HistorySearchText);
+
+    public bool HasConversationHistory => _allConversations.Count > 0;
+
+    public bool IsHistoryEmpty => IsInitialized && _allConversations.Count == 0;
+
+    public bool ShowNoHistorySearchResults => IsInitialized
+        && HasConversationHistory
+        && HasHistorySearch
+        && !IsHistorySearchBusy
+        && Conversations.Count == 0;
 
     public bool HasSelectedConversation => SelectedConversation is not null;
 
@@ -1214,6 +1270,8 @@ public sealed class MainViewModel : ViewModelBase
 
     private async Task CreateConversationAsync()
     {
+        HistorySearchText = string.Empty;
+
         await ExecuteOperationAsync(async () =>
         {
             Conversation conversation = await _createConversation
@@ -1509,34 +1567,51 @@ public sealed class MainViewModel : ViewModelBase
 
     private async Task ReloadConversationsAsync(ConversationId? preferredConversationId)
     {
+        _historySearchCancellation?.Cancel();
+
         IReadOnlyList<ConversationSummary> summaries = await _listConversations
             .ExecuteAsync()
             .ConfigureAwait(true);
 
+        _allConversations.Clear();
         Conversations.Clear();
 
         foreach (ConversationSummary summary in summaries)
         {
-            Conversations.Add(new ConversationListItemViewModel(
+            _allConversations.Add(new ConversationListItemViewModel(
                 summary,
                 SelectConversationAsync,
                 BeginRenameConversationAsync,
                 SaveRenameConversationAsync,
                 RequestDeleteConversationAsync,
+                LoadConversationPreviewAsync,
                 () => IsInteractionEnabled));
         }
 
-        RaiseHistoryStateChanged();
+        ApplyVisibleConversationItems(_allConversations);
 
-        if (Conversations.Count == 0)
+        if (_allConversations.Count == 0)
         {
             ClearSelection();
             return;
         }
 
-        ConversationListItemViewModel target = preferredConversationId is ConversationId preferredId
-            ? Conversations.FirstOrDefault(item => item.Id == preferredId) ?? Conversations[0]
-            : Conversations[0];
+        RestartHistorySearch();
+        await _historySearchTask.ConfigureAwait(true);
+
+        ConversationListItemViewModel? target = preferredConversationId is ConversationId preferredId
+            ? Conversations.FirstOrDefault(item => item.Id == preferredId)
+            : null;
+
+        target ??= HasHistorySearch
+            ? Conversations.FirstOrDefault()
+            : _allConversations[0];
+
+        if (target is null)
+        {
+            ClearSelection();
+            return;
+        }
 
         await LoadConversationAsync(target).ConfigureAwait(true);
     }
@@ -1571,10 +1646,216 @@ public sealed class MainViewModel : ViewModelBase
 
     private void CancelAllRenames()
     {
-        foreach (ConversationListItemViewModel item in Conversations)
+        foreach (ConversationListItemViewModel item in _allConversations)
         {
             item.CancelRename();
         }
+    }
+
+    private void ToggleConversationHistory()
+    {
+        IsConversationHistoryExpanded = !IsConversationHistoryExpanded;
+    }
+
+    private void RestartHistorySearch()
+    {
+        _historySearchCancellation?.Cancel();
+
+        foreach (ConversationListItemViewModel item in _allConversations)
+        {
+            item.ResetPreview();
+        }
+
+        string query = HistorySearchText.Trim();
+
+        if (query.Length == 0)
+        {
+            _historySearchCancellation = null;
+            _historySearchTask = Task.CompletedTask;
+            IsHistorySearchBusy = false;
+            ApplyVisibleConversationItems(_allConversations);
+            return;
+        }
+
+        CancellationTokenSource cancellationSource = new();
+        _historySearchCancellation = cancellationSource;
+        IsHistorySearchBusy = true;
+        _historySearchTask = ApplyHistorySearchAsync(query, cancellationSource);
+    }
+
+    private async Task ApplyHistorySearchAsync(
+        string query,
+        CancellationTokenSource cancellationSource)
+    {
+        List<(ConversationListItemViewModel Item, int Score)> matches = [];
+
+        try
+        {
+            foreach (ConversationListItemViewModel item in _allConversations)
+            {
+                cancellationSource.Token.ThrowIfCancellationRequested();
+
+                int titleScore = GetTitleSearchScore(item.Title, query);
+
+                if (titleScore > 0)
+                {
+                    matches.Add((item, titleScore));
+                    continue;
+                }
+
+                Conversation conversation;
+
+                try
+                {
+                    conversation = await _loadConversation
+                        .ExecuteAsync(item.Id, cancellationSource.Token)
+                        .ConfigureAwait(true);
+                }
+                catch (KeyNotFoundException)
+                {
+                    continue;
+                }
+
+                int contentMatchIndex = FindContentMatch(conversation.Messages, query);
+
+                if (contentMatchIndex < 0)
+                {
+                    continue;
+                }
+
+                item.SetSearchPreview(BuildConversationPreview(
+                    conversation.Messages,
+                    contentMatchIndex));
+                matches.Add((item, 10));
+            }
+
+            cancellationSource.Token.ThrowIfCancellationRequested();
+
+            if (!ReferenceEquals(_historySearchCancellation, cancellationSource))
+            {
+                return;
+            }
+
+            IReadOnlyList<ConversationListItemViewModel> ordered = matches
+                .OrderByDescending(match => match.Score)
+                .ThenByDescending(match => match.Item.UpdatedAt)
+                .Select(match => match.Item)
+                .ToArray();
+
+            ApplyVisibleConversationItems(ordered);
+        }
+        catch (OperationCanceledException) when (cancellationSource.IsCancellationRequested)
+        {
+        }
+        catch (InvalidDataException exception)
+        {
+            ErrorMessage = exception.Message;
+        }
+        catch (IOException exception)
+        {
+            ErrorMessage = exception.Message;
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            ErrorMessage = exception.Message;
+        }
+        finally
+        {
+            if (ReferenceEquals(_historySearchCancellation, cancellationSource))
+            {
+                _historySearchCancellation = null;
+                IsHistorySearchBusy = false;
+                RaiseHistoryStateChanged();
+            }
+
+            cancellationSource.Dispose();
+        }
+    }
+
+    private async Task<IReadOnlyList<ConversationPreviewMessageViewModel>> LoadConversationPreviewAsync(
+        ConversationListItemViewModel item,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+
+        Conversation conversation = await _loadConversation
+            .ExecuteAsync(item.Id, cancellationToken)
+            .ConfigureAwait(true);
+
+        return BuildConversationPreview(conversation.Messages, focusedIndex: null);
+    }
+
+    private void ApplyVisibleConversationItems(
+        IEnumerable<ConversationListItemViewModel> items)
+    {
+        Conversations.Clear();
+
+        foreach (ConversationListItemViewModel item in items)
+        {
+            Conversations.Add(item);
+        }
+
+        RaiseHistoryStateChanged();
+    }
+
+    private static int GetTitleSearchScore(string title, string query)
+    {
+        if (string.Equals(title, query, StringComparison.OrdinalIgnoreCase))
+        {
+            return 300;
+        }
+
+        if (title.StartsWith(query, StringComparison.OrdinalIgnoreCase))
+        {
+            return 200;
+        }
+
+        return title.Contains(query, StringComparison.OrdinalIgnoreCase)
+            ? 100
+            : 0;
+    }
+
+    private static int FindContentMatch(
+        IReadOnlyList<ChatMessage> messages,
+        string query)
+    {
+        for (int index = 0; index < messages.Count; index++)
+        {
+            if (messages[index].Content.Contains(
+                query,
+                StringComparison.OrdinalIgnoreCase))
+            {
+                return index;
+            }
+        }
+
+        return -1;
+    }
+
+    private static ConversationPreviewMessageViewModel[] BuildConversationPreview(
+            IReadOnlyList<ChatMessage> messages,
+            int? focusedIndex)
+    {
+        if (messages.Count == 0)
+        {
+            return [];
+        }
+
+        int maximumStart = Math.Max(0, messages.Count - 3);
+        int startIndex = focusedIndex is int focus
+            ? Math.Clamp(focus - 1, 0, maximumStart)
+            : maximumStart;
+        int count = Math.Min(3, messages.Count - startIndex);
+        ConversationPreviewMessageViewModel[] preview =
+            new ConversationPreviewMessageViewModel[count];
+
+        for (int offset = 0; offset < count; offset++)
+        {
+            preview[offset] = new ConversationPreviewMessageViewModel(
+                messages[startIndex + offset]);
+        }
+
+        return preview;
     }
 
     private async Task ExecuteOperationAsync(Func<Task> operation)
@@ -1699,6 +1980,7 @@ public sealed class MainViewModel : ViewModelBase
     private void RaiseHistoryStateChanged()
     {
         OnPropertyChanged(nameof(HasConversationHistory));
+        OnPropertyChanged(nameof(ShowNoHistorySearchResults));
         RaiseEmptyStateChanged();
     }
 
@@ -1727,6 +2009,7 @@ public sealed class MainViewModel : ViewModelBase
     private void RaiseEmptyStateChanged()
     {
         OnPropertyChanged(nameof(IsHistoryEmpty));
+        OnPropertyChanged(nameof(ShowNoHistorySearchResults));
         OnPropertyChanged(nameof(IsSelectedConversationEmpty));
         OnPropertyChanged(nameof(ShowNoSelectionState));
         OnPropertyChanged(nameof(ShowLoadingState));
