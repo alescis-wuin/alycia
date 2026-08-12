@@ -3,6 +3,42 @@
              xmlns:local="using:Alicia.Presentation.Views"
              xmlns:vm="using:Alicia.Presentation.ViewModels"
              x:Class="Alicia.Presentation.Views.ShellView"
-             x:DataType="vm:ShellViewModel">
-  <local:MainView DataContext="{Binding Workspace}" />
+             x:DataType="vm:ShellViewModel"
+             Unloaded="OnUnloaded">
+  <Grid ColumnDefinitions="56,*"
+        Background="{DynamicResource AppBackgroundBrush}">
+    <local:GlobalNavigationRail Grid.Column="0"
+                                PointerEntered="OnNavigationRailPointerEntered"
+                                PointerExited="OnNavigationRailPointerExited"
+                                GotFocus="OnNavigationGotFocus"
+                                LostFocus="OnNavigationLostFocus"
+                                KeyDown="OnNavigationKeyDown" />
+
+    <Grid Grid.Column="1">
+      <Grid IsVisible="{Binding IsConversationsSelected}">
+        <local:MainView DataContext="{Binding Workspace}" />
+      </Grid>
+
+      <Grid IsVisible="{Binding IsProvidersSelected}">
+        <local:ProviderWorkspaceView DataContext="{Binding Workspace}" />
+      </Grid>
+
+      <Grid IsVisible="{Binding IsModelsSelected}">
+        <local:ModelWorkspaceView DataContext="{Binding Workspace}" />
+      </Grid>
+    </Grid>
+
+    <local:GlobalNavigationFlyout x:Name="NavigationFlyout"
+                                  Grid.Column="1"
+                                  Margin="8,8,0,0"
+                                  HorizontalAlignment="Left"
+                                  VerticalAlignment="Top"
+                                  IsVisible="False"
+                                  ZIndex="100"
+                                  PointerEntered="OnNavigationFlyoutPointerEntered"
+                                  PointerExited="OnNavigationFlyoutPointerExited"
+                                  GotFocus="OnNavigationGotFocus"
+                                  LostFocus="OnNavigationLostFocus"
+                                  KeyDown="OnNavigationKeyDown" />
+  </Grid>
 </UserControl>

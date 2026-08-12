@@ -1,0 +1,160 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:providers="using:Alicia.Application.Providers"
+             xmlns:vm="using:Alicia.Presentation.ViewModels"
+             x:Class="Alicia.Presentation.Views.ProviderWorkspaceView"
+             x:DataType="vm:MainViewModel"
+             AutomationProperties.Name="Provider workspace"
+             AutomationProperties.LandmarkType="Main"
+             AutomationProperties.AccessibilityView="Control">
+  <Grid Margin="28"
+        RowDefinitions="Auto,18,*">
+
+    <Grid ColumnDefinitions="*,Auto">
+      <StackPanel Spacing="4">
+        <TextBlock Text="Provider"
+                   FontSize="30"
+                   FontWeight="Bold"
+                   AutomationProperties.HeadingLevel="1"
+                   Foreground="{DynamicResource TextPrimaryBrush}" />
+        <TextBlock Text="Detect, install and control the selected local inference runtime."
+                   FontSize="14"
+                   Foreground="{DynamicResource TextSecondaryBrush}" />
+      </StackPanel>
+
+      <Border Grid.Column="1"
+              Classes="status-chip"
+              VerticalAlignment="Center">
+        <TextBlock Text="{Binding ProviderStatusText}"
+                   FontSize="12"
+                   Foreground="{DynamicResource TextSecondaryBrush}" />
+      </Border>
+    </Grid>
+
+    <ScrollViewer Grid.Row="2"
+                  VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled">
+        <Grid Classes="provider-panels"
+            ColumnDefinitions="1.25*,16,*">
+        <Border Grid.Column="0"
+                Classes="surface"
+                Padding="22">
+          <StackPanel Spacing="12">
+            <TextBlock Text="Édition"
+                       FontSize="18"
+                       FontWeight="SemiBold"
+                       AutomationProperties.HeadingLevel="2"
+                       Foreground="{DynamicResource TextPrimaryBrush}" />
+
+            <ComboBox ItemsSource="{Binding ProviderOptions}"
+                      SelectedItem="{Binding SelectedProvider, Mode=TwoWay}"
+                      IsEnabled="{Binding IsProviderSelectionEditable}"
+                      AutomationProperties.Name="Inference provider"
+                      AutomationProperties.HelpText="Choose the inference provider explicitly. Alicia does not switch providers automatically.">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="providers:InferenceProviderDescriptor">
+                  <TextBlock Text="{Binding Name}" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+
+            <TextBlock Text="{Binding ProviderFallbackText}"
+                       FontSize="12"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource TextSecondaryBrush}" />
+
+            <StackPanel Spacing="5"
+                        IsVisible="{Binding IsProviderProgressVisible}"
+                        AutomationProperties.Name="Provider operation progress">
+              <Grid>
+                <TextBlock Text="{Binding ProviderProgressText}"
+                           FontSize="13"
+                           FontWeight="SemiBold"
+                           AutomationProperties.LiveSetting="Polite"
+                           Foreground="{DynamicResource TextPrimaryBrush}" />
+              </Grid>
+              <ProgressBar Height="6"
+                           Minimum="0"
+                           Maximum="100"
+                           Value="{Binding ProviderProgressValue}"
+                           IsIndeterminate="{Binding IsProviderProgressIndeterminate}" />
+              <TextBlock Text="{Binding ProviderProgressDetailText}"
+                         FontSize="12"
+                         TextWrapping="Wrap"
+                         AutomationProperties.LiveSetting="Polite"
+                         Foreground="{DynamicResource TextSecondaryBrush}" />
+            </StackPanel>
+
+            <Grid ColumnDefinitions="*,10,*,10,*">
+              <Button Grid.Column="0"
+                      Classes="secondary-action"
+                      Command="{Binding DetectProviderCommand}"
+                      IsEnabled="{Binding CanDetectProvider}"
+                      Content="Detect"
+                      AutomationProperties.Name="Detect selected provider" />
+              <Button Grid.Column="2"
+                      Classes="secondary-action"
+                      Command="{Binding InstallProviderCommand}"
+                      IsEnabled="{Binding CanInstallProvider}"
+                      Content="Install"
+                      AutomationProperties.Name="Install selected provider" />
+              <Button Grid.Column="4"
+                      Classes="primary-action"
+                      Command="{Binding StartProviderCommand}"
+                      IsEnabled="{Binding CanStartProvider}"
+                      Content="Start"
+                      AutomationProperties.Name="Start selected provider" />
+            </Grid>
+
+            <Button Classes="secondary-action"
+                    Command="{Binding StopProviderCommand}"
+                    IsEnabled="{Binding CanStopProvider}"
+                    Content="Stop local AI"
+                    AutomationProperties.Name="Stop selected provider" />
+          </StackPanel>
+        </Border>
+
+        <Border Grid.Column="2"
+                Classes="surface"
+                Padding="22">
+          <StackPanel Spacing="10">
+            <TextBlock Text="Informations"
+                       FontSize="18"
+                       FontWeight="SemiBold"
+                       AutomationProperties.HeadingLevel="2"
+                       Foreground="{DynamicResource TextPrimaryBrush}" />
+
+            <TextBlock Text="{Binding ProviderName}"
+                       FontSize="17"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextPrimaryBrush}" />
+            <TextBlock Text="{Binding ProviderVersionText}"
+                       FontSize="13"
+                       Foreground="{DynamicResource TextSecondaryBrush}" />
+            <TextBlock Text="{Binding ProviderDetailText}"
+                       FontSize="13"
+                       LineHeight="20"
+                       TextWrapping="Wrap"
+                       AutomationProperties.LiveSetting="Polite"
+                       Foreground="{DynamicResource TextSecondaryBrush}" />
+            <TextBlock Text="{Binding ProviderConfigurationStatusText}"
+                       FontSize="12"
+                       TextWrapping="Wrap"
+                       AutomationProperties.LiveSetting="Polite"
+                       Foreground="{DynamicResource TextSecondaryBrush}" />
+
+            <Border Background="{DynamicResource SurfaceRaisedBrush}"
+                    CornerRadius="12"
+                    Padding="12">
+              <TextBlock Text="Model and generation settings are managed from the Models workspace. Provider lifecycle remains here."
+                         FontSize="12"
+                         LineHeight="18"
+                         TextWrapping="Wrap"
+                         Foreground="{DynamicResource TextSecondaryBrush}" />
+            </Border>
+          </StackPanel>
+        </Border>
+      </Grid>
+    </ScrollViewer>
+  </Grid>
+</UserControl>

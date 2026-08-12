@@ -1,0 +1,124 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Alicia.Presentation.ViewModels"
+             x:Class="Alicia.Presentation.Views.GlobalNavigationRail"
+             x:DataType="vm:ShellViewModel"
+             Width="56"
+             MinWidth="56"
+             AutomationProperties.Name="Global navigation"
+             AutomationProperties.LandmarkType="Navigation"
+             AutomationProperties.AccessibilityView="Control">
+  <UserControl.Styles>
+    <Style Selector="Button.global-nav-item">
+      <Setter Property="Width" Value="44" />
+      <Setter Property="Height" Value="44" />
+      <Setter Property="MinWidth" Value="44" />
+      <Setter Property="MinHeight" Value="44" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="CornerRadius" Value="13" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="VerticalContentAlignment" Value="Stretch" />
+    </Style>
+
+    <Style Selector="Button.global-nav-item:pointerover">
+      <Setter Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    </Style>
+
+    <Style Selector="Button.global-nav-item:focus-visible">
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentSecondaryBrush}" />
+      <Setter Property="BorderThickness" Value="2" />
+      <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    </Style>
+
+    <Style Selector="Button.global-nav-item.selected">
+      <Setter Property="Background" Value="{DynamicResource SurfaceRaisedBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    </Style>
+  </UserControl.Styles>
+
+  <Border Width="56"
+          Background="{DynamicResource AppBackgroundBrush}"
+          BorderBrush="{DynamicResource BorderBrush}"
+          BorderThickness="0,0,1,0">
+    <StackPanel Margin="6,12"
+                Spacing="8"
+                HorizontalAlignment="Center">
+      <Button Classes="global-nav-item"
+              Classes.selected="{Binding IsConversationsSelected}"
+              Command="{Binding NavigateToConversationsCommand}"
+              AutomationProperties.Name="Conversations"
+              AutomationProperties.HelpText="Open the conversation workspace."
+              ToolTip.Tip="Conversations">
+        <Grid>
+          <Border Width="3"
+                  Height="24"
+                  CornerRadius="2"
+                  Margin="1,0,0,0"
+                  HorizontalAlignment="Left"
+                  VerticalAlignment="Center"
+                  Background="{DynamicResource AccentSecondaryBrush}"
+                  IsVisible="{Binding IsConversationsSelected}" />
+          <PathIcon Width="22"
+                    Height="22"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Foreground="{DynamicResource TextSecondaryBrush}"
+                    Data="M4,2 H20 C21.1,2 22,2.9 22,4 V16 C22,17.1 21.1,18 20,18 H7 L2,22 V4 C2,2.9 2.9,2 4,2 M4,4 V17.8 L6.2,16 H20 V4 H4 Z" />
+        </Grid>
+      </Button>
+
+      <Button Classes="global-nav-item"
+              Classes.selected="{Binding IsProvidersSelected}"
+              Command="{Binding NavigateToProvidersCommand}"
+              AutomationProperties.Name="Providers"
+              AutomationProperties.HelpText="Open the inference provider workspace."
+              ToolTip.Tip="Providers">
+        <Grid>
+          <Border Width="3"
+                  Height="24"
+                  CornerRadius="2"
+                  Margin="1,0,0,0"
+                  HorizontalAlignment="Left"
+                  VerticalAlignment="Center"
+                  Background="{DynamicResource AccentSecondaryBrush}"
+                  IsVisible="{Binding IsProvidersSelected}" />
+          <PathIcon Width="22"
+                    Height="22"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Foreground="{DynamicResource TextSecondaryBrush}"
+                    Data="M4,3 H20 C21.1,3 22,3.9 22,5 V8 C22,9.1 21.1,10 20,10 H4 C2.9,10 2,9.1 2,8 V5 C2,3.9 2.9,3 4,3 M5,5 V8 H7 V5 H5 M4,12 H20 C21.1,12 22,12.9 22,14 V17 C22,18.1 21.1,19 20,19 H4 C2.9,19 2,18.1 2,17 V14 C2,12.9 2.9,12 4,12 M5,14 V17 H7 V14 H5 Z" />
+        </Grid>
+      </Button>
+
+      <Button Classes="global-nav-item"
+              Classes.selected="{Binding IsModelsSelected}"
+              Command="{Binding NavigateToModelsCommand}"
+              AutomationProperties.Name="Models"
+              AutomationProperties.HelpText="Open the model configuration workspace."
+              ToolTip.Tip="Models">
+        <Grid>
+          <Border Width="3"
+                  Height="24"
+                  CornerRadius="2"
+                  Margin="1,0,0,0"
+                  HorizontalAlignment="Left"
+                  VerticalAlignment="Center"
+                  Background="{DynamicResource AccentSecondaryBrush}"
+                  IsVisible="{Binding IsModelsSelected}" />
+          <PathIcon Width="22"
+                    Height="22"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Foreground="{DynamicResource TextSecondaryBrush}"
+                    Data="M12,2 L21,7 V17 L12,22 L3,17 V7 L12,2 M12,4.3 L5.1,8.1 L12,11.9 L18.9,8.1 L12,4.3 M5,10.1 V15.8 L11,19.1 V13.4 L5,10.1 M13,19.1 L19,15.8 V10.1 L13,13.4 V19.1 Z" />
+        </Grid>
+      </Button>
+    </StackPanel>
+  </Border>
+</UserControl>
