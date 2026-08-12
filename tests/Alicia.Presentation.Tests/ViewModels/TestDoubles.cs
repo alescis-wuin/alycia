@@ -182,6 +182,25 @@ internal sealed class PausingStreamingConversationResponder : IStreamingConversa
     }
 }
 
+internal sealed class ReasoningConversationResponder : IStreamingConversationResponder
+{
+    public async IAsyncEnumerable<ConversationResponseChunk> StreamAsync(
+        ConversationResponseRequest request,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        await Task.Yield();
+        yield return new ConversationResponseChunk(
+            ConversationResponseChunkKind.Reasoning,
+            "Inspect premise\n\nVerify result");
+        yield return new ConversationResponseChunk(
+            ConversationResponseChunkKind.Content,
+            "Final answer");
+    }
+}
+
 internal sealed class FailOnceConversationResponder :
     IConversationResponder,
     IStreamingConversationResponder

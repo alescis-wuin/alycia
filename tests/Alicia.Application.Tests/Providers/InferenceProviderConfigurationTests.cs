@@ -14,6 +14,8 @@ public sealed class InferenceProviderConfigurationTests
         Assert.Equal("llama.cpp.cuda", configuration.ProviderId);
         Assert.Equal("owner/model-GGUF:Q4_K_M", configuration.ModelReference);
         Assert.Null(configuration.ContextSize);
+        Assert.Null(configuration.Generation.ReasoningEnabled);
+        Assert.Null(configuration.Generation.ReasoningBudgetTokens);
         Assert.True(configuration.Generation.UsesOnlyProviderDefaults);
         Assert.True(configuration.UsesProviderDefaults);
     }
@@ -26,7 +28,9 @@ public sealed class InferenceProviderConfigurationTests
             temperature: 0.7,
             topP: 0.9,
             topK: 40,
-            seed: 42);
+            seed: 42,
+            reasoningEnabled: true,
+            reasoningBudgetTokens: 384);
         InferenceProviderConfiguration configuration = new(
             "llama.cpp.cuda",
             "owner/model-GGUF",
@@ -39,6 +43,8 @@ public sealed class InferenceProviderConfigurationTests
         Assert.Equal(0.9, generation.TopP);
         Assert.Equal(40, generation.TopK);
         Assert.Equal(42, generation.Seed);
+        Assert.Equal(true, generation.ReasoningEnabled);
+        Assert.Equal(384, generation.ReasoningBudgetTokens);
         Assert.False(configuration.UsesProviderDefaults);
     }
 
@@ -69,6 +75,10 @@ public sealed class InferenceProviderConfigurationTests
             new InferenceGenerationOptions(topK: -1));
         Assert.Throws<ArgumentOutOfRangeException>(() =>
             new InferenceGenerationOptions(seed: -1));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new InferenceGenerationOptions(reasoningEnabled: true, reasoningBudgetTokens: 0));
+        Assert.Throws<ArgumentException>(() =>
+            new InferenceGenerationOptions(reasoningEnabled: false, reasoningBudgetTokens: 128));
     }
 
     [Fact]

@@ -527,11 +527,42 @@
                             Classes.assistant-message="{Binding IsAssistant}"
                             Classes.system-message="{Binding IsSystem}"
                             AutomationProperties.Name="{Binding AutomationName}">
-                      <TextBlock Text="{Binding Content}"
-                                 FontSize="16"
-                                 LineHeight="24"
-                                 TextWrapping="Wrap"
-                                 Foreground="{DynamicResource TextPrimaryBrush}" />
+                      <StackPanel Spacing="10">
+                        <TextBlock Text="{Binding ThinkingIndicatorText}"
+                                   IsVisible="{Binding IsWaitingForFirstDelta}"
+                                   Classes="thinking-indicator"
+                                   FontSize="14"
+                                   AutomationProperties.LiveSetting="Polite"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" />
+
+                        <Expander Header="{Binding ReasoningHeader}"
+                                  IsVisible="{Binding HasReasoning}"
+                                  IsExpanded="{Binding IsReasoningExpanded, Mode=TwoWay}"
+                                  Classes="reasoning-expander"
+                                  AutomationProperties.Name="Model reasoning">
+                          <ItemsControl ItemsSource="{Binding ReasoningSteps}"
+                                        Margin="0,8,0,2">
+                            <ItemsControl.ItemTemplate>
+                              <DataTemplate x:DataType="vm:ReasoningStepViewModel">
+                                <Border Classes="reasoning-step">
+                                  <TextBlock Text="{Binding Content}"
+                                             FontSize="13"
+                                             LineHeight="19"
+                                             TextWrapping="Wrap"
+                                             Foreground="{DynamicResource TextSecondaryBrush}" />
+                                </Border>
+                              </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                          </ItemsControl>
+                        </Expander>
+
+                        <TextBlock Text="{Binding Content}"
+                                   IsVisible="{Binding HasContent}"
+                                   FontSize="16"
+                                   LineHeight="24"
+                                   TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextPrimaryBrush}" />
+                      </StackPanel>
                     </Border>
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>

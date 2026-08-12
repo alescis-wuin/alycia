@@ -21,7 +21,9 @@ public sealed class JsonInferenceProviderConfigurationStoreTests
                 temperature: 0.6,
                 topP: 0.9,
                 topK: 50,
-                seed: 42));
+                seed: 42,
+                reasoningEnabled: true,
+                reasoningBudgetTokens: 384));
 
         await store.SaveAsync(configuration, selectProvider: true, cancellationToken).ConfigureAwait(true);
 
@@ -64,6 +66,8 @@ public sealed class JsonInferenceProviderConfigurationStoreTests
         Assert.Equal("llama.cpp.cuda", selectedProviderId);
         Assert.NotNull(configuration);
         Assert.Equal("owner/model-GGUF:Q4_K_M", configuration.ModelReference);
+        Assert.Null(configuration.Generation.ReasoningEnabled);
+        Assert.Null(configuration.Generation.ReasoningBudgetTokens);
         Assert.True(configuration.UsesProviderDefaults);
     }
 

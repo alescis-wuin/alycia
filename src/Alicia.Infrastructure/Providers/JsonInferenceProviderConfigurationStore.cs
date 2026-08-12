@@ -321,7 +321,9 @@ public sealed class JsonInferenceProviderConfigurationStore :
                     stored.Generation?.Temperature,
                     stored.Generation?.TopP,
                     stored.Generation?.TopK,
-                    stored.Generation?.Seed));
+                    stored.Generation?.Seed,
+                    stored.Generation?.ReasoningEnabled,
+                    stored.Generation?.ReasoningBudgetTokens));
         }
         catch (ArgumentException exception)
         {
@@ -342,7 +344,9 @@ public sealed class JsonInferenceProviderConfigurationStore :
                 configuration.Generation.Temperature,
                 configuration.Generation.TopP,
                 configuration.Generation.TopK,
-                configuration.Generation.Seed));
+                configuration.Generation.Seed,
+                configuration.Generation.ReasoningEnabled,
+                configuration.Generation.ReasoningBudgetTokens));
     }
 
     private static string NormalizeRequiredProviderId(string providerId)
@@ -377,7 +381,9 @@ public sealed class JsonInferenceProviderConfigurationStore :
         double? Temperature,
         double? TopP,
         int? TopK,
-        int? Seed);
+        int? Seed,
+        bool? ReasoningEnabled,
+        int? ReasoningBudgetTokens);
 
     private sealed record LegacyProviderSettings(string ModelReference);
 }

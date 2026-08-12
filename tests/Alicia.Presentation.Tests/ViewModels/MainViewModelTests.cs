@@ -905,6 +905,8 @@ public sealed class MainViewModelTests
         viewModel.ProviderTopPText = "0.9";
         viewModel.ProviderTopKText = "50";
         viewModel.ProviderSeedText = "42";
+        viewModel.ProviderReasoningEnabled = true;
+        viewModel.ProviderReasoningBudgetText = "384";
 
         Assert.False(viewModel.HasProviderConfigurationValidationError);
         await viewModel.SaveProviderConfigurationCommand.ExecuteAsync(null).ConfigureAwait(true);
@@ -920,6 +922,8 @@ public sealed class MainViewModelTests
         Assert.Equal(0.9, saved.Generation.TopP);
         Assert.Equal(50, saved.Generation.TopK);
         Assert.Equal(42, saved.Generation.Seed);
+        Assert.Equal(true, saved.Generation.ReasoningEnabled);
+        Assert.Equal(384, saved.Generation.ReasoningBudgetTokens);
         Assert.Equal(saved, provider.LastStartedConfiguration);
     }
 
@@ -943,7 +947,7 @@ public sealed class MainViewModelTests
     }
 
     [Fact]
-    public async Task BlankOptionalSettingsPreserveProviderDefaults()
+    public async Task BlankSamplingSettingsPreserveDefaultsWhileReasoningChoiceIsExplicit()
     {
         InMemoryConversationRepository repository = new();
         StubInferenceProviderRuntime provider = new(InferenceProviderState.Ready);
@@ -961,9 +965,106 @@ public sealed class MainViewModelTests
         InferenceProviderConfiguration saved = Assert.IsType<InferenceProviderConfiguration>(
             configurationStore.LastSavedConfiguration);
         Assert.Null(saved.ContextSize);
-        Assert.True(saved.Generation.UsesOnlyProviderDefaults);
-        Assert.True(saved.UsesProviderDefaults);
-        Assert.Contains("provider defaults", viewModel.ProviderConfigurationStatusText, StringComparison.OrdinalIgnoreCase);
+        Assert.False(saved.Generation.ReasoningEnabled);
+        Assert.Null(saved.Generation.ReasoningBudgetTokens);
+        Assert.False(saved.Generation.UsesOnlyProviderDefaults);
+        Assert.False(saved.UsesProviderDefaults);
+        Assert.Contains("Explicit", viewModel.ProviderConfigurationStatusText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ResponseStopAndRetryAreBrieflyLockedAroundCancellation()
+    {
+        DateTimeOffset createdAt = new(2026, 8, 13, 0, 30, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        Conversation conversation = new(ConversationId.New(), "Project", createdAt, createdAt);
+        repository.Seed(conversation);
+        PausingStreamingConversationResponder responder = new(
+            "Partial",
+            " response");
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(createdAt.AddMinutes(1)),
+            responder,
+            responseStopLockDuration: TimeSpan.FromMilliseconds(50),
+            retryResponseLockDuration: TimeSpan.FromMilliseconds(50));
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+        viewModel.MessageDraft = "Guard controls";
+
+        Task sendTask = viewModel.SendMessageCommand.ExecuteAsync(null);
+        await responder.FirstChunkObserved.ConfigureAwait(true);
+
+        Assert.True(viewModel.IsGeneratingResponse);
+        Assert.False(viewModel.CanStopResponse);
+
+        await Task.Delay(150, TestContext.Current.CancellationToken).ConfigureAwait(true);
+        Assert.True(viewModel.CanStopResponse);
+
+        viewModel.StopResponseCommand.Execute(null);
+        await sendTask.ConfigureAwait(true);
+
+        Assert.False(viewModel.CanRetryResponse);
+        await Task.Delay(150, TestContext.Current.CancellationToken).ConfigureAwait(true);
+        Assert.True(viewModel.CanRetryResponse);
+    }
+
+    [Fact]
+    public async Task ReasoningStreamProjectsStepsButPersistsOnlyFinalAssistantContent()
+    {
+        DateTimeOffset createdAt = new(2026, 8, 13, 0, 35, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        Conversation conversation = new(ConversationId.New(), "Project", createdAt, createdAt);
+        repository.Seed(conversation);
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(createdAt.AddMinutes(1)),
+            new ReasoningConversationResponder());
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+        viewModel.MessageDraft = "Reason about this";
+
+        await viewModel.SendMessageCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.Collection(
+            viewModel.Messages,
+            message => Assert.True(message.IsUser),
+            message =>
+            {
+                Assert.True(message.IsAssistant);
+                Assert.Equal("Final answer", message.Content);
+                Assert.True(message.HasReasoning);
+                Assert.False(message.IsReasoningExpanded);
+                Assert.Collection(
+                    message.ReasoningSteps,
+                    step => Assert.Equal("Inspect premise", step.Content),
+                    step => Assert.Equal("Verify result", step.Content));
+            });
+        Conversation persisted = Assert.IsType<Conversation>(
+            await repository.FindAsync(conversation.Id, CancellationToken.None).ConfigureAwait(true));
+        Assert.Equal("Final answer", persisted.Messages[^1].Content);
+        Assert.DoesNotContain("Inspect premise", persisted.Messages[^1].Content, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task EnabledReasoningRequiresPositiveBudgetBeforeSettingsCanBeSaved()
+    {
+        InMemoryConversationRepository repository = new();
+        StubInferenceProviderRuntime provider = new(InferenceProviderState.Ready);
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(new DateTimeOffset(2026, 8, 13, 0, 40, 0, TimeSpan.Zero)),
+            inferenceProvider: provider);
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        viewModel.ProviderReasoningEnabled = true;
+        viewModel.ProviderReasoningBudgetText = string.Empty;
+
+        Assert.True(viewModel.HasProviderConfigurationValidationError);
+        Assert.Contains("Reasoning budget", viewModel.ProviderConfigurationValidationText, StringComparison.Ordinal);
+        Assert.False(viewModel.CanSaveProviderConfiguration);
+
+        viewModel.ProviderReasoningBudgetText = "256";
+
+        Assert.False(viewModel.HasProviderConfigurationValidationError);
     }
 
     [Fact]
@@ -991,7 +1092,9 @@ public sealed class MainViewModelTests
         IStreamingConversationResponder? responder = null,
         IInferenceProviderRuntime? inferenceProvider = null,
         IInferenceProviderRegistry? providerRegistry = null,
-        IInferenceProviderConfigurationStore? providerConfigurationStore = null)
+        IInferenceProviderConfigurationStore? providerConfigurationStore = null,
+        TimeSpan? responseStopLockDuration = null,
+        TimeSpan? retryResponseLockDuration = null)
     {
         IStreamingConversationResponder resolvedResponder =
             responder ?? new DeterministicConversationResponder("Development response");
@@ -1018,6 +1121,8 @@ public sealed class MainViewModelTests
             new RenameConversationUseCase(repository, timeProvider),
             new DeleteConversationUseCase(repository),
             resolvedRegistry,
-            resolvedConfigurationStore);
+            resolvedConfigurationStore,
+            responseStopLockDuration ?? TimeSpan.Zero,
+            retryResponseLockDuration ?? TimeSpan.Zero);
     }
 }

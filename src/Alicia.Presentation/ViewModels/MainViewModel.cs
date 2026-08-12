@@ -9,6 +9,11 @@ namespace Alicia.Presentation.ViewModels;
 
 public sealed class MainViewModel : ViewModelBase
 {
+    private const int DefaultReasoningBudgetTokens = 512;
+
+    private static readonly TimeSpan _defaultResponseStopLockDuration = TimeSpan.FromMilliseconds(1200);
+    private static readonly TimeSpan _defaultRetryResponseLockDuration = TimeSpan.FromMilliseconds(700);
+
     private readonly AppendMessageUseCase _appendMessage;
     private readonly StreamConversationTurnUseCase _streamConversationTurn;
     private readonly CreateConversationUseCase _createConversation;
@@ -18,6 +23,8 @@ public sealed class MainViewModel : ViewModelBase
     private readonly RenameConversationUseCase _renameConversation;
     private readonly IInferenceProviderRegistry _providerRegistry;
     private readonly IInferenceProviderConfigurationStore _providerConfigurationStore;
+    private readonly TimeSpan _responseStopLockDuration;
+    private readonly TimeSpan _retryResponseLockDuration;
     private readonly Dictionary<string, InferenceProviderConfiguration?> _providerConfigurations =
         new(StringComparer.Ordinal);
     private readonly List<ConversationListItemViewModel> _allConversations = [];
@@ -30,11 +37,15 @@ public sealed class MainViewModel : ViewModelBase
     private bool _isDeleteConfirmationVisible;
     private bool _isGeneratingResponse;
     private bool _isInitialized;
+    private bool _isRetryResponseUnlocked;
     private bool _isSendingMessage;
+    private bool _isStopResponseUnlocked;
     private bool _isProviderBusy;
+    private bool _providerReasoningEnabled;
     private ConversationId? _retryConversationId;
     private MessageId? _retryTriggeringMessageId;
     private CancellationTokenSource? _responseCancellation;
+    private CancellationTokenSource? _retryResponseUnlockCancellation;
     private CancellationTokenSource? _providerOperationCancellation;
     private ConversationListItemViewModel? _selectedConversation;
     private string? _errorMessage;
@@ -47,6 +58,8 @@ public sealed class MainViewModel : ViewModelBase
     private string _providerTopPText = string.Empty;
     private string _providerTopKText = string.Empty;
     private string _providerSeedText = string.Empty;
+    private string _providerReasoningBudgetText = DefaultReasoningBudgetTokens.ToString(
+        System.Globalization.CultureInfo.InvariantCulture);
     private string? _persistedSelectedProviderId;
     private string? _providerSelectionNotice;
     private InferenceProviderConfiguration? _savedProviderConfiguration;
@@ -64,7 +77,9 @@ public sealed class MainViewModel : ViewModelBase
         RenameConversationUseCase renameConversation,
         DeleteConversationUseCase deleteConversation,
         IInferenceProviderRegistry providerRegistry,
-        IInferenceProviderConfigurationStore providerConfigurationStore)
+        IInferenceProviderConfigurationStore providerConfigurationStore,
+        TimeSpan? responseStopLockDuration = null,
+        TimeSpan? retryResponseLockDuration = null)
     {
         ArgumentNullException.ThrowIfNull(createConversation);
         ArgumentNullException.ThrowIfNull(appendMessage);
@@ -76,6 +91,25 @@ public sealed class MainViewModel : ViewModelBase
         ArgumentNullException.ThrowIfNull(providerRegistry);
         ArgumentNullException.ThrowIfNull(providerConfigurationStore);
 
+        TimeSpan resolvedStopLockDuration = responseStopLockDuration
+            ?? _defaultResponseStopLockDuration;
+        TimeSpan resolvedRetryLockDuration = retryResponseLockDuration
+            ?? _defaultRetryResponseLockDuration;
+
+        if (resolvedStopLockDuration < TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(responseStopLockDuration),
+                "Response stop lock duration cannot be negative.");
+        }
+
+        if (resolvedRetryLockDuration < TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(retryResponseLockDuration),
+                "Retry response lock duration cannot be negative.");
+        }
+
         _createConversation = createConversation;
         _appendMessage = appendMessage;
         _streamConversationTurn = streamConversationTurn;
@@ -85,6 +119,8 @@ public sealed class MainViewModel : ViewModelBase
         _deleteConversation = deleteConversation;
         _providerRegistry = providerRegistry;
         _providerConfigurationStore = providerConfigurationStore;
+        _responseStopLockDuration = resolvedStopLockDuration;
+        _retryResponseLockDuration = resolvedRetryLockDuration;
 
         CreateConversationCommand = new AsyncRelayCommand(CreateConversationAsync);
         RefreshCommand = new AsyncRelayCommand(RefreshAsync);
@@ -305,6 +341,34 @@ public sealed class MainViewModel : ViewModelBase
         }
     }
 
+    public bool ProviderReasoningEnabled
+    {
+        get => _providerReasoningEnabled;
+        set
+        {
+            if (SetProperty(ref _providerReasoningEnabled, value))
+            {
+                OnPropertyChanged(nameof(IsProviderReasoningBudgetEditable));
+                RaiseProviderConfigurationStateChanged();
+            }
+        }
+    }
+
+    public string ProviderReasoningBudgetText
+    {
+        get => _providerReasoningBudgetText;
+        set
+        {
+            if (SetProperty(ref _providerReasoningBudgetText, value))
+            {
+                RaiseProviderConfigurationStateChanged();
+            }
+        }
+    }
+
+    public bool IsProviderReasoningBudgetEditable => IsProviderSettingsEditable
+        && ProviderReasoningEnabled;
+
     public bool IsBusy
     {
         get => _isBusy;
@@ -322,6 +386,7 @@ public sealed class MainViewModel : ViewModelBase
                 OnPropertyChanged(nameof(CanSaveProviderConfiguration));
                 OnPropertyChanged(nameof(IsProviderSettingsEditable));
                 OnPropertyChanged(nameof(IsProviderSelectionEditable));
+                OnPropertyChanged(nameof(IsProviderReasoningBudgetEditable));
                 SendMessageCommand.NotifyCanExecuteChanged();
                 RetryResponseCommand.NotifyCanExecuteChanged();
                 SaveProviderConfigurationCommand.NotifyCanExecuteChanged();
@@ -515,10 +580,12 @@ public sealed class MainViewModel : ViewModelBase
     }
 
     public bool CanStopResponse => IsGeneratingResponse
+        && _isStopResponseUnlocked
         && _responseCancellation is { IsCancellationRequested: false };
 
     public bool CanRetryResponse => !IsBusy
         && !IsGeneratingResponse
+        && _isRetryResponseUnlocked
         && _retryConversationId is ConversationId retryConversationId
         && _retryTriggeringMessageId is not null
         && SelectedConversation?.Id == retryConversationId;
@@ -739,6 +806,15 @@ public sealed class MainViewModel : ViewModelBase
         _providerTopPText = FormatOptional(configuration?.Generation.TopP);
         _providerTopKText = FormatOptional(configuration?.Generation.TopK);
         _providerSeedText = FormatOptional(configuration?.Generation.Seed);
+        _providerReasoningEnabled = configuration?.Generation.ReasoningEnabled == true;
+        _providerReasoningBudgetText = FormatOptional(
+            configuration?.Generation.ReasoningBudgetTokens);
+
+        if (_providerReasoningBudgetText.Length == 0)
+        {
+            _providerReasoningBudgetText = DefaultReasoningBudgetTokens.ToString(
+                System.Globalization.CultureInfo.InvariantCulture);
+        }
 
         OnPropertyChanged(nameof(ProviderModelReference));
         OnPropertyChanged(nameof(ProviderContextSizeText));
@@ -747,6 +823,9 @@ public sealed class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(ProviderTopPText));
         OnPropertyChanged(nameof(ProviderTopKText));
         OnPropertyChanged(nameof(ProviderSeedText));
+        OnPropertyChanged(nameof(ProviderReasoningEnabled));
+        OnPropertyChanged(nameof(ProviderReasoningBudgetText));
+        OnPropertyChanged(nameof(IsProviderReasoningBudgetEditable));
         RaiseProviderConfigurationStateChanged();
     }
 
@@ -858,6 +937,27 @@ public sealed class MainViewModel : ViewModelBase
             return false;
         }
 
+        int? reasoningBudgetTokens = null;
+
+        if (ProviderReasoningEnabled)
+        {
+            if (!TryParseOptionalInt(
+                ProviderReasoningBudgetText,
+                "Reasoning budget",
+                minimum: 1,
+                out reasoningBudgetTokens,
+                out validationError))
+            {
+                return false;
+            }
+
+            if (reasoningBudgetTokens is null)
+            {
+                validationError = "Reasoning budget is required when reasoning is enabled.";
+                return false;
+            }
+        }
+
         try
         {
             configuration = new InferenceProviderConfiguration(
@@ -869,7 +969,9 @@ public sealed class MainViewModel : ViewModelBase
                     temperature,
                     topP,
                     topK,
-                    seed));
+                    seed,
+                    ProviderReasoningEnabled,
+                    reasoningBudgetTokens));
             return true;
         }
         catch (ArgumentException exception)
@@ -984,6 +1086,7 @@ public sealed class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasProviderConfigurationValidationError));
         OnPropertyChanged(nameof(ProviderConfigurationStatusText));
         OnPropertyChanged(nameof(CanStartProvider));
+        OnPropertyChanged(nameof(IsProviderReasoningBudgetEditable));
         OnPropertyChanged(nameof(ComposerStatusText));
         SaveProviderConfigurationCommand.NotifyCanExecuteChanged();
         StartProviderCommand.NotifyCanExecuteChanged();
@@ -1356,6 +1459,7 @@ public sealed class MainViewModel : ViewModelBase
         using CancellationTokenSource cancellationSource = new();
         _responseCancellation = cancellationSource;
         IsGeneratingResponse = true;
+        LockStopResponseTemporarily(cancellationSource.Token);
         MessageViewModel streamingMessage = MessageViewModel.CreateStreamingAssistant();
         Messages.Add(streamingMessage);
         RaiseMessageStateChanged();
@@ -1369,24 +1473,45 @@ public sealed class MainViewModel : ViewModelBase
                     cancellationSource.Token)
                 .ConfigureAwait(true))
             {
-                streamingMessage.AppendContentDelta(chunk.ContentDelta);
+                if (chunk.Kind == ConversationResponseChunkKind.Reasoning)
+                {
+                    streamingMessage.AppendReasoningDelta(chunk.TextDelta);
+                }
+                else
+                {
+                    streamingMessage.AppendContentDelta(chunk.TextDelta);
+                }
             }
 
+            string[] reasoningSteps = streamingMessage.CaptureReasoningSteps();
             ClearRetryResponse();
             await ReloadConversationsAsync(conversationId).ConfigureAwait(true);
+
+            if (reasoningSteps.Length > 0)
+            {
+                Messages.LastOrDefault(message => message.IsAssistant)
+                    ?.SetReasoningSnapshot(reasoningSteps);
+            }
         }
         catch (OperationCanceledException) when (cancellationSource.IsCancellationRequested)
         {
             RemoveStreamingMessage(streamingMessage);
             ClearError();
+            ScheduleRetryResponseUnlock();
         }
         catch
         {
             RemoveStreamingMessage(streamingMessage);
+            ScheduleRetryResponseUnlock();
             throw;
         }
         finally
         {
+            if (!cancellationSource.IsCancellationRequested)
+            {
+                cancellationSource.Cancel();
+            }
+
             IsGeneratingResponse = false;
 
             if (ReferenceEquals(_responseCancellation, cancellationSource))
@@ -1394,8 +1519,92 @@ public sealed class MainViewModel : ViewModelBase
                 _responseCancellation = null;
             }
 
+            _isStopResponseUnlocked = false;
             OnPropertyChanged(nameof(CanStopResponse));
             StopResponseCommand.NotifyCanExecuteChanged();
+        }
+    }
+
+    private void LockStopResponseTemporarily(CancellationToken cancellationToken)
+    {
+        _isStopResponseUnlocked = _responseStopLockDuration == TimeSpan.Zero;
+        OnPropertyChanged(nameof(CanStopResponse));
+        StopResponseCommand.NotifyCanExecuteChanged();
+
+        if (!_isStopResponseUnlocked)
+        {
+            _ = UnlockStopResponseAfterDelayAsync(cancellationToken);
+        }
+    }
+
+    private async Task UnlockStopResponseAfterDelayAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await Task.Delay(_responseStopLockDuration, cancellationToken).ConfigureAwait(true);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+
+        if (!IsGeneratingResponse || cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+
+        _isStopResponseUnlocked = true;
+        OnPropertyChanged(nameof(CanStopResponse));
+        StopResponseCommand.NotifyCanExecuteChanged();
+    }
+
+    private void ScheduleRetryResponseUnlock()
+    {
+        _retryResponseUnlockCancellation?.Cancel();
+        _retryResponseUnlockCancellation = null;
+        _isRetryResponseUnlocked = _retryResponseLockDuration == TimeSpan.Zero;
+        OnPropertyChanged(nameof(CanRetryResponse));
+        RetryResponseCommand.NotifyCanExecuteChanged();
+
+        if (_isRetryResponseUnlocked)
+        {
+            return;
+        }
+
+        CancellationTokenSource cancellationSource = new();
+        _retryResponseUnlockCancellation = cancellationSource;
+        _ = UnlockRetryResponseAfterDelayAsync(cancellationSource);
+    }
+
+    private async Task UnlockRetryResponseAfterDelayAsync(
+        CancellationTokenSource cancellationSource)
+    {
+        try
+        {
+            await Task.Delay(
+                _retryResponseLockDuration,
+                cancellationSource.Token).ConfigureAwait(true);
+
+            if (ReferenceEquals(_retryResponseUnlockCancellation, cancellationSource)
+                && !cancellationSource.IsCancellationRequested)
+            {
+                _retryResponseUnlockCancellation = null;
+                _isRetryResponseUnlocked = true;
+                OnPropertyChanged(nameof(CanRetryResponse));
+                RetryResponseCommand.NotifyCanExecuteChanged();
+            }
+        }
+        catch (OperationCanceledException) when (cancellationSource.IsCancellationRequested)
+        {
+        }
+        finally
+        {
+            if (ReferenceEquals(_retryResponseUnlockCancellation, cancellationSource))
+            {
+                _retryResponseUnlockCancellation = null;
+            }
+
+            cancellationSource.Dispose();
         }
     }
 
@@ -1912,8 +2121,11 @@ public sealed class MainViewModel : ViewModelBase
         ConversationId conversationId,
         MessageId triggeringMessageId)
     {
+        _retryResponseUnlockCancellation?.Cancel();
+        _retryResponseUnlockCancellation = null;
         _retryConversationId = conversationId;
         _retryTriggeringMessageId = triggeringMessageId;
+        _isRetryResponseUnlocked = false;
         OnPropertyChanged(nameof(CanRetryResponse));
         OnPropertyChanged(nameof(ComposerStatusText));
         OnPropertyChanged(nameof(StatusText));
@@ -1927,8 +2139,11 @@ public sealed class MainViewModel : ViewModelBase
             return;
         }
 
+        _retryResponseUnlockCancellation?.Cancel();
+        _retryResponseUnlockCancellation = null;
         _retryConversationId = null;
         _retryTriggeringMessageId = null;
+        _isRetryResponseUnlocked = false;
         OnPropertyChanged(nameof(CanRetryResponse));
         OnPropertyChanged(nameof(ComposerStatusText));
         OnPropertyChanged(nameof(StatusText));
@@ -1950,6 +2165,7 @@ public sealed class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsProviderModelEditable));
         OnPropertyChanged(nameof(IsProviderSettingsEditable));
         OnPropertyChanged(nameof(IsProviderSelectionEditable));
+        OnPropertyChanged(nameof(IsProviderReasoningBudgetEditable));
         OnPropertyChanged(nameof(CanSaveProviderConfiguration));
         OnPropertyChanged(nameof(HasProviderConfigurationChanges));
         OnPropertyChanged(nameof(ProviderConfigurationValidationText));

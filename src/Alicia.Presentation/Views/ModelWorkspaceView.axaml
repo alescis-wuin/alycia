@@ -84,6 +84,35 @@
                 <TextBox Text="{Binding ProviderSeedText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                          PlaceholderText="Seed • provider random"
                          AutomationProperties.Name="Random seed" />
+
+                <Border Margin="0,6,0,0"
+                        Padding="12"
+                        CornerRadius="12"
+                        Background="{DynamicResource SurfaceRaisedBrush}">
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                    <StackPanel Spacing="3">
+                      <TextBlock Text="Raisonnement"
+                                 FontSize="14"
+                                 FontWeight="SemiBold"
+                                 Foreground="{DynamicResource TextPrimaryBrush}" />
+                      <TextBlock Text="Affiche la réflexion du modèle séparément de la réponse finale."
+                                 FontSize="12"
+                                 TextWrapping="Wrap"
+                                 Foreground="{DynamicResource TextSecondaryBrush}" />
+                    </StackPanel>
+                    <ToggleSwitch Grid.Column="1"
+                                  IsChecked="{Binding ProviderReasoningEnabled, Mode=TwoWay}"
+                                  VerticalAlignment="Center"
+                                  AutomationProperties.Name="Enable model reasoning"
+                                  AutomationProperties.HelpText="When disabled Alicia asks llama.cpp to skip reasoning. When enabled reasoning streams separately from the final answer." />
+                  </Grid>
+                </Border>
+
+                <TextBox Text="{Binding ProviderReasoningBudgetText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         IsEnabled="{Binding IsProviderReasoningBudgetEditable}"
+                         PlaceholderText="Reasoning budget tokens • 512 recommended"
+                         AutomationProperties.Name="Reasoning token budget"
+                         AutomationProperties.HelpText="Maximum reasoning tokens sent to llama.cpp for each response. Alicia proposes 512 when no explicit budget exists." />
               </StackPanel>
             </Expander>
 
@@ -134,7 +163,7 @@
                        TextWrapping="Wrap"
                        AutomationProperties.LiveSetting="Polite"
                        Foreground="{DynamicResource TextSecondaryBrush}" />
-            <TextBlock Text="Blank optional fields keep the provider/model native defaults; Alicia does not inject hidden generation defaults."
+            <TextBlock Text="Blank sampling fields keep provider/model defaults. Reasoning is explicit: disabled sends no reasoning request; enabled uses the visible token budget."
                        FontSize="12"
                        LineHeight="18"
                        TextWrapping="Wrap"

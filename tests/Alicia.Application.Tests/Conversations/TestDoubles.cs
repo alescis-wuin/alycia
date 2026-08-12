@@ -204,6 +204,33 @@ internal sealed class DeterministicStreamingConversationResponder : IStreamingCo
     }
 }
 
+internal sealed class ReasoningStreamingConversationResponder : IStreamingConversationResponder
+{
+    private readonly ConversationResponseChunk[] _chunks;
+
+    public ReasoningStreamingConversationResponder(
+        params ConversationResponseChunk[] chunks)
+    {
+        ArgumentNullException.ThrowIfNull(chunks);
+        _chunks = chunks;
+    }
+
+    public async IAsyncEnumerable<ConversationResponseChunk> StreamAsync(
+        ConversationResponseRequest request,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        foreach (ConversationResponseChunk chunk in _chunks)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            await Task.Yield();
+            yield return chunk;
+        }
+    }
+}
+
 internal sealed class PausingStreamingConversationResponder : IStreamingConversationResponder
 {
     private readonly TaskCompletionSource _firstChunkObserved =

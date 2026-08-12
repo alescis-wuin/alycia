@@ -201,6 +201,9 @@ public sealed class LlamaCppProviderContractTests
         Assert.False(document.RootElement.TryGetProperty("top_p", out _));
         Assert.False(document.RootElement.TryGetProperty("top_k", out _));
         Assert.False(document.RootElement.TryGetProperty("seed", out _));
+        Assert.False(document.RootElement.TryGetProperty("reasoning_effort", out _));
+        Assert.False(document.RootElement.TryGetProperty("thinking_budget_tokens", out _));
+        Assert.False(document.RootElement.TryGetProperty("reasoning_format", out _));
         JsonElement messages = document.RootElement.GetProperty("messages");
         Assert.Equal("system", messages[0].GetProperty("role").GetString());
         Assert.Equal("user", messages[1].GetProperty("role").GetString());
@@ -235,6 +238,103 @@ public sealed class LlamaCppProviderContractTests
         Assert.Equal(0.92, root.GetProperty("top_p").GetDouble());
         Assert.Equal(32, root.GetProperty("top_k").GetInt32());
         Assert.Equal(1234, root.GetProperty("seed").GetInt32());
+    }
+
+    [Fact]
+    public async Task ChatClientStreamsReasoningAndContentDeltasSeparately()
+    {
+        CapturingHttpMessageHandler handler = new(
+            HttpStatusCode.OK,
+            """
+            data: {"choices":[{"delta":{"reasoning_content":"Inspect premise"}}]}
+
+            data: {"choices":[{"delta":{"reasoning_content":" then verify","content":"Final answer"}}]}
+
+            data: [DONE]
+
+            """);
+        using HttpClient httpClient = new(handler);
+        LlamaCppChatClient client = new(httpClient);
+        List<ConversationResponseChunk> chunks = [];
+
+        await foreach (ConversationResponseChunk chunk in client
+            .StreamAsync(
+                new Uri("http://127.0.0.1:8080/"),
+                CreateRequest(),
+                new InferenceGenerationOptions(
+                    reasoningEnabled: true,
+                    reasoningBudgetTokens: 512),
+                CancellationToken.None)
+            .ConfigureAwait(true))
+        {
+            chunks.Add(chunk);
+        }
+
+        Assert.Collection(
+            chunks,
+            chunk =>
+            {
+                Assert.Equal(ConversationResponseChunkKind.Reasoning, chunk.Kind);
+                Assert.Equal("Inspect premise", chunk.TextDelta);
+            },
+            chunk =>
+            {
+                Assert.Equal(ConversationResponseChunkKind.Reasoning, chunk.Kind);
+                Assert.Equal(" then verify", chunk.TextDelta);
+            },
+            chunk =>
+            {
+                Assert.Equal(ConversationResponseChunkKind.Content, chunk.Kind);
+                Assert.Equal("Final answer", chunk.TextDelta);
+            });
+    }
+
+    [Fact]
+    public async Task ChatClientDisablesReasoningExplicitlyWhenConfiguredOff()
+    {
+        CapturingHttpMessageHandler handler = new(
+            HttpStatusCode.OK,
+            "data: [DONE]\n\n");
+        using HttpClient httpClient = new(handler);
+        LlamaCppChatClient client = new(httpClient);
+
+        await ConsumeAsync(client.StreamAsync(
+            new Uri("http://127.0.0.1:8080/"),
+            CreateRequest(),
+            new InferenceGenerationOptions(reasoningEnabled: false),
+            CancellationToken.None)).ConfigureAwait(true);
+
+        string requestBody = Assert.IsType<string>(handler.RequestBody);
+        using JsonDocument document = JsonDocument.Parse(requestBody);
+        JsonElement root = document.RootElement;
+        Assert.Equal("none", root.GetProperty("reasoning_effort").GetString());
+        Assert.Equal(0, root.GetProperty("thinking_budget_tokens").GetInt32());
+        Assert.False(root.TryGetProperty("reasoning_format", out _));
+    }
+
+    [Fact]
+    public async Task ChatClientSendsBoundedSeparatedReasoningWhenConfiguredOn()
+    {
+        CapturingHttpMessageHandler handler = new(
+            HttpStatusCode.OK,
+            "data: [DONE]\n\n");
+        using HttpClient httpClient = new(handler);
+        LlamaCppChatClient client = new(httpClient);
+
+        await ConsumeAsync(client.StreamAsync(
+            new Uri("http://127.0.0.1:8080/"),
+            CreateRequest(),
+            new InferenceGenerationOptions(
+                reasoningEnabled: true,
+                reasoningBudgetTokens: 384),
+            CancellationToken.None)).ConfigureAwait(true);
+
+        string requestBody = Assert.IsType<string>(handler.RequestBody);
+        using JsonDocument document = JsonDocument.Parse(requestBody);
+        JsonElement root = document.RootElement;
+        Assert.Equal(384, root.GetProperty("thinking_budget_tokens").GetInt32());
+        Assert.Equal("deepseek", root.GetProperty("reasoning_format").GetString());
+        Assert.False(root.TryGetProperty("reasoning_effort", out _));
     }
 
     [Fact]

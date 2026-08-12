@@ -237,6 +237,94 @@ public sealed class StreamConversationTurnUseCaseTests
     }
 
     [Fact]
+    public async Task ExecuteAsyncStreamsReasoningButPersistsOnlyFinalContent()
+    {
+        DateTimeOffset createdAt = new(2026, 8, 13, 0, 10, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        Conversation conversation = new(ConversationId.New(), "Project", createdAt, createdAt);
+        ChatMessage userMessage = new(
+            MessageId.New(),
+            MessageRole.User,
+            "Think then answer",
+            createdAt.AddMinutes(1));
+        conversation.AddMessage(userMessage);
+        await repository.SaveAsync(conversation, CancellationToken.None).ConfigureAwait(true);
+        ReasoningStreamingConversationResponder responder = new(
+            new ConversationResponseChunk(
+                ConversationResponseChunkKind.Reasoning,
+                "Inspect premise\n\nCheck result"),
+            new ConversationResponseChunk(
+                ConversationResponseChunkKind.Content,
+                "Visible answer"));
+        StreamConversationTurnUseCase useCase = new(
+            repository,
+            responder,
+            new FixedTimeProvider(createdAt.AddMinutes(2)));
+
+        IReadOnlyList<ConversationResponseChunk> chunks = await CollectAsync(
+            useCase.ExecuteAsync(
+                conversation.Id,
+                userMessage.Id,
+                CancellationToken.None)).ConfigureAwait(true);
+
+        Assert.Collection(
+            chunks,
+            chunk =>
+            {
+                Assert.Equal(ConversationResponseChunkKind.Reasoning, chunk.Kind);
+                Assert.Equal("Inspect premise\n\nCheck result", chunk.TextDelta);
+            },
+            chunk =>
+            {
+                Assert.Equal(ConversationResponseChunkKind.Content, chunk.Kind);
+                Assert.Equal("Visible answer", chunk.TextDelta);
+            });
+        Conversation persisted = Assert.IsType<Conversation>(
+            await repository.FindAsync(conversation.Id, CancellationToken.None).ConfigureAwait(true));
+        Assert.Collection(
+            persisted.Messages,
+            message => Assert.Equal(userMessage.Id, message.Id),
+            message =>
+            {
+                Assert.Equal(MessageRole.Assistant, message.Role);
+                Assert.Equal("Visible answer", message.Content);
+                Assert.DoesNotContain("Inspect premise", message.Content, StringComparison.Ordinal);
+            });
+    }
+
+    [Fact]
+    public async Task ExecuteAsyncRejectsReasoningOnlyCompletedStream()
+    {
+        DateTimeOffset createdAt = new(2026, 8, 13, 0, 20, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        Conversation conversation = new(ConversationId.New(), "Project", createdAt, createdAt);
+        ChatMessage userMessage = new(
+            MessageId.New(),
+            MessageRole.User,
+            "Reasoning only",
+            createdAt.AddMinutes(1));
+        conversation.AddMessage(userMessage);
+        await repository.SaveAsync(conversation, CancellationToken.None).ConfigureAwait(true);
+        StreamConversationTurnUseCase useCase = new(
+            repository,
+            new ReasoningStreamingConversationResponder(
+                new ConversationResponseChunk(
+                    ConversationResponseChunkKind.Reasoning,
+                    "Private reasoning without a final answer")),
+            new FixedTimeProvider(createdAt.AddMinutes(2)));
+
+        InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => CollectAsync(useCase.ExecuteAsync(
+                conversation.Id,
+                userMessage.Id,
+                CancellationToken.None))).ConfigureAwait(true);
+
+        Assert.Contains("no response content", exception.Message, StringComparison.Ordinal);
+        Assert.Single(conversation.Messages);
+        Assert.Equal(1, repository.SaveCount);
+    }
+
+    [Fact]
     public async Task ExecuteAsyncRejectsBlankCompletedStream()
     {
         DateTimeOffset createdAt = new(2026, 8, 11, 18, 50, 0, TimeSpan.Zero);

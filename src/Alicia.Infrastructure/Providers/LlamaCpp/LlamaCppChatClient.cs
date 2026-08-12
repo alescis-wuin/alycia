@@ -45,7 +45,19 @@ internal sealed class LlamaCppChatClient
                 generationOptions.Temperature,
                 generationOptions.TopP,
                 generationOptions.TopK,
-                generationOptions.Seed),
+                generationOptions.Seed,
+                ReasoningEffort: generationOptions.ReasoningEnabled == false
+                    ? "none"
+                    : null,
+                ThinkingBudgetTokens: generationOptions.ReasoningEnabled switch
+                {
+                    false => 0,
+                    true => generationOptions.ReasoningBudgetTokens,
+                    _ => null,
+                },
+                ReasoningFormat: generationOptions.ReasoningEnabled == true
+                    ? "deepseek"
+                    : null),
             _jsonOptions);
         using HttpRequestMessage httpRequest = new(HttpMethod.Post, requestUri)
         {
@@ -99,16 +111,14 @@ internal sealed class LlamaCppChatClient
                 continue;
             }
 
-            string? contentDelta = ParseContentDelta(data);
-
-            if (!string.IsNullOrEmpty(contentDelta))
+            foreach (ConversationResponseChunk chunk in ParseResponseDeltas(data))
             {
-                yield return new ConversationResponseChunk(contentDelta);
+                yield return chunk;
             }
         }
     }
 
-    internal static string? ParseContentDelta(string json)
+    internal static ConversationResponseChunk[] ParseResponseDeltas(string json)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(json);
 
@@ -133,19 +143,49 @@ internal sealed class LlamaCppChatClient
                 || choices.ValueKind != JsonValueKind.Array
                 || choices.GetArrayLength() == 0)
             {
-                return null;
+                return [];
             }
 
             JsonElement firstChoice = choices[0];
 
             if (!firstChoice.TryGetProperty("delta", out JsonElement delta)
-                || !delta.TryGetProperty("content", out JsonElement content)
-                || content.ValueKind != JsonValueKind.String)
+                || delta.ValueKind != JsonValueKind.Object)
             {
-                return null;
+                return [];
             }
 
-            return content.GetString();
+            List<ConversationResponseChunk> chunks = [];
+            AddStringDelta(
+                delta,
+                "reasoning_content",
+                ConversationResponseChunkKind.Reasoning,
+                chunks);
+            AddStringDelta(
+                delta,
+                "content",
+                ConversationResponseChunkKind.Content,
+                chunks);
+            return [.. chunks];
+        }
+    }
+
+    private static void AddStringDelta(
+        JsonElement delta,
+        string propertyName,
+        ConversationResponseChunkKind kind,
+        List<ConversationResponseChunk> chunks)
+    {
+        if (!delta.TryGetProperty(propertyName, out JsonElement value)
+            || value.ValueKind != JsonValueKind.String)
+        {
+            return;
+        }
+
+        string? text = value.GetString();
+
+        if (!string.IsNullOrEmpty(text))
+        {
+            chunks.Add(new ConversationResponseChunk(kind, text));
         }
     }
 
@@ -188,7 +228,10 @@ internal sealed class LlamaCppChatClient
         double? Temperature,
         [property: JsonPropertyName("top_p")] double? TopP,
         [property: JsonPropertyName("top_k")] int? TopK,
-        int? Seed);
+        int? Seed,
+        [property: JsonPropertyName("reasoning_effort")] string? ReasoningEffort,
+        [property: JsonPropertyName("thinking_budget_tokens")] int? ThinkingBudgetTokens,
+        [property: JsonPropertyName("reasoning_format")] string? ReasoningFormat);
 
     private sealed record ChatCompletionMessage(
         string Role,

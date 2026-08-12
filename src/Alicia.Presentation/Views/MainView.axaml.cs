@@ -11,14 +11,29 @@ namespace Alicia.Presentation.Views;
 
 public partial class MainView : UserControl
 {
+    private static readonly string[] _thinkingIndicatorFrames =
+    [
+        "Alicia réfléchit.",
+        "Alicia réfléchit..",
+        "Alicia réfléchit...",
+    ];
+
     private bool _initialized;
     private bool _messageScrollPending;
     private MainViewModel? _subscribedViewModel;
     private readonly HashSet<MessageViewModel> _subscribedMessages = [];
+    private readonly DispatcherTimer _thinkingIndicatorTimer;
+    private int _thinkingIndicatorFrameIndex;
 
     public MainView()
     {
         InitializeComponent();
+
+        _thinkingIndicatorTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(420),
+        };
+        _thinkingIndicatorTimer.Tick += OnThinkingIndicatorTick;
 
         MessageComposer.AddHandler(
             InputElement.KeyDownEvent,
@@ -45,6 +60,7 @@ public partial class MainView : UserControl
             await viewModel.InitializeAsync().ConfigureAwait(true);
         }
 
+        UpdateThinkingIndicatorAnimation();
         ScrollMessagesToEnd();
     }
 
@@ -52,6 +68,7 @@ public partial class MainView : UserControl
     {
         _ = sender;
         _ = eventArgs;
+        _thinkingIndicatorTimer.Stop();
         UnsubscribeFromMessages();
     }
 
@@ -169,6 +186,7 @@ public partial class MainView : UserControl
         _ = sender;
         _ = eventArgs;
         SynchronizeMessageSubscriptions();
+        UpdateThinkingIndicatorAnimation();
         ScrollMessagesToEnd();
     }
 
@@ -177,11 +195,23 @@ public partial class MainView : UserControl
         _ = sender;
 
         if (string.Equals(
-            eventArgs.PropertyName,
-            nameof(MessageViewModel.Content),
-            StringComparison.Ordinal))
+                eventArgs.PropertyName,
+                nameof(MessageViewModel.Content),
+                StringComparison.Ordinal)
+            || string.Equals(
+                eventArgs.PropertyName,
+                nameof(MessageViewModel.ReasoningRevision),
+                StringComparison.Ordinal))
         {
             ScrollMessagesToEnd();
+        }
+
+        if (string.Equals(
+            eventArgs.PropertyName,
+            nameof(MessageViewModel.IsWaitingForFirstDelta),
+            StringComparison.Ordinal))
+        {
+            UpdateThinkingIndicatorAnimation();
         }
     }
 
@@ -204,6 +234,51 @@ public partial class MainView : UserControl
             message.PropertyChanged += OnMessagePropertyChanged;
             _subscribedMessages.Add(message);
         }
+    }
+
+    private void OnThinkingIndicatorTick(object? sender, EventArgs eventArgs)
+    {
+        _ = sender;
+        _ = eventArgs;
+
+        MessageViewModel? waitingMessage = GetWaitingStreamingMessage();
+
+        if (waitingMessage is null)
+        {
+            UpdateThinkingIndicatorAnimation();
+            return;
+        }
+
+        _thinkingIndicatorFrameIndex = (_thinkingIndicatorFrameIndex + 1)
+            % _thinkingIndicatorFrames.Length;
+        waitingMessage.SetThinkingIndicatorText(
+            _thinkingIndicatorFrames[_thinkingIndicatorFrameIndex]);
+    }
+
+    private void UpdateThinkingIndicatorAnimation()
+    {
+        MessageViewModel? waitingMessage = GetWaitingStreamingMessage();
+
+        if (waitingMessage is null)
+        {
+            _thinkingIndicatorTimer.Stop();
+            _thinkingIndicatorFrameIndex = 0;
+            return;
+        }
+
+        waitingMessage.SetThinkingIndicatorText(
+            _thinkingIndicatorFrames[_thinkingIndicatorFrameIndex]);
+
+        if (!_thinkingIndicatorTimer.IsEnabled)
+        {
+            _thinkingIndicatorTimer.Start();
+        }
+    }
+
+    private MessageViewModel? GetWaitingStreamingMessage()
+    {
+        return _subscribedViewModel?.Messages
+            .LastOrDefault(message => message.IsStreaming && message.IsWaitingForFirstDelta);
     }
 
     private void ScrollMessagesToEnd()

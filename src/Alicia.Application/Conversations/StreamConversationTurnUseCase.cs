@@ -71,7 +71,11 @@ public sealed class StreamConversationTurnUseCase
                     "Streaming conversation responder returned an invalid response chunk.");
             }
 
-            responseContent.Append(chunk.ContentDelta);
+            if (chunk.Kind == ConversationResponseChunkKind.Content)
+            {
+                responseContent.Append(chunk.TextDelta);
+            }
+
             yield return chunk;
         }
 

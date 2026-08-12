@@ -278,6 +278,25 @@
       <Setter Property="BorderThickness" Value="0" />
     </Style>
 
+    <Style Selector="TextBlock.thinking-indicator">
+      <Setter Property="FontStyle" Value="Italic" />
+      <Setter Property="Opacity" Value="0.78" />
+    </Style>
+
+    <Style Selector="Expander.reasoning-expander">
+      <Setter Property="Background" Value="{DynamicResource AppBackgroundBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+      <Setter Property="Padding" Value="10,8" />
+    </Style>
+
+    <Style Selector="Border.reasoning-step">
+      <Setter Property="Padding" Value="2,4,2,8" />
+      <Setter Property="Margin" Value="0,0,0,6" />
+      <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+      <Setter Property="BorderThickness" Value="0,0,0,1" />
+      <Setter Property="Opacity" Value="0.82" />
+    </Style>
+
     <Style Selector="Border.message-bubble">
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderThickness" Value="1" />

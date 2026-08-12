@@ -18,7 +18,11 @@ public sealed class ConversationResponseContractTests
 
         ConversationResponseChunk chunk = new(" ");
 
+        Assert.Equal(ConversationResponseChunkKind.Content, chunk.Kind);
+        Assert.Equal(" ", chunk.TextDelta);
         Assert.Equal(" ", chunk.ContentDelta);
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new ConversationResponseChunk((ConversationResponseChunkKind)999, "invalid"));
     }
 
     [Fact]
