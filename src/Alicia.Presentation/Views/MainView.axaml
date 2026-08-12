@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:controls="using:Alicia.Presentation.Controls"
+             xmlns:providers="using:Alicia.Application.Providers"
              xmlns:vm="using:Alicia.Presentation.ViewModels"
              x:Class="Alicia.Presentation.Views.MainView"
              x:DataType="vm:MainViewModel"
@@ -268,7 +269,7 @@
         <Border Grid.Row="7"
                 Classes="surface"
                 Padding="12"
-                AutomationProperties.Name="Local AI provider"
+                AutomationProperties.Name="Local AI provider settings"
                 AutomationProperties.AccessibilityView="Control">
           <StackPanel Spacing="8">
             <Grid ColumnDefinitions="*,Auto">
@@ -284,6 +285,23 @@
               </Border>
             </Grid>
 
+            <ComboBox ItemsSource="{Binding ProviderOptions}"
+                      SelectedItem="{Binding SelectedProvider, Mode=TwoWay}"
+                      IsEnabled="{Binding IsProviderSelectionEditable}"
+                      AutomationProperties.Name="Inference provider"
+                      AutomationProperties.HelpText="Choose the inference provider explicitly. Alicia does not switch providers automatically.">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="providers:InferenceProviderDescriptor">
+                  <TextBlock Text="{Binding Name}" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+
+            <TextBlock Text="{Binding ProviderFallbackText}"
+                       FontSize="10"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource TextSecondaryBrush}" />
+
             <TextBlock Text="{Binding ProviderVersionText}"
                        FontSize="11"
                        Foreground="{DynamicResource TextSecondaryBrush}" />
@@ -296,7 +314,7 @@
 
             <StackPanel Spacing="4"
                         IsVisible="{Binding IsProviderProgressVisible}"
-                        AutomationProperties.Name="llama.cpp installation progress"
+                        AutomationProperties.Name="Provider installation progress"
                         AutomationProperties.AccessibilityView="Control">
               <TextBlock Text="{Binding ProviderProgressText}"
                          FontSize="12"
@@ -318,9 +336,60 @@
             <TextBox Text="{Binding ProviderModelReference, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                      PlaceholderText="owner/model-GGUF[:quant]"
                      IsEnabled="{Binding IsProviderModelEditable}"
-                     AutomationProperties.Name="Hugging Face model repository"
-                     AutomationProperties.HelpText="Enter a llama.cpp-compatible Hugging Face GGUF repository. Optional quantization can follow a colon, for example Q4_K_M."
+                     AutomationProperties.Name="Model reference"
+                     AutomationProperties.HelpText="For llama.cpp, enter a compatible Hugging Face GGUF repository. Optional quantization can follow a colon."
                      ToolTip.Tip="Model passed directly to llama-server with -hf" />
+
+            <Expander Header="Model &amp; generation settings"
+                      IsEnabled="{Binding IsProviderSettingsEditable}"
+                      AutomationProperties.Name="Model and generation settings">
+              <StackPanel Spacing="7" Margin="0,8,0,0">
+                <TextBox Text="{Binding ProviderContextSizeText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         PlaceholderText="Context size • model default"
+                         AutomationProperties.Name="Context size"
+                         AutomationProperties.HelpText="Optional prompt context size. Leave blank to use the model or provider default." />
+                <TextBox Text="{Binding ProviderMaxOutputTokensText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         PlaceholderText="Max output tokens • provider default"
+                         AutomationProperties.Name="Maximum output tokens"
+                         AutomationProperties.HelpText="Optional maximum generated tokens. Leave blank to use the provider default." />
+                <TextBox Text="{Binding ProviderTemperatureText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         PlaceholderText="Temperature • provider default"
+                         AutomationProperties.Name="Temperature"
+                         AutomationProperties.HelpText="Optional sampling temperature greater than or equal to zero. Leave blank to use the provider default." />
+                <TextBox Text="{Binding ProviderTopPText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         PlaceholderText="Top-p • provider default"
+                         AutomationProperties.Name="Top-p"
+                         AutomationProperties.HelpText="Optional top-p from zero to one. Leave blank to use the provider default." />
+                <TextBox Text="{Binding ProviderTopKText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         PlaceholderText="Top-k • provider default"
+                         AutomationProperties.Name="Top-k"
+                         AutomationProperties.HelpText="Optional top-k greater than or equal to zero. Leave blank to use the provider default." />
+                <TextBox Text="{Binding ProviderSeedText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         PlaceholderText="Seed • provider random"
+                         AutomationProperties.Name="Random seed"
+                         AutomationProperties.HelpText="Optional non-negative deterministic seed. Leave blank for provider-random behavior." />
+              </StackPanel>
+            </Expander>
+
+            <TextBlock Text="{Binding ProviderConfigurationValidationText}"
+                       IsVisible="{Binding HasProviderConfigurationValidationError}"
+                       FontSize="11"
+                       TextWrapping="Wrap"
+                       AutomationProperties.LiveSetting="Polite"
+                       Foreground="{DynamicResource DangerBrush}" />
+
+            <TextBlock Text="{Binding ProviderConfigurationStatusText}"
+                       FontSize="11"
+                       TextWrapping="Wrap"
+                       AutomationProperties.LiveSetting="Polite"
+                       Foreground="{DynamicResource TextSecondaryBrush}" />
+
+            <Button Classes="secondary-action"
+                    Command="{Binding SaveProviderConfigurationCommand}"
+                    IsEnabled="{Binding CanSaveProviderConfiguration}"
+                    Content="Save settings"
+                    AutomationProperties.Name="Save inference provider settings"
+                    AutomationProperties.HelpText="Validate and save the selected provider, model, and optional generation settings." />
 
             <Grid ColumnDefinitions="*,8,*,8,*">
               <Button Grid.Column="0"
@@ -328,34 +397,33 @@
                       Command="{Binding DetectProviderCommand}"
                       IsEnabled="{Binding CanDetectProvider}"
                       Content="Detect"
-                      AutomationProperties.Name="Detect llama.cpp CUDA"
-                      ToolTip.Tip="Detect a managed or system llama-server with an active CUDA backend" />
+                      AutomationProperties.Name="Detect selected provider"
+                      ToolTip.Tip="Detect the selected provider runtime" />
               <Button Grid.Column="2"
                       Classes="secondary-action"
                       Command="{Binding InstallProviderCommand}"
                       IsEnabled="{Binding CanInstallProvider}"
                       Content="Install"
-                      AutomationProperties.Name="Install llama.cpp CUDA"
-                      AutomationProperties.HelpText="Download the latest official llama.cpp source release and compile llama-server locally with CUDA."
-                      ToolTip.Tip="Install a managed CUDA build without changing system packages" />
+                      AutomationProperties.Name="Install selected provider"
+                      AutomationProperties.HelpText="For llama.cpp CUDA, download the latest official source release and compile llama-server locally."
+                      ToolTip.Tip="Install the selected managed provider without changing system packages" />
               <Button Grid.Column="4"
                       Classes="primary-action"
                       Command="{Binding StartProviderCommand}"
                       IsEnabled="{Binding CanStartProvider}"
                       Content="Start"
-                      AutomationProperties.Name="Start llama.cpp model"
-                      AutomationProperties.HelpText="Launch llama-server using the entered Hugging Face repository through the -hf option."
-                      ToolTip.Tip="Start the selected Hugging Face model" />
+                      AutomationProperties.Name="Start selected provider"
+                      AutomationProperties.HelpText="Start the explicitly selected provider using the saved model configuration."
+                      ToolTip.Tip="Save settings, then start the selected model" />
             </Grid>
 
             <Button Classes="secondary-action"
                     Command="{Binding StopProviderCommand}"
                     IsEnabled="{Binding CanStopProvider}"
                     Content="Stop local AI"
-                    AutomationProperties.Name="Stop llama.cpp server"
-                    AutomationProperties.HelpText="Stop the llama-server process managed by Alicia."
-                    ToolTip.Tip="Stop the managed llama-server process" />
-
+                    AutomationProperties.Name="Stop selected provider"
+                    AutomationProperties.HelpText="Stop the currently running local inference provider."
+                    ToolTip.Tip="Stop the local inference process" />
           </StackPanel>
         </Border>
 

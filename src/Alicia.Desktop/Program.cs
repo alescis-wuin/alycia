@@ -1,5 +1,7 @@
 using Alicia.Application.Conversations;
+using Alicia.Application.Providers;
 using Alicia.Infrastructure.Conversations;
+using Alicia.Infrastructure.Providers;
 using Alicia.Infrastructure.Providers.LlamaCpp;
 using Alicia.Presentation;
 using Alicia.Presentation.ViewModels;
@@ -10,6 +12,7 @@ namespace Alicia.Desktop;
 internal static class Program
 {
     private static LlamaCppProviderRuntime? _llamaCppRuntime;
+    private static JsonInferenceProviderConfigurationStore? _providerConfigurationStore;
 
     [STAThread]
     public static void Main(string[] args)
@@ -26,6 +29,8 @@ internal static class Program
             {
                 _llamaCppRuntime.DisposeAsync().AsTask().GetAwaiter().GetResult();
             }
+
+            _providerConfigurationStore?.Dispose();
         }
     }
 
@@ -43,22 +48,42 @@ internal static class Program
     private static MainViewModel CreateMainViewModel()
     {
         string localApplicationData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        string storageDirectory = Path.Combine(localApplicationData, "Alicia", "conversations");
-        string providerDirectory = Path.Combine(
-            localApplicationData,
-            "Alicia",
-            "providers",
-            "llama.cpp");
+        string applicationDirectory = Path.Combine(localApplicationData, "Alicia");
+        string storageDirectory = Path.Combine(applicationDirectory, "conversations");
+        string providersDirectory = Path.Combine(applicationDirectory, "providers");
+        string llamaCppDirectory = Path.Combine(providersDirectory, "llama.cpp");
+        string providerConfigurationPath = Path.Combine(
+            providersDirectory,
+            "configuration.json");
+        string legacyLlamaCppSettingsPath = Path.Combine(
+            llamaCppDirectory,
+            "settings.json");
         TimeProvider timeProvider = TimeProvider.System;
         LocalConversationRuntime runtime = LocalConversationRuntime.Create(
             storageDirectory,
             timeProvider);
         _llamaCppRuntime ??= new LlamaCppProviderRuntime(
-            providerDirectory,
+            llamaCppDirectory,
             timeProvider);
+
+        InferenceProviderDescriptor llamaCppDescriptor = new(
+            LlamaCppProviderRuntime.ProviderId,
+            LlamaCppProviderRuntime.ProviderName);
+        InferenceProviderRegistry providerRegistry = new(
+        [
+            new InferenceProviderRegistration(
+                llamaCppDescriptor,
+                _llamaCppRuntime,
+                _llamaCppRuntime),
+        ]);
+        JsonInferenceProviderConfigurationStore providerConfigurationStore =
+            _providerConfigurationStore ??= new JsonInferenceProviderConfigurationStore(
+                providerConfigurationPath,
+                LlamaCppProviderRuntime.ProviderId,
+                legacyLlamaCppSettingsPath);
         StreamConversationTurnUseCase streamConversationTurn = new(
             runtime.Repository,
-            _llamaCppRuntime,
+            providerRegistry,
             timeProvider);
 
         return new MainViewModel(
@@ -69,6 +94,7 @@ internal static class Program
             runtime.ListConversations,
             runtime.RenameConversation,
             runtime.DeleteConversation,
-            _llamaCppRuntime);
+            providerRegistry,
+            providerConfigurationStore);
     }
 }

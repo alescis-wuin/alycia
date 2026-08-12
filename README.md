@@ -4,7 +4,7 @@ Alicia is a cross-platform AI chat application built with C#, .NET, and Avalonia
 
 ## Status
 
-The repository contains the engineering foundation, a provider-neutral conversation core, local JSON conversation persistence, tested conversation lifecycle operations, a functional Avalonia conversation workspace, provider-neutral response generation/streaming, and a first real local inference adapter for llama.cpp CUDA. The desktop UI can detect or install a managed Linux x64 CUDA build, launch a Hugging Face GGUF model through `llama-server -hf`, stream the response incrementally, persist only the completed Assistant message, stop an active stream, and retry the same unanswered User message without duplicating it. Tool calling, retrieval, attachments, multimodality, and additional platform installers/hosts are intentionally deferred to later atomic work packages.
+The repository contains the engineering foundation, a provider-neutral conversation core, local JSON conversation persistence, tested conversation lifecycle operations, a functional Avalonia conversation workspace, provider-neutral response generation/streaming, a real local llama.cpp CUDA adapter, and explicit provider/model configuration. The desktop UI can detect or install a managed Linux x64 CUDA build, select a registered provider, save a Hugging Face GGUF model plus optional runtime/generation overrides, launch `llama-server -hf`, stream the response incrementally, persist only the completed Assistant message, stop an active stream, and retry the same unanswered User message without duplicating it. Tool calling, retrieval, attachments, multimodality, and additional platform installers/hosts are intentionally deferred to later atomic work packages.
 
 ## Current platform target
 
@@ -62,6 +62,10 @@ The current Avalonia presentation provides:
 - an app-managed `llama.cpp CUDA` provider that is detected at startup and can be installed from the sidebar without manually cloning or building llama.cpp;
 - Linux x64 source compilation of the latest official llama.cpp release with `GGML_CUDA=ON`, `LLAMA_BUILD_TOOLS=ON`, `LLAMA_BUILD_SERVER=ON`, HTTPS support, and a static project build;
 - a Hugging Face repository field using `owner/model-GGUF[:quant]`, passed directly to `llama-server` through `-hf`;
+- an explicit provider registry and versioned global provider configuration stored separately from conversation history;
+- provider selection with no automatic fallback: unsaved or unavailable selections are never silently replaced;
+- optional context size, max-output-tokens, temperature, top-p, top-k, and seed controls whose blank values deliberately preserve provider/model defaults;
+- read-only migration of the Lot 08 llama.cpp `settings.json` model reference into the new configuration workflow;
 - automatic GPU-layer offload, loopback-only server binding, `/health` readiness checks, and OpenAI-compatible SSE streaming;
 - an Alicia-managed Hugging Face cache (`LLAMA_CACHE`) plus inherited `HF_TOKEN` support without storing the token in conversation or provider settings;
 - transient streamed Assistant projection in the workspace, with no partial response written to conversation history;
@@ -77,7 +81,7 @@ The current Avalonia presentation provides:
 - navigation/main accessibility landmarks, heading metadata, visible keyboard focus, and large control targets;
 - a high-contrast dark visual system with distinct selected, editing, success, and destructive states.
 
-Local user-message composition and streamed Assistant-response persistence are wired end to end. Partial deltas exist only in Presentation; Application concatenates the completed stream, revalidates conversation history, and persists one immutable Assistant message. `LlamaCppProviderRuntime` now supplies those deltas through a local `llama-server` process while the existing Application contracts remain provider-neutral. The automatic managed compiler path is intentionally limited to Linux x64 + NVIDIA CUDA for this lot; compatible externally installed CUDA `llama-server` executables can also be detected from `PATH`.
+Local user-message composition and streamed Assistant-response persistence are wired end to end. Partial deltas exist only in Presentation; Application concatenates the completed stream, revalidates conversation history, and persists one immutable Assistant message. `InferenceProviderRegistry` routes those deltas only through the explicitly selected provider, while `LlamaCppProviderRuntime` supplies them through a local `llama-server` process and the existing Application contracts remain provider-neutral. The automatic managed compiler path is intentionally limited to Linux x64 + NVIDIA CUDA for this lot; compatible externally installed CUDA `llama-server` executables can also be detected from `PATH`.
 
 ## Documentation
 
@@ -92,6 +96,7 @@ Local user-message composition and streamed Assistant-response persistence are w
 - `docs/decisions/0008-non-streaming-conversation-turn.md`
 - `docs/decisions/0009-provider-neutral-response-streaming.md`
 - `docs/decisions/0010-managed-llama-cpp-cuda-provider.md`
+- `docs/decisions/0011-provider-model-configuration.md`
 - `docs/development/project-profile.md`
 - `docs/local-dotnet-toolchain.md`
 - `docs/patch-packages.md`

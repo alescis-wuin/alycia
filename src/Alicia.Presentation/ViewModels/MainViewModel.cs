@@ -15,7 +15,10 @@ public sealed class MainViewModel : ViewModelBase
     private readonly ListConversationsUseCase _listConversations;
     private readonly LoadConversationUseCase _loadConversation;
     private readonly RenameConversationUseCase _renameConversation;
-    private readonly IInferenceProviderRuntime _inferenceProvider;
+    private readonly IInferenceProviderRegistry _providerRegistry;
+    private readonly IInferenceProviderConfigurationStore _providerConfigurationStore;
+    private readonly Dictionary<string, InferenceProviderConfiguration?> _providerConfigurations =
+        new(StringComparer.Ordinal);
 
     private bool _isBusy;
     private bool _isDeleteConfirmationVisible;
@@ -31,6 +34,17 @@ public sealed class MainViewModel : ViewModelBase
     private string? _errorMessage;
     private string _messageDraft = string.Empty;
     private string _providerModelReference = string.Empty;
+    private string _providerContextSizeText = string.Empty;
+    private string _providerMaxOutputTokensText = string.Empty;
+    private string _providerTemperatureText = string.Empty;
+    private string _providerTopPText = string.Empty;
+    private string _providerTopKText = string.Empty;
+    private string _providerSeedText = string.Empty;
+    private string? _persistedSelectedProviderId;
+    private string? _providerSelectionNotice;
+    private InferenceProviderConfiguration? _savedProviderConfiguration;
+    private InferenceProviderDescriptor? _selectedProvider;
+    private IInferenceProviderRuntime? _selectedProviderRuntime;
     private InferenceProviderProgress? _providerProgress;
     private InferenceProviderSnapshot? _providerSnapshot;
 
@@ -42,7 +56,8 @@ public sealed class MainViewModel : ViewModelBase
         ListConversationsUseCase listConversations,
         RenameConversationUseCase renameConversation,
         DeleteConversationUseCase deleteConversation,
-        IInferenceProviderRuntime inferenceProvider)
+        IInferenceProviderRegistry providerRegistry,
+        IInferenceProviderConfigurationStore providerConfigurationStore)
     {
         ArgumentNullException.ThrowIfNull(createConversation);
         ArgumentNullException.ThrowIfNull(appendMessage);
@@ -51,7 +66,8 @@ public sealed class MainViewModel : ViewModelBase
         ArgumentNullException.ThrowIfNull(listConversations);
         ArgumentNullException.ThrowIfNull(renameConversation);
         ArgumentNullException.ThrowIfNull(deleteConversation);
-        ArgumentNullException.ThrowIfNull(inferenceProvider);
+        ArgumentNullException.ThrowIfNull(providerRegistry);
+        ArgumentNullException.ThrowIfNull(providerConfigurationStore);
 
         _createConversation = createConversation;
         _appendMessage = appendMessage;
@@ -60,7 +76,8 @@ public sealed class MainViewModel : ViewModelBase
         _listConversations = listConversations;
         _renameConversation = renameConversation;
         _deleteConversation = deleteConversation;
-        _inferenceProvider = inferenceProvider;
+        _providerRegistry = providerRegistry;
+        _providerConfigurationStore = providerConfigurationStore;
 
         CreateConversationCommand = new AsyncRelayCommand(CreateConversationAsync);
         RefreshCommand = new AsyncRelayCommand(RefreshAsync);
@@ -77,6 +94,9 @@ public sealed class MainViewModel : ViewModelBase
         InstallProviderCommand = new AsyncRelayCommand(InstallProviderAsync, () => CanInstallProvider);
         StartProviderCommand = new AsyncRelayCommand(StartProviderAsync, () => CanStartProvider);
         StopProviderCommand = new AsyncRelayCommand(StopProviderAsync, () => CanStopProvider);
+        SaveProviderConfigurationCommand = new AsyncRelayCommand(
+            SaveProviderConfigurationAsync,
+            () => CanSaveProviderConfiguration);
     }
 
     public string ApplicationName { get; } = "Alicia";
@@ -114,6 +134,8 @@ public sealed class MainViewModel : ViewModelBase
     public IAsyncRelayCommand StartProviderCommand { get; }
 
     public IAsyncRelayCommand StopProviderCommand { get; }
+
+    public IAsyncRelayCommand SaveProviderConfigurationCommand { get; }
 
     public ConversationListItemViewModel? SelectedConversation
     {
@@ -155,6 +177,27 @@ public sealed class MainViewModel : ViewModelBase
         }
     }
 
+    public IReadOnlyList<InferenceProviderDescriptor> ProviderOptions => _providerRegistry.Providers;
+
+    public InferenceProviderDescriptor? SelectedProvider
+    {
+        get => _selectedProvider;
+        set
+        {
+            if (_selectedProvider is not null
+                && !IsProviderSelectionEditable
+                && !Equals(_selectedProvider, value))
+            {
+                return;
+            }
+
+            if (SetProperty(ref _selectedProvider, value))
+            {
+                ApplySelectedProvider(value);
+            }
+        }
+    }
+
     public string ProviderModelReference
     {
         get => _providerModelReference;
@@ -162,8 +205,79 @@ public sealed class MainViewModel : ViewModelBase
         {
             if (SetProperty(ref _providerModelReference, value))
             {
-                OnPropertyChanged(nameof(CanStartProvider));
-                StartProviderCommand.NotifyCanExecuteChanged();
+                RaiseProviderConfigurationStateChanged();
+            }
+        }
+    }
+
+    public string ProviderContextSizeText
+    {
+        get => _providerContextSizeText;
+        set
+        {
+            if (SetProperty(ref _providerContextSizeText, value))
+            {
+                RaiseProviderConfigurationStateChanged();
+            }
+        }
+    }
+
+    public string ProviderMaxOutputTokensText
+    {
+        get => _providerMaxOutputTokensText;
+        set
+        {
+            if (SetProperty(ref _providerMaxOutputTokensText, value))
+            {
+                RaiseProviderConfigurationStateChanged();
+            }
+        }
+    }
+
+    public string ProviderTemperatureText
+    {
+        get => _providerTemperatureText;
+        set
+        {
+            if (SetProperty(ref _providerTemperatureText, value))
+            {
+                RaiseProviderConfigurationStateChanged();
+            }
+        }
+    }
+
+    public string ProviderTopPText
+    {
+        get => _providerTopPText;
+        set
+        {
+            if (SetProperty(ref _providerTopPText, value))
+            {
+                RaiseProviderConfigurationStateChanged();
+            }
+        }
+    }
+
+    public string ProviderTopKText
+    {
+        get => _providerTopKText;
+        set
+        {
+            if (SetProperty(ref _providerTopKText, value))
+            {
+                RaiseProviderConfigurationStateChanged();
+            }
+        }
+    }
+
+    public string ProviderSeedText
+    {
+        get => _providerSeedText;
+        set
+        {
+            if (SetProperty(ref _providerSeedText, value))
+            {
+                RaiseProviderConfigurationStateChanged();
             }
         }
     }
@@ -182,8 +296,12 @@ public sealed class MainViewModel : ViewModelBase
                 OnPropertyChanged(nameof(ComposerStatusText));
                 OnPropertyChanged(nameof(StatusText));
                 OnPropertyChanged(nameof(CanRetryResponse));
+                OnPropertyChanged(nameof(CanSaveProviderConfiguration));
+                OnPropertyChanged(nameof(IsProviderSettingsEditable));
+                OnPropertyChanged(nameof(IsProviderSelectionEditable));
                 SendMessageCommand.NotifyCanExecuteChanged();
                 RetryResponseCommand.NotifyCanExecuteChanged();
+                SaveProviderConfigurationCommand.NotifyCanExecuteChanged();
 
                 foreach (ConversationListItemViewModel item in Conversations)
                 {
@@ -217,25 +335,91 @@ public sealed class MainViewModel : ViewModelBase
 
     public bool IsProviderRunning => _providerSnapshot?.State == InferenceProviderState.Running;
 
-    public bool CanDetectProvider => !IsProviderBusy && !IsGeneratingResponse;
+    public bool IsProviderSettingsEditable => !IsProviderBusy
+        && !IsProviderRunning
+        && !IsGeneratingResponse;
 
-    public bool CanInstallProvider => !IsProviderBusy
+    public bool IsProviderSelectionEditable => IsProviderSettingsEditable;
+
+    public bool CanDetectProvider => SelectedProvider is not null
+        && !IsProviderBusy
+        && !IsGeneratingResponse;
+
+    public bool CanInstallProvider => SelectedProvider is not null
+        && !IsProviderBusy
         && !IsGeneratingResponse
         && _providerSnapshot?.State is InferenceProviderState.Missing
             or InferenceProviderState.Unsupported
             or InferenceProviderState.Faulted;
 
-    public bool CanStartProvider => !IsProviderBusy
+    public bool CanStartProvider => SelectedProvider is not null
+        && !IsProviderBusy
         && !IsGeneratingResponse
         && _providerSnapshot?.State == InferenceProviderState.Ready
-        && !string.IsNullOrWhiteSpace(ProviderModelReference);
+        && !HasProviderConfigurationChanges
+        && _savedProviderConfiguration?.HasModelReference == true
+        && string.Equals(
+            _persistedSelectedProviderId,
+            SelectedProvider.Id,
+            StringComparison.Ordinal);
 
     public bool CanStopProvider => IsProviderRunning
         || _providerSnapshot?.State == InferenceProviderState.Starting;
 
-    public bool IsProviderModelEditable => !IsProviderBusy && !IsProviderRunning;
+    public bool IsProviderModelEditable => IsProviderSettingsEditable;
 
-    public string ProviderName => _providerSnapshot?.Name ?? "llama.cpp CUDA";
+    public bool HasProviderConfigurationChanges
+    {
+        get
+        {
+            if (SelectedProvider is null)
+            {
+                return false;
+            }
+
+            if (!TryBuildProviderConfiguration(out InferenceProviderConfiguration? draft, out _))
+            {
+                return true;
+            }
+
+            return !string.Equals(
+                    _persistedSelectedProviderId,
+                    SelectedProvider.Id,
+                    StringComparison.Ordinal)
+                || !Equals(_savedProviderConfiguration, draft);
+        }
+    }
+
+    public bool CanSaveProviderConfiguration => IsProviderSettingsEditable
+        && SelectedProvider is not null
+        && HasProviderConfigurationChanges
+        && TryBuildProviderConfiguration(out _, out _);
+
+    public string ProviderConfigurationValidationText => TryBuildProviderConfiguration(
+            out _,
+            out string? validationError)
+        ? string.Empty
+        : validationError ?? "Provider settings are invalid.";
+
+    public bool HasProviderConfigurationValidationError =>
+        !string.IsNullOrWhiteSpace(ProviderConfigurationValidationText);
+
+    public string ProviderConfigurationStatusText => _providerSelectionNotice
+        ?? (HasProviderConfigurationChanges
+            ? "Provider settings have unsaved changes."
+            : _savedProviderConfiguration is null
+                ? "Save provider settings before starting a model."
+                : _savedProviderConfiguration.UsesProviderDefaults
+                    ? "Saved • Optional runtime and generation values use provider defaults."
+                    : "Saved • Explicit runtime or generation overrides are active.");
+
+    public string ProviderFallbackText => ProviderOptions.Count == 0
+        ? "Fallback disabled • No inference provider is currently available."
+        : "Fallback disabled • Alicia never switches inference providers automatically.";
+
+    public string ProviderName => _providerSnapshot?.Name
+        ?? SelectedProvider?.Name
+        ?? "Local AI provider";
 
     public string ProviderStatusText => _providerSnapshot?.State switch
     {
@@ -248,11 +432,13 @@ public sealed class MainViewModel : ViewModelBase
         InferenceProviderState.Stopping => "Stopping",
         InferenceProviderState.Unsupported => "CUDA unavailable",
         InferenceProviderState.Faulted => "Needs attention",
-        _ => "Detecting",
+        _ => SelectedProvider is null ? "Not configured" : "Not detected",
     };
 
     public string ProviderDetailText => _providerSnapshot?.Detail
-        ?? "Detecting the local inference provider…";
+        ?? (SelectedProvider is null
+            ? "Select an inference provider."
+            : "Use Detect to inspect the selected inference provider runtime.");
 
     public string ProviderVersionText => string.IsNullOrWhiteSpace(_providerSnapshot?.Version)
         ? "Version not detected"
@@ -379,7 +565,7 @@ public sealed class MainViewModel : ViewModelBase
         : $"Delete ‘{SelectedConversation.Title}’?";
 
     public string ComposerPlaceholder => !IsProviderRunning
-        ? "Start llama.cpp CUDA to enable local AI chat"
+        ? "Start the selected provider to enable local AI chat"
         : HasSelectedConversation
             ? "Write a local message…"
             : "Select a conversation to write a message";
@@ -391,7 +577,7 @@ public sealed class MainViewModel : ViewModelBase
             : CanRetryResponse
                 ? "Response not completed • Retry response is available"
                 : !IsProviderRunning
-                    ? "Start llama.cpp CUDA before sending messages"
+                    ? "Start the selected provider before sending messages"
                     : $"Enter sends • Shift+Enter adds a new line • {ProviderModelReference}";
 
     public string SendButtonLabel => IsSendingMessage ? "Saving…" : "Send";
@@ -415,7 +601,12 @@ public sealed class MainViewModel : ViewModelBase
             return;
         }
 
-        await DetectProviderAsync().ConfigureAwait(true);
+        await ExecuteOperationAsync(LoadProviderConfigurationAsync).ConfigureAwait(true);
+
+        if (SelectedProvider is not null)
+        {
+            await DetectProviderAsync().ConfigureAwait(true);
+        }
 
         await ExecuteOperationAsync(async () =>
         {
@@ -425,14 +616,330 @@ public sealed class MainViewModel : ViewModelBase
         IsInitialized = true;
     }
 
+    private async Task LoadProviderConfigurationAsync()
+    {
+        _providerConfigurations.Clear();
+
+        foreach (InferenceProviderDescriptor descriptor in ProviderOptions)
+        {
+            InferenceProviderConfiguration? configuration = await _providerConfigurationStore
+                .LoadAsync(descriptor.Id)
+                .ConfigureAwait(true);
+            _providerConfigurations[descriptor.Id] = configuration;
+        }
+
+        string? selectedProviderId = await _providerConfigurationStore
+            .LoadSelectedProviderIdAsync()
+            .ConfigureAwait(true);
+        _persistedSelectedProviderId = selectedProviderId;
+        _providerSelectionNotice = null;
+
+        InferenceProviderDescriptor? selected = selectedProviderId is null
+            ? null
+            : ProviderOptions.FirstOrDefault(descriptor => string.Equals(
+                descriptor.Id,
+                selectedProviderId,
+                StringComparison.Ordinal));
+
+        if (selectedProviderId is not null && selected is null)
+        {
+            _providerSelectionNotice =
+                $"Configured provider '{selectedProviderId}' is unavailable. Automatic fallback is disabled; choose and save an available provider.";
+        }
+        else if (selected is not null)
+        {
+            _providerRegistry.SelectProvider(selected.Id);
+        }
+
+        SelectedProvider = selected ?? (ProviderOptions.Count == 0 ? null : ProviderOptions[0]);
+    }
+
+    private void ApplySelectedProvider(InferenceProviderDescriptor? descriptor)
+    {
+        _selectedProviderRuntime = descriptor is null
+            ? null
+            : _providerRegistry.GetRequiredRuntime(descriptor.Id);
+        _providerSnapshot = null;
+        ClearProviderProgress();
+
+        _savedProviderConfiguration = descriptor is not null
+            && _providerConfigurations.TryGetValue(
+                descriptor.Id,
+                out InferenceProviderConfiguration? configuration)
+            ? configuration
+            : null;
+
+        LoadProviderConfigurationDraft(_savedProviderConfiguration);
+        RaiseProviderStateChanged();
+    }
+
+    private void LoadProviderConfigurationDraft(InferenceProviderConfiguration? configuration)
+    {
+        _providerModelReference = configuration?.ModelReference ?? string.Empty;
+        _providerContextSizeText = FormatOptional(configuration?.ContextSize);
+        _providerMaxOutputTokensText = FormatOptional(configuration?.Generation.MaxOutputTokens);
+        _providerTemperatureText = FormatOptional(configuration?.Generation.Temperature);
+        _providerTopPText = FormatOptional(configuration?.Generation.TopP);
+        _providerTopKText = FormatOptional(configuration?.Generation.TopK);
+        _providerSeedText = FormatOptional(configuration?.Generation.Seed);
+
+        OnPropertyChanged(nameof(ProviderModelReference));
+        OnPropertyChanged(nameof(ProviderContextSizeText));
+        OnPropertyChanged(nameof(ProviderMaxOutputTokensText));
+        OnPropertyChanged(nameof(ProviderTemperatureText));
+        OnPropertyChanged(nameof(ProviderTopPText));
+        OnPropertyChanged(nameof(ProviderTopKText));
+        OnPropertyChanged(nameof(ProviderSeedText));
+        RaiseProviderConfigurationStateChanged();
+    }
+
+    private async Task SaveProviderConfigurationAsync()
+    {
+        if (!CanSaveProviderConfiguration
+            || !TryBuildProviderConfiguration(
+                out InferenceProviderConfiguration? configuration,
+                out _)
+            || configuration is null)
+        {
+            return;
+        }
+
+        await ExecuteOperationAsync(async () =>
+        {
+            await _providerConfigurationStore
+                .SaveAsync(configuration, selectProvider: true)
+                .ConfigureAwait(true);
+
+            _providerConfigurations[configuration.ProviderId] = configuration;
+            _savedProviderConfiguration = configuration;
+            _persistedSelectedProviderId = configuration.ProviderId;
+            _providerSelectionNotice = null;
+            _providerRegistry.SelectProvider(configuration.ProviderId);
+            RaiseProviderConfigurationStateChanged();
+        }).ConfigureAwait(true);
+    }
+
+    private IInferenceProviderRuntime GetSelectedProviderRuntime()
+    {
+        return _selectedProviderRuntime
+            ?? throw new InvalidOperationException(
+                "Select an inference provider before performing this operation.");
+    }
+
+    private bool TryBuildProviderConfiguration(
+        out InferenceProviderConfiguration? configuration,
+        out string? validationError)
+    {
+        configuration = null;
+        validationError = null;
+
+        if (SelectedProvider is null)
+        {
+            validationError = "Select an inference provider.";
+            return false;
+        }
+
+        if (!TryParseOptionalInt(
+            ProviderContextSizeText,
+            "Context size",
+            minimum: 1,
+            out int? contextSize,
+            out validationError))
+        {
+            return false;
+        }
+
+        if (!TryParseOptionalInt(
+            ProviderMaxOutputTokensText,
+            "Maximum output tokens",
+            minimum: 1,
+            out int? maxOutputTokens,
+            out validationError))
+        {
+            return false;
+        }
+
+        if (!TryParseOptionalDouble(
+            ProviderTemperatureText,
+            "Temperature",
+            minimum: 0,
+            maximum: null,
+            out double? temperature,
+            out validationError))
+        {
+            return false;
+        }
+
+        if (!TryParseOptionalDouble(
+            ProviderTopPText,
+            "Top-p",
+            minimum: 0,
+            maximum: 1,
+            out double? topP,
+            out validationError))
+        {
+            return false;
+        }
+
+        if (!TryParseOptionalInt(
+            ProviderTopKText,
+            "Top-k",
+            minimum: 0,
+            out int? topK,
+            out validationError))
+        {
+            return false;
+        }
+
+        if (!TryParseOptionalInt(
+            ProviderSeedText,
+            "Seed",
+            minimum: 0,
+            out int? seed,
+            out validationError))
+        {
+            return false;
+        }
+
+        try
+        {
+            configuration = new InferenceProviderConfiguration(
+                SelectedProvider.Id,
+                ProviderModelReference,
+                contextSize,
+                new InferenceGenerationOptions(
+                    maxOutputTokens,
+                    temperature,
+                    topP,
+                    topK,
+                    seed));
+            return true;
+        }
+        catch (ArgumentException exception)
+        {
+            validationError = exception.Message;
+            return false;
+        }
+    }
+
+    private static bool TryParseOptionalInt(
+        string value,
+        string label,
+        int minimum,
+        out int? result,
+        out string? validationError)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            result = null;
+            validationError = null;
+            return true;
+        }
+
+        if (!int.TryParse(
+            value.Trim(),
+            System.Globalization.NumberStyles.Integer,
+            System.Globalization.CultureInfo.CurrentCulture,
+            out int parsed))
+        {
+            result = null;
+            validationError = $"{label} must be a whole number or left blank for the provider default.";
+            return false;
+        }
+
+        if (parsed < minimum)
+        {
+            result = null;
+            validationError = $"{label} must be at least {minimum} or left blank for the provider default.";
+            return false;
+        }
+
+        result = parsed;
+        validationError = null;
+        return true;
+    }
+
+    private static bool TryParseOptionalDouble(
+        string value,
+        string label,
+        double minimum,
+        double? maximum,
+        out double? result,
+        out string? validationError)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            result = null;
+            validationError = null;
+            return true;
+        }
+
+        string trimmed = value.Trim();
+        bool parsedSuccessfully = double.TryParse(
+            trimmed,
+            System.Globalization.NumberStyles.Float,
+            System.Globalization.CultureInfo.CurrentCulture,
+            out double parsed)
+            || double.TryParse(
+                trimmed,
+                System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out parsed);
+
+        if (!parsedSuccessfully || double.IsNaN(parsed) || double.IsInfinity(parsed))
+        {
+            result = null;
+            validationError = $"{label} must be a finite number or left blank for the provider default.";
+            return false;
+        }
+
+        if (parsed < minimum || (maximum is double max && parsed > max))
+        {
+            result = null;
+            validationError = maximum is double upperBound
+                ? $"{label} must be between {minimum} and {upperBound} or left blank for the provider default."
+                : $"{label} must be at least {minimum} or left blank for the provider default.";
+            return false;
+        }
+
+        result = parsed;
+        validationError = null;
+        return true;
+    }
+
+    private static string FormatOptional(int? value)
+    {
+        return value?.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            ?? string.Empty;
+    }
+
+    private static string FormatOptional(double? value)
+    {
+        return value?.ToString("G", System.Globalization.CultureInfo.InvariantCulture)
+            ?? string.Empty;
+    }
+
+    private void RaiseProviderConfigurationStateChanged()
+    {
+        OnPropertyChanged(nameof(HasProviderConfigurationChanges));
+        OnPropertyChanged(nameof(CanSaveProviderConfiguration));
+        OnPropertyChanged(nameof(ProviderConfigurationValidationText));
+        OnPropertyChanged(nameof(HasProviderConfigurationValidationError));
+        OnPropertyChanged(nameof(ProviderConfigurationStatusText));
+        OnPropertyChanged(nameof(CanStartProvider));
+        OnPropertyChanged(nameof(ComposerStatusText));
+        SaveProviderConfigurationCommand.NotifyCanExecuteChanged();
+        StartProviderCommand.NotifyCanExecuteChanged();
+    }
+
     private async Task DetectProviderAsync()
     {
         ClearProviderProgress();
 
         await ExecuteProviderOperationAsync(
             InferenceProviderState.Detecting,
-            "Detecting llama.cpp and CUDA support…",
-            async cancellationToken => await _inferenceProvider
+            $"Detecting {ProviderName}…",
+            async cancellationToken => await GetSelectedProviderRuntime()
                 .DetectAsync(cancellationToken)
                 .ConfigureAwait(true)).ConfigureAwait(true);
     }
@@ -449,8 +956,8 @@ public sealed class MainViewModel : ViewModelBase
 
         await ExecuteProviderOperationAsync(
             InferenceProviderState.Installing,
-            "Preparing the managed llama.cpp CUDA installation…",
-            async cancellationToken => await _inferenceProvider
+            $"Preparing {ProviderName} installation…",
+            async cancellationToken => await GetSelectedProviderRuntime()
                 .InstallAsync(progress, cancellationToken)
                 .ConfigureAwait(true)).ConfigureAwait(true);
     }
@@ -462,14 +969,16 @@ public sealed class MainViewModel : ViewModelBase
             return;
         }
 
-        string modelReference = ProviderModelReference.Trim();
+        InferenceProviderConfiguration configuration = _savedProviderConfiguration
+            ?? throw new InvalidOperationException(
+                "Save provider settings before starting the local model.");
         ClearProviderProgress();
 
         await ExecuteProviderOperationAsync(
             InferenceProviderState.Starting,
-            $"Starting llama-server with -hf {modelReference}…",
-            async cancellationToken => await _inferenceProvider
-                .StartAsync(modelReference, cancellationToken)
+            $"Starting the selected provider with {configuration.ModelReference}…",
+            async cancellationToken => await GetSelectedProviderRuntime()
+                .StartAsync(configuration, cancellationToken)
                 .ConfigureAwait(true),
             allowStop: true).ConfigureAwait(true);
     }
@@ -486,11 +995,11 @@ public sealed class MainViewModel : ViewModelBase
         _providerOperationCancellation?.Cancel();
         SetProviderTransientState(
             InferenceProviderState.Stopping,
-            "Stopping the managed llama-server process…");
+            $"Stopping {ProviderName}…");
 
         try
         {
-            InferenceProviderSnapshot snapshot = await _inferenceProvider
+            InferenceProviderSnapshot snapshot = await GetSelectedProviderRuntime()
                 .StopAsync(CancellationToken.None)
                 .ConfigureAwait(true);
             ApplyProviderSnapshot(snapshot);
@@ -540,7 +1049,7 @@ public sealed class MainViewModel : ViewModelBase
         catch (OperationCanceledException) when (cancellationSource.IsCancellationRequested)
         {
             ClearError();
-            InferenceProviderSnapshot snapshot = await _inferenceProvider
+            InferenceProviderSnapshot snapshot = await GetSelectedProviderRuntime()
                 .DetectAsync(CancellationToken.None)
                 .ConfigureAwait(true);
             ApplyProviderSnapshot(snapshot);
@@ -590,7 +1099,7 @@ public sealed class MainViewModel : ViewModelBase
 
         try
         {
-            InferenceProviderSnapshot snapshot = await _inferenceProvider
+            InferenceProviderSnapshot snapshot = await GetSelectedProviderRuntime()
                 .DetectAsync(CancellationToken.None)
                 .ConfigureAwait(true);
             ApplyProviderSnapshot(snapshot);
@@ -668,11 +1177,6 @@ public sealed class MainViewModel : ViewModelBase
         ArgumentNullException.ThrowIfNull(snapshot);
         _providerSnapshot = snapshot;
 
-        if (!string.IsNullOrWhiteSpace(snapshot.ModelReference))
-        {
-            ProviderModelReference = snapshot.ModelReference;
-        }
-
         RaiseProviderStateChanged();
     }
 
@@ -681,7 +1185,7 @@ public sealed class MainViewModel : ViewModelBase
         string detail)
     {
         _providerSnapshot = new InferenceProviderSnapshot(
-            _providerSnapshot?.Name ?? "llama.cpp CUDA",
+            _providerSnapshot?.Name ?? SelectedProvider?.Name ?? "Local AI provider",
             state,
             _providerSnapshot?.Version,
             _providerSnapshot?.IsCudaEnabled ?? false,
@@ -696,7 +1200,7 @@ public sealed class MainViewModel : ViewModelBase
     {
         ErrorMessage = detail;
         _providerSnapshot = new InferenceProviderSnapshot(
-            _providerSnapshot?.Name ?? "llama.cpp CUDA",
+            _providerSnapshot?.Name ?? SelectedProvider?.Name ?? "Local AI provider",
             state,
             _providerSnapshot?.Version,
             _providerSnapshot?.IsCudaEnabled ?? false,
@@ -1162,6 +1666,13 @@ public sealed class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(CanStartProvider));
         OnPropertyChanged(nameof(CanStopProvider));
         OnPropertyChanged(nameof(IsProviderModelEditable));
+        OnPropertyChanged(nameof(IsProviderSettingsEditable));
+        OnPropertyChanged(nameof(IsProviderSelectionEditable));
+        OnPropertyChanged(nameof(CanSaveProviderConfiguration));
+        OnPropertyChanged(nameof(HasProviderConfigurationChanges));
+        OnPropertyChanged(nameof(ProviderConfigurationValidationText));
+        OnPropertyChanged(nameof(HasProviderConfigurationValidationError));
+        OnPropertyChanged(nameof(ProviderConfigurationStatusText));
         OnPropertyChanged(nameof(ProviderName));
         OnPropertyChanged(nameof(ProviderStatusText));
         OnPropertyChanged(nameof(ProviderDetailText));
@@ -1180,6 +1691,7 @@ public sealed class MainViewModel : ViewModelBase
         InstallProviderCommand.NotifyCanExecuteChanged();
         StartProviderCommand.NotifyCanExecuteChanged();
         StopProviderCommand.NotifyCanExecuteChanged();
+        SaveProviderConfigurationCommand.NotifyCanExecuteChanged();
         SendMessageCommand.NotifyCanExecuteChanged();
     }
 

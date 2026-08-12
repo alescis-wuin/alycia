@@ -11,16 +11,15 @@ public sealed class LlamaCppProviderRuntime :
     IStreamingConversationResponder,
     IAsyncDisposable
 {
+    public const string ProviderId = "llama.cpp.cuda";
+
     public const string ProviderName = "llama.cpp CUDA";
 
     private readonly SemaphoreSlim _lifecycleGate = new(1, 1);
     private readonly string _runtimeDirectory;
-    private readonly string _settingsPath;
     private readonly string _logDirectory;
     private readonly string _modelCacheDirectory;
     private readonly HttpClient _httpClient;
-    private static readonly JsonSerializerOptions _jsonOptions = new() { WriteIndented = true };
-
     private readonly LlamaCppInstaller _installer;
     private readonly LlamaCppChatClient _chatClient;
     private Process? _serverProcess;
@@ -28,6 +27,8 @@ public sealed class LlamaCppProviderRuntime :
     private string? _version;
     private string? _modelReference;
     private Uri? _endpoint;
+    private InferenceGenerationOptions _generationOptions = new();
+    private InferenceProviderConfiguration? _activeConfiguration;
     private bool _disposed;
 
     public LlamaCppProviderRuntime(
@@ -37,7 +38,6 @@ public sealed class LlamaCppProviderRuntime :
         ArgumentException.ThrowIfNullOrWhiteSpace(runtimeDirectory);
 
         _runtimeDirectory = Path.GetFullPath(runtimeDirectory);
-        _settingsPath = Path.Combine(_runtimeDirectory, "settings.json");
         _logDirectory = Path.Combine(_runtimeDirectory, "logs");
         _modelCacheDirectory = Path.Combine(_runtimeDirectory, "models");
         _httpClient = new HttpClient
@@ -48,7 +48,6 @@ public sealed class LlamaCppProviderRuntime :
             _httpClient,
             timeProvider ?? TimeProvider.System);
         _chatClient = new LlamaCppChatClient(_httpClient);
-        _modelReference = ReadPersistedModelReference();
     }
 
     public async Task<InferenceProviderSnapshot> DetectAsync(
@@ -156,26 +155,46 @@ public sealed class LlamaCppProviderRuntime :
     }
 
     public async Task<InferenceProviderSnapshot> StartAsync(
-        string modelReference,
+        InferenceProviderConfiguration configuration,
         CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
-        string normalizedModelReference = LlamaCppModelReference.Normalize(modelReference);
+        ArgumentNullException.ThrowIfNull(configuration);
+
+        if (!string.Equals(configuration.ProviderId, ProviderId, StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                $"Configuration provider '{configuration.ProviderId}' does not match '{ProviderId}'.",
+                nameof(configuration));
+        }
+
+        if (!configuration.HasModelReference)
+        {
+            throw new ArgumentException(
+                "A Hugging Face model reference is required before starting llama.cpp.",
+                nameof(configuration));
+        }
+
+        string normalizedModelReference = LlamaCppModelReference.Normalize(
+            configuration.ModelReference!);
 
         await _lifecycleGate.WaitAsync(cancellationToken).ConfigureAwait(false);
 
         try
         {
+            InferenceProviderConfiguration normalizedConfiguration = new(
+                ProviderId,
+                normalizedModelReference,
+                configuration.ContextSize,
+                configuration.Generation);
+
             if (IsServerAlive())
             {
-                if (string.Equals(
-                    _modelReference,
-                    normalizedModelReference,
-                    StringComparison.Ordinal))
+                if (Equals(_activeConfiguration, normalizedConfiguration))
                 {
                     return CreateSnapshot(
                         InferenceProviderState.Running,
-                        detail: "llama-server is already running with the selected Hugging Face model.");
+                        detail: "llama-server is already running with the selected saved configuration.");
                 }
 
                 await StopServerCoreAsync(CancellationToken.None).ConfigureAwait(false);
@@ -193,9 +212,10 @@ public sealed class LlamaCppProviderRuntime :
             string logFilePath = Path.Combine(
                 _logDirectory,
                 $"server-{DateTimeOffset.UtcNow:yyyyMMdd-HHmmss}.log");
-            IReadOnlyList<string> arguments = LlamaCppServerCommand.CreateArguments(
+            string[] arguments = LlamaCppServerCommand.CreateArguments(
                 normalizedModelReference,
-                logFilePath);
+                logFilePath,
+                configuration.ContextSize);
             ProcessStartInfo startInfo = new(_executablePath)
             {
                 UseShellExecute = false,
@@ -225,9 +245,8 @@ public sealed class LlamaCppProviderRuntime :
                     _endpoint,
                     logFilePath,
                     cancellationToken).ConfigureAwait(false);
-                await PersistModelReferenceAsync(
-                    normalizedModelReference,
-                    cancellationToken).ConfigureAwait(false);
+                _generationOptions = normalizedConfiguration.Generation;
+                _activeConfiguration = normalizedConfiguration;
 
                 return CreateSnapshot(
                     InferenceProviderState.Running,
@@ -286,6 +305,7 @@ public sealed class LlamaCppProviderRuntime :
         return _chatClient.StreamAsync(
             _endpoint,
             request,
+            _generationOptions,
             cancellationToken);
     }
 
@@ -470,6 +490,7 @@ public sealed class LlamaCppProviderRuntime :
         Process? process = _serverProcess;
         _serverProcess = null;
         _endpoint = null;
+        _activeConfiguration = null;
 
         if (process is null)
         {
@@ -508,6 +529,7 @@ public sealed class LlamaCppProviderRuntime :
         _serverProcess.Dispose();
         _serverProcess = null;
         _endpoint = null;
+        _activeConfiguration = null;
     }
 
     private InferenceProviderSnapshot CreateSnapshot(
@@ -523,55 +545,6 @@ public sealed class LlamaCppProviderRuntime :
             _modelReference,
             _endpoint,
             detail);
-    }
-
-    private string? ReadPersistedModelReference()
-    {
-        if (!File.Exists(_settingsPath))
-        {
-            return null;
-        }
-
-        try
-        {
-            string json = File.ReadAllText(_settingsPath);
-            ProviderSettings? settings = JsonSerializer.Deserialize<ProviderSettings>(json);
-            return string.IsNullOrWhiteSpace(settings?.ModelReference)
-                ? null
-                : settings.ModelReference.Trim();
-        }
-        catch (JsonException)
-        {
-            return null;
-        }
-        catch (IOException)
-        {
-            return null;
-        }
-    }
-
-    private async Task PersistModelReferenceAsync(
-        string modelReference,
-        CancellationToken cancellationToken)
-    {
-        Directory.CreateDirectory(_runtimeDirectory);
-        string temporaryPath = $"{_settingsPath}.{Guid.NewGuid():N}.tmp";
-        string json = JsonSerializer.Serialize(
-            new ProviderSettings(modelReference),
-            _jsonOptions);
-        try
-        {
-            await File.WriteAllTextAsync(temporaryPath, json, cancellationToken)
-                .ConfigureAwait(false);
-            File.Move(temporaryPath, _settingsPath, overwrite: true);
-        }
-        finally
-        {
-            if (File.Exists(temporaryPath))
-            {
-                File.Delete(temporaryPath);
-            }
-        }
     }
 
     private static string ReadLogTail(string logFilePath)
@@ -599,5 +572,4 @@ public sealed class LlamaCppProviderRuntime :
         ObjectDisposedException.ThrowIf(_disposed, this);
     }
 
-    private sealed record ProviderSettings(string ModelReference);
 }

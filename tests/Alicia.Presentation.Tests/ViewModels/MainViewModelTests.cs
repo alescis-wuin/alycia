@@ -765,8 +765,13 @@ public sealed class MainViewModelTests
         await viewModel.InitializeAsync().ConfigureAwait(true);
         viewModel.ProviderModelReference = "ggml-org/gemma-3-1b-it-GGUF:Q4_K_M";
 
-        Assert.True(viewModel.CanStartProvider);
+        Assert.True(viewModel.HasProviderConfigurationChanges);
+        Assert.False(viewModel.CanStartProvider);
+        Assert.True(viewModel.CanSaveProviderConfiguration);
 
+        await viewModel.SaveProviderConfigurationCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.True(viewModel.CanStartProvider);
         await viewModel.StartProviderCommand.ExecuteAsync(null).ConfigureAwait(true);
 
         Assert.Equal(1, provider.StartCount);
@@ -791,6 +796,8 @@ public sealed class MainViewModelTests
             inferenceProvider: provider);
         await viewModel.InitializeAsync().ConfigureAwait(true);
         viewModel.ProviderModelReference = "owner/model-GGUF:Q4_K_M";
+        viewModel.ProviderTemperatureText = "0.6";
+        await viewModel.SaveProviderConfigurationCommand.ExecuteAsync(null).ConfigureAwait(true);
 
         await viewModel.StartProviderCommand.ExecuteAsync(null).ConfigureAwait(true);
 
@@ -821,7 +828,115 @@ public sealed class MainViewModelTests
 
         Assert.True(viewModel.IsComposerEnabled);
         Assert.False(viewModel.CanSendMessage);
-        Assert.Contains("Start llama.cpp CUDA", viewModel.ComposerStatusText, StringComparison.Ordinal);
+        Assert.Contains("Start the selected provider", viewModel.ComposerStatusText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task FreshProviderConfigurationRequiresExplicitSaveBeforeModelStart()
+    {
+        InMemoryConversationRepository repository = new();
+        StubInferenceProviderRuntime provider = new(InferenceProviderState.Ready);
+        StubInferenceProviderConfigurationStore configurationStore = new();
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(new DateTimeOffset(2026, 8, 11, 21, 28, 0, TimeSpan.Zero)),
+            inferenceProvider: provider,
+            providerConfigurationStore: configurationStore);
+
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+        viewModel.ProviderModelReference = "owner/model-GGUF:Q4_K_M";
+
+        Assert.True(viewModel.HasProviderConfigurationChanges);
+        Assert.True(viewModel.CanSaveProviderConfiguration);
+        Assert.False(viewModel.CanStartProvider);
+        Assert.Contains("Fallback disabled", viewModel.ProviderFallbackText, StringComparison.Ordinal);
+
+        await viewModel.SaveProviderConfigurationCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.Equal(1, configurationStore.SaveCount);
+        Assert.False(viewModel.HasProviderConfigurationChanges);
+        Assert.True(viewModel.CanStartProvider);
+    }
+
+    [Fact]
+    public async Task SavedGenerationSettingsAreValidatedAndPassedToProvider()
+    {
+        InMemoryConversationRepository repository = new();
+        StubInferenceProviderRuntime provider = new(InferenceProviderState.Ready);
+        StubInferenceProviderConfigurationStore configurationStore = new();
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(new DateTimeOffset(2026, 8, 11, 21, 29, 0, TimeSpan.Zero)),
+            inferenceProvider: provider,
+            providerConfigurationStore: configurationStore);
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        viewModel.ProviderModelReference = "owner/model-GGUF:Q5_K_M";
+        viewModel.ProviderContextSizeText = "8192";
+        viewModel.ProviderMaxOutputTokensText = "256";
+        viewModel.ProviderTemperatureText = "0.6";
+        viewModel.ProviderTopPText = "0.9";
+        viewModel.ProviderTopKText = "50";
+        viewModel.ProviderSeedText = "42";
+
+        Assert.False(viewModel.HasProviderConfigurationValidationError);
+        await viewModel.SaveProviderConfigurationCommand.ExecuteAsync(null).ConfigureAwait(true);
+        await viewModel.StartProviderCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        InferenceProviderConfiguration saved = Assert.IsType<InferenceProviderConfiguration>(
+            configurationStore.LastSavedConfiguration);
+        Assert.Equal("llama.cpp.cuda", saved.ProviderId);
+        Assert.Equal("owner/model-GGUF:Q5_K_M", saved.ModelReference);
+        Assert.Equal(8192, saved.ContextSize);
+        Assert.Equal(256, saved.Generation.MaxOutputTokens);
+        Assert.Equal(0.6, saved.Generation.Temperature);
+        Assert.Equal(0.9, saved.Generation.TopP);
+        Assert.Equal(50, saved.Generation.TopK);
+        Assert.Equal(42, saved.Generation.Seed);
+        Assert.Equal(saved, provider.LastStartedConfiguration);
+    }
+
+    [Fact]
+    public async Task InvalidGenerationSettingBlocksSaveAndStart()
+    {
+        InMemoryConversationRepository repository = new();
+        StubInferenceProviderRuntime provider = new(InferenceProviderState.Ready);
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(new DateTimeOffset(2026, 8, 11, 21, 29, 30, TimeSpan.Zero)),
+            inferenceProvider: provider);
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        viewModel.ProviderTopPText = "1.5";
+
+        Assert.True(viewModel.HasProviderConfigurationValidationError);
+        Assert.Contains("Top-p", viewModel.ProviderConfigurationValidationText, StringComparison.Ordinal);
+        Assert.False(viewModel.CanSaveProviderConfiguration);
+        Assert.False(viewModel.CanStartProvider);
+    }
+
+    [Fact]
+    public async Task BlankOptionalSettingsPreserveProviderDefaults()
+    {
+        InMemoryConversationRepository repository = new();
+        StubInferenceProviderRuntime provider = new(InferenceProviderState.Ready);
+        StubInferenceProviderConfigurationStore configurationStore = new();
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(new DateTimeOffset(2026, 8, 11, 21, 29, 45, TimeSpan.Zero)),
+            inferenceProvider: provider,
+            providerConfigurationStore: configurationStore);
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        viewModel.ProviderModelReference = "owner/model-GGUF";
+        await viewModel.SaveProviderConfigurationCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        InferenceProviderConfiguration saved = Assert.IsType<InferenceProviderConfiguration>(
+            configurationStore.LastSavedConfiguration);
+        Assert.Null(saved.ContextSize);
+        Assert.True(saved.Generation.UsesOnlyProviderDefaults);
+        Assert.True(saved.UsesProviderDefaults);
+        Assert.Contains("provider defaults", viewModel.ProviderConfigurationStatusText, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -847,12 +962,22 @@ public sealed class MainViewModelTests
         IConversationRepository repository,
         TimeProvider timeProvider,
         IStreamingConversationResponder? responder = null,
-        IInferenceProviderRuntime? inferenceProvider = null)
+        IInferenceProviderRuntime? inferenceProvider = null,
+        IInferenceProviderRegistry? providerRegistry = null,
+        IInferenceProviderConfigurationStore? providerConfigurationStore = null)
     {
         IStreamingConversationResponder resolvedResponder =
             responder ?? new DeterministicConversationResponder("Development response");
         IInferenceProviderRuntime resolvedProvider =
             inferenceProvider ?? new StubInferenceProviderRuntime();
+        IInferenceProviderRegistry resolvedRegistry =
+            providerRegistry ?? new StubInferenceProviderRegistry(resolvedProvider);
+        IInferenceProviderConfigurationStore resolvedConfigurationStore =
+            providerConfigurationStore
+            ?? new StubInferenceProviderConfigurationStore(
+                new InferenceProviderConfiguration(
+                    "llama.cpp.cuda",
+                    "owner/model-GGUF:Q4_K_M"));
 
         return new MainViewModel(
             new CreateConversationUseCase(repository, timeProvider),
@@ -865,6 +990,7 @@ public sealed class MainViewModelTests
             new ListConversationsUseCase(repository),
             new RenameConversationUseCase(repository, timeProvider),
             new DeleteConversationUseCase(repository),
-            resolvedProvider);
+            resolvedRegistry,
+            resolvedConfigurationStore);
     }
 }

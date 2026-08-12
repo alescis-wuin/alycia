@@ -2,7 +2,9 @@ using System.Net;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Alicia.Application.Conversations;
+using Alicia.Application.Providers;
 using Alicia.Domain.Conversations;
 
 namespace Alicia.Infrastructure.Providers.LlamaCpp;
@@ -12,6 +14,7 @@ internal sealed class LlamaCppChatClient
     private static readonly JsonSerializerOptions _jsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 
     private readonly HttpClient _httpClient;
@@ -25,17 +28,24 @@ internal sealed class LlamaCppChatClient
     public async IAsyncEnumerable<ConversationResponseChunk> StreamAsync(
         Uri endpoint,
         ConversationResponseRequest request,
+        InferenceGenerationOptions generationOptions,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(endpoint);
         ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(generationOptions);
 
         Uri requestUri = new(endpoint, "v1/chat/completions");
         string payload = JsonSerializer.Serialize(
             new ChatCompletionRequest(
                 LlamaCppServerCommand.ModelAlias,
                 request.Messages.Select(MapMessage).ToArray(),
-                Stream: true),
+                Stream: true,
+                generationOptions.MaxOutputTokens,
+                generationOptions.Temperature,
+                generationOptions.TopP,
+                generationOptions.TopK,
+                generationOptions.Seed),
             _jsonOptions);
         using HttpRequestMessage httpRequest = new(HttpMethod.Post, requestUri)
         {
@@ -173,7 +183,12 @@ internal sealed class LlamaCppChatClient
     private sealed record ChatCompletionRequest(
         string Model,
         IReadOnlyList<ChatCompletionMessage> Messages,
-        bool Stream);
+        bool Stream,
+        [property: JsonPropertyName("max_tokens")] int? MaxTokens,
+        double? Temperature,
+        [property: JsonPropertyName("top_p")] double? TopP,
+        [property: JsonPropertyName("top_k")] int? TopK,
+        int? Seed);
 
     private sealed record ChatCompletionMessage(
         string Role,

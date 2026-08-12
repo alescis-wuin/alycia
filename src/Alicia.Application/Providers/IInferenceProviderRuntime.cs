@@ -10,7 +10,7 @@ public interface IInferenceProviderRuntime
         CancellationToken cancellationToken = default);
 
     Task<InferenceProviderSnapshot> StartAsync(
-        string modelReference,
+        InferenceProviderConfiguration configuration,
         CancellationToken cancellationToken = default);
 
     Task<InferenceProviderSnapshot> StopAsync(

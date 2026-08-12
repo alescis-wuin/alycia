@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using Alicia.Application.Conversations;
+using Alicia.Application.Providers;
 using Alicia.Domain.Conversations;
 using Alicia.Infrastructure.Providers.LlamaCpp;
 
@@ -34,19 +35,34 @@ public sealed class LlamaCppProviderContractTests
     }
 
     [Fact]
-    public void ServerCommandPassesModelDirectlyToHfAndUsesCudaAutoOffload()
+    public void ServerCommandPassesModelDirectlyToHfWithoutOverridingGpuLayerDefaults()
     {
-        IReadOnlyList<string> arguments = LlamaCppServerCommand.CreateArguments(
+        string[] arguments = LlamaCppServerCommand.CreateArguments(
             "owner/model-GGUF:Q5_K_M",
             "/tmp/alicia-llama.log");
 
         AssertOption(arguments, "-hf", "owner/model-GGUF:Q5_K_M");
         AssertOption(arguments, "--host", "127.0.0.1");
         AssertOption(arguments, "--port", "8080");
-        AssertOption(arguments, "--n-gpu-layers", "auto");
+        Assert.DoesNotContain("--n-gpu-layers", arguments);
         AssertOption(arguments, "--alias", "alicia-local");
         Assert.Contains("--jinja", arguments);
         Assert.Contains("--no-mmproj", arguments);
+    }
+
+    [Fact]
+    public void ServerCommandAddsContextSizeOnlyWhenExplicitlyConfigured()
+    {
+        string[] providerDefaults = LlamaCppServerCommand.CreateArguments(
+            "owner/model-GGUF",
+            "/tmp/alicia-default.log");
+        string[] configured = LlamaCppServerCommand.CreateArguments(
+            "owner/model-GGUF",
+            "/tmp/alicia-configured.log",
+            contextSize: 8192);
+
+        Assert.DoesNotContain("--ctx-size", providerDefaults);
+        AssertOption(configured, "--ctx-size", "8192");
     }
 
     [Fact]
@@ -166,6 +182,7 @@ public sealed class LlamaCppProviderContractTests
             .StreamAsync(
                 new Uri("http://127.0.0.1:8080/"),
                 request,
+                new InferenceGenerationOptions(),
                 CancellationToken.None)
             .ConfigureAwait(true))
         {
@@ -179,9 +196,45 @@ public sealed class LlamaCppProviderContractTests
         Assert.Equal(
             "alicia-local",
             document.RootElement.GetProperty("model").GetString());
+        Assert.False(document.RootElement.TryGetProperty("max_tokens", out _));
+        Assert.False(document.RootElement.TryGetProperty("temperature", out _));
+        Assert.False(document.RootElement.TryGetProperty("top_p", out _));
+        Assert.False(document.RootElement.TryGetProperty("top_k", out _));
+        Assert.False(document.RootElement.TryGetProperty("seed", out _));
         JsonElement messages = document.RootElement.GetProperty("messages");
         Assert.Equal("system", messages[0].GetProperty("role").GetString());
         Assert.Equal("user", messages[1].GetProperty("role").GetString());
+    }
+
+    [Fact]
+    public async Task ChatClientSerializesOnlyExplicitGenerationOverrides()
+    {
+        CapturingHttpMessageHandler handler = new(
+            HttpStatusCode.OK,
+            "data: [DONE]\n\n");
+        using HttpClient httpClient = new(handler);
+        LlamaCppChatClient client = new(httpClient);
+        InferenceGenerationOptions options = new(
+            maxOutputTokens: 128,
+            temperature: 0.55,
+            topP: 0.92,
+            topK: 32,
+            seed: 1234);
+
+        await ConsumeAsync(client.StreamAsync(
+            new Uri("http://127.0.0.1:8080/"),
+            CreateRequest(),
+            options,
+            CancellationToken.None)).ConfigureAwait(true);
+
+        string requestBody = Assert.IsType<string>(handler.RequestBody);
+        using JsonDocument document = JsonDocument.Parse(requestBody);
+        JsonElement root = document.RootElement;
+        Assert.Equal(128, root.GetProperty("max_tokens").GetInt32());
+        Assert.Equal(0.55, root.GetProperty("temperature").GetDouble());
+        Assert.Equal(0.92, root.GetProperty("top_p").GetDouble());
+        Assert.Equal(32, root.GetProperty("top_k").GetInt32());
+        Assert.Equal(1234, root.GetProperty("seed").GetInt32());
     }
 
     [Fact]
@@ -197,6 +250,7 @@ public sealed class LlamaCppProviderContractTests
             () => ConsumeAsync(client.StreamAsync(
                 new Uri("http://127.0.0.1:8080/"),
                 CreateRequest(),
+                new InferenceGenerationOptions(),
                 CancellationToken.None))).ConfigureAwait(true);
 
         Assert.Contains("[DONE]", exception.Message, StringComparison.Ordinal);
@@ -215,6 +269,7 @@ public sealed class LlamaCppProviderContractTests
             () => ConsumeAsync(client.StreamAsync(
                 new Uri("http://127.0.0.1:8080/"),
                 CreateRequest(),
+                new InferenceGenerationOptions(),
                 CancellationToken.None))).ConfigureAwait(true);
 
         Assert.Contains("malformed JSON", exception.Message, StringComparison.Ordinal);
@@ -233,6 +288,7 @@ public sealed class LlamaCppProviderContractTests
             () => ConsumeAsync(client.StreamAsync(
                 new Uri("http://127.0.0.1:8080/"),
                 CreateRequest(),
+                new InferenceGenerationOptions(),
                 CancellationToken.None))).ConfigureAwait(true);
 
         Assert.Contains("503", exception.Message, StringComparison.Ordinal);

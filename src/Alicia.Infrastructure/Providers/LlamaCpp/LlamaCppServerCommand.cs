@@ -6,12 +6,18 @@ internal static class LlamaCppServerCommand
 
     public const string ModelAlias = "alicia-local";
 
-    public static IReadOnlyList<string> CreateArguments(
+    public static string[] CreateArguments(
         string modelReference,
         string logFilePath,
+        int? contextSize = null,
         int port = DefaultPort)
     {
         string normalizedModelReference = LlamaCppModelReference.Normalize(modelReference);
+
+        if (contextSize is <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(contextSize));
+        }
 
         if (port is <= 0 or > 65535)
         {
@@ -20,7 +26,7 @@ internal static class LlamaCppServerCommand
 
         ArgumentException.ThrowIfNullOrWhiteSpace(logFilePath);
 
-        return
+        List<string> arguments =
         [
             "-hf",
             normalizedModelReference,
@@ -28,8 +34,16 @@ internal static class LlamaCppServerCommand
             "127.0.0.1",
             "--port",
             port.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            "--n-gpu-layers",
-            "auto",
+        ];
+
+        if (contextSize is int configuredContextSize)
+        {
+            arguments.Add("--ctx-size");
+            arguments.Add(configuredContextSize.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        arguments.AddRange(
+        [
             "--alias",
             ModelAlias,
             "--jinja",
@@ -38,6 +52,8 @@ internal static class LlamaCppServerCommand
             Path.GetFullPath(logFilePath),
             "--log-colors",
             "off",
-        ];
+        ]);
+
+        return arguments.ToArray();
     }
 }

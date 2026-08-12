@@ -252,7 +252,9 @@ internal sealed class StubInferenceProviderRuntime : IInferenceProviderRuntime
 
     public int StopCount { get; private set; }
 
-    public string? LastStartedModel { get; private set; }
+    public string? LastStartedModel => LastStartedConfiguration?.ModelReference;
+
+    public InferenceProviderConfiguration? LastStartedConfiguration { get; private set; }
 
     public Exception? StartException { get; set; }
 
@@ -283,19 +285,20 @@ internal sealed class StubInferenceProviderRuntime : IInferenceProviderRuntime
     }
 
     public Task<InferenceProviderSnapshot> StartAsync(
-        string modelReference,
+        InferenceProviderConfiguration configuration,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(configuration);
         cancellationToken.ThrowIfCancellationRequested();
         StartCount++;
-        LastStartedModel = modelReference;
+        LastStartedConfiguration = configuration;
 
         if (StartException is not null)
         {
             throw StartException;
         }
 
-        Current = CreateSnapshot(InferenceProviderState.Running, modelReference);
+        Current = CreateSnapshot(InferenceProviderState.Running, configuration.ModelReference);
         return Task.FromResult(Current);
     }
 
@@ -322,6 +325,108 @@ internal sealed class StubInferenceProviderRuntime : IInferenceProviderRuntime
                 ? new Uri("http://127.0.0.1:8080/")
                 : null,
             detail: state.ToString());
+    }
+}
+
+internal sealed class StubInferenceProviderRegistry : IInferenceProviderRegistry
+{
+    private const string ProviderId = "llama.cpp.cuda";
+    private readonly IInferenceProviderRuntime _runtime;
+
+    public StubInferenceProviderRegistry(IInferenceProviderRuntime runtime)
+    {
+        ArgumentNullException.ThrowIfNull(runtime);
+        _runtime = runtime;
+        Providers = [new InferenceProviderDescriptor(ProviderId, "llama.cpp CUDA")];
+    }
+
+    public IReadOnlyList<InferenceProviderDescriptor> Providers { get; }
+
+    public string? SelectedProviderId { get; private set; }
+
+    public int SelectCount { get; private set; }
+
+    public void SelectProvider(string providerId)
+    {
+        if (!string.Equals(providerId, ProviderId, StringComparison.Ordinal))
+        {
+            throw new KeyNotFoundException($"Unknown test provider '{providerId}'.");
+        }
+
+        SelectedProviderId = providerId;
+        SelectCount++;
+    }
+
+    public IInferenceProviderRuntime GetRequiredRuntime(string providerId)
+    {
+        if (!string.Equals(providerId, ProviderId, StringComparison.Ordinal))
+        {
+            throw new KeyNotFoundException($"Unknown test provider '{providerId}'.");
+        }
+
+        return _runtime;
+    }
+}
+
+internal sealed class StubInferenceProviderConfigurationStore : IInferenceProviderConfigurationStore
+{
+    private readonly Dictionary<string, InferenceProviderConfiguration> _configurations =
+        new(StringComparer.Ordinal);
+
+    public StubInferenceProviderConfigurationStore(
+        InferenceProviderConfiguration? initialConfiguration = null,
+        bool selectInitialProvider = true)
+    {
+        if (initialConfiguration is not null)
+        {
+            _configurations[initialConfiguration.ProviderId] = initialConfiguration;
+
+            if (selectInitialProvider)
+            {
+                SelectedProviderId = initialConfiguration.ProviderId;
+            }
+        }
+    }
+
+    public string? SelectedProviderId { get; private set; }
+
+    public int SaveCount { get; private set; }
+
+    public InferenceProviderConfiguration? LastSavedConfiguration { get; private set; }
+
+    public Task<string?> LoadSelectedProviderIdAsync(
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult(SelectedProviderId);
+    }
+
+    public Task<InferenceProviderConfiguration?> LoadAsync(
+        string providerId,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        _configurations.TryGetValue(providerId, out InferenceProviderConfiguration? configuration);
+        return Task.FromResult(configuration);
+    }
+
+    public Task SaveAsync(
+        InferenceProviderConfiguration configuration,
+        bool selectProvider,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(configuration);
+        cancellationToken.ThrowIfCancellationRequested();
+        SaveCount++;
+        LastSavedConfiguration = configuration;
+        _configurations[configuration.ProviderId] = configuration;
+
+        if (selectProvider)
+        {
+            SelectedProviderId = configuration.ProviderId;
+        }
+
+        return Task.CompletedTask;
     }
 }
 
