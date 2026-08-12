@@ -17,7 +17,7 @@ internal static class Program
     [STAThread]
     public static void Main(string[] args)
     {
-        App.ConfigureMainViewModelFactory(CreateMainViewModel);
+        App.ConfigureShellViewModelFactory(CreateShellViewModel);
 
         try
         {
@@ -43,6 +43,11 @@ internal static class Program
 #endif
             .WithInterFont()
             .LogToTrace();
+    }
+
+    private static ShellViewModel CreateShellViewModel()
+    {
+        return new ShellViewModel(CreateMainViewModel());
     }
 
     private static MainViewModel CreateMainViewModel()
