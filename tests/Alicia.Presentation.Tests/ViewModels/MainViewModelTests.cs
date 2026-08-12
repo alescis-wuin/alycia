@@ -744,7 +744,34 @@ public sealed class MainViewModelTests
             inferenceProvider: provider);
 
         await viewModel.InitializeAsync().ConfigureAwait(true);
-        await viewModel.InstallProviderCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        TaskCompletionSource<bool> finalProgressObserved = new(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+
+        void HandleProviderProgressChanged(
+            object? sender,
+            System.ComponentModel.PropertyChangedEventArgs arguments)
+        {
+            if (arguments.PropertyName == nameof(MainViewModel.ProviderProgressValue)
+                && viewModel.ProviderProgressValue == 100d)
+            {
+                finalProgressObserved.TrySetResult(true);
+            }
+        }
+
+        viewModel.PropertyChanged += HandleProviderProgressChanged;
+
+        try
+        {
+            await viewModel.InstallProviderCommand.ExecuteAsync(null).ConfigureAwait(true);
+            await finalProgressObserved.Task.WaitAsync(
+                TimeSpan.FromSeconds(5),
+                TestContext.Current.CancellationToken).ConfigureAwait(true);
+        }
+        finally
+        {
+            viewModel.PropertyChanged -= HandleProviderProgressChanged;
+        }
 
         Assert.True(viewModel.IsProviderProgressVisible);
         Assert.False(viewModel.IsProviderProgressIndeterminate);
