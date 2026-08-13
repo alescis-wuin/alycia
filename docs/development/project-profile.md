@@ -2,7 +2,7 @@
 
 ```text
 PROJECT_NAME: Alicia
-REPOSITORY_FULL_NAME: pending owner decision
+REPOSITORY_FULL_NAME: alescis-wuin/alicia
 REPOSITORY_ROOT_NAME: alicia
 PRIMARY_LANGUAGE: C#
 FRAMEWORKS: .NET 10; Avalonia 12
@@ -18,13 +18,15 @@ TESTING_BRANCH: testing
 PRODUCTION_BRANCH: main
 DEFAULT_REMOTE: origin
 DEFAULT_BASE_REF: origin/develop
+CURRENT_WORK_BRANCH: feature/conversation-response
+REPOSITORY_REMOTE_URL: git@github.com:alescis-wuin/alicia.git
 WORK_BRANCH_REMOTE_CHECKPOINT_POLICY: push-after-each-validated-commit
 USER_SHELL: Bash-compatible repository tooling
 SUPPORTED_OPERATING_SYSTEMS: Windows; Linux; macOS (desktop host)
 BUILD_COMMAND: make build
 STATIC_ANALYSIS_COMMAND: dotnet build with warnings as errors; make format-check
 UNIT_TEST_COMMAND: make test
-INTEGRATION_TEST_COMMAND: pending feature requiring external boundary
+INTEGRATION_TEST_COMMAND: make test (hermetic provider and persistence contract coverage); real llama.cpp/CUDA process boundary is manual smoke
 E2E_TEST_COMMAND: pending interactive workflow implementation
 FORMAT_CHECK_COMMAND: make format-check
 DEPENDENCY_AUDIT_COMMAND: make audit
@@ -41,7 +43,6 @@ DEPLOYMENT_POLICY: pending release design
 
 ## Open owner decisions
 
-- GitHub repository full name and remote URL;
 - strict local-signature vs GitHub-merge compatibility mode;
 - license;
 - release numbering and tag naming;

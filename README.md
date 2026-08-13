@@ -4,7 +4,7 @@ Alicia is a cross-platform AI chat application built with C#, .NET, and Avalonia
 
 ## Status
 
-The repository contains the engineering foundation, a provider-neutral conversation core, local JSON conversation persistence, tested conversation lifecycle operations, a functional Avalonia conversation workspace, provider-neutral response generation/streaming, a real local llama.cpp CUDA adapter, and explicit provider/model configuration. The desktop UI can detect or install a managed Linux x64 CUDA build, select a registered provider, save a Hugging Face GGUF model plus optional runtime/generation overrides, launch `llama-server -hf`, stream the response incrementally, persist only the completed Assistant message, stop an active stream, and retry the same unanswered User message without duplicating it. Tool calling, retrieval, attachments, multimodality, and additional platform installers/hosts are intentionally deferred to later atomic work packages.
+The repository contains the engineering foundation, a provider-neutral conversation core, local JSON conversation persistence, tested conversation lifecycle operations, a functional Avalonia shell with dedicated Conversations/Provider/Models workspaces, provider-neutral response generation/streaming, a real local llama.cpp CUDA adapter, and explicit provider/model generation configuration including bounded reasoning. The desktop UI can detect or install a managed Linux x64 CUDA build, save a Hugging Face GGUF model plus optional runtime/generation overrides, launch `llama-server -hf`, stream visible content and separated reasoning incrementally, persist only the completed visible Assistant message, stop an active stream, and retry the same unanswered User message without duplicating it. Tool calling, retrieval, attachments, multimodality, and additional platform installers/hosts are intentionally deferred to later atomic work packages.
 
 ## Current platform target
 
@@ -48,40 +48,20 @@ make verify
 
 The current Avalonia presentation provides:
 
-- a persistent history sidebar ordered by recent activity;
-- conversation creation and selection;
-- contextual rename and delete actions revealed on pointer hover or keyboard focus;
-- orange edit and red delete icon actions with contextual tooltips and accessible names;
-- direct inline renaming that replaces the history title in place, focuses the editor, and selects the current title automatically;
-- Enter/Escape and inline save/cancel actions with presentation-side validation before domain persistence;
-- explicit two-step deletion confirmation with irreversible-action warning;
-- a multiline local message composer with Enter-to-send and Shift+Enter newline behavior;
-- user-message persistence through the existing provider-neutral append-message application use case;
-- complete non-streaming `User → Assistant` turn orchestration plus an additive streaming turn use case tied to the triggering user-message identifier;
-- a provider-neutral `IStreamingConversationResponder` boundary that delivers validated content deltas without replacing the existing non-streaming port;
-- an app-managed `llama.cpp CUDA` provider that is detected at startup and can be installed from the sidebar without manually cloning or building llama.cpp;
-- Linux x64 source compilation of the latest official llama.cpp release with `GGML_CUDA=ON`, `LLAMA_BUILD_TOOLS=ON`, `LLAMA_BUILD_SERVER=ON`, HTTPS support, and a static project build;
-- a Hugging Face repository field using `owner/model-GGUF[:quant]`, passed directly to `llama-server` through `-hf`;
-- an explicit provider registry and versioned global provider configuration stored separately from conversation history;
-- provider selection with no automatic fallback: unsaved or unavailable selections are never silently replaced;
-- optional context size, max-output-tokens, temperature, top-p, top-k, and seed controls whose blank values deliberately preserve provider/model defaults;
-- read-only migration of the Lot 08 llama.cpp `settings.json` model reference into the new configuration workflow;
-- automatic GPU-layer offload, loopback-only server binding, `/health` readiness checks, and OpenAI-compatible SSE streaming;
-- an Alicia-managed Hugging Face cache (`LLAMA_CACHE`) plus inherited `HF_TOKEN` support without storing the token in conversation or provider settings;
-- transient streamed Assistant projection in the workspace, with no partial response written to conversation history;
-- Stop and retry actions that discard partial output, preserve the persisted user message, and avoid resending it;
-- stale-history detection after streaming and before final assistant persistence so responses generated from changed history are rejected;
-- automatic message-list scrolling while streamed content grows plus recent-activity/sidebar refresh after successful completion;
-- visually distinct user, assistant, and system message projections with accessible labels;
-- message history rendering with role and timestamp projection;
-- dedicated loading, no-history, no-selection, and empty-conversation states;
-- visible error projection, phase-aware llama.cpp installation progress (including download/build percentage when available), live-region announcements, and refresh controls;
-- keyboard shortcuts for creation, refresh, rename, and cancellation;
-- responsive sidebar and content spacing driven by Avalonia container queries;
-- navigation/main accessibility landmarks, heading metadata, visible keyboard focus, and large control targets;
-- a high-contrast dark visual system with distinct selected, editing, success, and destructive states.
+- a persistent 56 px icon-only global rail with dedicated **Conversations**, **Provider**, and **Models** workspaces plus a delayed label flyout;
+- a Conversation-only history surface with create/select, title-and-content search, lazy three-message previews, contextual `…`/right-click Rename and Delete, and transient history collapse;
+- a polished conversation thread with transparent history/thread surfaces and an opaque click-to-focus composer as the primary input surface;
+- multiline composition with Enter-to-send, Shift+Enter newline, icon-only Send, provider-neutral message persistence, and stale-history protection;
+- explicit Provider detect/install/start/stop operations and phase-aware installation progress outside the Conversation sidebar;
+- explicit Models configuration for Hugging Face GGUF reference, optional context/generation overrides, reasoning enable/disable, and bounded reasoning tokens;
+- no automatic provider fallback: unsaved or unavailable selections are never silently replaced;
+- OpenAI-compatible SSE streaming with separate visible Content and Reasoning chunks;
+- a first-delta thinking indicator and darker collapsible reasoning-step surface while preserving only visible final Assistant content;
+- short Stop/Retry guard windows, cancellation that discards partial output, and retry of the existing unanswered User message without duplication;
+- reasoning kept as an ephemeral in-memory Presentation snapshot rather than silently persisted into conversation documents;
+- loading/empty/error states, keyboard accessibility, visible focus, accessible names, responsive spacing, and large interaction targets.
 
-Local user-message composition and streamed Assistant-response persistence are wired end to end. Partial deltas exist only in Presentation; Application concatenates the completed stream, revalidates conversation history, and persists one immutable Assistant message. `InferenceProviderRegistry` routes those deltas only through the explicitly selected provider, while `LlamaCppProviderRuntime` supplies them through a local `llama-server` process and the existing Application contracts remain provider-neutral. The automatic managed compiler path is intentionally limited to Linux x64 + NVIDIA CUDA for this lot; compatible externally installed CUDA `llama-server` executables can also be detected from `PATH`.
+The provider-neutral Application contracts remain independent of llama.cpp/CUDA/HTTP. The managed compiler path is intentionally limited to Linux x64 + NVIDIA CUDA for the current lot; compatible externally installed CUDA `llama-server` executables can also be detected from `PATH`.
 
 ## Documentation
 
@@ -97,6 +77,16 @@ Local user-message composition and streamed Assistant-response persistence are w
 - `docs/decisions/0009-provider-neutral-response-streaming.md`
 - `docs/decisions/0010-managed-llama-cpp-cuda-provider.md`
 - `docs/decisions/0011-provider-model-configuration.md`
+- `docs/decisions/0012-presentation-workspace-shell.md`
+- `docs/decisions/0013-global-navigation-rail.md`
+- `docs/decisions/0014-conversation-only-workspace.md`
+- `docs/decisions/0015-conversation-history-discovery.md`
+- `docs/decisions/0016-conversation-surface-polish.md`
+- `docs/decisions/0017-reasoning-aware-streaming.md`
+- `docs/development/roadmap.md`
+- `docs/design/ui-ux-specification.md`
+- `docs/user-guide/README.md`
+- `docs/operations/README.md`
 - `docs/development/project-profile.md`
 - `docs/local-dotnet-toolchain.md`
 - `docs/patch-packages.md`

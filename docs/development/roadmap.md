@@ -1,0 +1,196 @@
+# Alicia — Roadmap consolidée des Lots et tracks UIX
+
+**Référence :** 13 août 2026
+**Branche de continuité :** `feature/conversation-response`
+**Checkpoint publié avant cette synchronisation :** `c51f1ef4be80951fd97abac05d9a13d9c213dd18`
+
+## Principe
+
+La roadmap possède deux axes complémentaires.
+
+### Lots racines
+
+Ils font évoluer les capacités métier et techniques :
+
+```text
+Conversation → génération → provider → robustesse → provenance → RAG → tools → multimodal → release
+```
+
+### Tracks UIX
+
+Ils font évoluer l'expérience transverse :
+
+```text
+navigation → surfaces → interaction → visualisation → context/profile UX
+```
+
+UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat métier doit attendre ce contrat plutôt que le simuler uniquement en Presentation.
+
+## État synthétique
+
+| Lot / Track | État | Checkpoint principal |
+|---|---:|---|
+| Fondation | terminé | `9d225f8` |
+| Lot 01 Conversation core | terminé | `bb99fd7` |
+| Lot 02 Persistence | terminé | `ee6b9ea` |
+| Lot 03 Lifecycle | terminé | `ca228e5` |
+| Presentation 01–03 | terminé | `da06731` → `d4b094d` |
+| Lot 04 Local composition | terminé | `a10fafa`, `08e2776` |
+| Lot 05 Response port | terminé | `fcc9cf6` |
+| Lot 06 Complete non-streaming turn | terminé | `cead4d9` |
+| Lot 07 Streaming | terminé | `eb77261` |
+| Lot 08 llama.cpp CUDA | terminé | `427e25c` |
+| Lot 09 Provider/model configuration | terminé | `cf0a5c5` + stabilisations |
+| UIX-01 Stages 1–7 | terminé | `ed4cc29` → `c51f1ef` |
+| Lot 10 Robustesse/sécurité/observabilité | prochain lot racine | à faire |
+| UIX-01 Stages 8–10 | planifié | après Lot 10.1/10.2 |
+| Lot 10B Profiles/revisions/provenance/context | planifié | à faire |
+| Lot 11 RAG foundation | planifié | à faire |
+| Lot 12 Retrieval/grounded generation | planifié | à faire |
+| Lot 13 Tools/MCP/agents | planifié | à faire |
+| Lot 14 Attachments/multimodal | planifié | à faire |
+| Lot 15 Platform/release | planifié | à faire |
+
+## Lot 10 — Robustesse provider / sécurité / observabilité
+
+### 10.1 Serveur local sécurisé — P0
+
+- limiter CORS à localhost ;
+- désactiver la Web UI llama.cpp pour le process géré ;
+- utiliser une API key aléatoire éphémère ;
+- authentifier le client local ;
+- tester la non-fuite du secret.
+
+### 10.2 Port et ownership — P0
+
+- supprimer l'hypothèse globale du port `8080` ;
+- choisir un port loopback disponible par lancement ;
+- rattacher endpoint et secret à l'instance runtime ;
+- ne pas accepter le `/health` d'un autre process comme preuve d'ownership.
+
+### 10.3 Timeouts et erreurs
+
+- timeout de readiness ;
+- timeout HTTP contrôlé ;
+- process-exit/crash detection ;
+- classification `Missing/Unsupported/Faulted/Network/Model` ;
+- messages utilisateur sûrs.
+
+### 10.4 Retry
+
+- aucun retry automatique d'une génération ambiguë ;
+- retry seulement aux frontières idempotentes ;
+- cancellation respectée.
+
+### 10.5 Version / update llama.cpp
+
+- version installée et version validée/pinnée ;
+- check update ;
+- update explicite ;
+- rollback/conservation de l'ancienne version si pertinent.
+
+### 10.6 Uninstall / cache
+
+- runtime only ;
+- runtime + modèles/cache ;
+- confirmations explicites ;
+- aucune destruction implicite.
+
+### 10.7 Observabilité
+
+- provider/model/version ;
+- latence ;
+- prompt/eval timing si accessible ;
+- input/output token usage ;
+- cancellation/failure ;
+- aucun prompt/message brut dans les logs par défaut.
+
+## UIX-01 — Stages restant avant clôture foundation
+
+### Stage 8 — FOLLOWING / DETACHED + UI state
+
+- state machine scroll ;
+- seuil cible ~96 px ;
+- streaming ne force jamais le scroll en DETACHED ;
+- bouton ↓ ;
+- restore per conversation ;
+- persistence historique expanded/collapsed ;
+- auto-collapse narrow ;
+- Reduced Motion pour le thinking indicator.
+
+### Stage 9 — Décomposition Presentation
+
+Réduire progressivement le monolithe `MainViewModel` sans modifier les contrats Domain/Application :
+
+```text
+ConversationWorkspaceViewModel
+ConversationHistoryViewModel
+ConversationStreamViewModel
+ProviderViewModel
+ModelViewModel
+GenerationSettingsViewModel
+```
+
+### Stage 10 — History / gates / responsive completion
+
+- conversation icon et menu de changement ;
+- icon/color persistés ;
+- configuration gate / onboarding sans provider ou modèle ;
+- responsive final ;
+- delete modal final ;
+- accessibility / Reduced Motion pass.
+
+## Lot 10B — Generation state / revisions / provenance / context
+
+Introduire avant RAG :
+
+- `GenerationSnapshot` immuable ;
+- profils de génération ;
+- révisions de messages ;
+- provenance et contexte attachés à la génération ;
+- branchement de conversation sur révision ;
+- budget de contexte explicite.
+
+## Lots 11 à 15
+
+### Lot 11 — RAG foundation
+
+Knowledge-base Domain, ingestion, chunking, metadata, embeddings, vector store, index lifecycle et tests.
+
+### Lot 12 — Retrieval + grounded generation
+
+Hybrid retrieval, reranking, context budget, citations, grounded prompt/no-answer, dataset d'évaluation et métriques.
+
+### Lot 13 — Tools/MCP/agents
+
+Tool model, function calls/results, permissions, confirmations utilisateur, audit log et MCP. Le framework agent ne doit être réévalué qu'à cette étape.
+
+### Lot 14 — Multimodal
+
+Structured message parts, attachments, stockage image/fichier, mapping provider, UI multimodale et limites de sécurité/taille.
+
+### Lot 15 — Release/platform
+
+Packaging Windows/Linux/macOS, update channel, crash reporting, localisation, E2E, performance, accessibilité, priorités mobile/browser, licence et version/tag/release process.
+
+## Séquence recommandée
+
+```text
+Docs sync
+   ↓
+Lot 10.1 + 10.2 P0 security/ownership
+   ↓
+UIX-01 Stage 8
+   ↓
+UIX-01 Stage 9
+   ↓
+UIX-01 Stage 10
+   ↓
+Lot 10.3–10.7
+   ↓
+Lot 10B
+   ↓
+UIX-02 / UIX-03
+   ↓
+Lot 11 → 15
+```
