@@ -1,5 +1,6 @@
 using System.Collections.Specialized;
 using System.ComponentModel;
+using Alicia.Presentation.State;
 using Alicia.Presentation.ViewModels;
 using Avalonia;
 using Avalonia.Controls;
@@ -11,6 +12,8 @@ namespace Alicia.Presentation.Views;
 
 public partial class MainView : UserControl
 {
+    private const double NarrowConversationLayoutWidth = 780d;
+
     private static readonly string[] _thinkingIndicatorFrames =
     [
         "Alicia réfléchit.",
@@ -22,6 +25,7 @@ public partial class MainView : UserControl
     private bool _messageScrollPending;
     private MainViewModel? _subscribedViewModel;
     private readonly HashSet<MessageViewModel> _subscribedMessages = [];
+    private readonly DispatcherTimer _scrollPersistenceTimer;
     private readonly DispatcherTimer _thinkingIndicatorTimer;
     private int _thinkingIndicatorFrameIndex;
 
@@ -34,6 +38,12 @@ public partial class MainView : UserControl
             Interval = TimeSpan.FromMilliseconds(420),
         };
         _thinkingIndicatorTimer.Tick += OnThinkingIndicatorTick;
+
+        _scrollPersistenceTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(300),
+        };
+        _scrollPersistenceTimer.Tick += OnScrollPersistenceTimerTick;
 
         MessageComposer.AddHandler(
             InputElement.KeyDownEvent,
@@ -53,6 +63,8 @@ public partial class MainView : UserControl
         }
 
         SubscribeToMessages(viewModel);
+        viewModel.SetConversationHistoryNarrowLayout(
+            Bounds.Width <= NarrowConversationLayoutWidth);
 
         if (!_initialized)
         {
@@ -61,15 +73,33 @@ public partial class MainView : UserControl
         }
 
         UpdateThinkingIndicatorAnimation();
-        ScrollMessagesToEnd();
+        RestoreConversationScrollPosition();
     }
 
-    private void OnUnloaded(object? sender, RoutedEventArgs eventArgs)
+    private async void OnUnloaded(object? sender, RoutedEventArgs eventArgs)
     {
         _ = sender;
         _ = eventArgs;
         _thinkingIndicatorTimer.Stop();
+        _scrollPersistenceTimer.Stop();
+
+        if (_subscribedViewModel is MainViewModel viewModel)
+        {
+            await viewModel.PersistConversationUiStateAsync().ConfigureAwait(true);
+        }
+
         UnsubscribeFromMessages();
+    }
+
+    private void OnMainViewSizeChanged(object? sender, SizeChangedEventArgs eventArgs)
+    {
+        _ = sender;
+
+        if (DataContext is MainViewModel viewModel)
+        {
+            viewModel.SetConversationHistoryNarrowLayout(
+                eventArgs.NewSize.Width <= NarrowConversationLayoutWidth);
+        }
     }
 
     private async void OnConversationPreviewPointerEntered(
@@ -143,8 +173,7 @@ public partial class MainView : UserControl
         }
 
         await viewModel.SendMessageCommand.ExecuteAsync(null).ConfigureAwait(true);
-
-        ScrollMessagesToEnd();
+        ScrollMessagesIfFollowing();
 
         if (viewModel.HasSelectedConversation)
         {
@@ -161,6 +190,7 @@ public partial class MainView : UserControl
 
         UnsubscribeFromMessages();
         _subscribedViewModel = viewModel;
+        _subscribedViewModel.PropertyChanged += OnViewModelPropertyChanged;
         _subscribedViewModel.Messages.CollectionChanged += OnMessagesCollectionChanged;
         SynchronizeMessageSubscriptions();
     }
@@ -169,6 +199,7 @@ public partial class MainView : UserControl
     {
         if (_subscribedViewModel is not null)
         {
+            _subscribedViewModel.PropertyChanged -= OnViewModelPropertyChanged;
             _subscribedViewModel.Messages.CollectionChanged -= OnMessagesCollectionChanged;
             _subscribedViewModel = null;
         }
@@ -181,13 +212,26 @@ public partial class MainView : UserControl
         _subscribedMessages.Clear();
     }
 
+    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
+    {
+        _ = sender;
+
+        if (string.Equals(
+            eventArgs.PropertyName,
+            nameof(MainViewModel.ConversationScrollRestoreRevision),
+            StringComparison.Ordinal))
+        {
+            RestoreConversationScrollPosition();
+        }
+    }
+
     private void OnMessagesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs eventArgs)
     {
         _ = sender;
         _ = eventArgs;
         SynchronizeMessageSubscriptions();
         UpdateThinkingIndicatorAnimation();
-        ScrollMessagesToEnd();
+        ScrollMessagesIfFollowing();
     }
 
     private void OnMessagePropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
@@ -203,7 +247,7 @@ public partial class MainView : UserControl
                 nameof(MessageViewModel.ReasoningRevision),
                 StringComparison.Ordinal))
         {
-            ScrollMessagesToEnd();
+            ScrollMessagesIfFollowing();
         }
 
         if (string.Equals(
@@ -266,6 +310,14 @@ public partial class MainView : UserControl
             return;
         }
 
+        if (_subscribedViewModel?.IsReducedMotionEnabled == true)
+        {
+            _thinkingIndicatorTimer.Stop();
+            _thinkingIndicatorFrameIndex = 0;
+            waitingMessage.SetThinkingIndicatorText("Alicia réfléchit…");
+            return;
+        }
+
         waitingMessage.SetThinkingIndicatorText(
             _thinkingIndicatorFrames[_thinkingIndicatorFrameIndex]);
 
@@ -281,6 +333,101 @@ public partial class MainView : UserControl
             .LastOrDefault(message => message.IsStreaming && message.IsWaitingForFirstDelta);
     }
 
+    private void OnMessagesScrollChanged(object? sender, ScrollChangedEventArgs eventArgs)
+    {
+        _ = sender;
+
+        if (_subscribedViewModel is not MainViewModel viewModel
+            || !viewModel.HasSelectedConversation)
+        {
+            return;
+        }
+
+        bool layoutChanged = eventArgs.ExtentDelta.X != 0
+            || eventArgs.ExtentDelta.Y != 0
+            || eventArgs.ViewportDelta.X != 0
+            || eventArgs.ViewportDelta.Y != 0;
+
+        if (layoutChanged)
+        {
+            ScrollMessagesIfFollowing();
+            return;
+        }
+
+        double maximumVerticalOffset = Math.Max(
+            0,
+            MessagesScrollViewer.Extent.Height - MessagesScrollViewer.Viewport.Height);
+        bool userMovedUp = eventArgs.OffsetDelta.Y < -0.5;
+
+        viewModel.ReportConversationScrollPosition(
+            MessagesScrollViewer.Offset.Y,
+            maximumVerticalOffset,
+            userMovedUp);
+        ScheduleScrollPersistence();
+    }
+
+    private void ScheduleScrollPersistence()
+    {
+        _scrollPersistenceTimer.Stop();
+        _scrollPersistenceTimer.Start();
+    }
+
+    private async void OnScrollPersistenceTimerTick(object? sender, EventArgs eventArgs)
+    {
+        _ = sender;
+        _ = eventArgs;
+        _scrollPersistenceTimer.Stop();
+
+        if (_subscribedViewModel is MainViewModel viewModel)
+        {
+            await viewModel.PersistConversationUiStateAsync().ConfigureAwait(true);
+        }
+    }
+
+    private void ScrollMessagesIfFollowing()
+    {
+        if (_subscribedViewModel?.CurrentConversationScrollMode
+            == ConversationScrollMode.Following)
+        {
+            ScrollMessagesToEnd();
+        }
+    }
+
+    private void RestoreConversationScrollPosition()
+    {
+        if (_messageScrollPending)
+        {
+            return;
+        }
+
+        _messageScrollPending = true;
+        Dispatcher.UIThread.Post(
+            () =>
+            {
+                _messageScrollPending = false;
+
+                if (_subscribedViewModel is not MainViewModel viewModel
+                    || !viewModel.HasSelectedConversation)
+                {
+                    return;
+                }
+
+                if (viewModel.CurrentConversationScrollMode == ConversationScrollMode.Following)
+                {
+                    MessagesScrollViewer.ScrollToEnd();
+                    return;
+                }
+
+                double maximumVerticalOffset = Math.Max(
+                    0,
+                    MessagesScrollViewer.Extent.Height - MessagesScrollViewer.Viewport.Height);
+                MessagesScrollViewer.Offset = new Vector(
+                    MessagesScrollViewer.Offset.X,
+                    Math.Min(viewModel.CurrentConversationScrollOffset, maximumVerticalOffset));
+            },
+            DispatcherPriority.Background);
+    }
+
     private void ScrollMessagesToEnd()
     {
         if (_messageScrollPending)
@@ -293,7 +440,12 @@ public partial class MainView : UserControl
             () =>
             {
                 _messageScrollPending = false;
-                MessagesScrollViewer.ScrollToEnd();
+
+                if (_subscribedViewModel?.CurrentConversationScrollMode
+                    == ConversationScrollMode.Following)
+                {
+                    MessagesScrollViewer.ScrollToEnd();
+                }
             },
             DispatcherPriority.Background);
     }

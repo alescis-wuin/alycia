@@ -1,6 +1,7 @@
 using Alicia.Application.Conversations;
 using Alicia.Application.Providers;
 using Alicia.Domain.Conversations;
+using Alicia.Presentation.State;
 using Alicia.Presentation.ViewModels;
 
 namespace Alicia.Presentation.Tests.ViewModels;
@@ -1068,6 +1069,172 @@ public sealed class MainViewModelTests
     }
 
     [Fact]
+    public async Task ConversationUiStateRestoresPerConversationAfterInitializationAndSelection()
+    {
+        DateTimeOffset createdAt = new(2026, 8, 13, 1, 0, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        Conversation older = new(ConversationId.New(), "Older", createdAt, createdAt);
+        older.AddMessage(new ChatMessage(
+            MessageId.New(),
+            MessageRole.User,
+            "Older message",
+            createdAt.AddMinutes(1)));
+        repository.Seed(older);
+
+        Conversation newer = new(
+            ConversationId.New(),
+            "Newer",
+            createdAt.AddHours(1),
+            createdAt.AddHours(1));
+        newer.AddMessage(new ChatMessage(
+            MessageId.New(),
+            MessageRole.Assistant,
+            "Newer message",
+            createdAt.AddHours(1).AddMinutes(1)));
+        repository.Seed(newer);
+
+        ConversationUiStateSnapshot snapshot = ConversationUiStateSnapshot.Default
+            .WithConversationScrollState(
+                newer.Id,
+                new ConversationScrollState(ConversationScrollMode.Detached, 144))
+            .WithConversationScrollState(
+                older.Id,
+                new ConversationScrollState(ConversationScrollMode.Detached, 72));
+        StubConversationUiStateStore uiStateStore = new(snapshot);
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(createdAt.AddHours(2)),
+            conversationUiStateStore: uiStateStore);
+
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        Assert.Equal(newer.Id, viewModel.SelectedConversation?.Id);
+        Assert.Equal(ConversationScrollMode.Detached, viewModel.CurrentConversationScrollMode);
+        Assert.Equal(144d, viewModel.CurrentConversationScrollOffset);
+        Assert.True(viewModel.ShowScrollToLatestButton);
+
+        ConversationListItemViewModel olderItem = Assert.Single(
+            viewModel.Conversations,
+            item => item.Id == older.Id);
+        await olderItem.SelectCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.Equal(older.Id, viewModel.SelectedConversation?.Id);
+        Assert.Equal(ConversationScrollMode.Detached, viewModel.CurrentConversationScrollMode);
+        Assert.Equal(72d, viewModel.CurrentConversationScrollOffset);
+    }
+
+    [Fact]
+    public async Task ScrollDetachesPastThresholdAndOnlyExplicitActionRefollows()
+    {
+        DateTimeOffset createdAt = new(2026, 8, 13, 1, 15, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        Conversation conversation = new(ConversationId.New(), "Scroll", createdAt, createdAt);
+        conversation.AddMessage(new ChatMessage(
+            MessageId.New(),
+            MessageRole.Assistant,
+            "Long answer",
+            createdAt.AddMinutes(1)));
+        repository.Seed(conversation);
+        StubConversationUiStateStore uiStateStore = new();
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(createdAt.AddHours(1)),
+            conversationUiStateStore: uiStateStore);
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        viewModel.ReportConversationScrollPosition(625, 720, userMovedUp: true);
+        Assert.Equal(ConversationScrollMode.Following, viewModel.CurrentConversationScrollMode);
+
+        viewModel.ReportConversationScrollPosition(600, 720, userMovedUp: true);
+        Assert.Equal(ConversationScrollMode.Detached, viewModel.CurrentConversationScrollMode);
+        Assert.Equal(600d, viewModel.CurrentConversationScrollOffset);
+        Assert.True(viewModel.ShowScrollToLatestButton);
+
+        viewModel.ReportConversationScrollPosition(720, 720, userMovedUp: false);
+        Assert.Equal(ConversationScrollMode.Detached, viewModel.CurrentConversationScrollMode);
+        Assert.Equal(720d, viewModel.CurrentConversationScrollOffset);
+
+        await viewModel.ScrollToLatestCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.Equal(ConversationScrollMode.Following, viewModel.CurrentConversationScrollMode);
+        Assert.False(viewModel.ShowScrollToLatestButton);
+        Assert.Equal(1, uiStateStore.SaveCount);
+    }
+
+    [Fact]
+    public async Task SendingAUserMessageReturnsDetachedConversationToFollowing()
+    {
+        DateTimeOffset createdAt = new(2026, 8, 13, 1, 30, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        Conversation conversation = new(ConversationId.New(), "Send", createdAt, createdAt);
+        conversation.AddMessage(new ChatMessage(
+            MessageId.New(),
+            MessageRole.Assistant,
+            "Previous answer",
+            createdAt.AddMinutes(1)));
+        repository.Seed(conversation);
+        StubConversationUiStateStore uiStateStore = new();
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(createdAt.AddHours(1)),
+            conversationUiStateStore: uiStateStore);
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+        viewModel.ReportConversationScrollPosition(300, 500, userMovedUp: true);
+        Assert.Equal(ConversationScrollMode.Detached, viewModel.CurrentConversationScrollMode);
+
+        viewModel.MessageDraft = "Continue";
+        await viewModel.SendMessageCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.Equal(ConversationScrollMode.Following, viewModel.CurrentConversationScrollMode);
+        Assert.False(viewModel.ShowScrollToLatestButton);
+        Assert.True(uiStateStore.SaveCount >= 1);
+    }
+
+    [Fact]
+    public async Task NarrowHistoryAutoCollapsePreservesExpandedPreferenceUntilExplicitToggle()
+    {
+        DateTimeOffset createdAt = new(2026, 8, 13, 1, 45, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        StubConversationUiStateStore uiStateStore = new(ConversationUiStateSnapshot.Default);
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(createdAt),
+            conversationUiStateStore: uiStateStore);
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        Assert.True(viewModel.IsConversationHistoryExpanded);
+        viewModel.SetConversationHistoryNarrowLayout(isNarrow: true);
+        Assert.True(viewModel.IsConversationHistoryCollapsed);
+        Assert.True(uiStateStore.Snapshot.IsConversationHistoryExpanded);
+
+        await viewModel.ToggleConversationHistoryCommand.ExecuteAsync(null).ConfigureAwait(true);
+        Assert.True(viewModel.IsConversationHistoryExpanded);
+        Assert.Equal(0, uiStateStore.SaveCount);
+
+        viewModel.SetConversationHistoryNarrowLayout(isNarrow: false);
+        Assert.True(viewModel.IsConversationHistoryExpanded);
+
+        await viewModel.ToggleConversationHistoryCommand.ExecuteAsync(null).ConfigureAwait(true);
+        Assert.True(viewModel.IsConversationHistoryCollapsed);
+        Assert.False(uiStateStore.Snapshot.IsConversationHistoryExpanded);
+        Assert.Equal(1, uiStateStore.SaveCount);
+    }
+
+    [Fact]
+    public async Task ReducedMotionPreferenceIsProjectedToPresentation()
+    {
+        InMemoryConversationRepository repository = new();
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(new DateTimeOffset(2026, 8, 13, 2, 0, 0, TimeSpan.Zero)),
+            isReducedMotionEnabled: true);
+
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        Assert.True(viewModel.IsReducedMotionEnabled);
+    }
+
+    [Fact]
     public async Task StopProviderReturnsRuntimeToReadyState()
     {
         InMemoryConversationRepository repository = new();
@@ -1094,7 +1261,9 @@ public sealed class MainViewModelTests
         IInferenceProviderRegistry? providerRegistry = null,
         IInferenceProviderConfigurationStore? providerConfigurationStore = null,
         TimeSpan? responseStopLockDuration = null,
-        TimeSpan? retryResponseLockDuration = null)
+        TimeSpan? retryResponseLockDuration = null,
+        IConversationUiStateStore? conversationUiStateStore = null,
+        bool isReducedMotionEnabled = false)
     {
         IStreamingConversationResponder resolvedResponder =
             responder ?? new DeterministicConversationResponder("Development response");
@@ -1123,6 +1292,8 @@ public sealed class MainViewModelTests
             resolvedRegistry,
             resolvedConfigurationStore,
             responseStopLockDuration ?? TimeSpan.Zero,
-            retryResponseLockDuration ?? TimeSpan.Zero);
+            retryResponseLockDuration ?? TimeSpan.Zero,
+            conversationUiStateStore,
+            isReducedMotionEnabled);
     }
 }

@@ -44,8 +44,9 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 | UIX-01 Stages 1–7 | terminé | `ed4cc29` → `c51f1ef` |
 | Lot 10 Robustesse/sécurité/observabilité | en cours | 10.1/10.2 terminés sur cette branche |
 | Lot 10.1/10.2 sécurité + ownership | terminé | session locale durcie |
-| UIX-01 Stage 8 | prochain track | FOLLOWING / DETACHED + UI state |
-| UIX-01 Stages 9–10 | planifié | après Stage 8 |
+| UIX-01 Stage 8 | terminé | FOLLOWING / DETACHED + UI state |
+| UIX-01 Stage 9 | prochain track | décomposition Presentation |
+| UIX-01 Stage 10 | planifié | après Stage 9 |
 | Lot 10B Profiles/revisions/provenance/context | planifié | à faire |
 | Lot 11 RAG foundation | planifié | à faire |
 | Lot 12 Retrieval/grounded generation | planifié | à faire |
@@ -107,9 +108,9 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 - cancellation/failure ;
 - aucun prompt/message brut dans les logs par défaut.
 
-## UIX-01 — Stages restant avant clôture foundation
+## UIX-01 — Stages 8–10 de clôture foundation
 
-### Stage 8 — FOLLOWING / DETACHED + UI state
+### Stage 8 — FOLLOWING / DETACHED + UI state — terminé
 
 - state machine scroll ;
 - seuil cible ~96 px ;
@@ -182,9 +183,9 @@ Docs sync — terminé
    ↓
 Lot 10.1 + 10.2 P0 security/ownership — terminé
    ↓
-UIX-01 Stage 8 — prochain
+UIX-01 Stage 8 — terminé
    ↓
-UIX-01 Stage 9
+UIX-01 Stage 9 — prochain
    ↓
 UIX-01 Stage 10
    ↓

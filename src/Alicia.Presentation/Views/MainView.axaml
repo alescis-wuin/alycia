@@ -5,7 +5,8 @@
              x:Class="Alicia.Presentation.Views.MainView"
              x:DataType="vm:MainViewModel"
              Loaded="OnLoaded"
-             Unloaded="OnUnloaded">
+             Unloaded="OnUnloaded"
+             SizeChanged="OnMainViewSizeChanged">
   <UserControl.KeyBindings>
     <KeyBinding Gesture="Ctrl+N" Command="{Binding CreateConversationCommand}" />
     <KeyBinding Gesture="F5" Command="{Binding RefreshCommand}" />
@@ -515,7 +516,8 @@
             <ScrollViewer x:Name="MessagesScrollViewer"
                           VerticalScrollBarVisibility="Auto"
                           HorizontalScrollBarVisibility="Disabled"
-                          IsVisible="{Binding HasMessages}">
+                          IsVisible="{Binding HasMessages}"
+                          ScrollChanged="OnMessagesScrollChanged">
               <ItemsControl ItemsSource="{Binding Messages}"
                             Margin="0,0,18,0"
                             AutomationProperties.Name="Conversation messages"
@@ -568,6 +570,22 @@
                 </ItemsControl.ItemTemplate>
               </ItemsControl>
             </ScrollViewer>
+
+            <Button Classes="scroll-to-latest-action"
+                    Margin="0,0,18,12"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Bottom"
+                    ZIndex="30"
+                    IsVisible="{Binding ShowScrollToLatestButton}"
+                    Command="{Binding ScrollToLatestCommand}"
+                    AutomationProperties.Name="Scroll to latest message"
+                    AutomationProperties.HelpText="Return to the latest conversation content and resume following streamed output."
+                    ToolTip.Tip="Scroll to latest message">
+              <PathIcon Width="20"
+                        Height="20"
+                        Foreground="{DynamicResource TextPrimaryBrush}"
+                        Data="M6.7,9.3 L12,14.6 L17.3,9.3 L15.9,7.9 L12,11.8 L8.1,7.9 Z" />
+            </Button>
           </Grid>
         </Border>
 

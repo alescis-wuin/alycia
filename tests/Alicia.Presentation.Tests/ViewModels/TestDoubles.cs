@@ -2,6 +2,7 @@ using System.Runtime.CompilerServices;
 using Alicia.Application.Conversations;
 using Alicia.Application.Providers;
 using Alicia.Domain.Conversations;
+using Alicia.Presentation.State;
 
 namespace Alicia.Presentation.Tests.ViewModels;
 
@@ -445,6 +446,39 @@ internal sealed class StubInferenceProviderConfigurationStore : IInferenceProvid
             SelectedProviderId = configuration.ProviderId;
         }
 
+        return Task.CompletedTask;
+    }
+}
+
+internal sealed class StubConversationUiStateStore : IConversationUiStateStore
+{
+    public StubConversationUiStateStore(ConversationUiStateSnapshot? snapshot = null)
+    {
+        Snapshot = snapshot ?? ConversationUiStateSnapshot.Default;
+    }
+
+    public ConversationUiStateSnapshot Snapshot { get; private set; }
+
+    public int LoadCount { get; private set; }
+
+    public int SaveCount { get; private set; }
+
+    public Task<ConversationUiStateSnapshot> LoadAsync(
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        LoadCount++;
+        return Task.FromResult(Snapshot);
+    }
+
+    public Task SaveAsync(
+        ConversationUiStateSnapshot snapshot,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        cancellationToken.ThrowIfCancellationRequested();
+        Snapshot = snapshot;
+        SaveCount++;
         return Task.CompletedTask;
     }
 }

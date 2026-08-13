@@ -1,7 +1,7 @@
 # Alicia — Spécification globale UI/UX et principes d’interaction
 
-**Version :** v0.2
-**Statut :** spécification consolidée — décisions normatives + addendum reasoning validé au Stage 7
+**Version :** v0.3
+**Statut :** spécification consolidée — décisions normatives + Stage 8 FOLLOWING/DETACHED et UI state implémentés
 **Cible :** Alicia Desktop (Avalonia, Windows/Linux/macOS)
 **Objectif :** fournir une interface simple, moderne, ludique, accessible et extensible sans accumuler de bruit visuel à mesure que les fonctions IA se complexifient.
 

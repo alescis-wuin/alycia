@@ -6,6 +6,7 @@ The desktop host resolves `.NET` `Environment.SpecialFolder.LocalApplicationData
 
 ```text
 Alicia/
+├── ui-state.json
 ├── conversations/
 └── providers/
     ├── configuration.json
@@ -17,6 +18,8 @@ Alicia/
 ```
 
 `providers/llama.cpp/models` is also supplied to llama.cpp as `LLAMA_CACHE`.
+
+`ui-state.json` is a versioned Presentation-only document for the explicit history-panel preference plus per-conversation scroll mode/offset. It is written atomically and is intentionally separate from conversation documents.
 
 ## Managed llama.cpp lifecycle
 
@@ -49,6 +52,17 @@ The Alicia-managed llama.cpp session is process-owned rather than a fixed localh
 The bind-probe socket is released before `llama-server` starts, so a narrow port race remains possible. The ownership handshake fails closed if another local process wins that race; retry/timeouts and richer error classification remain Lot 10.3/10.4 work.
 
 Credentials must not be copied into repository files or logs. `HF_TOKEN`, when set by the user environment, is inherited for Hugging Face access and is not stored in provider configuration.
+
+## Accessibility motion preference
+
+At Desktop startup Alicia probes a best-effort platform Reduced Motion preference. The Stage 7 thinking indicator becomes static when reduced motion is active. For deterministic testing or an explicit host override:
+
+```bash
+ALICIA_REDUCED_MOTION=1 make run
+ALICIA_REDUCED_MOTION=0 make run
+```
+
+The override affects Presentation motion only; it does not change generation behavior.
 
 ## Troubleshooting
 

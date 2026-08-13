@@ -11,7 +11,8 @@ The **Conversations** workspace owns the conversation history and chat surface.
 - Search history by title and message content.
 - Hover a history item to inspect its recent-message preview.
 - Rename or delete a conversation from its `…` menu or context menu.
-- The history panel can be collapsed for the current session.
+- The history panel can be collapsed; the explicit expanded/collapsed preference is restored on the next launch.
+- On narrow windows Alicia auto-collapses history without overwriting that explicit preference.
 
 ## Provider
 
@@ -48,11 +49,20 @@ Blank optional values preserve provider/model defaults. Save the configuration b
 
 The User message is persisted before generation. Partial Assistant output remains transient; only a successfully completed visible Assistant response is persisted.
 
+## Scroll and streaming
+
+Conversation scrolling has two states:
+
+- **FOLLOWING**: new streamed content stays followed at the bottom when needed;
+- **DETACHED**: after deliberately scrolling more than about 96 px above the bottom, streamed chunks never move the viewport.
+
+When detached, a floating **↓** action appears above the composer. Scrolling manually back to the bottom does not re-enable following; click **↓** or send a new User message to do that explicitly. The scroll state and vertical position are stored independently for each conversation and restored after switching conversations or restarting Alicia.
+
 ## Reasoning
 
 When reasoning is enabled and the selected model emits separated reasoning deltas:
 
-- Alicia shows a thinking indicator before the first delta;
+- Alicia shows a thinking indicator before the first delta; when Reduced Motion is active, that indicator stays static instead of cycling punctuation;
 - reasoning appears in a darker expandable section, separated from the final answer;
 - reasoning is an in-memory presentation snapshot only in the current implementation;
 - reloading the conversation or restarting Alicia discards that reasoning snapshot.
@@ -63,6 +73,7 @@ The desktop composition root stores Alicia data below `.NET`'s `LocalApplication
 
 ```text
 Alicia/
+├── ui-state.json
 ├── conversations/
 └── providers/
     ├── configuration.json
@@ -73,7 +84,9 @@ Alicia/
         └── releases/
 ```
 
-The exact platform path is resolved by `Environment.SpecialFolder.LocalApplicationData`.
+The exact platform path is resolved by `Environment.SpecialFolder.LocalApplicationData`. `ui-state.json` contains Presentation-only history/scroll state; it is not part of conversation history.
+
+For accessibility testing or as an explicit host override, `ALICIA_REDUCED_MOTION=1` forces reduced motion and `ALICIA_REDUCED_MOTION=0` forces the normal thinking animation.
 
 ## CUDA prerequisites
 

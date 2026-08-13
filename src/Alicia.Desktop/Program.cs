@@ -1,9 +1,11 @@
 using Alicia.Application.Conversations;
 using Alicia.Application.Providers;
+using Alicia.Desktop.Accessibility;
 using Alicia.Infrastructure.Conversations;
 using Alicia.Infrastructure.Providers;
 using Alicia.Infrastructure.Providers.LlamaCpp;
 using Alicia.Presentation;
+using Alicia.Presentation.State;
 using Alicia.Presentation.ViewModels;
 using Avalonia;
 
@@ -13,6 +15,8 @@ internal static class Program
 {
     private static LlamaCppProviderRuntime? _llamaCppRuntime;
     private static JsonInferenceProviderConfigurationStore? _providerConfigurationStore;
+    private static JsonConversationUiStateStore? _conversationUiStateStore;
+    private static MainViewModel? _mainViewModel;
 
     [STAThread]
     public static void Main(string[] args)
@@ -25,12 +29,15 @@ internal static class Program
         }
         finally
         {
+            _mainViewModel?.PersistConversationUiStateAsync().GetAwaiter().GetResult();
+
             if (_llamaCppRuntime is not null)
             {
                 _llamaCppRuntime.DisposeAsync().AsTask().GetAwaiter().GetResult();
             }
 
             _providerConfigurationStore?.Dispose();
+            _conversationUiStateStore?.Dispose();
         }
     }
 
@@ -52,10 +59,16 @@ internal static class Program
 
     private static MainViewModel CreateMainViewModel()
     {
+        if (_mainViewModel is not null)
+        {
+            return _mainViewModel;
+        }
+
         string localApplicationData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         string applicationDirectory = Path.Combine(localApplicationData, "Alicia");
         string storageDirectory = Path.Combine(applicationDirectory, "conversations");
         string providersDirectory = Path.Combine(applicationDirectory, "providers");
+        string uiStatePath = Path.Combine(applicationDirectory, "ui-state.json");
         string llamaCppDirectory = Path.Combine(providersDirectory, "llama.cpp");
         string providerConfigurationPath = Path.Combine(
             providersDirectory,
@@ -90,8 +103,10 @@ internal static class Program
             runtime.Repository,
             providerRegistry,
             timeProvider);
+        JsonConversationUiStateStore conversationUiStateStore =
+            _conversationUiStateStore ??= new JsonConversationUiStateStore(uiStatePath);
 
-        return new MainViewModel(
+        _mainViewModel = new MainViewModel(
             runtime.CreateConversation,
             runtime.AppendMessage,
             streamConversationTurn,
@@ -100,6 +115,9 @@ internal static class Program
             runtime.RenameConversation,
             runtime.DeleteConversation,
             providerRegistry,
-            providerConfigurationStore);
+            providerConfigurationStore,
+            conversationUiStateStore: conversationUiStateStore,
+            isReducedMotionEnabled: ReducedMotionPreference.IsEnabled());
+        return _mainViewModel;
     }
 }

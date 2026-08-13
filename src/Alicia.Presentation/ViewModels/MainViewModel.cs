@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using Alicia.Application.Conversations;
 using Alicia.Application.Providers;
 using Alicia.Domain.Conversations;
+using Alicia.Presentation.State;
 using Alicia.Presentation.Threading;
 using CommunityToolkit.Mvvm.Input;
 
@@ -10,6 +11,7 @@ namespace Alicia.Presentation.ViewModels;
 public sealed class MainViewModel : ViewModelBase
 {
     private const int DefaultReasoningBudgetTokens = 512;
+    private const double ScrollDetachThreshold = 96d;
 
     private static readonly TimeSpan _defaultResponseStopLockDuration = TimeSpan.FromMilliseconds(1200);
     private static readonly TimeSpan _defaultRetryResponseLockDuration = TimeSpan.FromMilliseconds(700);
@@ -23,6 +25,7 @@ public sealed class MainViewModel : ViewModelBase
     private readonly RenameConversationUseCase _renameConversation;
     private readonly IInferenceProviderRegistry _providerRegistry;
     private readonly IInferenceProviderConfigurationStore _providerConfigurationStore;
+    private readonly IConversationUiStateStore _conversationUiStateStore;
     private readonly TimeSpan _responseStopLockDuration;
     private readonly TimeSpan _retryResponseLockDuration;
     private readonly Dictionary<string, InferenceProviderConfiguration?> _providerConfigurations =
@@ -33,6 +36,8 @@ public sealed class MainViewModel : ViewModelBase
 
     private bool _isBusy;
     private bool _isConversationHistoryExpanded = true;
+    private bool _isConversationHistoryAutoCollapsed;
+    private bool _isNarrowConversationLayout;
     private bool _isHistorySearchBusy;
     private bool _isDeleteConfirmationVisible;
     private bool _isGeneratingResponse;
@@ -41,6 +46,7 @@ public sealed class MainViewModel : ViewModelBase
     private bool _isSendingMessage;
     private bool _isStopResponseUnlocked;
     private bool _isProviderBusy;
+    private readonly bool _isReducedMotionEnabled;
     private bool _providerReasoningEnabled;
     private ConversationId? _retryConversationId;
     private MessageId? _retryTriggeringMessageId;
@@ -48,6 +54,8 @@ public sealed class MainViewModel : ViewModelBase
     private CancellationTokenSource? _retryResponseUnlockCancellation;
     private CancellationTokenSource? _providerOperationCancellation;
     private ConversationListItemViewModel? _selectedConversation;
+    private ConversationUiStateSnapshot _conversationUiState = ConversationUiStateSnapshot.Default;
+    private int _conversationScrollRestoreRevision;
     private string? _errorMessage;
     private string _historySearchText = string.Empty;
     private string _messageDraft = string.Empty;
@@ -79,7 +87,9 @@ public sealed class MainViewModel : ViewModelBase
         IInferenceProviderRegistry providerRegistry,
         IInferenceProviderConfigurationStore providerConfigurationStore,
         TimeSpan? responseStopLockDuration = null,
-        TimeSpan? retryResponseLockDuration = null)
+        TimeSpan? retryResponseLockDuration = null,
+        IConversationUiStateStore? conversationUiStateStore = null,
+        bool isReducedMotionEnabled = false)
     {
         ArgumentNullException.ThrowIfNull(createConversation);
         ArgumentNullException.ThrowIfNull(appendMessage);
@@ -119,6 +129,9 @@ public sealed class MainViewModel : ViewModelBase
         _deleteConversation = deleteConversation;
         _providerRegistry = providerRegistry;
         _providerConfigurationStore = providerConfigurationStore;
+        _conversationUiStateStore = conversationUiStateStore
+            ?? new TransientConversationUiStateStore();
+        _isReducedMotionEnabled = isReducedMotionEnabled;
         _responseStopLockDuration = resolvedStopLockDuration;
         _retryResponseLockDuration = resolvedRetryLockDuration;
 
@@ -133,7 +146,10 @@ public sealed class MainViewModel : ViewModelBase
         ConfirmDeleteCommand = new AsyncRelayCommand(ConfirmDeleteAsync);
         CancelTransientActionCommand = new RelayCommand(CancelTransientAction);
         DismissErrorCommand = new RelayCommand(ClearError);
-        ToggleConversationHistoryCommand = new RelayCommand(ToggleConversationHistory);
+        ToggleConversationHistoryCommand = new AsyncRelayCommand(ToggleConversationHistoryAsync);
+        ScrollToLatestCommand = new AsyncRelayCommand(
+            ScrollToLatestAsync,
+            () => HasSelectedConversation && IsConversationScrollDetached);
         DetectProviderCommand = new AsyncRelayCommand(DetectProviderAsync, () => CanDetectProvider);
         InstallProviderCommand = new AsyncRelayCommand(InstallProviderAsync, () => CanInstallProvider);
         StartProviderCommand = new AsyncRelayCommand(StartProviderAsync, () => CanStartProvider);
@@ -171,7 +187,9 @@ public sealed class MainViewModel : ViewModelBase
 
     public IRelayCommand DismissErrorCommand { get; }
 
-    public IRelayCommand ToggleConversationHistoryCommand { get; }
+    public IAsyncRelayCommand ToggleConversationHistoryCommand { get; }
+
+    public IAsyncRelayCommand ScrollToLatestCommand { get; }
 
     public IAsyncRelayCommand DetectProviderCommand { get; }
 
@@ -644,6 +662,27 @@ public sealed class MainViewModel : ViewModelBase
 
     public bool IsConversationHistoryCollapsed => !IsConversationHistoryExpanded;
 
+    public bool IsReducedMotionEnabled => _isReducedMotionEnabled;
+
+    public ConversationScrollMode CurrentConversationScrollMode => SelectedConversation is null
+        ? ConversationScrollMode.Following
+        : _conversationUiState
+            .GetConversationScrollState(SelectedConversation.Id)
+            .Mode;
+
+    public double CurrentConversationScrollOffset => SelectedConversation is null
+        ? 0
+        : _conversationUiState
+            .GetConversationScrollState(SelectedConversation.Id)
+            .VerticalOffset;
+
+    public bool IsConversationScrollDetached =>
+        CurrentConversationScrollMode == ConversationScrollMode.Detached;
+
+    public bool ShowScrollToLatestButton => HasMessages && IsConversationScrollDetached;
+
+    public int ConversationScrollRestoreRevision => _conversationScrollRestoreRevision;
+
     public bool IsHistorySearchBusy
     {
         get => _isHistorySearchBusy;
@@ -725,6 +764,7 @@ public sealed class MainViewModel : ViewModelBase
             return;
         }
 
+        await LoadConversationUiStateAsync().ConfigureAwait(true);
         await ExecuteOperationAsync(LoadProviderConfigurationAsync).ConfigureAwait(true);
 
         if (SelectedProvider is not null)
@@ -738,6 +778,151 @@ public sealed class MainViewModel : ViewModelBase
         }).ConfigureAwait(true);
 
         IsInitialized = true;
+    }
+
+    public void SetConversationHistoryNarrowLayout(bool isNarrow)
+    {
+        if (_isNarrowConversationLayout == isNarrow)
+        {
+            return;
+        }
+
+        _isNarrowConversationLayout = isNarrow;
+        _isConversationHistoryAutoCollapsed = isNarrow
+            && _conversationUiState.IsConversationHistoryExpanded;
+        ApplyConversationHistoryExpansion();
+    }
+
+    public void ReportConversationScrollPosition(
+        double verticalOffset,
+        double maximumVerticalOffset,
+        bool userMovedUp)
+    {
+        if (SelectedConversation is null)
+        {
+            return;
+        }
+
+        if (!double.IsFinite(verticalOffset) || verticalOffset < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(verticalOffset));
+        }
+
+        if (!double.IsFinite(maximumVerticalOffset) || maximumVerticalOffset < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(maximumVerticalOffset));
+        }
+
+        double clampedOffset = Math.Min(verticalOffset, maximumVerticalOffset);
+        ConversationScrollState current = _conversationUiState
+            .GetConversationScrollState(SelectedConversation.Id);
+        ConversationScrollMode mode = current.Mode;
+        double distanceFromBottom = Math.Max(0, maximumVerticalOffset - clampedOffset);
+
+        if (mode == ConversationScrollMode.Following
+            && userMovedUp
+            && distanceFromBottom > ScrollDetachThreshold)
+        {
+            mode = ConversationScrollMode.Detached;
+        }
+
+        double storedOffset = mode == ConversationScrollMode.Detached
+            ? clampedOffset
+            : maximumVerticalOffset;
+        ConversationScrollState updated = new(mode, storedOffset);
+
+        if (updated == current)
+        {
+            return;
+        }
+
+        _conversationUiState = _conversationUiState.WithConversationScrollState(
+            SelectedConversation.Id,
+            updated);
+        RaiseConversationScrollStateChanged();
+    }
+
+    public async Task PersistConversationUiStateAsync(
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await _conversationUiStateStore
+                .SaveAsync(_conversationUiState, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
+    }
+
+    private async Task LoadConversationUiStateAsync()
+    {
+        _conversationUiState = await _conversationUiStateStore
+            .LoadAsync()
+            .ConfigureAwait(true);
+        _isConversationHistoryAutoCollapsed = _isNarrowConversationLayout
+            && _conversationUiState.IsConversationHistoryExpanded;
+        ApplyConversationHistoryExpansion();
+        RaiseConversationScrollStateChanged();
+    }
+
+    private void ApplyConversationHistoryExpansion()
+    {
+        IsConversationHistoryExpanded = _conversationUiState.IsConversationHistoryExpanded
+            && !_isConversationHistoryAutoCollapsed;
+    }
+
+    private async Task ScrollToLatestAsync()
+    {
+        if (SelectedConversation is null)
+        {
+            return;
+        }
+
+        SetConversationScrollFollowing(SelectedConversation.Id, requestRestore: true);
+        await PersistConversationUiStateAsync().ConfigureAwait(true);
+    }
+
+    private void SetConversationScrollFollowing(
+        ConversationId conversationId,
+        bool requestRestore)
+    {
+        ConversationScrollState current = _conversationUiState
+            .GetConversationScrollState(conversationId);
+
+        if (current.Mode != ConversationScrollMode.Following)
+        {
+            _conversationUiState = _conversationUiState.WithConversationScrollState(
+                conversationId,
+                new ConversationScrollState(
+                    ConversationScrollMode.Following,
+                    current.VerticalOffset));
+            RaiseConversationScrollStateChanged();
+        }
+
+        if (requestRestore)
+        {
+            RequestConversationScrollRestore();
+        }
+    }
+
+    private void RequestConversationScrollRestore()
+    {
+        _conversationScrollRestoreRevision++;
+        OnPropertyChanged(nameof(ConversationScrollRestoreRevision));
+    }
+
+    private void RaiseConversationScrollStateChanged()
+    {
+        OnPropertyChanged(nameof(CurrentConversationScrollMode));
+        OnPropertyChanged(nameof(CurrentConversationScrollOffset));
+        OnPropertyChanged(nameof(IsConversationScrollDetached));
+        OnPropertyChanged(nameof(ShowScrollToLatestButton));
+        ScrollToLatestCommand.NotifyCanExecuteChanged();
     }
 
     private async Task LoadProviderConfigurationAsync()
@@ -1405,6 +1590,9 @@ public sealed class MainViewModel : ViewModelBase
         ConversationId conversationId = SelectedConversation.Id;
         string content = MessageDraft.Trim();
 
+        SetConversationScrollFollowing(conversationId, requestRestore: true);
+        await PersistConversationUiStateAsync().ConfigureAwait(true);
+
         await ExecuteOperationAsync(async () =>
         {
             CancelAllRenames();
@@ -1685,6 +1873,9 @@ public sealed class MainViewModel : ViewModelBase
                 .ExecuteAsync(conversationId)
                 .ConfigureAwait(true);
 
+            _conversationUiState = _conversationUiState.WithoutConversation(conversationId);
+            await PersistConversationUiStateAsync().ConfigureAwait(true);
+
             IsDeleteConfirmationVisible = false;
             ClearSelection();
             await ReloadConversationsAsync(preferredConversationId: null).ConfigureAwait(true);
@@ -1842,6 +2033,7 @@ public sealed class MainViewModel : ViewModelBase
 
         IsDeleteConfirmationVisible = false;
         RaiseMessageStateChanged();
+        RequestConversationScrollRestore();
     }
 
     private void ClearSelection()
@@ -1861,9 +2053,20 @@ public sealed class MainViewModel : ViewModelBase
         }
     }
 
-    private void ToggleConversationHistory()
+    private async Task ToggleConversationHistoryAsync()
     {
-        IsConversationHistoryExpanded = !IsConversationHistoryExpanded;
+        if (_isConversationHistoryAutoCollapsed)
+        {
+            _isConversationHistoryAutoCollapsed = false;
+            ApplyConversationHistoryExpansion();
+            return;
+        }
+
+        bool isExpanded = !IsConversationHistoryExpanded;
+        _conversationUiState = _conversationUiState.WithHistoryExpanded(isExpanded);
+        _isConversationHistoryAutoCollapsed = false;
+        ApplyConversationHistoryExpansion();
+        await PersistConversationUiStateAsync().ConfigureAwait(true);
     }
 
     private void RestartHistorySearch()
@@ -2211,6 +2414,7 @@ public sealed class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(CanRetryResponse));
         SendMessageCommand.NotifyCanExecuteChanged();
         RetryResponseCommand.NotifyCanExecuteChanged();
+        RaiseConversationScrollStateChanged();
         RaiseMessageStateChanged();
         RaiseEmptyStateChanged();
     }
@@ -2220,6 +2424,8 @@ public sealed class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasMessages));
         OnPropertyChanged(nameof(IsSelectedConversationEmpty));
         OnPropertyChanged(nameof(SelectedConversationMeta));
+        OnPropertyChanged(nameof(ShowScrollToLatestButton));
+        ScrollToLatestCommand.NotifyCanExecuteChanged();
     }
 
     private void RaiseEmptyStateChanged()
