@@ -19,7 +19,7 @@ PRODUCTION_BRANCH: main
 DEFAULT_REMOTE: origin
 DEFAULT_BASE_REF: origin/develop
 CURRENT_WORK_BRANCH: feature/conversation-response
-CURRENT_NEXT_UIX_STAGE: UIX-01 Stage 10B — Configuration gate / onboarding
+CURRENT_NEXT_UIX_STAGE: UIX-01 Stage 10C — Responsive + delete modal
 PRESENTATION_UI_STATE: LocalApplicationData/Alicia/ui-state.json
 REPOSITORY_REMOTE_URL: git@github.com:alescis-wuin/alicia.git
 WORK_BRANCH_REMOTE_CHECKPOINT_POLICY: push-after-each-validated-commit

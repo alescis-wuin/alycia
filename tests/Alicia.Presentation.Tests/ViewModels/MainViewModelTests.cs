@@ -774,6 +774,7 @@ public sealed class MainViewModelTests
         Assert.Equal("Running", viewModel.ProviderStatusText);
         Assert.Equal("owner/model-GGUF:Q4_K_M", viewModel.ProviderModelReference);
         Assert.False(viewModel.CanInstallProvider);
+        Assert.False(viewModel.ConfigurationGate.IsVisible);
     }
 
     [Fact]
@@ -919,9 +920,126 @@ public sealed class MainViewModelTests
         await viewModel.InitializeAsync().ConfigureAwait(true);
         viewModel.MessageDraft = "Hello";
 
-        Assert.True(viewModel.IsComposerEnabled);
+        Assert.False(viewModel.IsComposerEnabled);
         Assert.False(viewModel.CanSendMessage);
-        Assert.Contains("Start the selected provider", viewModel.ComposerStatusText, StringComparison.Ordinal);
+        Assert.True(viewModel.ShowInlineConfigurationGate);
+        Assert.False(viewModel.ShowMessageComposer);
+        Assert.Equal(
+            ConversationConfigurationGateState.ProviderMissing,
+            viewModel.ConfigurationGate.State);
+        Assert.Equal("Install provider", viewModel.ConfigurationGate.PrimaryActionLabel);
+    }
+
+    [Fact]
+    public async Task ConfigurationGateInstallsThenLoadsReadyProvider()
+    {
+        DateTimeOffset createdAt = new(2026, 8, 13, 13, 30, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        repository.Seed(new Conversation(
+            ConversationId.New(),
+            "Gate flow",
+            createdAt,
+            createdAt));
+        StubInferenceProviderRuntime provider = new(InferenceProviderState.Missing);
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(createdAt.AddMinutes(1)),
+            inferenceProvider: provider);
+
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        Assert.Equal(
+            ConversationConfigurationGateState.ProviderMissing,
+            viewModel.ConfigurationGate.State);
+        Assert.True(viewModel.ConfigurationGate.IsPrimaryActionEnabled);
+
+        await viewModel.ConfigurationGatePrimaryCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.Equal(1, provider.InstallCount);
+        Assert.Equal(
+            ConversationConfigurationGateState.ProviderReadyToStart,
+            viewModel.ConfigurationGate.State);
+        Assert.Equal("Load model", viewModel.ConfigurationGate.PrimaryActionLabel);
+
+        await viewModel.ConfigurationGatePrimaryCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.Equal(1, provider.StartCount);
+        Assert.True(viewModel.IsProviderRunning);
+        Assert.False(viewModel.ConfigurationGate.IsVisible);
+        Assert.True(viewModel.ShowMessageComposer);
+        Assert.True(viewModel.IsComposerEnabled);
+    }
+
+    [Fact]
+    public async Task ConfigurationGateRequiresModelConfigurationForReadyProviderWithoutSavedModel()
+    {
+        DateTimeOffset createdAt = new(2026, 8, 13, 13, 35, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        repository.Seed(new Conversation(
+            ConversationId.New(),
+            "Needs model",
+            createdAt,
+            createdAt));
+        StubInferenceProviderRuntime provider = new(InferenceProviderState.Ready);
+        StubInferenceProviderConfigurationStore configurationStore = new();
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(createdAt.AddMinutes(1)),
+            inferenceProvider: provider,
+            providerConfigurationStore: configurationStore);
+
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        Assert.Equal(
+            ConversationConfigurationGateState.ModelConfigurationRequired,
+            viewModel.ConfigurationGate.State);
+        Assert.Equal("Configure model", viewModel.ConfigurationGate.PrimaryActionLabel);
+        Assert.True(viewModel.ShowInlineConfigurationGate);
+        Assert.False(viewModel.ShowMessageComposer);
+    }
+
+    [Fact]
+    public async Task ConfigurationGateUsesCentralOnboardingAndHidesEmptyHistoryWhenAiIsUnavailable()
+    {
+        InMemoryConversationRepository repository = new();
+        StubInferenceProviderRuntime provider = new(InferenceProviderState.Missing);
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(new DateTimeOffset(2026, 8, 13, 13, 40, 0, TimeSpan.Zero)),
+            inferenceProvider: provider);
+
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        Assert.True(viewModel.ShowConfigurationOnboarding);
+        Assert.False(viewModel.ShowInlineConfigurationGate);
+        Assert.False(viewModel.ShowReadyEmptyConversationState);
+        Assert.False(viewModel.ShowConversationHistoryPanel);
+        Assert.False(viewModel.ShowConversationHistoryReopenButton);
+    }
+
+    [Fact]
+    public async Task ConfigurationGateRoutesEmptyProviderRegistryToProviderSetup()
+    {
+        InMemoryConversationRepository repository = new();
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(new DateTimeOffset(2026, 8, 13, 13, 45, 0, TimeSpan.Zero)),
+            providerRegistry: new EmptyInferenceProviderRegistry(),
+            providerConfigurationStore: new StubInferenceProviderConfigurationStore());
+
+        ShellViewModel shell = new(viewModel);
+
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        Assert.Equal(
+            ConversationConfigurationGateState.NoProvider,
+            viewModel.ConfigurationGate.State);
+        Assert.Equal("Configure provider", viewModel.ConfigurationGate.PrimaryActionLabel);
+        Assert.True(viewModel.ShowConfigurationOnboarding);
+
+        await viewModel.ConfigurationGatePrimaryCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.Equal(WorkspaceSection.Providers, shell.SelectedSection);
     }
 
     [Fact]
@@ -943,12 +1061,17 @@ public sealed class MainViewModelTests
         Assert.True(viewModel.CanSaveProviderConfiguration);
         Assert.False(viewModel.CanStartProvider);
         Assert.Contains("Fallback disabled", viewModel.ProviderFallbackText, StringComparison.Ordinal);
+        Assert.Equal("Review model settings", viewModel.ConfigurationGate.PrimaryActionLabel);
 
         await viewModel.SaveProviderConfigurationCommand.ExecuteAsync(null).ConfigureAwait(true);
 
         Assert.Equal(1, configurationStore.SaveCount);
         Assert.False(viewModel.HasProviderConfigurationChanges);
         Assert.True(viewModel.CanStartProvider);
+        Assert.Equal(
+            ConversationConfigurationGateState.ProviderReadyToStart,
+            viewModel.ConfigurationGate.State);
+        Assert.Equal("Load model", viewModel.ConfigurationGate.PrimaryActionLabel);
     }
 
     [Fact]
@@ -1440,7 +1563,8 @@ public sealed class MainViewModelTests
             ?? new StubInferenceProviderConfigurationStore(
                 new InferenceProviderConfiguration(
                     "llama.cpp.cuda",
-                    "owner/model-GGUF:Q4_K_M"));
+                    "owner/model-GGUF:Q4_K_M",
+                    generation: new InferenceGenerationOptions(reasoningEnabled: false)));
 
         return new MainViewModel(
             new CreateConversationUseCase(repository, timeProvider),

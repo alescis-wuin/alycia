@@ -41,6 +41,12 @@ The **Models** workspace owns provider/model and generation configuration.
 
 Blank optional values preserve provider/model defaults. Save the configuration before starting the provider.
 
+## Conversation setup gate
+
+The Conversation workspace now explains the single next step whenever local AI is not ready. Existing history and messages remain readable while the composer is replaced by one gate action. Depending on the diagnosis, Alicia offers **Configure provider**, **Check provider**, **Install provider**, **Review provider**, **Configure model**, **Review model settings**, or **Load model**. Configuration actions navigate to the dedicated Provider or Models workspace; lifecycle actions run through the existing provider commands.
+
+If no conversation exists and local AI is unavailable, the same gate becomes the central onboarding surface and the empty history panel is hidden. Once the provider reaches `Running`, the gate disappears and the normal composer becomes available.
+
 ## Chat
 
 - `Enter`: send the current draft.

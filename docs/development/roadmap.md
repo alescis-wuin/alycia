@@ -46,7 +46,7 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 | Lot 10.1/10.2 sécurité + ownership | terminé | session locale durcie |
 | UIX-01 Stage 8 | terminé | FOLLOWING / DETACHED + UI state |
 | UIX-01 Stage 9 | terminé | décomposition Presentation en six ViewModels |
-| UIX-01 Stage 10 | en cours | 10A History identity terminé; 10B prochain |
+| UIX-01 Stage 10 | en cours | 10A History identity + 10B Configuration gate terminés; 10C prochain |
 | Lot 10B Profiles/revisions/provenance/context | planifié | à faire |
 | Lot 11 RAG foundation | planifié | à faire |
 | Lot 12 Retrieval/grounded generation | planifié | à faire |
@@ -146,13 +146,16 @@ GenerationSettingsViewModel
 - lecture rétrocompatible du format UI-state v1 ;
 - suppression de l’identité avec la conversation.
 
-#### Stage 10B — Configuration gate / onboarding — prochain
+#### Stage 10B — Configuration gate / onboarding — terminé
 
-- configuration gate / onboarding sans provider ou modèle ;
-- historique consultable même si l’IA n’est pas prête ;
-- CTA principal déterministe selon l’état provider/modèle.
+- diagnostic provider/modèle projeté en un gate Presentation déterministe ;
+- historique et messages consultables même si l’IA n’est pas prête ;
+- composer remplacé par le gate tant que le provider n’est pas `Running` ;
+- onboarding central et historique vide masqué quand aucune conversation n’existe ;
+- CTA unique vers Detect/Install/Load ou vers les workspaces Provider/Models ;
+- opérations transitoires représentées par un CTA unique désactivé.
 
-#### Stage 10C — Responsive + delete modal — planifié
+#### Stage 10C — Responsive + delete modal — prochain
 
 - responsive final ;
 - delete modal final.
@@ -208,9 +211,9 @@ UIX-01 Stage 9 — terminé
    ↓
 UIX-01 Stage 10A — terminé
    ↓
-UIX-01 Stage 10B — prochain
+UIX-01 Stage 10B — terminé
    ↓
-UIX-01 Stage 10C — planifié
+UIX-01 Stage 10C — prochain
    ↓
 UIX-01 Stage 10D — planifié
    ↓

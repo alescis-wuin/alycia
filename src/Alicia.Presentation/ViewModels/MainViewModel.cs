@@ -96,6 +96,7 @@ public sealed class MainViewModel : ViewModelBase
         Provider = new ProviderViewModel(providerRegistry);
         GenerationSettings = new GenerationSettingsViewModel();
         Model = new ModelViewModel(providerConfigurationStore, GenerationSettings);
+        ConfigurationGate = new ConversationConfigurationGateViewModel();
         _conversationUiStateStore = conversationUiStateStore
             ?? new TransientConversationUiStateStore();
         _responseStopLockDuration = resolvedStopLockDuration;
@@ -126,6 +127,9 @@ public sealed class MainViewModel : ViewModelBase
         SaveProviderConfigurationCommand = new AsyncRelayCommand(
             SaveProviderConfigurationAsync,
             () => CanSaveProviderConfiguration);
+        ConfigurationGatePrimaryCommand = new AsyncRelayCommand(
+            ExecuteConfigurationGatePrimaryActionAsync,
+            () => ConfigurationGate.IsPrimaryActionEnabled);
     }
 
     public string ApplicationName { get; } = "Alicia";
@@ -141,6 +145,8 @@ public sealed class MainViewModel : ViewModelBase
     public ModelViewModel Model { get; }
 
     public GenerationSettingsViewModel GenerationSettings { get; }
+
+    public ConversationConfigurationGateViewModel ConfigurationGate { get; }
 
     public ObservableCollection<ConversationListItemViewModel> Conversations =>
         ConversationHistory.Conversations;
@@ -184,6 +190,8 @@ public sealed class MainViewModel : ViewModelBase
     public IAsyncRelayCommand StopProviderCommand { get; }
 
     public IAsyncRelayCommand SaveProviderConfigurationCommand { get; }
+
+    public IAsyncRelayCommand ConfigurationGatePrimaryCommand { get; }
 
     public string HistorySearchText
     {
@@ -415,7 +423,8 @@ public sealed class MainViewModel : ViewModelBase
 
     public bool IsComposerEnabled => IsInteractionEnabled
         && HasSelectedConversation
-        && !IsDeleteConfirmationVisible;
+        && !IsDeleteConfirmationVisible
+        && IsProviderRunning;
 
     public bool CanSendMessage => IsComposerEnabled
         && IsProviderRunning
@@ -577,6 +586,7 @@ public sealed class MainViewModel : ViewModelBase
 
             ConversationWorkspace.IsInitialized = value;
             OnPropertyChanged();
+            UpdateConfigurationGate();
             RaiseEmptyStateChanged();
         }
     }
@@ -630,6 +640,8 @@ public sealed class MainViewModel : ViewModelBase
             ConversationHistory.IsConversationHistoryExpanded = value;
             OnPropertyChanged();
             OnPropertyChanged(nameof(IsConversationHistoryCollapsed));
+            OnPropertyChanged(nameof(ShowConversationHistoryPanel));
+            OnPropertyChanged(nameof(ShowConversationHistoryReopenButton));
         }
     }
 
@@ -695,6 +707,26 @@ public sealed class MainViewModel : ViewModelBase
     public bool ShowNoSelectionState => IsInitialized && HasConversationHistory && !HasSelectedConversation;
 
     public bool ShowLoadingState => !IsInitialized;
+
+    public bool ShowConfigurationOnboarding => IsInitialized
+        && ConfigurationGate.IsVisible
+        && !HasConversationHistory;
+
+    public bool ShowInlineConfigurationGate => IsInitialized
+        && ConfigurationGate.IsVisible
+        && HasConversationHistory;
+
+    public bool ShowReadyEmptyConversationState => IsHistoryEmpty
+        && !ShowConfigurationOnboarding;
+
+    public bool ShowMessageComposer => HasSelectedConversation
+        && !ConfigurationGate.IsVisible;
+
+    public bool ShowConversationHistoryPanel => IsConversationHistoryExpanded
+        && !ShowConfigurationOnboarding;
+
+    public bool ShowConversationHistoryReopenButton => IsConversationHistoryCollapsed
+        && !ShowConfigurationOnboarding;
 
     public string SelectedConversationTitle => SelectedConversation?.Title ?? "No conversation selected";
 
@@ -1025,6 +1057,234 @@ public sealed class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(ComposerStatusText));
         SaveProviderConfigurationCommand.NotifyCanExecuteChanged();
         StartProviderCommand.NotifyCanExecuteChanged();
+        UpdateConfigurationGate();
+    }
+
+    internal event EventHandler<WorkspaceNavigationRequestedEventArgs>? WorkspaceNavigationRequested;
+
+    private async Task ExecuteConfigurationGatePrimaryActionAsync()
+    {
+        if (!ConfigurationGate.IsPrimaryActionEnabled)
+        {
+            return;
+        }
+
+        switch (ConfigurationGate.PrimaryAction)
+        {
+            case ConversationConfigurationGateAction.OpenProviders:
+                WorkspaceNavigationRequested?.Invoke(
+                    this,
+                    new WorkspaceNavigationRequestedEventArgs(WorkspaceSection.Providers));
+                break;
+            case ConversationConfigurationGateAction.DetectProvider:
+                await DetectProviderAsync().ConfigureAwait(true);
+                break;
+            case ConversationConfigurationGateAction.InstallProvider:
+                await InstallProviderAsync().ConfigureAwait(true);
+                break;
+            case ConversationConfigurationGateAction.OpenModels:
+                WorkspaceNavigationRequested?.Invoke(
+                    this,
+                    new WorkspaceNavigationRequestedEventArgs(WorkspaceSection.Models));
+                break;
+            case ConversationConfigurationGateAction.StartProvider:
+                await StartProviderAsync().ConfigureAwait(true);
+                break;
+            case ConversationConfigurationGateAction.None:
+            default:
+                break;
+        }
+    }
+
+    private void UpdateConfigurationGate()
+    {
+        if (!IsInitialized)
+        {
+            ConfigurationGate.Hide();
+            RaiseConfigurationGateStateChanged();
+            return;
+        }
+
+        InferenceProviderSnapshot? snapshot = Provider.Snapshot;
+
+        if (ProviderOptions.Count == 0 || SelectedProvider is null)
+        {
+            ConfigureGate(
+                ConversationConfigurationGateState.NoProvider,
+                "Local AI setup required",
+                "No inference provider is available. Open Providers to choose or install a local AI runtime.",
+                ConversationConfigurationGateAction.OpenProviders,
+                "Configure provider",
+                isEnabled: true);
+            return;
+        }
+
+        if (snapshot is null)
+        {
+            ConfigureGate(
+                ConversationConfigurationGateState.ProviderNotDetected,
+                $"Check {ProviderName}",
+                "Alicia has not inspected the selected local AI runtime yet.",
+                ConversationConfigurationGateAction.DetectProvider,
+                "Check provider",
+                CanDetectProvider);
+            return;
+        }
+
+        switch (snapshot.State)
+        {
+            case InferenceProviderState.Detecting:
+                ConfigureTransientGate(
+                    ConversationConfigurationGateState.ProviderDetecting,
+                    "Checking local AI",
+                    ProviderDetailText,
+                    "Checking…");
+                return;
+            case InferenceProviderState.Missing:
+                ConfigureGate(
+                    ConversationConfigurationGateState.ProviderMissing,
+                    $"Install {ProviderName}",
+                    "The selected local AI runtime is not installed. Conversation history stays available while Alicia prepares it.",
+                    ConversationConfigurationGateAction.InstallProvider,
+                    "Install provider",
+                    CanInstallProvider);
+                return;
+            case InferenceProviderState.Installing:
+                ConfigureTransientGate(
+                    ConversationConfigurationGateState.ProviderInstalling,
+                    "Installing local AI",
+                    ProviderDetailText,
+                    "Installing…");
+                return;
+            case InferenceProviderState.Unsupported:
+                ConfigureGate(
+                    ConversationConfigurationGateState.ProviderUnsupported,
+                    "Provider unavailable on this system",
+                    ProviderDetailText,
+                    ConversationConfigurationGateAction.OpenProviders,
+                    "Review provider",
+                    isEnabled: true);
+                return;
+            case InferenceProviderState.Faulted:
+                ConfigureGate(
+                    ConversationConfigurationGateState.ProviderFaulted,
+                    "Provider needs attention",
+                    ProviderDetailText,
+                    ConversationConfigurationGateAction.OpenProviders,
+                    "Review provider",
+                    isEnabled: true);
+                return;
+            case InferenceProviderState.Ready:
+                ConfigureReadyProviderGate();
+                return;
+            case InferenceProviderState.Starting:
+                ConfigureTransientGate(
+                    ConversationConfigurationGateState.ProviderStarting,
+                    "Loading local model",
+                    ProviderDetailText,
+                    "Loading…");
+                return;
+            case InferenceProviderState.Running:
+                ConfigurationGate.Hide();
+                RaiseConfigurationGateStateChanged();
+                return;
+            case InferenceProviderState.Stopping:
+                ConfigureTransientGate(
+                    ConversationConfigurationGateState.ProviderStopping,
+                    "Stopping local AI",
+                    ProviderDetailText,
+                    "Stopping…");
+                return;
+            default:
+                throw new InvalidOperationException(
+                    $"Unsupported provider state '{snapshot.State}'.");
+        }
+    }
+
+    private void ConfigureReadyProviderGate()
+    {
+        InferenceProviderConfiguration? saved = Model.SavedProviderConfiguration;
+        bool hasModelDraft = !string.IsNullOrWhiteSpace(ProviderModelReference);
+
+        if (HasProviderConfigurationChanges
+            && (saved?.HasModelReference == true || hasModelDraft))
+        {
+            ConfigureGate(
+                ConversationConfigurationGateState.ModelConfigurationRequired,
+                "Review model settings",
+                "The model or generation settings contain unsaved changes. Review and save them before loading the model.",
+                ConversationConfigurationGateAction.OpenModels,
+                "Review model settings",
+                isEnabled: true);
+            return;
+        }
+
+        if (saved is null || !saved.HasModelReference)
+        {
+            ConfigureGate(
+                ConversationConfigurationGateState.ModelConfigurationRequired,
+                "Choose a local model",
+                $"{ProviderName} is ready, but Alicia needs a saved model before local AI chat can start.",
+                ConversationConfigurationGateAction.OpenModels,
+                "Configure model",
+                isEnabled: true);
+            return;
+        }
+
+        ConfigureGate(
+            ConversationConfigurationGateState.ProviderReadyToStart,
+            "Load your local model",
+            $"{ProviderName} is ready and configured for {saved.ModelReference}. Load it to enable local AI chat.",
+            ConversationConfigurationGateAction.StartProvider,
+            "Load model",
+            CanStartProvider);
+    }
+
+    private void ConfigureTransientGate(
+        ConversationConfigurationGateState state,
+        string title,
+        string detail,
+        string actionLabel)
+    {
+        ConfigureGate(
+            state,
+            title,
+            string.IsNullOrWhiteSpace(detail) ? "Alicia is updating the local AI runtime." : detail,
+            ConversationConfigurationGateAction.None,
+            actionLabel,
+            isEnabled: false);
+    }
+
+    private void ConfigureGate(
+        ConversationConfigurationGateState state,
+        string title,
+        string description,
+        ConversationConfigurationGateAction action,
+        string actionLabel,
+        bool isEnabled)
+    {
+        ConfigurationGate.Configure(
+            state,
+            title,
+            description,
+            action,
+            actionLabel,
+            isEnabled);
+        RaiseConfigurationGateStateChanged();
+    }
+
+    private void RaiseConfigurationGateStateChanged()
+    {
+        OnPropertyChanged(nameof(ShowConfigurationOnboarding));
+        OnPropertyChanged(nameof(ShowInlineConfigurationGate));
+        OnPropertyChanged(nameof(ShowReadyEmptyConversationState));
+        OnPropertyChanged(nameof(ShowMessageComposer));
+        OnPropertyChanged(nameof(ShowConversationHistoryPanel));
+        OnPropertyChanged(nameof(ShowConversationHistoryReopenButton));
+        OnPropertyChanged(nameof(IsComposerEnabled));
+        OnPropertyChanged(nameof(CanSendMessage));
+        ConfigurationGatePrimaryCommand.NotifyCanExecuteChanged();
+        SendMessageCommand.NotifyCanExecuteChanged();
     }
 
     private async Task DetectProviderAsync()
@@ -2117,6 +2377,7 @@ public sealed class MainViewModel : ViewModelBase
         StopProviderCommand.NotifyCanExecuteChanged();
         SaveProviderConfigurationCommand.NotifyCanExecuteChanged();
         SendMessageCommand.NotifyCanExecuteChanged();
+        UpdateConfigurationGate();
     }
 
     private void RaiseHistoryStateChanged()
@@ -2160,5 +2421,11 @@ public sealed class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsSelectedConversationEmpty));
         OnPropertyChanged(nameof(ShowNoSelectionState));
         OnPropertyChanged(nameof(ShowLoadingState));
+        OnPropertyChanged(nameof(ShowConfigurationOnboarding));
+        OnPropertyChanged(nameof(ShowInlineConfigurationGate));
+        OnPropertyChanged(nameof(ShowReadyEmptyConversationState));
+        OnPropertyChanged(nameof(ShowMessageComposer));
+        OnPropertyChanged(nameof(ShowConversationHistoryPanel));
+        OnPropertyChanged(nameof(ShowConversationHistoryReopenButton));
     }
 }

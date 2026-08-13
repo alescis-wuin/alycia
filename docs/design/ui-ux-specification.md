@@ -204,6 +204,23 @@ Budget de génération du titre : environ 24–32 tokens.
 - composer en bas.
 - Les suggestions peuvent provenir du profil sélectionné.
 
+#### 4.6.1 Gate de configuration — Stage 10B
+
+Tant que le provider local n’est pas `Running`, le composer n’est pas présenté comme disponible. Alicia affiche une seule action principale déterminée par le diagnostic courant :
+
+| Diagnostic | CTA |
+|---|---|
+| aucun provider | `Configure provider` |
+| provider non inspecté | `Check provider` |
+| provider absent | `Install provider` |
+| provider unsupported/faulted | `Review provider` |
+| modèle/configuration absente | `Configure model` |
+| réglages modèle non sauvegardés | `Review model settings` |
+| runtime + modèle prêts | `Load model` |
+| opération en cours | CTA unique désactivé reflétant la phase |
+
+Avec un historique existant, le gate remplace uniquement le composer : les conversations et messages restent consultables. Sans aucune conversation et avec l’IA indisponible, le gate devient l’onboarding central et le panneau d’historique vide est masqué. Les actions de configuration ouvrent les workspaces globaux correspondants plutôt que de dupliquer leurs éditeurs dans Conversation.
+
 ---
 
 ## 5. Composer

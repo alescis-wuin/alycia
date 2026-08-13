@@ -51,17 +51,41 @@ public sealed class ShellViewModelTests
         Assert.Same(workspace, shell.Workspace);
     }
 
-    private static MainViewModel CreateWorkspace()
+    [Fact]
+    public async Task ConfigurationGateCanNavigateShellToModelsWorkspace()
+    {
+        StubInferenceProviderRuntime provider = new(InferenceProviderState.Ready);
+        MainViewModel workspace = CreateWorkspace(
+            provider,
+            new StubInferenceProviderConfigurationStore());
+        ShellViewModel shell = new(workspace);
+
+        await workspace.InitializeAsync().ConfigureAwait(true);
+
+        Assert.Equal(
+            ConversationConfigurationGateState.ModelConfigurationRequired,
+            workspace.ConfigurationGate.State);
+
+        await workspace.ConfigurationGatePrimaryCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.Equal(WorkspaceSection.Models, shell.SelectedSection);
+        Assert.True(shell.IsModelsSelected);
+    }
+
+    private static MainViewModel CreateWorkspace(
+        StubInferenceProviderRuntime? provider = null,
+        StubInferenceProviderConfigurationStore? configurationStore = null)
     {
         InMemoryConversationRepository repository = new();
         TimeProvider timeProvider = new MutableTimeProvider(
             new DateTimeOffset(2026, 8, 12, 4, 0, 0, TimeSpan.Zero));
-        StubInferenceProviderRuntime provider = new();
-        StubInferenceProviderRegistry providerRegistry = new(provider);
-        StubInferenceProviderConfigurationStore configurationStore = new(
-            new InferenceProviderConfiguration(
-                "llama.cpp.cuda",
-                "owner/model-GGUF:Q4_K_M"));
+        StubInferenceProviderRuntime resolvedProvider = provider ?? new StubInferenceProviderRuntime();
+        StubInferenceProviderRegistry providerRegistry = new(resolvedProvider);
+        StubInferenceProviderConfigurationStore resolvedConfigurationStore = configurationStore
+            ?? new StubInferenceProviderConfigurationStore(
+                new InferenceProviderConfiguration(
+                    "llama.cpp.cuda",
+                    "owner/model-GGUF:Q4_K_M"));
 
         return new MainViewModel(
             new CreateConversationUseCase(repository, timeProvider),
@@ -75,6 +99,6 @@ public sealed class ShellViewModelTests
             new RenameConversationUseCase(repository, timeProvider),
             new DeleteConversationUseCase(repository),
             providerRegistry,
-            configurationStore);
+            resolvedConfigurationStore);
     }
 }

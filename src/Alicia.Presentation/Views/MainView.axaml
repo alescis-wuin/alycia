@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:controls="using:Alicia.Presentation.Controls"
+             xmlns:views="using:Alicia.Presentation.Views"
              xmlns:vm="using:Alicia.Presentation.ViewModels"
              x:Class="Alicia.Presentation.Views.MainView"
              x:DataType="vm:MainViewModel"
@@ -49,7 +50,7 @@
             Background="{DynamicResource SidebarBrush}"
             BorderThickness="0"
             Padding="14"
-            IsVisible="{Binding IsConversationHistoryExpanded}"
+            IsVisible="{Binding ShowConversationHistoryPanel}"
             AutomationProperties.Name="Conversation history"
             AutomationProperties.LandmarkType="Navigation"
             AutomationProperties.AccessibilityView="Control">
@@ -420,7 +421,7 @@
             HorizontalAlignment="Left"
             VerticalAlignment="Top"
             ZIndex="20"
-            IsVisible="{Binding IsConversationHistoryCollapsed}"
+            IsVisible="{Binding ShowConversationHistoryReopenButton}"
             Command="{Binding ToggleConversationHistoryCommand}"
             AutomationProperties.Name="Show conversation history"
             AutomationProperties.HelpText="Show the hidden conversation history panel."
@@ -526,11 +527,16 @@
                          Foreground="{DynamicResource TextSecondaryBrush}" />
             </StackPanel>
 
+            <views:ConversationConfigurationGateView
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                IsVisible="{Binding ShowConfigurationOnboarding}" />
+
             <StackPanel HorizontalAlignment="Center"
                         VerticalAlignment="Center"
                         Spacing="14"
                         MaxWidth="560"
-                        IsVisible="{Binding IsHistoryEmpty}">
+                        IsVisible="{Binding ShowReadyEmptyConversationState}">
               <Border Width="72"
                       Height="72"
                       CornerRadius="22"
@@ -693,10 +699,15 @@
           </Button>
         </Grid>
 
+        <views:ConversationConfigurationGateView
+            Grid.Row="3"
+            Margin="0,14,0,0"
+            IsVisible="{Binding ShowInlineConfigurationGate}" />
+
         <Border Grid.Row="3"
                 Classes="message-composer-shell"
                 Margin="0,14,0,0"
-                IsVisible="{Binding HasSelectedConversation}"
+                IsVisible="{Binding ShowMessageComposer}"
                 Cursor="Ibeam"
                 PointerPressed="OnMessageComposerShellPointerPressed"
                 AutomationProperties.Name="Message composer"

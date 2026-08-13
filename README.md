@@ -19,7 +19,7 @@ Alicia.Desktop ───────→ Alicia.Presentation ──────�
                                           └───────→ Alicia.Domain
 ```
 
-The dependency graph is checked automatically. Presentation code must not depend directly on infrastructure implementations; the desktop executable is the platform composition root that selects and injects those implementations. `MainViewModel` is now an orchestration/compatibility facade over dedicated conversation-workspace, history, stream, provider, model, and generation-settings ViewModels.
+The dependency graph is checked automatically. Presentation code must not depend directly on infrastructure implementations; the desktop executable is the platform composition root that selects and injects those implementations. `MainViewModel` is now an orchestration/compatibility facade over dedicated conversation-workspace, history, stream, provider, model, generation-settings, and Conversation configuration-gate ViewModels.
 
 ## Prerequisites
 
@@ -51,6 +51,7 @@ The current Avalonia presentation provides:
 - a persistent 56 px icon-only global rail with dedicated **Conversations**, **Provider**, and **Models** workspaces plus a delayed label flyout;
 - a Conversation-only history surface with create/select, title-and-content search, lazy three-message previews, persisted per-conversation icon/color identity, contextual `…`/right-click Rename/Change icon/Change color/Delete actions, persisted collapse state, and automatic narrow-layout collapse;
 - a polished conversation thread with transparent history/thread surfaces and an opaque click-to-focus composer as the primary input surface;
+- a deterministic Conversation configuration gate that keeps history readable while provider/model setup is incomplete, replaces the unavailable composer with one recommended CTA, and becomes central onboarding when no conversations exist;
 - multiline composition with Enter-to-send, Shift+Enter newline, icon-only Send, provider-neutral message persistence, and stale-history protection;
 - explicit Provider detect/install/start/stop operations and phase-aware installation progress outside the Conversation sidebar;
 - explicit Models configuration for Hugging Face GGUF reference, optional context/generation overrides, reasoning enable/disable, and bounded reasoning tokens;
@@ -89,6 +90,7 @@ The provider-neutral Application contracts remain independent of llama.cpp/CUDA/
 - `docs/decisions/0019-conversation-following-ui-state.md`
 - `docs/decisions/0020-presentation-viewmodel-decomposition.md`
 - `docs/decisions/0021-conversation-history-visual-identity.md`
+- `docs/decisions/0022-conversation-configuration-gate.md`
 - `docs/development/roadmap.md`
 - `docs/design/ui-ux-specification.md`
 - `docs/user-guide/README.md`

@@ -348,6 +348,23 @@ internal sealed class StubInferenceProviderRuntime : IInferenceProviderRuntime
     }
 }
 
+internal sealed class EmptyInferenceProviderRegistry : IInferenceProviderRegistry
+{
+    public IReadOnlyList<InferenceProviderDescriptor> Providers { get; } = [];
+
+    public string? SelectedProviderId => null;
+
+    public void SelectProvider(string providerId)
+    {
+        throw new KeyNotFoundException($"Unknown test provider '{providerId}'.");
+    }
+
+    public IInferenceProviderRuntime GetRequiredRuntime(string providerId)
+    {
+        throw new KeyNotFoundException($"Unknown test provider '{providerId}'.");
+    }
+}
+
 internal sealed class StubInferenceProviderRegistry : IInferenceProviderRegistry
 {
     private const string ProviderId = "llama.cpp.cuda";

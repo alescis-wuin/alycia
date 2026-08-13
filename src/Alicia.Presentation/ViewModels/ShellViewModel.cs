@@ -11,6 +11,7 @@ public sealed class ShellViewModel : ViewModelBase
         ArgumentNullException.ThrowIfNull(workspace);
 
         Workspace = workspace;
+        Workspace.WorkspaceNavigationRequested += NavigateToRequestedSection;
         NavigateToConversationsCommand = new RelayCommand(
             () => SelectedSection = WorkspaceSection.Conversations);
         NavigateToProvidersCommand = new RelayCommand(
@@ -46,4 +47,11 @@ public sealed class ShellViewModel : ViewModelBase
     public bool IsProvidersSelected => SelectedSection == WorkspaceSection.Providers;
 
     public bool IsModelsSelected => SelectedSection == WorkspaceSection.Models;
+
+    private void NavigateToRequestedSection(
+        object? sender,
+        WorkspaceNavigationRequestedEventArgs arguments)
+    {
+        SelectedSection = arguments.Section;
+    }
 }
