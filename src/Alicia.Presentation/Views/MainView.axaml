@@ -138,6 +138,30 @@
                       <ContextMenu>
                         <MenuItem Header="Rename"
                                   Command="{Binding RenameCommand}" />
+                        <MenuItem Header="Change icon"
+                                  ItemsSource="{Binding IconChoices}">
+                          <MenuItem.Styles>
+                            <Style Selector="MenuItem"
+                                   x:DataType="vm:ConversationIdentityChoiceViewModel">
+                              <Setter Property="Header" Value="{Binding Label}" />
+                              <Setter Property="Command" Value="{Binding SelectCommand}" />
+                              <Setter Property="ToggleType" Value="Radio" />
+                              <Setter Property="IsChecked" Value="{Binding IsSelected, Mode=OneWay}" />
+                            </Style>
+                          </MenuItem.Styles>
+                        </MenuItem>
+                        <MenuItem Header="Change color"
+                                  ItemsSource="{Binding ColorChoices}">
+                          <MenuItem.Styles>
+                            <Style Selector="MenuItem"
+                                   x:DataType="vm:ConversationIdentityChoiceViewModel">
+                              <Setter Property="Header" Value="{Binding Label}" />
+                              <Setter Property="Command" Value="{Binding SelectCommand}" />
+                              <Setter Property="ToggleType" Value="Radio" />
+                              <Setter Property="IsChecked" Value="{Binding IsSelected, Mode=OneWay}" />
+                            </Style>
+                          </MenuItem.Styles>
+                        </MenuItem>
                         <Separator />
                         <MenuItem Header="Delete"
                                   Command="{Binding DeleteCommand}" />
@@ -198,15 +222,31 @@
                           </Border>
                         </ToolTip.Tip>
 
-                        <Grid ColumnDefinitions="5,10,*"
+                        <Grid ColumnDefinitions="5,10,34,10,*"
                               HorizontalAlignment="Stretch">
                           <Border Grid.Column="0"
                                   Margin="0,9,0,9"
                                   CornerRadius="3"
-                                  Background="{DynamicResource AccentSecondaryBrush}"
+                                  Background="{Binding IdentityColorBrush}"
                                   IsVisible="{Binding IsSelected}" />
 
-                          <TextBlock Grid.Column="2"
+                          <Border Grid.Column="2"
+                                  Classes="conversation-identity"
+                                  Width="34"
+                                  Height="34"
+                                  Background="{Binding IdentitySurfaceBrush}"
+                                  BorderBrush="{Binding IdentityColorBrush}"
+                                  AutomationProperties.Name="{Binding IdentityDescription}"
+                                  ToolTip.Tip="{Binding IdentityDescription}">
+                            <TextBlock Text="{Binding IdentityGlyph}"
+                                       FontSize="13"
+                                       FontWeight="SemiBold"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       Foreground="{Binding IdentityColorBrush}" />
+                          </Border>
+
+                          <TextBlock Grid.Column="4"
                                      Margin="0,0,48,0"
                                      Text="{Binding Title}"
                                      FontSize="15"
@@ -233,6 +273,30 @@
                             <MenuFlyout Placement="BottomEdgeAlignedRight">
                               <MenuItem Header="Rename"
                                         Command="{Binding RenameCommand}" />
+                              <MenuItem Header="Change icon"
+                                        ItemsSource="{Binding IconChoices}">
+                                <MenuItem.Styles>
+                                  <Style Selector="MenuItem"
+                                         x:DataType="vm:ConversationIdentityChoiceViewModel">
+                                    <Setter Property="Header" Value="{Binding Label}" />
+                                    <Setter Property="Command" Value="{Binding SelectCommand}" />
+                                    <Setter Property="ToggleType" Value="Radio" />
+                                    <Setter Property="IsChecked" Value="{Binding IsSelected, Mode=OneWay}" />
+                                  </Style>
+                                </MenuItem.Styles>
+                              </MenuItem>
+                              <MenuItem Header="Change color"
+                                        ItemsSource="{Binding ColorChoices}">
+                                <MenuItem.Styles>
+                                  <Style Selector="MenuItem"
+                                         x:DataType="vm:ConversationIdentityChoiceViewModel">
+                                    <Setter Property="Header" Value="{Binding Label}" />
+                                    <Setter Property="Command" Value="{Binding SelectCommand}" />
+                                    <Setter Property="ToggleType" Value="Radio" />
+                                    <Setter Property="IsChecked" Value="{Binding IsSelected, Mode=OneWay}" />
+                                  </Style>
+                                </MenuItem.Styles>
+                              </MenuItem>
                               <Separator />
                               <MenuItem Header="Delete"
                                         Command="{Binding DeleteCommand}" />
@@ -241,7 +305,7 @@
                         </Button>
                       </StackPanel>
 
-                      <Grid ColumnDefinitions="5,10,*,Auto,Auto"
+                      <Grid ColumnDefinitions="5,10,34,10,*,Auto,Auto"
                             HorizontalAlignment="Stretch"
                             IsVisible="{Binding IsRenaming}">
                         <Border Grid.Column="0"
@@ -249,7 +313,22 @@
                                 CornerRadius="3"
                                 Background="{DynamicResource EditBrush}" />
 
-                        <controls:InlineRenameTextBox Grid.Column="2"
+                        <Border Grid.Column="2"
+                                Classes="conversation-identity"
+                                Width="34"
+                                Height="34"
+                                Background="{Binding IdentitySurfaceBrush}"
+                                BorderBrush="{Binding IdentityColorBrush}"
+                                ToolTip.Tip="{Binding IdentityDescription}">
+                          <TextBlock Text="{Binding IdentityGlyph}"
+                                     FontSize="13"
+                                     FontWeight="SemiBold"
+                                     HorizontalAlignment="Center"
+                                     VerticalAlignment="Center"
+                                     Foreground="{Binding IdentityColorBrush}" />
+                        </Border>
+
+                        <controls:InlineRenameTextBox Grid.Column="4"
                                                       Classes="inline-rename"
                                                       Margin="0,7,8,7"
                                                       Text="{Binding RenameTitle, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
@@ -263,7 +342,7 @@
                           </controls:InlineRenameTextBox.KeyBindings>
                         </controls:InlineRenameTextBox>
 
-                        <Button Grid.Column="3"
+                        <Button Grid.Column="5"
                                 Classes="history-action save-history-action"
                                 Margin="0,0,6,0"
                                 VerticalAlignment="Center"
@@ -279,7 +358,7 @@
                                     Data="M9,16.17 L4.83,12 L3.41,13.41 L9,19 L21,7 L19.59,5.59 Z" />
                         </Button>
 
-                        <Button Grid.Column="4"
+                        <Button Grid.Column="6"
                                 Classes="history-action"
                                 Margin="0,0,10,0"
                                 VerticalAlignment="Center"

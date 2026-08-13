@@ -19,7 +19,7 @@ Alicia/
 
 `providers/llama.cpp/models` is also supplied to llama.cpp as `LLAMA_CACHE`.
 
-`ui-state.json` is a versioned Presentation-only document for the explicit history-panel preference plus per-conversation scroll mode/offset. It is written atomically and is intentionally separate from conversation documents.
+`ui-state.json` is a versioned Presentation-only document for the explicit history-panel preference, per-conversation scroll mode/offset, and per-conversation visual identity. Stage 10A writes version 2 and still reads version 1, defaulting missing identities without modifying conversation documents. The file is written atomically and remains intentionally separate from conversation persistence.
 
 ## Managed llama.cpp lifecycle
 

@@ -2,6 +2,8 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using Alicia.Application.Conversations;
 using Alicia.Domain.Conversations;
+using Alicia.Presentation.State;
+using Avalonia.Media;
 using CommunityToolkit.Mvvm.Input;
 
 namespace Alicia.Presentation.ViewModels;
@@ -9,6 +11,7 @@ namespace Alicia.Presentation.ViewModels;
 public sealed class ConversationListItemViewModel : ViewModelBase
 {
     private readonly Func<bool> _canInteract;
+    private readonly Func<ConversationListItemViewModel, ConversationVisualIdentity, Task> _changeIdentityAsync;
     private readonly Func<
         ConversationListItemViewModel,
         CancellationToken,
@@ -21,6 +24,7 @@ public sealed class ConversationListItemViewModel : ViewModelBase
     private int _previewGeneration;
     private Task? _previewLoadTask;
     private string _renameTitle;
+    private ConversationVisualIdentity _identity;
 
     public ConversationListItemViewModel(
         ConversationSummary summary,
@@ -37,6 +41,8 @@ public sealed class ConversationListItemViewModel : ViewModelBase
             deleteAsync,
             static (_, _) =>
                 Task.FromResult<IReadOnlyList<ConversationPreviewMessageViewModel>>([]),
+            ConversationVisualIdentity.Default,
+            static (_, _) => Task.CompletedTask,
             canInteract)
     {
     }
@@ -52,6 +58,32 @@ public sealed class ConversationListItemViewModel : ViewModelBase
             CancellationToken,
             Task<IReadOnlyList<ConversationPreviewMessageViewModel>>> loadPreviewAsync,
         Func<bool> canInteract)
+        : this(
+            summary,
+            selectAsync,
+            beginRenameAsync,
+            saveRenameAsync,
+            deleteAsync,
+            loadPreviewAsync,
+            ConversationVisualIdentity.Default,
+            static (_, _) => Task.CompletedTask,
+            canInteract)
+    {
+    }
+
+    public ConversationListItemViewModel(
+        ConversationSummary summary,
+        Func<ConversationListItemViewModel, Task> selectAsync,
+        Func<ConversationListItemViewModel, Task> beginRenameAsync,
+        Func<ConversationListItemViewModel, Task> saveRenameAsync,
+        Func<ConversationListItemViewModel, Task> deleteAsync,
+        Func<
+            ConversationListItemViewModel,
+            CancellationToken,
+            Task<IReadOnlyList<ConversationPreviewMessageViewModel>>> loadPreviewAsync,
+        ConversationVisualIdentity identity,
+        Func<ConversationListItemViewModel, ConversationVisualIdentity, Task> changeIdentityAsync,
+        Func<bool> canInteract)
     {
         ArgumentNullException.ThrowIfNull(summary);
         ArgumentNullException.ThrowIfNull(selectAsync);
@@ -59,10 +91,14 @@ public sealed class ConversationListItemViewModel : ViewModelBase
         ArgumentNullException.ThrowIfNull(saveRenameAsync);
         ArgumentNullException.ThrowIfNull(deleteAsync);
         ArgumentNullException.ThrowIfNull(loadPreviewAsync);
+        ArgumentNullException.ThrowIfNull(identity);
+        ArgumentNullException.ThrowIfNull(changeIdentityAsync);
         ArgumentNullException.ThrowIfNull(canInteract);
 
         _loadPreviewAsync = loadPreviewAsync;
+        _changeIdentityAsync = changeIdentityAsync;
         _canInteract = canInteract;
+        _identity = identity;
 
         Id = summary.Id;
         Title = summary.Title;
@@ -86,6 +122,20 @@ public sealed class ConversationListItemViewModel : ViewModelBase
         RenameToolTip = $"Rename “{Title}”";
         DeleteToolTip = $"Delete “{Title}”";
         RenameInputToolTip = "Type a new title. Enter saves; Escape cancels.";
+
+        IconChoices = ConversationIdentityPresentationCatalog.Icons
+            .Select(choice => new ConversationIdentityChoiceViewModel(
+                choice.Label,
+                () => ChangeIconAsync(choice.Value),
+                canInteract))
+            .ToArray();
+        ColorChoices = ConversationIdentityPresentationCatalog.Colors
+            .Select(choice => new ConversationIdentityChoiceViewModel(
+                choice.Label,
+                () => ChangeColorAsync(choice.Value),
+                canInteract))
+            .ToArray();
+        UpdateIdentityChoiceSelection();
 
         SelectCommand = new AsyncRelayCommand(() => selectAsync(this), canInteract);
         RenameCommand = new AsyncRelayCommand(() => beginRenameAsync(this), canInteract);
@@ -127,6 +177,24 @@ public sealed class ConversationListItemViewModel : ViewModelBase
     public string DeleteToolTip { get; }
 
     public string RenameInputToolTip { get; }
+
+    public ConversationVisualIdentity Identity => _identity;
+
+    public string IdentityGlyph => ConversationIdentityPresentationCatalog.GetGlyph(_identity.Icon);
+
+    public string IdentityDescription =>
+        $"{ConversationIdentityPresentationCatalog.GetIconLabel(_identity.Icon)} icon • "
+        + ConversationIdentityPresentationCatalog.GetColorLabel(_identity.Color);
+
+    public IBrush IdentityColorBrush =>
+        ConversationIdentityPresentationCatalog.GetAccentBrush(_identity.Color);
+
+    public IBrush IdentitySurfaceBrush =>
+        ConversationIdentityPresentationCatalog.GetSurfaceBrush(_identity.Color);
+
+    public IReadOnlyList<ConversationIdentityChoiceViewModel> IconChoices { get; }
+
+    public IReadOnlyList<ConversationIdentityChoiceViewModel> ColorChoices { get; }
 
     public ObservableCollection<ConversationPreviewMessageViewModel> PreviewMessages { get; } = [];
 
@@ -239,6 +307,17 @@ public sealed class ConversationListItemViewModel : ViewModelBase
         RenameCommand.NotifyCanExecuteChanged();
         SaveRenameCommand.NotifyCanExecuteChanged();
         DeleteCommand.NotifyCanExecuteChanged();
+
+        foreach (ConversationIdentityChoiceViewModel choice in IconChoices)
+        {
+            choice.NotifyCanSelectChanged();
+        }
+
+        foreach (ConversationIdentityChoiceViewModel choice in ColorChoices)
+        {
+            choice.NotifyCanSelectChanged();
+        }
+
         OnPropertyChanged(nameof(CanSaveRename));
     }
 
@@ -270,6 +349,75 @@ public sealed class ConversationListItemViewModel : ViewModelBase
     internal void SetSelected(bool isSelected)
     {
         IsSelected = isSelected;
+    }
+
+    private async Task ChangeIconAsync(ConversationIdentityIcon icon)
+    {
+        if (!_canInteract())
+        {
+            return;
+        }
+
+        ConversationVisualIdentity updated = _identity.WithIcon(icon);
+
+        if (updated == _identity)
+        {
+            return;
+        }
+
+        SetIdentity(updated);
+        await _changeIdentityAsync(this, updated).ConfigureAwait(true);
+    }
+
+    private async Task ChangeColorAsync(ConversationIdentityColor color)
+    {
+        if (!_canInteract())
+        {
+            return;
+        }
+
+        ConversationVisualIdentity updated = _identity.WithColor(color);
+
+        if (updated == _identity)
+        {
+            return;
+        }
+
+        SetIdentity(updated);
+        await _changeIdentityAsync(this, updated).ConfigureAwait(true);
+    }
+
+    private void SetIdentity(ConversationVisualIdentity identity)
+    {
+        ArgumentNullException.ThrowIfNull(identity);
+
+        if (_identity == identity)
+        {
+            return;
+        }
+
+        _identity = identity;
+        OnPropertyChanged(nameof(Identity));
+        OnPropertyChanged(nameof(IdentityGlyph));
+        OnPropertyChanged(nameof(IdentityDescription));
+        OnPropertyChanged(nameof(IdentityColorBrush));
+        OnPropertyChanged(nameof(IdentitySurfaceBrush));
+        UpdateIdentityChoiceSelection();
+    }
+
+    private void UpdateIdentityChoiceSelection()
+    {
+        for (int index = 0; index < IconChoices.Count; index++)
+        {
+            IconChoices[index].SetSelected(
+                ConversationIdentityPresentationCatalog.Icons[index].Value == _identity.Icon);
+        }
+
+        for (int index = 0; index < ColorChoices.Count; index++)
+        {
+            ColorChoices[index].SetSelected(
+                ConversationIdentityPresentationCatalog.Colors[index].Value == _identity.Color);
+        }
     }
 
     private async Task LoadPreviewCoreAsync(int generation)

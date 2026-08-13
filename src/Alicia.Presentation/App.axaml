@@ -118,6 +118,13 @@
       <Setter Property="BorderThickness" Value="0" />
     </Style>
 
+    <Style Selector="Border.conversation-identity">
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="HorizontalAlignment" Value="Center" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
     <Style Selector="Border.history-row StackPanel.history-actions">
       <Setter Property="Opacity" Value="0" />
       <Setter Property="IsHitTestVisible" Value="False" />

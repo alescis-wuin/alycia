@@ -49,7 +49,7 @@ make verify
 The current Avalonia presentation provides:
 
 - a persistent 56 px icon-only global rail with dedicated **Conversations**, **Provider**, and **Models** workspaces plus a delayed label flyout;
-- a Conversation-only history surface with create/select, title-and-content search, lazy three-message previews, contextual `…`/right-click Rename and Delete, persisted collapse state, and automatic narrow-layout collapse;
+- a Conversation-only history surface with create/select, title-and-content search, lazy three-message previews, persisted per-conversation icon/color identity, contextual `…`/right-click Rename/Change icon/Change color/Delete actions, persisted collapse state, and automatic narrow-layout collapse;
 - a polished conversation thread with transparent history/thread surfaces and an opaque click-to-focus composer as the primary input surface;
 - multiline composition with Enter-to-send, Shift+Enter newline, icon-only Send, provider-neutral message persistence, and stale-history protection;
 - explicit Provider detect/install/start/stop operations and phase-aware installation progress outside the Conversation sidebar;
@@ -88,6 +88,7 @@ The provider-neutral Application contracts remain independent of llama.cpp/CUDA/
 - `docs/decisions/0018-secure-local-llama-server-session.md`
 - `docs/decisions/0019-conversation-following-ui-state.md`
 - `docs/decisions/0020-presentation-viewmodel-decomposition.md`
+- `docs/decisions/0021-conversation-history-visual-identity.md`
 - `docs/development/roadmap.md`
 - `docs/design/ui-ux-specification.md`
 - `docs/user-guide/README.md`

@@ -1,7 +1,7 @@
 # Alicia — Spécification globale UI/UX et principes d’interaction
 
-**Version :** v0.3
-**Statut :** spécification consolidée — décisions normatives + Stage 8 FOLLOWING/DETACHED et UI state implémentés
+**Version :** v0.4
+**Statut :** spécification consolidée — Stage 10A identité visuelle de conversation implémentée
 **Cible :** Alicia Desktop (Avalonia, Windows/Linux/macOS)
 **Objectif :** fournir une interface simple, moderne, ludique, accessible et extensible sans accumuler de bruit visuel à mesure que les fonctions IA se complexifient.
 
@@ -97,6 +97,8 @@ Icônes :
 - symbole textuel ;
 - image personnalisée ;
 - couleur personnalisable.
+
+**Implémentation Stage 10A :** la première frontière persistante livre une bibliothèque prédéfinie de 8 catégories et une palette de 7 couleurs. Emoji, symbole arbitraire et image personnalisée restent des extensions compatibles avec cette frontière Presentation ; ils ne sont pas simulés dans Domain/Application.
 
 Suppression : confirmation modale compacte `Annuler | Supprimer`.
 

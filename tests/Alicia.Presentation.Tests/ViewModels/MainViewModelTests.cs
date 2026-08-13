@@ -175,6 +175,39 @@ public sealed class MainViewModelTests
     }
 
     [Fact]
+    public async Task DeleteConversationRemovesPersistedVisualIdentity()
+    {
+        DateTimeOffset createdAt = new(2026, 8, 8, 10, 30, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        Conversation conversation = new(
+            ConversationId.New(),
+            "Temporary",
+            createdAt,
+            createdAt);
+        repository.Seed(conversation);
+        StubConversationUiStateStore uiStateStore = new(
+            ConversationUiStateSnapshot.Default.WithConversationIdentity(
+                conversation.Id,
+                new ConversationVisualIdentity(
+                    ConversationIdentityIcon.Work,
+                    ConversationIdentityColor.Blue)));
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(createdAt.AddMinutes(1)),
+            conversationUiStateStore: uiStateStore);
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        viewModel.RequestDeleteCommand.Execute(null);
+        await viewModel.ConfirmDeleteCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.Empty(uiStateStore.Snapshot.ConversationIdentities);
+        Assert.Equal(
+            ConversationVisualIdentity.Default,
+            uiStateStore.Snapshot.GetConversationIdentity(conversation.Id));
+        Assert.Equal(1, uiStateStore.SaveCount);
+    }
+
+    [Fact]
     public async Task HistoryRenameCommandSelectsTargetBeforeOpeningInlineEditor()
     {
         DateTimeOffset createdAt = new(2026, 8, 8, 12, 0, 0, TimeSpan.Zero);
@@ -308,6 +341,17 @@ public sealed class MainViewModelTests
         Assert.Contains("Project notes", viewModel.SelectionToolTip, StringComparison.Ordinal);
         Assert.Contains("Project notes", viewModel.RenameToolTip, StringComparison.Ordinal);
         Assert.Contains("Project notes", viewModel.DeleteToolTip, StringComparison.Ordinal);
+        Assert.Equal(ConversationVisualIdentity.Default, viewModel.Identity);
+        Assert.False(string.IsNullOrWhiteSpace(viewModel.IdentityGlyph));
+        Assert.Contains("Conversation", viewModel.IdentityDescription, StringComparison.Ordinal);
+        Assert.Equal(8, viewModel.IconChoices.Count);
+        Assert.Equal(7, viewModel.ColorChoices.Count);
+        Assert.Equal(
+            "Conversation",
+            Assert.Single(viewModel.IconChoices, choice => choice.IsSelected).Label);
+        Assert.Equal(
+            "Teal",
+            Assert.Single(viewModel.ColorChoices, choice => choice.IsSelected).Label);
     }
 
     [Fact]
@@ -1087,6 +1131,66 @@ public sealed class MainViewModelTests
         viewModel.ProviderReasoningBudgetText = "256";
 
         Assert.False(viewModel.HasProviderConfigurationValidationError);
+    }
+
+    [Fact]
+    public async Task ConversationIdentityRestoresChangesAndPersistsWithoutChangingSelection()
+    {
+        DateTimeOffset createdAt = new(2026, 8, 13, 0, 45, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        Conversation older = new(ConversationId.New(), "Older", createdAt, createdAt);
+        Conversation newer = new(
+            ConversationId.New(),
+            "Newer",
+            createdAt.AddMinutes(1),
+            createdAt.AddMinutes(1));
+        repository.Seed(older);
+        repository.Seed(newer);
+
+        StubConversationUiStateStore uiStateStore = new(
+            ConversationUiStateSnapshot.Default.WithConversationIdentity(
+                older.Id,
+                new ConversationVisualIdentity(
+                    ConversationIdentityIcon.Code,
+                    ConversationIdentityColor.Violet)));
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(createdAt.AddMinutes(2)),
+            conversationUiStateStore: uiStateStore);
+
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        Assert.Equal(newer.Id, viewModel.SelectedConversation?.Id);
+        ConversationListItemViewModel olderItem = Assert.Single(
+            viewModel.Conversations,
+            item => item.Id == older.Id);
+        Assert.Equal(ConversationIdentityIcon.Code, olderItem.Identity.Icon);
+        Assert.Equal(ConversationIdentityColor.Violet, olderItem.Identity.Color);
+
+        ConversationIdentityChoiceViewModel research = Assert.Single(
+            olderItem.IconChoices,
+            choice => string.Equals(choice.Label, "Research", StringComparison.Ordinal));
+        await research.SelectCommand.ExecuteAsync(null).ConfigureAwait(true);
+        ConversationIdentityChoiceViewModel orange = Assert.Single(
+            olderItem.ColorChoices,
+            choice => string.Equals(choice.Label, "Orange", StringComparison.Ordinal));
+        await orange.SelectCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.Equal(newer.Id, viewModel.SelectedConversation?.Id);
+        Assert.Equal(ConversationIdentityIcon.Research, olderItem.Identity.Icon);
+        Assert.Equal(ConversationIdentityColor.Orange, olderItem.Identity.Color);
+        Assert.Equal(2, uiStateStore.SaveCount);
+        Assert.Equal(
+            olderItem.Identity,
+            uiStateStore.Snapshot.GetConversationIdentity(older.Id));
+
+        await viewModel.RefreshCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        ConversationListItemViewModel restored = Assert.Single(
+            viewModel.Conversations,
+            item => item.Id == older.Id);
+        Assert.Equal(ConversationIdentityIcon.Research, restored.Identity.Icon);
+        Assert.Equal(ConversationIdentityColor.Orange, restored.Identity.Color);
     }
 
     [Fact]

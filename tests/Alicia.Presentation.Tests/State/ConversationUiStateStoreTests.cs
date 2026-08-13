@@ -6,7 +6,7 @@ namespace Alicia.Presentation.Tests.State;
 public sealed class ConversationUiStateStoreTests
 {
     [Fact]
-    public async Task JsonStoreRoundTripsHistoryAndPerConversationScrollState()
+    public async Task JsonStoreRoundTripsHistoryScrollAndConversationIdentity()
     {
         string directory = Path.Combine(
             Path.GetTempPath(),
@@ -20,7 +20,12 @@ public sealed class ConversationUiStateStoreTests
                 conversationId,
                 new ConversationScrollState(
                     ConversationScrollMode.Detached,
-                    verticalOffset: 137.5));
+                    verticalOffset: 137.5))
+            .WithConversationIdentity(
+                conversationId,
+                new ConversationVisualIdentity(
+                    ConversationIdentityIcon.Code,
+                    ConversationIdentityColor.Violet));
 
         try
         {
@@ -35,6 +40,9 @@ public sealed class ConversationUiStateStoreTests
             ConversationScrollState scrollState = loaded.GetConversationScrollState(conversationId);
             Assert.Equal(ConversationScrollMode.Detached, scrollState.Mode);
             Assert.Equal(137.5, scrollState.VerticalOffset);
+            ConversationVisualIdentity identity = loaded.GetConversationIdentity(conversationId);
+            Assert.Equal(ConversationIdentityIcon.Code, identity.Icon);
+            Assert.Equal(ConversationIdentityColor.Violet, identity.Color);
         }
         finally
         {
@@ -69,6 +77,7 @@ public sealed class ConversationUiStateStoreTests
 
             Assert.True(loaded.IsConversationHistoryExpanded);
             Assert.Empty(loaded.ConversationScrollStates);
+            Assert.Empty(loaded.ConversationIdentities);
         }
         finally
         {
@@ -116,6 +125,60 @@ public sealed class ConversationUiStateStoreTests
             Assert.Equal(
                 88d,
                 loaded.GetConversationScrollState(validId).VerticalOffset);
+            Assert.Empty(loaded.ConversationIdentities);
+            Assert.Equal(
+                ConversationVisualIdentity.Default,
+                loaded.GetConversationIdentity(validId));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task JsonStoreIgnoresInvalidIdentitiesWithoutDiscardingValidEntries()
+    {
+        string directory = Path.Combine(
+            Path.GetTempPath(),
+            $"alicia-ui-state-{Guid.NewGuid():N}");
+        string path = Path.Combine(directory, "ui-state.json");
+        Directory.CreateDirectory(directory);
+        ConversationId validId = ConversationId.New();
+        ConversationId invalidIconId = ConversationId.New();
+        ConversationId invalidColorId = ConversationId.New();
+        string json = $$"""
+            {
+              "version": 2,
+              "isConversationHistoryExpanded": true,
+              "conversations": {},
+              "identities": {
+                "{{validId}}": { "icon": "Research", "color": "Orange" },
+                "{{invalidIconId}}": { "icon": "Unknown", "color": "Blue" },
+                "{{invalidColorId}}": { "icon": "Study", "color": "Invisible" },
+                "not-a-guid": { "icon": "Code", "color": "Violet" }
+              }
+            }
+            """;
+        await File
+            .WriteAllTextAsync(
+                path,
+                json,
+                TestContext.Current.CancellationToken)
+            .ConfigureAwait(true);
+        using JsonConversationUiStateStore store = new(path);
+
+        try
+        {
+            ConversationUiStateSnapshot loaded = await store
+                .LoadAsync(TestContext.Current.CancellationToken)
+                .ConfigureAwait(true);
+
+            KeyValuePair<string, ConversationVisualIdentity> entry = Assert.Single(
+                loaded.ConversationIdentities);
+            Assert.Equal(validId.ToString(), entry.Key);
+            Assert.Equal(ConversationIdentityIcon.Research, entry.Value.Icon);
+            Assert.Equal(ConversationIdentityColor.Orange, entry.Value.Color);
         }
         finally
         {

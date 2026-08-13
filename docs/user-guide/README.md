@@ -11,6 +11,8 @@ The **Conversations** workspace owns the conversation history and chat surface.
 - Search history by title and message content.
 - Hover a history item to inspect its recent-message preview.
 - Rename or delete a conversation from its `…` menu or context menu.
+- Use **Change icon** or **Change color** from either menu to assign a persistent visual identity without opening that conversation.
+- Stage 10A provides eight predefined icon categories and seven accent colors; existing conversations use `Conversation + Teal` until customized.
 - The history panel can be collapsed; the explicit expanded/collapsed preference is restored on the next launch.
 - On narrow windows Alicia auto-collapses history without overwriting that explicit preference.
 
@@ -84,7 +86,7 @@ Alicia/
         └── releases/
 ```
 
-The exact platform path is resolved by `Environment.SpecialFolder.LocalApplicationData`. `ui-state.json` contains Presentation-only history/scroll state; it is not part of conversation history.
+The exact platform path is resolved by `Environment.SpecialFolder.LocalApplicationData`. `ui-state.json` contains Presentation-only history, per-conversation scroll state, and per-conversation icon/color identity; it is not part of conversation history. Stage 10A writes UI-state version 2 while continuing to read version 1 documents safely.
 
 For accessibility testing or as an explicit host override, `ALICIA_REDUCED_MOTION=1` forces reduced motion and `ALICIA_REDUCED_MOTION=0` forces the normal thinking animation.
 

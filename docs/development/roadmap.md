@@ -46,7 +46,7 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 | Lot 10.1/10.2 sécurité + ownership | terminé | session locale durcie |
 | UIX-01 Stage 8 | terminé | FOLLOWING / DETACHED + UI state |
 | UIX-01 Stage 9 | terminé | décomposition Presentation en six ViewModels |
-| UIX-01 Stage 10 | prochain track | History / gates / responsive completion |
+| UIX-01 Stage 10 | en cours | 10A History identity terminé; 10B prochain |
 | Lot 10B Profiles/revisions/provenance/context | planifié | à faire |
 | Lot 11 RAG foundation | planifié | à faire |
 | Lot 12 Retrieval/grounded generation | planifié | à faire |
@@ -135,14 +135,32 @@ ModelViewModel
 GenerationSettingsViewModel
 ```
 
-### Stage 10 — History / gates / responsive completion
+### Stage 10 — History / gates / responsive completion — en cours
 
-- conversation icon et menu de changement ;
-- icon/color persistés ;
+#### Stage 10A — History identity — terminé
+
+- identité visuelle par conversation dans l’historique ;
+- catalogue prédéfini de 8 icônes et 7 couleurs ;
+- menus `Change icon` / `Change color` depuis clic droit et `…` ;
+- persistance par `ConversationId` dans `ui-state.json` v2 ;
+- lecture rétrocompatible du format UI-state v1 ;
+- suppression de l’identité avec la conversation.
+
+#### Stage 10B — Configuration gate / onboarding — prochain
+
 - configuration gate / onboarding sans provider ou modèle ;
+- historique consultable même si l’IA n’est pas prête ;
+- CTA principal déterministe selon l’état provider/modèle.
+
+#### Stage 10C — Responsive + delete modal — planifié
+
 - responsive final ;
-- delete modal final ;
-- accessibility / Reduced Motion pass.
+- delete modal final.
+
+#### Stage 10D — Accessibility / motion completion — planifié
+
+- accessibility pass ;
+- Reduced Motion pass final.
 
 ## Lot 10B — Generation state / revisions / provenance / context
 
@@ -188,7 +206,13 @@ UIX-01 Stage 8 — terminé
    ↓
 UIX-01 Stage 9 — terminé
    ↓
-UIX-01 Stage 10 — prochain
+UIX-01 Stage 10A — terminé
+   ↓
+UIX-01 Stage 10B — prochain
+   ↓
+UIX-01 Stage 10C — planifié
+   ↓
+UIX-01 Stage 10D — planifié
    ↓
 Lot 10.3–10.7
    ↓

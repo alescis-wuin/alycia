@@ -4,7 +4,8 @@ namespace Alicia.Presentation.State;
 
 public sealed class JsonConversationUiStateStore : IConversationUiStateStore, IDisposable
 {
-    private const int CurrentVersion = 1;
+    private const int CurrentVersion = 2;
+    private const int LegacyVersion = 1;
 
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web)
@@ -46,38 +47,21 @@ public sealed class JsonConversationUiStateStore : IConversationUiStateStore, ID
                     .DeserializeAsync<UiStateDocument>(stream, _jsonOptions, cancellationToken)
                     .ConfigureAwait(false);
 
-                if (document is null || document.Version != CurrentVersion)
+                if (document is null
+                    || (document.Version != CurrentVersion && document.Version != LegacyVersion))
                 {
                     return ConversationUiStateSnapshot.Default;
                 }
 
-                Dictionary<string, ConversationScrollState> states = new(StringComparer.Ordinal);
-
-                foreach ((string key, ConversationScrollDocument? value) in
-                    document.Conversations ?? new Dictionary<string, ConversationScrollDocument?>())
-                {
-                    if (value is null
-                        || !Guid.TryParse(key, out Guid conversationId)
-                        || conversationId == Guid.Empty
-                        || !Enum.TryParse(
-                            value.Mode,
-                            ignoreCase: true,
-                            out ConversationScrollMode mode)
-                        || !Enum.IsDefined(mode)
-                        || !double.IsFinite(value.VerticalOffset)
-                        || value.VerticalOffset < 0)
-                    {
-                        continue;
-                    }
-
-                    states[conversationId.ToString("D")] = new ConversationScrollState(
-                        mode,
-                        value.VerticalOffset);
-                }
+                Dictionary<string, ConversationScrollState> scrollStates = LoadScrollStates(document);
+                Dictionary<string, ConversationVisualIdentity> identities = document.Version == CurrentVersion
+                    ? LoadIdentities(document)
+                    : new Dictionary<string, ConversationVisualIdentity>(StringComparer.Ordinal);
 
                 return new ConversationUiStateSnapshot(
                     document.IsConversationHistoryExpanded ?? true,
-                    states);
+                    scrollStates,
+                    identities);
             }
             catch (JsonException)
             {
@@ -125,10 +109,19 @@ public sealed class JsonConversationUiStateStore : IConversationUiStateStore, ID
                         pair.Value.Mode.ToString(),
                         pair.Value.VerticalOffset),
                     StringComparer.Ordinal);
+            Dictionary<string, ConversationIdentityDocument?> identities = snapshot
+                .ConversationIdentities
+                .ToDictionary(
+                    pair => pair.Key,
+                    pair => (ConversationIdentityDocument?)new ConversationIdentityDocument(
+                        pair.Value.Icon.ToString(),
+                        pair.Value.Color.ToString()),
+                    StringComparer.Ordinal);
             UiStateDocument document = new(
                 CurrentVersion,
                 snapshot.IsConversationHistoryExpanded,
-                conversations);
+                conversations,
+                identities);
             temporaryPath = $"{_path}.{Guid.NewGuid():N}.tmp";
 
             await using (FileStream stream = new(
@@ -180,6 +173,75 @@ public sealed class JsonConversationUiStateStore : IConversationUiStateStore, ID
         GC.SuppressFinalize(this);
     }
 
+    private static Dictionary<string, ConversationScrollState> LoadScrollStates(
+        UiStateDocument document)
+    {
+        Dictionary<string, ConversationScrollState> states = new(StringComparer.Ordinal);
+
+        foreach ((string key, ConversationScrollDocument? value) in
+            document.Conversations ?? new Dictionary<string, ConversationScrollDocument?>())
+        {
+            if (value is null
+                || !TryNormalizeConversationId(key, out string normalizedId)
+                || !Enum.TryParse(
+                    value.Mode,
+                    ignoreCase: true,
+                    out ConversationScrollMode mode)
+                || !Enum.IsDefined(mode)
+                || !double.IsFinite(value.VerticalOffset)
+                || value.VerticalOffset < 0)
+            {
+                continue;
+            }
+
+            states[normalizedId] = new ConversationScrollState(mode, value.VerticalOffset);
+        }
+
+        return states;
+    }
+
+    private static Dictionary<string, ConversationVisualIdentity> LoadIdentities(
+        UiStateDocument document)
+    {
+        Dictionary<string, ConversationVisualIdentity> identities = new(StringComparer.Ordinal);
+
+        foreach ((string key, ConversationIdentityDocument? value) in
+            document.Identities ?? new Dictionary<string, ConversationIdentityDocument?>())
+        {
+            if (value is null
+                || !TryNormalizeConversationId(key, out string normalizedId)
+                || !Enum.TryParse(
+                    value.Icon,
+                    ignoreCase: true,
+                    out ConversationIdentityIcon icon)
+                || !Enum.IsDefined(icon)
+                || !Enum.TryParse(
+                    value.Color,
+                    ignoreCase: true,
+                    out ConversationIdentityColor color)
+                || !Enum.IsDefined(color))
+            {
+                continue;
+            }
+
+            identities[normalizedId] = new ConversationVisualIdentity(icon, color);
+        }
+
+        return identities;
+    }
+
+    private static bool TryNormalizeConversationId(string value, out string normalizedId)
+    {
+        if (Guid.TryParse(value, out Guid conversationId) && conversationId != Guid.Empty)
+        {
+            normalizedId = conversationId.ToString("D");
+            return true;
+        }
+
+        normalizedId = string.Empty;
+        return false;
+    }
+
     private void ThrowIfDisposed()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -188,9 +250,14 @@ public sealed class JsonConversationUiStateStore : IConversationUiStateStore, ID
     private sealed record UiStateDocument(
         int Version,
         bool? IsConversationHistoryExpanded,
-        Dictionary<string, ConversationScrollDocument?>? Conversations);
+        Dictionary<string, ConversationScrollDocument?>? Conversations,
+        Dictionary<string, ConversationIdentityDocument?>? Identities = null);
 
     private sealed record ConversationScrollDocument(
         string Mode,
         double VerticalOffset);
+
+    private sealed record ConversationIdentityDocument(
+        string Icon,
+        string Color);
 }

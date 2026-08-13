@@ -1660,6 +1660,19 @@ public sealed class MainViewModel : ViewModelBase
         }).ConfigureAwait(true);
     }
 
+    private async Task ChangeConversationIdentityAsync(
+        ConversationListItemViewModel conversation,
+        ConversationVisualIdentity identity)
+    {
+        ArgumentNullException.ThrowIfNull(conversation);
+        ArgumentNullException.ThrowIfNull(identity);
+
+        _conversationUiState = _conversationUiState.WithConversationIdentity(
+            conversation.Id,
+            identity);
+        await PersistConversationUiStateAsync().ConfigureAwait(true);
+    }
+
     private async Task RequestDeleteConversationAsync(ConversationListItemViewModel conversation)
     {
         ArgumentNullException.ThrowIfNull(conversation);
@@ -1709,6 +1722,8 @@ public sealed class MainViewModel : ViewModelBase
                 SaveRenameConversationAsync,
                 RequestDeleteConversationAsync,
                 LoadConversationPreviewAsync,
+                _conversationUiState.GetConversationIdentity(summary.Id),
+                ChangeConversationIdentityAsync,
                 () => IsInteractionEnabled));
         }
 
