@@ -10,8 +10,7 @@ namespace Alicia.Presentation.ViewModels;
 
 public sealed class MainViewModel : ViewModelBase
 {
-    private const int DefaultReasoningBudgetTokens = 512;
-    private const double ScrollDetachThreshold = 96d;
+    private const double ScrollDetachThreshold = 32d;
 
     private static readonly TimeSpan _defaultResponseStopLockDuration = TimeSpan.FromMilliseconds(1200);
     private static readonly TimeSpan _defaultRetryResponseLockDuration = TimeSpan.FromMilliseconds(700);
@@ -23,58 +22,22 @@ public sealed class MainViewModel : ViewModelBase
     private readonly ListConversationsUseCase _listConversations;
     private readonly LoadConversationUseCase _loadConversation;
     private readonly RenameConversationUseCase _renameConversation;
-    private readonly IInferenceProviderRegistry _providerRegistry;
-    private readonly IInferenceProviderConfigurationStore _providerConfigurationStore;
     private readonly IConversationUiStateStore _conversationUiStateStore;
     private readonly TimeSpan _responseStopLockDuration;
     private readonly TimeSpan _retryResponseLockDuration;
-    private readonly Dictionary<string, InferenceProviderConfiguration?> _providerConfigurations =
-        new(StringComparer.Ordinal);
-    private readonly List<ConversationListItemViewModel> _allConversations = [];
     private CancellationTokenSource? _historySearchCancellation;
     private Task _historySearchTask = Task.CompletedTask;
-
-    private bool _isBusy;
-    private bool _isConversationHistoryExpanded = true;
     private bool _isConversationHistoryAutoCollapsed;
     private bool _isNarrowConversationLayout;
-    private bool _isHistorySearchBusy;
-    private bool _isDeleteConfirmationVisible;
-    private bool _isGeneratingResponse;
-    private bool _isInitialized;
     private bool _isRetryResponseUnlocked;
-    private bool _isSendingMessage;
     private bool _isStopResponseUnlocked;
-    private bool _isProviderBusy;
-    private readonly bool _isReducedMotionEnabled;
-    private bool _providerReasoningEnabled;
     private ConversationId? _retryConversationId;
     private MessageId? _retryTriggeringMessageId;
     private CancellationTokenSource? _responseCancellation;
     private CancellationTokenSource? _retryResponseUnlockCancellation;
     private CancellationTokenSource? _providerOperationCancellation;
-    private ConversationListItemViewModel? _selectedConversation;
     private ConversationUiStateSnapshot _conversationUiState = ConversationUiStateSnapshot.Default;
     private int _conversationScrollRestoreRevision;
-    private string? _errorMessage;
-    private string _historySearchText = string.Empty;
-    private string _messageDraft = string.Empty;
-    private string _providerModelReference = string.Empty;
-    private string _providerContextSizeText = string.Empty;
-    private string _providerMaxOutputTokensText = string.Empty;
-    private string _providerTemperatureText = string.Empty;
-    private string _providerTopPText = string.Empty;
-    private string _providerTopKText = string.Empty;
-    private string _providerSeedText = string.Empty;
-    private string _providerReasoningBudgetText = DefaultReasoningBudgetTokens.ToString(
-        System.Globalization.CultureInfo.InvariantCulture);
-    private string? _persistedSelectedProviderId;
-    private string? _providerSelectionNotice;
-    private InferenceProviderConfiguration? _savedProviderConfiguration;
-    private InferenceProviderDescriptor? _selectedProvider;
-    private IInferenceProviderRuntime? _selectedProviderRuntime;
-    private InferenceProviderProgress? _providerProgress;
-    private InferenceProviderSnapshot? _providerSnapshot;
 
     public MainViewModel(
         CreateConversationUseCase createConversation,
@@ -127,11 +90,14 @@ public sealed class MainViewModel : ViewModelBase
         _listConversations = listConversations;
         _renameConversation = renameConversation;
         _deleteConversation = deleteConversation;
-        _providerRegistry = providerRegistry;
-        _providerConfigurationStore = providerConfigurationStore;
+        ConversationWorkspace = new ConversationWorkspaceViewModel();
+        ConversationHistory = new ConversationHistoryViewModel();
+        ConversationStream = new ConversationStreamViewModel(isReducedMotionEnabled);
+        Provider = new ProviderViewModel(providerRegistry);
+        GenerationSettings = new GenerationSettingsViewModel();
+        Model = new ModelViewModel(providerConfigurationStore, GenerationSettings);
         _conversationUiStateStore = conversationUiStateStore
             ?? new TransientConversationUiStateStore();
-        _isReducedMotionEnabled = isReducedMotionEnabled;
         _responseStopLockDuration = resolvedStopLockDuration;
         _retryResponseLockDuration = resolvedRetryLockDuration;
 
@@ -147,6 +113,9 @@ public sealed class MainViewModel : ViewModelBase
         CancelTransientActionCommand = new RelayCommand(CancelTransientAction);
         DismissErrorCommand = new RelayCommand(ClearError);
         ToggleConversationHistoryCommand = new AsyncRelayCommand(ToggleConversationHistoryAsync);
+        PauseAutoScrollCommand = new AsyncRelayCommand(
+            PauseAutoScrollAsync,
+            () => HasSelectedConversation && HasMessages && !IsConversationScrollDetached);
         ScrollToLatestCommand = new AsyncRelayCommand(
             ScrollToLatestAsync,
             () => HasSelectedConversation && IsConversationScrollDetached);
@@ -161,9 +130,22 @@ public sealed class MainViewModel : ViewModelBase
 
     public string ApplicationName { get; } = "Alicia";
 
-    public ObservableCollection<ConversationListItemViewModel> Conversations { get; } = [];
+    public ConversationWorkspaceViewModel ConversationWorkspace { get; }
 
-    public ObservableCollection<MessageViewModel> Messages { get; } = [];
+    public ConversationHistoryViewModel ConversationHistory { get; }
+
+    public ConversationStreamViewModel ConversationStream { get; }
+
+    public ProviderViewModel Provider { get; }
+
+    public ModelViewModel Model { get; }
+
+    public GenerationSettingsViewModel GenerationSettings { get; }
+
+    public ObservableCollection<ConversationListItemViewModel> Conversations =>
+        ConversationHistory.Conversations;
+
+    public ObservableCollection<MessageViewModel> Messages => ConversationStream.Messages;
 
     public IAsyncRelayCommand CreateConversationCommand { get; }
 
@@ -189,6 +171,8 @@ public sealed class MainViewModel : ViewModelBase
 
     public IAsyncRelayCommand ToggleConversationHistoryCommand { get; }
 
+    public IAsyncRelayCommand PauseAutoScrollCommand { get; }
+
     public IAsyncRelayCommand ScrollToLatestCommand { get; }
 
     public IAsyncRelayCommand DetectProviderCommand { get; }
@@ -203,32 +187,32 @@ public sealed class MainViewModel : ViewModelBase
 
     public string HistorySearchText
     {
-        get => _historySearchText;
+        get => ConversationHistory.HistorySearchText;
         set
         {
-            if (SetProperty(ref _historySearchText, value))
+            if (string.Equals(ConversationHistory.HistorySearchText, value, StringComparison.Ordinal))
             {
-                OnPropertyChanged(nameof(HasHistorySearch));
-                RestartHistorySearch();
+                return;
             }
+
+            ConversationHistory.HistorySearchText = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(HasHistorySearch));
+            RestartHistorySearch();
         }
     }
 
     public ConversationListItemViewModel? SelectedConversation
     {
-        get => _selectedConversation;
+        get => ConversationWorkspace.SelectedConversation;
         private set
         {
-            if (_selectedConversation == value)
+            if (!ConversationWorkspace.SetSelectedConversation(
+                value,
+                out bool conversationChanged))
             {
                 return;
             }
-
-            bool conversationChanged = _selectedConversation?.Id != value?.Id;
-
-            _selectedConversation?.SetSelected(false);
-            _selectedConversation = value;
-            _selectedConversation?.SetSelected(true);
 
             if (conversationChanged)
             {
@@ -243,145 +227,155 @@ public sealed class MainViewModel : ViewModelBase
 
     public string MessageDraft
     {
-        get => _messageDraft;
+        get => ConversationWorkspace.MessageDraft;
         set
         {
-            if (SetProperty(ref _messageDraft, value))
-            {
-                OnPropertyChanged(nameof(CanSendMessage));
-                SendMessageCommand.NotifyCanExecuteChanged();
-            }
-        }
-    }
-
-    public IReadOnlyList<InferenceProviderDescriptor> ProviderOptions => _providerRegistry.Providers;
-
-    public InferenceProviderDescriptor? SelectedProvider
-    {
-        get => _selectedProvider;
-        set
-        {
-            if (_selectedProvider is not null
-                && !IsProviderSelectionEditable
-                && !Equals(_selectedProvider, value))
+            if (string.Equals(ConversationWorkspace.MessageDraft, value, StringComparison.Ordinal))
             {
                 return;
             }
 
-            if (SetProperty(ref _selectedProvider, value))
+            ConversationWorkspace.MessageDraft = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(CanSendMessage));
+            SendMessageCommand.NotifyCanExecuteChanged();
+        }
+    }
+
+    public IReadOnlyList<InferenceProviderDescriptor> ProviderOptions => Provider.ProviderOptions;
+
+    public InferenceProviderDescriptor? SelectedProvider
+    {
+        get => Provider.SelectedProvider;
+        set
+        {
+            if (SelectedProvider is not null
+                && !IsProviderSelectionEditable
+                && !Equals(SelectedProvider, value))
             {
-                ApplySelectedProvider(value);
+                return;
             }
+
+            if (Equals(SelectedProvider, value))
+            {
+                return;
+            }
+
+            Provider.SelectProvider(value);
+            Model.ApplySelectedProvider(value);
+            OnPropertyChanged();
+            RaiseProviderDraftChanged();
+            RaiseProviderStateChanged();
         }
     }
 
     public string ProviderModelReference
     {
-        get => _providerModelReference;
+        get => Model.ProviderModelReference;
         set
         {
-            if (SetProperty(ref _providerModelReference, value))
+            if (string.Equals(Model.ProviderModelReference, value, StringComparison.Ordinal))
             {
-                RaiseProviderConfigurationStateChanged();
+                return;
             }
+
+            Model.ProviderModelReference = value;
+            OnPropertyChanged();
+            RaiseProviderConfigurationStateChanged();
         }
     }
 
     public string ProviderContextSizeText
     {
-        get => _providerContextSizeText;
+        get => Model.ProviderContextSizeText;
         set
         {
-            if (SetProperty(ref _providerContextSizeText, value))
+            if (string.Equals(Model.ProviderContextSizeText, value, StringComparison.Ordinal))
             {
-                RaiseProviderConfigurationStateChanged();
+                return;
             }
+
+            Model.ProviderContextSizeText = value;
+            OnPropertyChanged();
+            RaiseProviderConfigurationStateChanged();
         }
     }
 
     public string ProviderMaxOutputTokensText
     {
-        get => _providerMaxOutputTokensText;
-        set
-        {
-            if (SetProperty(ref _providerMaxOutputTokensText, value))
-            {
-                RaiseProviderConfigurationStateChanged();
-            }
-        }
+        get => GenerationSettings.ProviderMaxOutputTokensText;
+        set => SetGenerationText(
+            GenerationSettings.ProviderMaxOutputTokensText,
+            value,
+            newValue => GenerationSettings.ProviderMaxOutputTokensText = newValue,
+            nameof(ProviderMaxOutputTokensText));
     }
 
     public string ProviderTemperatureText
     {
-        get => _providerTemperatureText;
-        set
-        {
-            if (SetProperty(ref _providerTemperatureText, value))
-            {
-                RaiseProviderConfigurationStateChanged();
-            }
-        }
+        get => GenerationSettings.ProviderTemperatureText;
+        set => SetGenerationText(
+            GenerationSettings.ProviderTemperatureText,
+            value,
+            newValue => GenerationSettings.ProviderTemperatureText = newValue,
+            nameof(ProviderTemperatureText));
     }
 
     public string ProviderTopPText
     {
-        get => _providerTopPText;
-        set
-        {
-            if (SetProperty(ref _providerTopPText, value))
-            {
-                RaiseProviderConfigurationStateChanged();
-            }
-        }
+        get => GenerationSettings.ProviderTopPText;
+        set => SetGenerationText(
+            GenerationSettings.ProviderTopPText,
+            value,
+            newValue => GenerationSettings.ProviderTopPText = newValue,
+            nameof(ProviderTopPText));
     }
 
     public string ProviderTopKText
     {
-        get => _providerTopKText;
-        set
-        {
-            if (SetProperty(ref _providerTopKText, value))
-            {
-                RaiseProviderConfigurationStateChanged();
-            }
-        }
+        get => GenerationSettings.ProviderTopKText;
+        set => SetGenerationText(
+            GenerationSettings.ProviderTopKText,
+            value,
+            newValue => GenerationSettings.ProviderTopKText = newValue,
+            nameof(ProviderTopKText));
     }
 
     public string ProviderSeedText
     {
-        get => _providerSeedText;
-        set
-        {
-            if (SetProperty(ref _providerSeedText, value))
-            {
-                RaiseProviderConfigurationStateChanged();
-            }
-        }
+        get => GenerationSettings.ProviderSeedText;
+        set => SetGenerationText(
+            GenerationSettings.ProviderSeedText,
+            value,
+            newValue => GenerationSettings.ProviderSeedText = newValue,
+            nameof(ProviderSeedText));
     }
 
     public bool ProviderReasoningEnabled
     {
-        get => _providerReasoningEnabled;
+        get => GenerationSettings.ProviderReasoningEnabled;
         set
         {
-            if (SetProperty(ref _providerReasoningEnabled, value))
+            if (GenerationSettings.ProviderReasoningEnabled == value)
             {
-                OnPropertyChanged(nameof(IsProviderReasoningBudgetEditable));
-                RaiseProviderConfigurationStateChanged();
+                return;
             }
+
+            GenerationSettings.ProviderReasoningEnabled = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsProviderReasoningBudgetEditable));
+            RaiseProviderConfigurationStateChanged();
         }
     }
 
     public string ProviderReasoningBudgetText
     {
-        get => _providerReasoningBudgetText;
-        set
-        {
-            if (SetProperty(ref _providerReasoningBudgetText, value))
-            {
-                RaiseProviderConfigurationStateChanged();
-            }
-        }
+        get => GenerationSettings.ProviderReasoningBudgetText;
+        set => SetGenerationText(
+            GenerationSettings.ProviderReasoningBudgetText,
+            value,
+            newValue => GenerationSettings.ProviderReasoningBudgetText = newValue,
+            nameof(ProviderReasoningBudgetText));
     }
 
     public bool IsProviderReasoningBudgetEditable => IsProviderSettingsEditable
@@ -389,31 +383,31 @@ public sealed class MainViewModel : ViewModelBase
 
     public bool IsBusy
     {
-        get => _isBusy;
+        get => ConversationWorkspace.IsBusy;
         private set
         {
-            if (SetProperty(ref _isBusy, value))
+            if (ConversationWorkspace.IsBusy == value)
             {
-                OnPropertyChanged(nameof(IsInteractionEnabled));
-                OnPropertyChanged(nameof(CanSendMessage));
-                OnPropertyChanged(nameof(IsComposerEnabled));
-                OnPropertyChanged(nameof(SendButtonLabel));
-                OnPropertyChanged(nameof(ComposerStatusText));
-                OnPropertyChanged(nameof(StatusText));
-                OnPropertyChanged(nameof(CanRetryResponse));
-                OnPropertyChanged(nameof(CanSaveProviderConfiguration));
-                OnPropertyChanged(nameof(IsProviderSettingsEditable));
-                OnPropertyChanged(nameof(IsProviderSelectionEditable));
-                OnPropertyChanged(nameof(IsProviderReasoningBudgetEditable));
-                SendMessageCommand.NotifyCanExecuteChanged();
-                RetryResponseCommand.NotifyCanExecuteChanged();
-                SaveProviderConfigurationCommand.NotifyCanExecuteChanged();
-
-                foreach (ConversationListItemViewModel item in _allConversations)
-                {
-                    item.NotifyInteractionStateChanged();
-                }
+                return;
             }
+
+            ConversationWorkspace.IsBusy = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsInteractionEnabled));
+            OnPropertyChanged(nameof(CanSendMessage));
+            OnPropertyChanged(nameof(IsComposerEnabled));
+            OnPropertyChanged(nameof(SendButtonLabel));
+            OnPropertyChanged(nameof(ComposerStatusText));
+            OnPropertyChanged(nameof(StatusText));
+            OnPropertyChanged(nameof(CanRetryResponse));
+            OnPropertyChanged(nameof(CanSaveProviderConfiguration));
+            OnPropertyChanged(nameof(IsProviderSettingsEditable));
+            OnPropertyChanged(nameof(IsProviderSelectionEditable));
+            OnPropertyChanged(nameof(IsProviderReasoningBudgetEditable));
+            SendMessageCommand.NotifyCanExecuteChanged();
+            RetryResponseCommand.NotifyCanExecuteChanged();
+            SaveProviderConfigurationCommand.NotifyCanExecuteChanged();
+            ConversationHistory.NotifyInteractionStateChanged();
         }
     }
 
@@ -429,17 +423,21 @@ public sealed class MainViewModel : ViewModelBase
 
     public bool IsProviderBusy
     {
-        get => _isProviderBusy;
+        get => Provider.IsProviderBusy;
         private set
         {
-            if (SetProperty(ref _isProviderBusy, value))
+            if (Provider.IsProviderBusy == value)
             {
-                RaiseProviderStateChanged();
+                return;
             }
+
+            Provider.IsProviderBusy = value;
+            OnPropertyChanged();
+            RaiseProviderStateChanged();
         }
     }
 
-    public bool IsProviderRunning => _providerSnapshot?.State == InferenceProviderState.Running;
+    public bool IsProviderRunning => Provider.IsProviderRunning;
 
     public bool IsProviderSettingsEditable => !IsProviderBusy
         && !IsProviderRunning
@@ -454,47 +452,28 @@ public sealed class MainViewModel : ViewModelBase
     public bool CanInstallProvider => SelectedProvider is not null
         && !IsProviderBusy
         && !IsGeneratingResponse
-        && _providerSnapshot?.State is InferenceProviderState.Missing
+        && Provider.Snapshot?.State is InferenceProviderState.Missing
             or InferenceProviderState.Unsupported
             or InferenceProviderState.Faulted;
 
     public bool CanStartProvider => SelectedProvider is not null
         && !IsProviderBusy
         && !IsGeneratingResponse
-        && _providerSnapshot?.State == InferenceProviderState.Ready
+        && Provider.Snapshot?.State == InferenceProviderState.Ready
         && !HasProviderConfigurationChanges
-        && _savedProviderConfiguration?.HasModelReference == true
+        && Model.SavedProviderConfiguration?.HasModelReference == true
         && string.Equals(
-            _persistedSelectedProviderId,
+            Model.PersistedSelectedProviderId,
             SelectedProvider.Id,
             StringComparison.Ordinal);
 
     public bool CanStopProvider => IsProviderRunning
-        || _providerSnapshot?.State == InferenceProviderState.Starting;
+        || Provider.Snapshot?.State == InferenceProviderState.Starting;
 
     public bool IsProviderModelEditable => IsProviderSettingsEditable;
 
-    public bool HasProviderConfigurationChanges
-    {
-        get
-        {
-            if (SelectedProvider is null)
-            {
-                return false;
-            }
-
-            if (!TryBuildProviderConfiguration(out InferenceProviderConfiguration? draft, out _))
-            {
-                return true;
-            }
-
-            return !string.Equals(
-                    _persistedSelectedProviderId,
-                    SelectedProvider.Id,
-                    StringComparison.Ordinal)
-                || !Equals(_savedProviderConfiguration, draft);
-        }
-    }
+    public bool HasProviderConfigurationChanges =>
+        Model.HasConfigurationChanges(SelectedProvider);
 
     public bool CanSaveProviderConfiguration => IsProviderSettingsEditable
         && SelectedProvider is not null
@@ -510,90 +489,68 @@ public sealed class MainViewModel : ViewModelBase
     public bool HasProviderConfigurationValidationError =>
         !string.IsNullOrWhiteSpace(ProviderConfigurationValidationText);
 
-    public string ProviderConfigurationStatusText => _providerSelectionNotice
-        ?? (HasProviderConfigurationChanges
-            ? "Provider settings have unsaved changes."
-            : _savedProviderConfiguration is null
-                ? "Save provider settings before starting a model."
-                : _savedProviderConfiguration.UsesProviderDefaults
-                    ? "Saved • Optional runtime and generation values use provider defaults."
-                    : "Saved • Explicit runtime or generation overrides are active.");
+    public string ProviderConfigurationStatusText =>
+        Model.GetConfigurationStatusText(SelectedProvider);
 
     public string ProviderFallbackText => ProviderOptions.Count == 0
         ? "Fallback disabled • No inference provider is currently available."
         : "Fallback disabled • Alicia never switches inference providers automatically.";
 
-    public string ProviderName => _providerSnapshot?.Name
-        ?? SelectedProvider?.Name
-        ?? "Local AI provider";
+    public string ProviderName => Provider.ProviderName;
 
-    public string ProviderStatusText => _providerSnapshot?.State switch
-    {
-        InferenceProviderState.Detecting => "Detecting",
-        InferenceProviderState.Missing => "Not installed",
-        InferenceProviderState.Ready => "Ready",
-        InferenceProviderState.Installing => "Installing",
-        InferenceProviderState.Starting => "Starting",
-        InferenceProviderState.Running => "Running",
-        InferenceProviderState.Stopping => "Stopping",
-        InferenceProviderState.Unsupported => "CUDA unavailable",
-        InferenceProviderState.Faulted => "Needs attention",
-        _ => SelectedProvider is null ? "Not configured" : "Not detected",
-    };
+    public string ProviderStatusText => Provider.ProviderStatusText;
 
-    public string ProviderDetailText => _providerSnapshot?.Detail
-        ?? (SelectedProvider is null
-            ? "Select an inference provider."
-            : "Use Detect to inspect the selected inference provider runtime.");
+    public string ProviderDetailText => Provider.ProviderDetailText;
 
-    public string ProviderVersionText => string.IsNullOrWhiteSpace(_providerSnapshot?.Version)
-        ? "Version not detected"
-        : $"Version {_providerSnapshot.Version}";
+    public string ProviderVersionText => Provider.ProviderVersionText;
 
-    public bool IsProviderProgressVisible => _providerProgress is not null;
+    public bool IsProviderProgressVisible => Provider.IsProviderProgressVisible;
 
-    public bool IsProviderProgressIndeterminate => IsProviderBusy
-        && _providerProgress?.Fraction is null;
+    public bool IsProviderProgressIndeterminate => Provider.IsProviderProgressIndeterminate;
 
-    public double ProviderProgressValue => (_providerProgress?.Fraction ?? 0) * 100;
+    public double ProviderProgressValue => Provider.ProviderProgressValue;
 
-    public string ProviderProgressText => _providerProgress is null
-        ? string.Empty
-        : _providerProgress.Fraction is double fraction
-            ? $"{_providerProgress.Stage} • {fraction:P0}"
-            : _providerProgress.Stage;
+    public string ProviderProgressText => Provider.ProviderProgressText;
 
-    public string ProviderProgressDetailText => _providerProgress?.Detail ?? string.Empty;
+    public string ProviderProgressDetailText => Provider.ProviderProgressDetailText;
 
     public bool IsSendingMessage
     {
-        get => _isSendingMessage;
+        get => ConversationStream.IsSendingMessage;
         private set
         {
-            if (SetProperty(ref _isSendingMessage, value))
+            if (ConversationStream.IsSendingMessage == value)
             {
-                OnPropertyChanged(nameof(SendButtonLabel));
-                OnPropertyChanged(nameof(ComposerStatusText));
-                OnPropertyChanged(nameof(StatusText));
+                return;
             }
+
+            ConversationStream.IsSendingMessage = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(SendButtonLabel));
+            OnPropertyChanged(nameof(ComposerStatusText));
+            OnPropertyChanged(nameof(StatusText));
         }
     }
 
     public bool IsGeneratingResponse
     {
-        get => _isGeneratingResponse;
+        get => ConversationStream.IsGeneratingResponse;
         private set
         {
-            if (SetProperty(ref _isGeneratingResponse, value))
+            if (ConversationStream.IsGeneratingResponse == value)
             {
-                OnPropertyChanged(nameof(CanStopResponse));
-                OnPropertyChanged(nameof(CanRetryResponse));
-                OnPropertyChanged(nameof(ComposerStatusText));
-                OnPropertyChanged(nameof(StatusText));
-                StopResponseCommand.NotifyCanExecuteChanged();
-                RetryResponseCommand.NotifyCanExecuteChanged();
-                RaiseProviderStateChanged();
+                return;
             }
+
+            ConversationStream.IsGeneratingResponse = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(CanStopResponse));
+            OnPropertyChanged(nameof(CanRetryResponse));
+            OnPropertyChanged(nameof(ComposerStatusText));
+            OnPropertyChanged(nameof(StatusText));
+            StopResponseCommand.NotifyCanExecuteChanged();
+            RetryResponseCommand.NotifyCanExecuteChanged();
+            RaiseProviderStateChanged();
         }
     }
 
@@ -610,59 +567,75 @@ public sealed class MainViewModel : ViewModelBase
 
     public bool IsInitialized
     {
-        get => _isInitialized;
+        get => ConversationWorkspace.IsInitialized;
         private set
         {
-            if (SetProperty(ref _isInitialized, value))
+            if (ConversationWorkspace.IsInitialized == value)
             {
-                RaiseEmptyStateChanged();
+                return;
             }
+
+            ConversationWorkspace.IsInitialized = value;
+            OnPropertyChanged();
+            RaiseEmptyStateChanged();
         }
     }
 
     public bool IsDeleteConfirmationVisible
     {
-        get => _isDeleteConfirmationVisible;
+        get => ConversationWorkspace.IsDeleteConfirmationVisible;
         private set
         {
-            if (SetProperty(ref _isDeleteConfirmationVisible, value))
+            if (ConversationWorkspace.IsDeleteConfirmationVisible == value)
             {
-                OnPropertyChanged(nameof(CanSendMessage));
-                OnPropertyChanged(nameof(IsComposerEnabled));
-                SendMessageCommand.NotifyCanExecuteChanged();
+                return;
             }
+
+            ConversationWorkspace.IsDeleteConfirmationVisible = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(CanSendMessage));
+            OnPropertyChanged(nameof(IsComposerEnabled));
+            SendMessageCommand.NotifyCanExecuteChanged();
         }
     }
 
     public string? ErrorMessage
     {
-        get => _errorMessage;
+        get => ConversationWorkspace.ErrorMessage;
         private set
         {
-            if (SetProperty(ref _errorMessage, value))
+            if (string.Equals(ConversationWorkspace.ErrorMessage, value, StringComparison.Ordinal))
             {
-                OnPropertyChanged(nameof(HasError));
+                return;
             }
+
+            ConversationWorkspace.ErrorMessage = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(HasError));
         }
     }
 
-    public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
+    public bool HasError => ConversationWorkspace.HasError;
 
     public bool IsConversationHistoryExpanded
     {
-        get => _isConversationHistoryExpanded;
+        get => ConversationHistory.IsConversationHistoryExpanded;
         private set
         {
-            if (SetProperty(ref _isConversationHistoryExpanded, value))
+            if (ConversationHistory.IsConversationHistoryExpanded == value)
             {
-                OnPropertyChanged(nameof(IsConversationHistoryCollapsed));
+                return;
             }
+
+            ConversationHistory.IsConversationHistoryExpanded = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsConversationHistoryCollapsed));
         }
     }
 
-    public bool IsConversationHistoryCollapsed => !IsConversationHistoryExpanded;
+    public bool IsConversationHistoryCollapsed => ConversationHistory.IsConversationHistoryCollapsed;
 
-    public bool IsReducedMotionEnabled => _isReducedMotionEnabled;
+    public bool IsReducedMotionEnabled => ConversationStream.IsReducedMotionEnabled;
 
     public ConversationScrollMode CurrentConversationScrollMode => SelectedConversation is null
         ? ConversationScrollMode.Following
@@ -679,27 +652,33 @@ public sealed class MainViewModel : ViewModelBase
     public bool IsConversationScrollDetached =>
         CurrentConversationScrollMode == ConversationScrollMode.Detached;
 
+    public bool ShowPauseAutoScrollButton => HasMessages && !IsConversationScrollDetached;
+
     public bool ShowScrollToLatestButton => HasMessages && IsConversationScrollDetached;
 
     public int ConversationScrollRestoreRevision => _conversationScrollRestoreRevision;
 
     public bool IsHistorySearchBusy
     {
-        get => _isHistorySearchBusy;
+        get => ConversationHistory.IsHistorySearchBusy;
         private set
         {
-            if (SetProperty(ref _isHistorySearchBusy, value))
+            if (ConversationHistory.IsHistorySearchBusy == value)
             {
-                OnPropertyChanged(nameof(ShowNoHistorySearchResults));
+                return;
             }
+
+            ConversationHistory.IsHistorySearchBusy = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(ShowNoHistorySearchResults));
         }
     }
 
     public bool HasHistorySearch => !string.IsNullOrWhiteSpace(HistorySearchText);
 
-    public bool HasConversationHistory => _allConversations.Count > 0;
+    public bool HasConversationHistory => ConversationHistory.HasConversationHistory;
 
-    public bool IsHistoryEmpty => IsInitialized && _allConversations.Count == 0;
+    public bool IsHistoryEmpty => IsInitialized && !HasConversationHistory;
 
     public bool ShowNoHistorySearchResults => IsInitialized
         && HasConversationHistory
@@ -821,7 +800,7 @@ public sealed class MainViewModel : ViewModelBase
 
         if (mode == ConversationScrollMode.Following
             && userMovedUp
-            && distanceFromBottom > ScrollDetachThreshold)
+            && distanceFromBottom >= ScrollDetachThreshold)
         {
             mode = ConversationScrollMode.Detached;
         }
@@ -876,6 +855,30 @@ public sealed class MainViewModel : ViewModelBase
             && !_isConversationHistoryAutoCollapsed;
     }
 
+    private async Task PauseAutoScrollAsync()
+    {
+        if (SelectedConversation is null || !HasMessages)
+        {
+            return;
+        }
+
+        ConversationScrollState current = _conversationUiState
+            .GetConversationScrollState(SelectedConversation.Id);
+
+        if (current.Mode == ConversationScrollMode.Detached)
+        {
+            return;
+        }
+
+        _conversationUiState = _conversationUiState.WithConversationScrollState(
+            SelectedConversation.Id,
+            new ConversationScrollState(
+                ConversationScrollMode.Detached,
+                current.VerticalOffset));
+        RaiseConversationScrollStateChanged();
+        await PersistConversationUiStateAsync().ConfigureAwait(true);
+    }
+
     private async Task ScrollToLatestAsync()
     {
         if (SelectedConversation is null)
@@ -921,28 +924,17 @@ public sealed class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(CurrentConversationScrollMode));
         OnPropertyChanged(nameof(CurrentConversationScrollOffset));
         OnPropertyChanged(nameof(IsConversationScrollDetached));
+        OnPropertyChanged(nameof(ShowPauseAutoScrollButton));
         OnPropertyChanged(nameof(ShowScrollToLatestButton));
+        PauseAutoScrollCommand.NotifyCanExecuteChanged();
         ScrollToLatestCommand.NotifyCanExecuteChanged();
     }
 
     private async Task LoadProviderConfigurationAsync()
     {
-        _providerConfigurations.Clear();
+        await Model.LoadAsync(ProviderOptions).ConfigureAwait(true);
 
-        foreach (InferenceProviderDescriptor descriptor in ProviderOptions)
-        {
-            InferenceProviderConfiguration? configuration = await _providerConfigurationStore
-                .LoadAsync(descriptor.Id)
-                .ConfigureAwait(true);
-            _providerConfigurations[descriptor.Id] = configuration;
-        }
-
-        string? selectedProviderId = await _providerConfigurationStore
-            .LoadSelectedProviderIdAsync()
-            .ConfigureAwait(true);
-        _persistedSelectedProviderId = selectedProviderId;
-        _providerSelectionNotice = null;
-
+        string? selectedProviderId = Model.PersistedSelectedProviderId;
         InferenceProviderDescriptor? selected = selectedProviderId is null
             ? null
             : ProviderOptions.FirstOrDefault(descriptor => string.Equals(
@@ -950,57 +942,16 @@ public sealed class MainViewModel : ViewModelBase
                 selectedProviderId,
                 StringComparison.Ordinal));
 
-        if (selectedProviderId is not null && selected is null)
+        if (selected is not null)
         {
-            _providerSelectionNotice =
-                $"Configured provider '{selectedProviderId}' is unavailable. Automatic fallback is disabled; choose and save an available provider.";
-        }
-        else if (selected is not null)
-        {
-            _providerRegistry.SelectProvider(selected.Id);
+            Provider.PersistSelection(selected.Id);
         }
 
         SelectedProvider = selected ?? (ProviderOptions.Count == 0 ? null : ProviderOptions[0]);
     }
 
-    private void ApplySelectedProvider(InferenceProviderDescriptor? descriptor)
+    private void RaiseProviderDraftChanged()
     {
-        _selectedProviderRuntime = descriptor is null
-            ? null
-            : _providerRegistry.GetRequiredRuntime(descriptor.Id);
-        _providerSnapshot = null;
-        ClearProviderProgress();
-
-        _savedProviderConfiguration = descriptor is not null
-            && _providerConfigurations.TryGetValue(
-                descriptor.Id,
-                out InferenceProviderConfiguration? configuration)
-            ? configuration
-            : null;
-
-        LoadProviderConfigurationDraft(_savedProviderConfiguration);
-        RaiseProviderStateChanged();
-    }
-
-    private void LoadProviderConfigurationDraft(InferenceProviderConfiguration? configuration)
-    {
-        _providerModelReference = configuration?.ModelReference ?? string.Empty;
-        _providerContextSizeText = FormatOptional(configuration?.ContextSize);
-        _providerMaxOutputTokensText = FormatOptional(configuration?.Generation.MaxOutputTokens);
-        _providerTemperatureText = FormatOptional(configuration?.Generation.Temperature);
-        _providerTopPText = FormatOptional(configuration?.Generation.TopP);
-        _providerTopKText = FormatOptional(configuration?.Generation.TopK);
-        _providerSeedText = FormatOptional(configuration?.Generation.Seed);
-        _providerReasoningEnabled = configuration?.Generation.ReasoningEnabled == true;
-        _providerReasoningBudgetText = FormatOptional(
-            configuration?.Generation.ReasoningBudgetTokens);
-
-        if (_providerReasoningBudgetText.Length == 0)
-        {
-            _providerReasoningBudgetText = DefaultReasoningBudgetTokens.ToString(
-                System.Globalization.CultureInfo.InvariantCulture);
-        }
-
         OnPropertyChanged(nameof(ProviderModelReference));
         OnPropertyChanged(nameof(ProviderContextSizeText));
         OnPropertyChanged(nameof(ProviderMaxOutputTokensText));
@@ -1014,253 +965,52 @@ public sealed class MainViewModel : ViewModelBase
         RaiseProviderConfigurationStateChanged();
     }
 
+    private void SetGenerationText(
+        string currentValue,
+        string newValue,
+        Action<string> setter,
+        string propertyName)
+    {
+        if (string.Equals(currentValue, newValue, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        setter(newValue);
+        OnPropertyChanged(propertyName);
+        RaiseProviderConfigurationStateChanged();
+    }
+
     private async Task SaveProviderConfigurationAsync()
     {
-        if (!CanSaveProviderConfiguration
-            || !TryBuildProviderConfiguration(
-                out InferenceProviderConfiguration? configuration,
-                out _)
-            || configuration is null)
+        if (!CanSaveProviderConfiguration || SelectedProvider is null)
         {
             return;
         }
 
         await ExecuteOperationAsync(async () =>
         {
-            await _providerConfigurationStore
-                .SaveAsync(configuration, selectProvider: true)
+            InferenceProviderConfiguration configuration = await Model
+                .SaveAsync(SelectedProvider)
                 .ConfigureAwait(true);
-
-            _providerConfigurations[configuration.ProviderId] = configuration;
-            _savedProviderConfiguration = configuration;
-            _persistedSelectedProviderId = configuration.ProviderId;
-            _providerSelectionNotice = null;
-            _providerRegistry.SelectProvider(configuration.ProviderId);
+            Provider.PersistSelection(configuration.ProviderId);
             RaiseProviderConfigurationStateChanged();
         }).ConfigureAwait(true);
     }
 
     private IInferenceProviderRuntime GetSelectedProviderRuntime()
     {
-        return _selectedProviderRuntime
-            ?? throw new InvalidOperationException(
-                "Select an inference provider before performing this operation.");
+        return Provider.GetSelectedProviderRuntime();
     }
 
     private bool TryBuildProviderConfiguration(
         out InferenceProviderConfiguration? configuration,
         out string? validationError)
     {
-        configuration = null;
-        validationError = null;
-
-        if (SelectedProvider is null)
-        {
-            validationError = "Select an inference provider.";
-            return false;
-        }
-
-        if (!TryParseOptionalInt(
-            ProviderContextSizeText,
-            "Context size",
-            minimum: 1,
-            out int? contextSize,
-            out validationError))
-        {
-            return false;
-        }
-
-        if (!TryParseOptionalInt(
-            ProviderMaxOutputTokensText,
-            "Maximum output tokens",
-            minimum: 1,
-            out int? maxOutputTokens,
-            out validationError))
-        {
-            return false;
-        }
-
-        if (!TryParseOptionalDouble(
-            ProviderTemperatureText,
-            "Temperature",
-            minimum: 0,
-            maximum: null,
-            out double? temperature,
-            out validationError))
-        {
-            return false;
-        }
-
-        if (!TryParseOptionalDouble(
-            ProviderTopPText,
-            "Top-p",
-            minimum: 0,
-            maximum: 1,
-            out double? topP,
-            out validationError))
-        {
-            return false;
-        }
-
-        if (!TryParseOptionalInt(
-            ProviderTopKText,
-            "Top-k",
-            minimum: 0,
-            out int? topK,
-            out validationError))
-        {
-            return false;
-        }
-
-        if (!TryParseOptionalInt(
-            ProviderSeedText,
-            "Seed",
-            minimum: 0,
-            out int? seed,
-            out validationError))
-        {
-            return false;
-        }
-
-        int? reasoningBudgetTokens = null;
-
-        if (ProviderReasoningEnabled)
-        {
-            if (!TryParseOptionalInt(
-                ProviderReasoningBudgetText,
-                "Reasoning budget",
-                minimum: 1,
-                out reasoningBudgetTokens,
-                out validationError))
-            {
-                return false;
-            }
-
-            if (reasoningBudgetTokens is null)
-            {
-                validationError = "Reasoning budget is required when reasoning is enabled.";
-                return false;
-            }
-        }
-
-        try
-        {
-            configuration = new InferenceProviderConfiguration(
-                SelectedProvider.Id,
-                ProviderModelReference,
-                contextSize,
-                new InferenceGenerationOptions(
-                    maxOutputTokens,
-                    temperature,
-                    topP,
-                    topK,
-                    seed,
-                    ProviderReasoningEnabled,
-                    reasoningBudgetTokens));
-            return true;
-        }
-        catch (ArgumentException exception)
-        {
-            validationError = exception.Message;
-            return false;
-        }
-    }
-
-    private static bool TryParseOptionalInt(
-        string value,
-        string label,
-        int minimum,
-        out int? result,
-        out string? validationError)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            result = null;
-            validationError = null;
-            return true;
-        }
-
-        if (!int.TryParse(
-            value.Trim(),
-            System.Globalization.NumberStyles.Integer,
-            System.Globalization.CultureInfo.CurrentCulture,
-            out int parsed))
-        {
-            result = null;
-            validationError = $"{label} must be a whole number or left blank for the provider default.";
-            return false;
-        }
-
-        if (parsed < minimum)
-        {
-            result = null;
-            validationError = $"{label} must be at least {minimum} or left blank for the provider default.";
-            return false;
-        }
-
-        result = parsed;
-        validationError = null;
-        return true;
-    }
-
-    private static bool TryParseOptionalDouble(
-        string value,
-        string label,
-        double minimum,
-        double? maximum,
-        out double? result,
-        out string? validationError)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            result = null;
-            validationError = null;
-            return true;
-        }
-
-        string trimmed = value.Trim();
-        bool parsedSuccessfully = double.TryParse(
-            trimmed,
-            System.Globalization.NumberStyles.Float,
-            System.Globalization.CultureInfo.CurrentCulture,
-            out double parsed)
-            || double.TryParse(
-                trimmed,
-                System.Globalization.NumberStyles.Float,
-                System.Globalization.CultureInfo.InvariantCulture,
-                out parsed);
-
-        if (!parsedSuccessfully || double.IsNaN(parsed) || double.IsInfinity(parsed))
-        {
-            result = null;
-            validationError = $"{label} must be a finite number or left blank for the provider default.";
-            return false;
-        }
-
-        if (parsed < minimum || (maximum is double max && parsed > max))
-        {
-            result = null;
-            validationError = maximum is double upperBound
-                ? $"{label} must be between {minimum} and {upperBound} or left blank for the provider default."
-                : $"{label} must be at least {minimum} or left blank for the provider default.";
-            return false;
-        }
-
-        result = parsed;
-        validationError = null;
-        return true;
-    }
-
-    private static string FormatOptional(int? value)
-    {
-        return value?.ToString(System.Globalization.CultureInfo.InvariantCulture)
-            ?? string.Empty;
-    }
-
-    private static string FormatOptional(double? value)
-    {
-        return value?.ToString("G", System.Globalization.CultureInfo.InvariantCulture)
-            ?? string.Empty;
+        return Model.TryBuildProviderConfiguration(
+            SelectedProvider,
+            out configuration,
+            out validationError);
     }
 
     private void RaiseProviderConfigurationStateChanged()
@@ -1314,7 +1064,7 @@ public sealed class MainViewModel : ViewModelBase
             return;
         }
 
-        InferenceProviderConfiguration configuration = _savedProviderConfiguration
+        InferenceProviderConfiguration configuration = Model.SavedProviderConfiguration
             ?? throw new InvalidOperationException(
                 "Save provider settings before starting the local model.");
         ClearProviderProgress();
@@ -1492,19 +1242,13 @@ public sealed class MainViewModel : ViewModelBase
 
     private void ApplyProviderProgress(InferenceProviderProgress progress)
     {
-        ArgumentNullException.ThrowIfNull(progress);
-        _providerProgress = progress;
+        Provider.ApplyProgress(progress);
         RaiseProviderProgressChanged();
     }
 
     private void ClearProviderProgress()
     {
-        if (_providerProgress is null)
-        {
-            return;
-        }
-
-        _providerProgress = null;
+        Provider.ClearProgress();
         RaiseProviderProgressChanged();
     }
 
@@ -1519,9 +1263,7 @@ public sealed class MainViewModel : ViewModelBase
 
     private void ApplyProviderSnapshot(InferenceProviderSnapshot snapshot)
     {
-        ArgumentNullException.ThrowIfNull(snapshot);
-        _providerSnapshot = snapshot;
-
+        Provider.ApplySnapshot(snapshot);
         RaiseProviderStateChanged();
     }
 
@@ -1529,30 +1271,14 @@ public sealed class MainViewModel : ViewModelBase
         InferenceProviderState state,
         string detail)
     {
-        _providerSnapshot = new InferenceProviderSnapshot(
-            _providerSnapshot?.Name ?? SelectedProvider?.Name ?? "Local AI provider",
-            state,
-            _providerSnapshot?.Version,
-            _providerSnapshot?.IsCudaEnabled ?? false,
-            _providerSnapshot?.ExecutablePath,
-            string.IsNullOrWhiteSpace(ProviderModelReference) ? null : ProviderModelReference,
-            _providerSnapshot?.Endpoint,
-            detail);
+        Provider.SetTransientState(state, detail, ProviderModelReference);
         RaiseProviderStateChanged();
     }
 
     private void SetProviderFault(string detail, InferenceProviderState state)
     {
         ErrorMessage = detail;
-        _providerSnapshot = new InferenceProviderSnapshot(
-            _providerSnapshot?.Name ?? SelectedProvider?.Name ?? "Local AI provider",
-            state,
-            _providerSnapshot?.Version,
-            _providerSnapshot?.IsCudaEnabled ?? false,
-            _providerSnapshot?.ExecutablePath,
-            string.IsNullOrWhiteSpace(ProviderModelReference) ? null : ProviderModelReference,
-            endpoint: null,
-            detail: detail);
+        Provider.SetFault(detail, state, ProviderModelReference);
         RaiseProviderStateChanged();
     }
 
@@ -1648,8 +1374,7 @@ public sealed class MainViewModel : ViewModelBase
         _responseCancellation = cancellationSource;
         IsGeneratingResponse = true;
         LockStopResponseTemporarily(cancellationSource.Token);
-        MessageViewModel streamingMessage = MessageViewModel.CreateStreamingAssistant();
-        Messages.Add(streamingMessage);
+        MessageViewModel streamingMessage = ConversationStream.AddStreamingAssistant();
         RaiseMessageStateChanged();
 
         try
@@ -1798,7 +1523,7 @@ public sealed class MainViewModel : ViewModelBase
 
     private void RemoveStreamingMessage(MessageViewModel streamingMessage)
     {
-        if (Messages.Remove(streamingMessage))
+        if (ConversationStream.Remove(streamingMessage))
         {
             RaiseMessageStateChanged();
         }
@@ -1973,12 +1698,11 @@ public sealed class MainViewModel : ViewModelBase
             .ExecuteAsync()
             .ConfigureAwait(true);
 
-        _allConversations.Clear();
-        Conversations.Clear();
+        List<ConversationListItemViewModel> items = [];
 
         foreach (ConversationSummary summary in summaries)
         {
-            _allConversations.Add(new ConversationListItemViewModel(
+            items.Add(new ConversationListItemViewModel(
                 summary,
                 SelectConversationAsync,
                 BeginRenameConversationAsync,
@@ -1988,9 +1712,10 @@ public sealed class MainViewModel : ViewModelBase
                 () => IsInteractionEnabled));
         }
 
-        ApplyVisibleConversationItems(_allConversations);
+        ConversationHistory.ReplaceAll(items);
+        ApplyVisibleConversationItems(ConversationHistory.AllConversations);
 
-        if (_allConversations.Count == 0)
+        if (!HasConversationHistory)
         {
             ClearSelection();
             return;
@@ -2005,7 +1730,7 @@ public sealed class MainViewModel : ViewModelBase
 
         target ??= HasHistorySearch
             ? Conversations.FirstOrDefault()
-            : _allConversations[0];
+            : ConversationHistory.AllConversations[0];
 
         if (target is null)
         {
@@ -2024,12 +1749,7 @@ public sealed class MainViewModel : ViewModelBase
 
         CancelAllRenames();
         SelectedConversation = item;
-        Messages.Clear();
-
-        foreach (ChatMessage message in conversation.Messages)
-        {
-            Messages.Add(new MessageViewModel(message));
-        }
+        ConversationStream.LoadMessages(conversation.Messages);
 
         IsDeleteConfirmationVisible = false;
         RaiseMessageStateChanged();
@@ -2040,17 +1760,14 @@ public sealed class MainViewModel : ViewModelBase
     {
         CancelAllRenames();
         SelectedConversation = null;
-        Messages.Clear();
+        ConversationStream.ClearMessages();
         IsDeleteConfirmationVisible = false;
         RaiseMessageStateChanged();
     }
 
     private void CancelAllRenames()
     {
-        foreach (ConversationListItemViewModel item in _allConversations)
-        {
-            item.CancelRename();
-        }
+        ConversationHistory.CancelAllRenames();
     }
 
     private async Task ToggleConversationHistoryAsync()
@@ -2073,10 +1790,7 @@ public sealed class MainViewModel : ViewModelBase
     {
         _historySearchCancellation?.Cancel();
 
-        foreach (ConversationListItemViewModel item in _allConversations)
-        {
-            item.ResetPreview();
-        }
+        ConversationHistory.ResetPreviews();
 
         string query = HistorySearchText.Trim();
 
@@ -2085,7 +1799,7 @@ public sealed class MainViewModel : ViewModelBase
             _historySearchCancellation = null;
             _historySearchTask = Task.CompletedTask;
             IsHistorySearchBusy = false;
-            ApplyVisibleConversationItems(_allConversations);
+            ApplyVisibleConversationItems(ConversationHistory.AllConversations);
             return;
         }
 
@@ -2103,7 +1817,7 @@ public sealed class MainViewModel : ViewModelBase
 
         try
         {
-            foreach (ConversationListItemViewModel item in _allConversations)
+            foreach (ConversationListItemViewModel item in ConversationHistory.AllConversations)
             {
                 cancellationSource.Token.ThrowIfCancellationRequested();
 
@@ -2200,13 +1914,7 @@ public sealed class MainViewModel : ViewModelBase
     private void ApplyVisibleConversationItems(
         IEnumerable<ConversationListItemViewModel> items)
     {
-        Conversations.Clear();
-
-        foreach (ConversationListItemViewModel item in items)
-        {
-            Conversations.Add(item);
-        }
-
+        ConversationHistory.ApplyVisibleItems(items);
         RaiseHistoryStateChanged();
     }
 
@@ -2424,7 +2132,9 @@ public sealed class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasMessages));
         OnPropertyChanged(nameof(IsSelectedConversationEmpty));
         OnPropertyChanged(nameof(SelectedConversationMeta));
+        OnPropertyChanged(nameof(ShowPauseAutoScrollButton));
         OnPropertyChanged(nameof(ShowScrollToLatestButton));
+        PauseAutoScrollCommand.NotifyCanExecuteChanged();
         ScrollToLatestCommand.NotifyCanExecuteChanged();
     }
 

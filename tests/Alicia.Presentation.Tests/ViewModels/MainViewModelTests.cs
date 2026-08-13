@@ -9,6 +9,27 @@ namespace Alicia.Presentation.Tests.ViewModels;
 public sealed class MainViewModelTests
 {
     [Fact]
+    public void MainViewModelComposesDedicatedPresentationSlices()
+    {
+        InMemoryConversationRepository repository = new();
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(new DateTimeOffset(2026, 8, 13, 2, 0, 0, TimeSpan.Zero)));
+
+        Assert.Same(viewModel.ConversationHistory.Conversations, viewModel.Conversations);
+        Assert.Same(viewModel.ConversationStream.Messages, viewModel.Messages);
+        Assert.Same(viewModel.GenerationSettings, viewModel.Model.GenerationSettings);
+        Assert.NotNull(viewModel.ConversationWorkspace);
+        Assert.NotNull(viewModel.Provider);
+
+        viewModel.MessageDraft = "slice-owned draft";
+        viewModel.ProviderTemperatureText = "0.35";
+
+        Assert.Equal("slice-owned draft", viewModel.ConversationWorkspace.MessageDraft);
+        Assert.Equal("0.35", viewModel.GenerationSettings.ProviderTemperatureText);
+    }
+
+    [Fact]
     public async Task InitializeAsyncShowsEmptyHistoryWhenRepositoryIsEmpty()
     {
         InMemoryConversationRepository repository = new();
@@ -1142,12 +1163,12 @@ public sealed class MainViewModelTests
             conversationUiStateStore: uiStateStore);
         await viewModel.InitializeAsync().ConfigureAwait(true);
 
-        viewModel.ReportConversationScrollPosition(625, 720, userMovedUp: true);
+        viewModel.ReportConversationScrollPosition(689, 720, userMovedUp: true);
         Assert.Equal(ConversationScrollMode.Following, viewModel.CurrentConversationScrollMode);
 
-        viewModel.ReportConversationScrollPosition(600, 720, userMovedUp: true);
+        viewModel.ReportConversationScrollPosition(688, 720, userMovedUp: true);
         Assert.Equal(ConversationScrollMode.Detached, viewModel.CurrentConversationScrollMode);
-        Assert.Equal(600d, viewModel.CurrentConversationScrollOffset);
+        Assert.Equal(688d, viewModel.CurrentConversationScrollOffset);
         Assert.True(viewModel.ShowScrollToLatestButton);
 
         viewModel.ReportConversationScrollPosition(720, 720, userMovedUp: false);
@@ -1159,6 +1180,45 @@ public sealed class MainViewModelTests
         Assert.Equal(ConversationScrollMode.Following, viewModel.CurrentConversationScrollMode);
         Assert.False(viewModel.ShowScrollToLatestButton);
         Assert.Equal(1, uiStateStore.SaveCount);
+    }
+
+
+    [Fact]
+    public async Task PauseAutoScrollDetachesWithoutRequiringScrollGesture()
+    {
+        DateTimeOffset createdAt = new(2026, 8, 13, 1, 22, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        Conversation conversation = new(ConversationId.New(), "Manual scroll", createdAt, createdAt);
+        conversation.AddMessage(new ChatMessage(
+            MessageId.New(),
+            MessageRole.Assistant,
+            "Long answer",
+            createdAt.AddMinutes(1)));
+        repository.Seed(conversation);
+        StubConversationUiStateStore uiStateStore = new();
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(createdAt.AddHours(1)),
+            conversationUiStateStore: uiStateStore);
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+        viewModel.ReportConversationScrollPosition(720, 720, userMovedUp: false);
+
+        Assert.True(viewModel.ShowPauseAutoScrollButton);
+        Assert.False(viewModel.ShowScrollToLatestButton);
+
+        await viewModel.PauseAutoScrollCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.Equal(ConversationScrollMode.Detached, viewModel.CurrentConversationScrollMode);
+        Assert.False(viewModel.ShowPauseAutoScrollButton);
+        Assert.True(viewModel.ShowScrollToLatestButton);
+        Assert.Equal(1, uiStateStore.SaveCount);
+
+        await viewModel.ScrollToLatestCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.Equal(ConversationScrollMode.Following, viewModel.CurrentConversationScrollMode);
+        Assert.True(viewModel.ShowPauseAutoScrollButton);
+        Assert.False(viewModel.ShowScrollToLatestButton);
+        Assert.Equal(2, uiStateStore.SaveCount);
     }
 
     [Fact]

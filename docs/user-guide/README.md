@@ -53,10 +53,10 @@ The User message is persisted before generation. Partial Assistant output remain
 
 Conversation scrolling has two states:
 
-- **FOLLOWING**: new streamed content stays followed at the bottom when needed;
-- **DETACHED**: after deliberately scrolling more than about 96 px above the bottom, streamed chunks never move the viewport.
+- **FOLLOWING**: new streamed content stays followed at the bottom when needed; use the centered **↑ Pause auto-scroll** control above the composer to stop following immediately without scrolling;
+- **DETACHED**: after pausing explicitly or deliberately scrolling about 32 px above the bottom, streamed chunks never move the viewport.
 
-When detached, a floating **↓** action appears above the composer. Scrolling manually back to the bottom does not re-enable following; click **↓** or send a new User message to do that explicitly. The scroll state and vertical position are stored independently for each conversation and restored after switching conversations or restarting Alicia.
+When detached, the control becomes **↓ Resume & jump to latest**. Scrolling manually back to the bottom does not re-enable following; click **↓ Resume & jump to latest** or send a new User message to do that explicitly. The scroll state and vertical position are stored independently for each conversation and restored after switching conversations or restarting Alicia.
 
 ## Reasoning
 

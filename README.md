@@ -19,7 +19,7 @@ Alicia.Desktop ───────→ Alicia.Presentation ──────�
                                           └───────→ Alicia.Domain
 ```
 
-The dependency graph is checked automatically. Presentation code must not depend directly on infrastructure implementations; the desktop executable is the platform composition root that selects and injects those implementations.
+The dependency graph is checked automatically. Presentation code must not depend directly on infrastructure implementations; the desktop executable is the platform composition root that selects and injects those implementations. `MainViewModel` is now an orchestration/compatibility facade over dedicated conversation-workspace, history, stream, provider, model, and generation-settings ViewModels.
 
 ## Prerequisites
 
@@ -58,7 +58,7 @@ The current Avalonia presentation provides:
 - a managed llama.cpp session bound to a dynamically selected IPv4-loopback port with localhost-only CORS, the bundled UI disabled, a per-launch ephemeral API key outside the command line, public `/health` readiness followed by authenticated `/props` ownership verification, and Bearer-authenticated chat streaming;
 - OpenAI-compatible SSE streaming with separate visible Content and Reasoning chunks;
 - a first-delta thinking indicator with a Reduced Motion path and darker collapsible reasoning-step surface while preserving only visible final Assistant content;
-- per-conversation `FOLLOWING`/`DETACHED` scroll state with a 96 px detach threshold, persisted viewport position, and an explicit ↓ return-to-latest action that streaming never overrides while detached;
+- per-conversation `FOLLOWING`/`DETACHED` scroll state with a low 32 px gesture threshold, persisted viewport position, an explicit ↑ pause control, and a ↓ resume-and-jump-to-latest control that streaming never overrides while detached;
 - short Stop/Retry guard windows, cancellation that discards partial output, and retry of the existing unanswered User message without duplication;
 - reasoning kept as an ephemeral in-memory Presentation snapshot rather than silently persisted into conversation documents;
 - loading/empty/error states, keyboard accessibility, visible focus, accessible names, responsive spacing, and large interaction targets.
@@ -87,6 +87,7 @@ The provider-neutral Application contracts remain independent of llama.cpp/CUDA/
 - `docs/decisions/0017-reasoning-aware-streaming.md`
 - `docs/decisions/0018-secure-local-llama-server-session.md`
 - `docs/decisions/0019-conversation-following-ui-state.md`
+- `docs/decisions/0020-presentation-viewmodel-decomposition.md`
 - `docs/development/roadmap.md`
 - `docs/design/ui-ux-specification.md`
 - `docs/user-guide/README.md`

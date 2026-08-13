@@ -45,8 +45,8 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 | Lot 10 Robustesse/sécurité/observabilité | en cours | 10.1/10.2 terminés sur cette branche |
 | Lot 10.1/10.2 sécurité + ownership | terminé | session locale durcie |
 | UIX-01 Stage 8 | terminé | FOLLOWING / DETACHED + UI state |
-| UIX-01 Stage 9 | prochain track | décomposition Presentation |
-| UIX-01 Stage 10 | planifié | après Stage 9 |
+| UIX-01 Stage 9 | terminé | décomposition Presentation en six ViewModels |
+| UIX-01 Stage 10 | prochain track | History / gates / responsive completion |
 | Lot 10B Profiles/revisions/provenance/context | planifié | à faire |
 | Lot 11 RAG foundation | planifié | à faire |
 | Lot 12 Retrieval/grounded generation | planifié | à faire |
@@ -113,17 +113,18 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 ### Stage 8 — FOLLOWING / DETACHED + UI state — terminé
 
 - state machine scroll ;
-- seuil cible ~96 px ;
+- seuil de geste réduit à ~32 px ;
+- contrôle explicite ↑ pour suspendre le suivi sans scroller ;
+- contrôle explicite ↓ pour reprendre le suivi et revenir en bas ;
 - streaming ne force jamais le scroll en DETACHED ;
-- bouton ↓ ;
 - restore per conversation ;
 - persistence historique expanded/collapsed ;
 - auto-collapse narrow ;
 - Reduced Motion pour le thinking indicator.
 
-### Stage 9 — Décomposition Presentation
+### Stage 9 — Décomposition Presentation — terminé
 
-Réduire progressivement le monolithe `MainViewModel` sans modifier les contrats Domain/Application :
+Le monolithe `MainViewModel` est désormais décomposé en slices Presentation explicites sans modifier les contrats Domain/Application :
 
 ```text
 ConversationWorkspaceViewModel
@@ -185,9 +186,9 @@ Lot 10.1 + 10.2 P0 security/ownership — terminé
    ↓
 UIX-01 Stage 8 — terminé
    ↓
-UIX-01 Stage 9 — prochain
+UIX-01 Stage 9 — terminé
    ↓
-UIX-01 Stage 10
+UIX-01 Stage 10 — prochain
    ↓
 Lot 10.3–10.7
    ↓

@@ -331,18 +331,19 @@ Deux états :
 ### FOLLOWING
 
 - activé à l’envoi d’un message utilisateur ;
-- le stream suit automatiquement seulement si le nouveau contenu sortirait de la viewport.
+- le stream suit automatiquement seulement si le nouveau contenu sortirait de la viewport ;
+- un bouton arrondi centré `↑ Pause auto-scroll` est affiché au-dessus du composer pour suspendre explicitement le suivi sans devoir scroller.
 
 ### DETACHED
 
-- déclenché lorsque l’utilisateur remonte volontairement ;
-- seuil technique initial suggéré : ~96 px depuis le bas ;
+- déclenché par `↑ Pause auto-scroll` ou lorsque l’utilisateur remonte volontairement ;
+- seuil technique cible : ~32 px depuis le bas ;
 - aucun nouveau chunk ne réactive le suivi ;
-- bouton flottant `↓` apparaît au-dessus du composer.
+- le contrôle central devient `↓ Resume & jump to latest`.
 
 Retour à FOLLOWING uniquement par :
 
-- clic sur `↓` ;
+- clic sur `↓ Resume & jump to latest` ;
 - nouvel envoi utilisateur.
 
 La fin du stream ne réactive pas l’auto-scroll.

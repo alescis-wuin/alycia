@@ -19,9 +19,11 @@ Presentation defines two scroll modes:
 - `Following` — streamed content may keep the viewport at the latest content;
 - `Detached` — streamed content never changes the user's viewport position.
 
-A deliberate upward scroll detaches only after the viewport is more than 96 device-independent pixels from the bottom. Scrolling back to the bottom does not implicitly reattach. The only transitions from `Detached` to `Following` are:
+A deliberate upward scroll detaches once the viewport is at least 32 device-independent pixels from the bottom. The user can also detach immediately without scrolling through the centered `↑ Pause auto-scroll` control above the composer.
 
-- the explicit floating “scroll to latest” action;
+Scrolling back to the bottom does not implicitly reattach. The only transitions from `Detached` to `Following` are:
+
+- the centered `↓ Resume & jump to latest` action;
 - sending a new User message.
 
 `MainView` distinguishes offset-only scroll changes from extent/viewport layout changes. Content growth, conversation reloads and responsive resizing therefore cannot overwrite a detached saved position. While following, scrolling to the end remains conditional and harmless when the latest content is already visible.
@@ -39,7 +41,7 @@ Reduced motion is injected into `MainViewModel` by the Desktop host. Desktop use
 
 ## Consequences
 
-Long generations no longer pull users away from earlier content they chose to inspect. Scroll intent is isolated per conversation and restored after navigation/restart without modifying Domain/Application persistence contracts.
+Long generations no longer pull users away from earlier content they chose to inspect. The user can suspend following explicitly before scrolling, or detach with a short upward gesture even while content is growing. Scroll intent is isolated per conversation and restored after navigation/restart without modifying Domain/Application persistence contracts.
 
 UI-state persistence remains intentionally separate from conversation documents. Future message revisions, generation provenance and context revisions can therefore evolve without mixing view position into immutable conversation history.
 
