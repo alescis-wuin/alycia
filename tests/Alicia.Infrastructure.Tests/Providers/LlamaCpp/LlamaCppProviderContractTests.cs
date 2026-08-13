@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -10,6 +11,8 @@ namespace Alicia.Infrastructure.Tests.Providers.LlamaCpp;
 
 public sealed class LlamaCppProviderContractTests
 {
+    private const string TestApiKey = "A1B2C3D4E5F60718293A4B5C6D7E8F90";
+
     [Theory]
     [InlineData("ggml-org/gemma-3-1b-it-GGUF", "ggml-org/gemma-3-1b-it-GGUF")]
     [InlineData(" owner/model-GGUF:Q4_K_M ", "owner/model-GGUF:Q4_K_M")]
@@ -39,11 +42,15 @@ public sealed class LlamaCppProviderContractTests
     {
         string[] arguments = LlamaCppServerCommand.CreateArguments(
             "owner/model-GGUF:Q5_K_M",
-            "/tmp/alicia-llama.log");
+            "/tmp/alicia-llama.log",
+            port: 43123);
 
         AssertOption(arguments, "-hf", "owner/model-GGUF:Q5_K_M");
         AssertOption(arguments, "--host", "127.0.0.1");
-        AssertOption(arguments, "--port", "8080");
+        AssertOption(arguments, "--port", "43123");
+        AssertOption(arguments, "--cors-origins", "localhost");
+        Assert.Contains("--no-ui", arguments);
+        Assert.DoesNotContain("--api-key", arguments);
         Assert.DoesNotContain("--n-gpu-layers", arguments);
         AssertOption(arguments, "--alias", "alicia-local");
         Assert.Contains("--jinja", arguments);
@@ -55,14 +62,89 @@ public sealed class LlamaCppProviderContractTests
     {
         string[] providerDefaults = LlamaCppServerCommand.CreateArguments(
             "owner/model-GGUF",
-            "/tmp/alicia-default.log");
+            "/tmp/alicia-default.log",
+            port: 43123);
         string[] configured = LlamaCppServerCommand.CreateArguments(
             "owner/model-GGUF",
             "/tmp/alicia-configured.log",
+            port: 43124,
             contextSize: 8192);
 
         Assert.DoesNotContain("--ctx-size", providerDefaults);
         AssertOption(configured, "--ctx-size", "8192");
+    }
+
+    [Fact]
+    public void ServerSecurityKeepsEphemeralApiKeyOutOfCommandLine()
+    {
+        string firstApiKey = LlamaCppServerSecurity.CreateEphemeralApiKey();
+        string secondApiKey = LlamaCppServerSecurity.CreateEphemeralApiKey();
+        ProcessStartInfo startInfo = new("llama-server");
+        LlamaCppServerSecurity.ApplyApiKey(startInfo, firstApiKey);
+        string[] arguments = LlamaCppServerCommand.CreateArguments(
+            "owner/model-GGUF",
+            "/tmp/alicia-secure.log",
+            port: 43125);
+
+        Assert.Equal(64, firstApiKey.Length);
+        Assert.NotEqual(firstApiKey, secondApiKey);
+        Assert.Equal(
+            firstApiKey,
+            startInfo.Environment[LlamaCppServerSecurity.ApiKeyEnvironmentVariable]);
+        Assert.DoesNotContain(firstApiKey, arguments);
+        Assert.DoesNotContain("--api-key", arguments);
+    }
+
+    [Fact]
+    public async Task ServerSessionProbeRequiresProtectedEndpointAndMatchingCredential()
+    {
+        SessionOwnershipHttpMessageHandler handler = new(TestApiKey);
+        using HttpClient httpClient = new(handler);
+
+        await LlamaCppServerSessionProbe.VerifyOwnershipAsync(
+            httpClient,
+            new Uri("http://127.0.0.1:43125/"),
+            TestApiKey,
+            CancellationToken.None).ConfigureAwait(true);
+
+        Assert.Equal(2, handler.AuthorizationParameters.Count);
+        Assert.Null(handler.AuthorizationParameters[0]);
+        Assert.Equal(TestApiKey, handler.AuthorizationParameters[1]);
+        Assert.All(handler.RequestPaths, path => Assert.Equal("/props", path));
+    }
+
+    [Fact]
+    public async Task ServerSessionProbeRejectsEndpointWithoutAuthentication()
+    {
+        SessionOwnershipHttpMessageHandler handler = new(expectedApiKey: null);
+        using HttpClient httpClient = new(handler);
+
+        InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => LlamaCppServerSessionProbe.VerifyOwnershipAsync(
+                httpClient,
+                new Uri("http://127.0.0.1:43125/"),
+                TestApiKey,
+                CancellationToken.None)).ConfigureAwait(true);
+
+        Assert.Contains("does not enforce", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ServerSessionProbeRejectsDifferentAuthenticatedServer()
+    {
+        SessionOwnershipHttpMessageHandler handler = new(
+            "00112233445566778899AABBCCDDEEFF");
+        using HttpClient httpClient = new(handler);
+
+        InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => LlamaCppServerSessionProbe.VerifyOwnershipAsync(
+                httpClient,
+                new Uri("http://127.0.0.1:43125/"),
+                TestApiKey,
+                CancellationToken.None)).ConfigureAwait(true);
+
+        Assert.Contains("rejected", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("401", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -181,6 +263,7 @@ public sealed class LlamaCppProviderContractTests
         await foreach (ConversationResponseChunk chunk in client
             .StreamAsync(
                 new Uri("http://127.0.0.1:8080/"),
+                TestApiKey,
                 request,
                 new InferenceGenerationOptions(),
                 CancellationToken.None)
@@ -190,7 +273,10 @@ public sealed class LlamaCppProviderContractTests
         }
 
         Assert.Equal("Hello from CUDA", string.Concat(chunks));
+        Assert.Equal("Bearer", handler.AuthorizationScheme);
+        Assert.Equal(TestApiKey, handler.AuthorizationParameter);
         string requestBody = Assert.IsType<string>(handler.RequestBody);
+        Assert.DoesNotContain(TestApiKey, requestBody, StringComparison.Ordinal);
         using JsonDocument document = JsonDocument.Parse(requestBody);
         Assert.True(document.RootElement.GetProperty("stream").GetBoolean());
         Assert.Equal(
@@ -226,6 +312,7 @@ public sealed class LlamaCppProviderContractTests
 
         await ConsumeAsync(client.StreamAsync(
             new Uri("http://127.0.0.1:8080/"),
+            TestApiKey,
             CreateRequest(),
             options,
             CancellationToken.None)).ConfigureAwait(true);
@@ -260,6 +347,7 @@ public sealed class LlamaCppProviderContractTests
         await foreach (ConversationResponseChunk chunk in client
             .StreamAsync(
                 new Uri("http://127.0.0.1:8080/"),
+                TestApiKey,
                 CreateRequest(),
                 new InferenceGenerationOptions(
                     reasoningEnabled: true,
@@ -300,6 +388,7 @@ public sealed class LlamaCppProviderContractTests
 
         await ConsumeAsync(client.StreamAsync(
             new Uri("http://127.0.0.1:8080/"),
+            TestApiKey,
             CreateRequest(),
             new InferenceGenerationOptions(reasoningEnabled: false),
             CancellationToken.None)).ConfigureAwait(true);
@@ -323,6 +412,7 @@ public sealed class LlamaCppProviderContractTests
 
         await ConsumeAsync(client.StreamAsync(
             new Uri("http://127.0.0.1:8080/"),
+            TestApiKey,
             CreateRequest(),
             new InferenceGenerationOptions(
                 reasoningEnabled: true,
@@ -349,6 +439,7 @@ public sealed class LlamaCppProviderContractTests
         InvalidDataException exception = await Assert.ThrowsAsync<InvalidDataException>(
             () => ConsumeAsync(client.StreamAsync(
                 new Uri("http://127.0.0.1:8080/"),
+                TestApiKey,
                 CreateRequest(),
                 new InferenceGenerationOptions(),
                 CancellationToken.None))).ConfigureAwait(true);
@@ -368,6 +459,7 @@ public sealed class LlamaCppProviderContractTests
         InvalidDataException exception = await Assert.ThrowsAsync<InvalidDataException>(
             () => ConsumeAsync(client.StreamAsync(
                 new Uri("http://127.0.0.1:8080/"),
+                TestApiKey,
                 CreateRequest(),
                 new InferenceGenerationOptions(),
                 CancellationToken.None))).ConfigureAwait(true);
@@ -387,6 +479,7 @@ public sealed class LlamaCppProviderContractTests
         InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(
             () => ConsumeAsync(client.StreamAsync(
                 new Uri("http://127.0.0.1:8080/"),
+                TestApiKey,
                 CreateRequest(),
                 new InferenceGenerationOptions(),
                 CancellationToken.None))).ConfigureAwait(true);
@@ -434,6 +527,41 @@ public sealed class LlamaCppProviderContractTests
         }
     }
 
+    private sealed class SessionOwnershipHttpMessageHandler : HttpMessageHandler
+    {
+        private readonly string? _expectedApiKey;
+
+        public SessionOwnershipHttpMessageHandler(string? expectedApiKey)
+        {
+            _expectedApiKey = expectedApiKey;
+        }
+
+        public List<string?> AuthorizationParameters { get; } = [];
+
+        public List<string> RequestPaths { get; } = [];
+
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            string? authorization = request.Headers.Authorization?.Parameter;
+            AuthorizationParameters.Add(authorization);
+            RequestPaths.Add(request.RequestUri?.AbsolutePath ?? string.Empty);
+
+            HttpStatusCode statusCode = _expectedApiKey is null
+                || string.Equals(authorization, _expectedApiKey, StringComparison.Ordinal)
+                    ? HttpStatusCode.OK
+                    : HttpStatusCode.Unauthorized;
+
+            return Task.FromResult(new HttpResponseMessage(statusCode)
+            {
+                Content = new StringContent("{}", Encoding.UTF8, "application/json"),
+                RequestMessage = request,
+            });
+        }
+    }
+
     private sealed class CapturingHttpMessageHandler : HttpMessageHandler
     {
         private readonly HttpStatusCode _statusCode;
@@ -449,10 +577,16 @@ public sealed class LlamaCppProviderContractTests
 
         public string? RequestBody { get; private set; }
 
+        public string? AuthorizationScheme { get; private set; }
+
+        public string? AuthorizationParameter { get; private set; }
+
         protected override async Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
             CancellationToken cancellationToken)
         {
+            AuthorizationScheme = request.Headers.Authorization?.Scheme;
+            AuthorizationParameter = request.Headers.Authorization?.Parameter;
             RequestBody = request.Content is null
                 ? null
                 : await request.Content

@@ -27,11 +27,13 @@ internal sealed class LlamaCppChatClient
 
     public async IAsyncEnumerable<ConversationResponseChunk> StreamAsync(
         Uri endpoint,
+        string apiKey,
         ConversationResponseRequest request,
         InferenceGenerationOptions generationOptions,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(endpoint);
+        ArgumentException.ThrowIfNullOrWhiteSpace(apiKey);
         ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(generationOptions);
 
@@ -63,6 +65,8 @@ internal sealed class LlamaCppChatClient
         {
             Content = new StringContent(payload, Encoding.UTF8, "application/json"),
         };
+        LlamaCppServerSecurity.Authorize(httpRequest, apiKey);
+
         using HttpResponseMessage response = await _httpClient
             .SendAsync(
                 httpRequest,

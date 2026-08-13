@@ -55,6 +55,7 @@ The current Avalonia presentation provides:
 - explicit Provider detect/install/start/stop operations and phase-aware installation progress outside the Conversation sidebar;
 - explicit Models configuration for Hugging Face GGUF reference, optional context/generation overrides, reasoning enable/disable, and bounded reasoning tokens;
 - no automatic provider fallback: unsaved or unavailable selections are never silently replaced;
+- a managed llama.cpp session bound to a dynamically selected IPv4-loopback port with localhost-only CORS, the bundled UI disabled, a per-launch ephemeral API key outside the command line, public `/health` readiness followed by authenticated `/props` ownership verification, and Bearer-authenticated chat streaming;
 - OpenAI-compatible SSE streaming with separate visible Content and Reasoning chunks;
 - a first-delta thinking indicator and darker collapsible reasoning-step surface while preserving only visible final Assistant content;
 - short Stop/Retry guard windows, cancellation that discards partial output, and retry of the existing unanswered User message without duplication;
@@ -83,6 +84,7 @@ The provider-neutral Application contracts remain independent of llama.cpp/CUDA/
 - `docs/decisions/0015-conversation-history-discovery.md`
 - `docs/decisions/0016-conversation-surface-polish.md`
 - `docs/decisions/0017-reasoning-aware-streaming.md`
+- `docs/decisions/0018-secure-local-llama-server-session.md`
 - `docs/development/roadmap.md`
 - `docs/design/ui-ux-specification.md`
 - `docs/user-guide/README.md`

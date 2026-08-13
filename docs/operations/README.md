@@ -32,9 +32,21 @@ The current provider runtime can:
 
 Server logs are written below `providers/llama.cpp/logs`. The installation descriptor is `providers/llama.cpp/installation.json`.
 
-## Security boundary before Lot 10.1
+## Local server security boundary
 
-At checkpoint `c51f1ef`, the process is loopback-only but still inherits permissive upstream CORS, the bundled Web UI, no API key, and a fixed port `8080`. Lot 10.1/10.2 is the P0 hardening slice that must remove these assumptions before further provider expansion.
+The Alicia-managed llama.cpp session is process-owned rather than a fixed localhost service:
+
+- IPv4 loopback binding only;
+- a fresh OS-selected loopback port for every start;
+- `--cors-origins localhost`;
+- bundled llama.cpp UI disabled;
+- a cryptographically random 256-bit API key supplied through `LLAMA_API_KEY`, never through process arguments;
+- public `/health` used only for readiness;
+- `/props` ownership handshake requires 401 without a credential and 200 with the session Bearer credential before Alicia accepts the endpoint;
+- chat-completion requests carry the same Bearer credential;
+- endpoint and secret are cleared with the managed process session.
+
+The bind-probe socket is released before `llama-server` starts, so a narrow port race remains possible. The ownership handshake fails closed if another local process wins that race; retry/timeouts and richer error classification remain Lot 10.3/10.4 work.
 
 Credentials must not be copied into repository files or logs. `HF_TOKEN`, when set by the user environment, is inherited for Hugging Face access and is not stored in provider configuration.
 

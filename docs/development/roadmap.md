@@ -42,8 +42,10 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 | Lot 08 llama.cpp CUDA | terminé | `427e25c` |
 | Lot 09 Provider/model configuration | terminé | `cf0a5c5` + stabilisations |
 | UIX-01 Stages 1–7 | terminé | `ed4cc29` → `c51f1ef` |
-| Lot 10 Robustesse/sécurité/observabilité | prochain lot racine | à faire |
-| UIX-01 Stages 8–10 | planifié | après Lot 10.1/10.2 |
+| Lot 10 Robustesse/sécurité/observabilité | en cours | 10.1/10.2 terminés sur cette branche |
+| Lot 10.1/10.2 sécurité + ownership | terminé | session locale durcie |
+| UIX-01 Stage 8 | prochain track | FOLLOWING / DETACHED + UI state |
+| UIX-01 Stages 9–10 | planifié | après Stage 8 |
 | Lot 10B Profiles/revisions/provenance/context | planifié | à faire |
 | Lot 11 RAG foundation | planifié | à faire |
 | Lot 12 Retrieval/grounded generation | planifié | à faire |
@@ -53,7 +55,7 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 
 ## Lot 10 — Robustesse provider / sécurité / observabilité
 
-### 10.1 Serveur local sécurisé — P0
+### 10.1 Serveur local sécurisé — P0 — terminé
 
 - limiter CORS à localhost ;
 - désactiver la Web UI llama.cpp pour le process géré ;
@@ -61,7 +63,7 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 - authentifier le client local ;
 - tester la non-fuite du secret.
 
-### 10.2 Port et ownership — P0
+### 10.2 Port et ownership — P0 — terminé
 
 - supprimer l'hypothèse globale du port `8080` ;
 - choisir un port loopback disponible par lancement ;
@@ -176,11 +178,11 @@ Packaging Windows/Linux/macOS, update channel, crash reporting, localisation, E2
 ## Séquence recommandée
 
 ```text
-Docs sync
+Docs sync — terminé
    ↓
-Lot 10.1 + 10.2 P0 security/ownership
+Lot 10.1 + 10.2 P0 security/ownership — terminé
    ↓
-UIX-01 Stage 8
+UIX-01 Stage 8 — prochain
    ↓
 UIX-01 Stage 9
    ↓

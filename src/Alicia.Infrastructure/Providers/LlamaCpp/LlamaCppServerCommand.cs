@@ -2,15 +2,13 @@ namespace Alicia.Infrastructure.Providers.LlamaCpp;
 
 internal static class LlamaCppServerCommand
 {
-    public const int DefaultPort = 8080;
-
     public const string ModelAlias = "alicia-local";
 
     public static string[] CreateArguments(
         string modelReference,
         string logFilePath,
-        int? contextSize = null,
-        int port = DefaultPort)
+        int port,
+        int? contextSize = null)
     {
         string normalizedModelReference = LlamaCppModelReference.Normalize(modelReference);
 
@@ -34,6 +32,9 @@ internal static class LlamaCppServerCommand
             "127.0.0.1",
             "--port",
             port.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            "--cors-origins",
+            "localhost",
+            "--no-ui",
         ];
 
         if (contextSize is int configuredContextSize)

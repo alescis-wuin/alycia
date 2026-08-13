@@ -27,6 +27,7 @@ public sealed class LlamaCppProviderRuntime :
     private string? _version;
     private string? _modelReference;
     private Uri? _endpoint;
+    private string? _serverApiKey;
     private InferenceGenerationOptions _generationOptions = new();
     private InferenceProviderConfiguration? _activeConfiguration;
     private bool _disposed;
@@ -212,9 +213,12 @@ public sealed class LlamaCppProviderRuntime :
             string logFilePath = Path.Combine(
                 _logDirectory,
                 $"server-{DateTimeOffset.UtcNow:yyyyMMdd-HHmmss}.log");
+            int port = LlamaCppLoopbackPortAllocator.Allocate();
+            string apiKey = LlamaCppServerSecurity.CreateEphemeralApiKey();
             string[] arguments = LlamaCppServerCommand.CreateArguments(
                 normalizedModelReference,
                 logFilePath,
+                port,
                 configuration.ContextSize);
             ProcessStartInfo startInfo = new(_executablePath)
             {
@@ -230,12 +234,14 @@ public sealed class LlamaCppProviderRuntime :
 
             Directory.CreateDirectory(_modelCacheDirectory);
             startInfo.Environment["LLAMA_CACHE"] = _modelCacheDirectory;
+            LlamaCppServerSecurity.ApplyApiKey(startInfo, apiKey);
 
             _serverProcess = Process.Start(startInfo)
                 ?? throw new InvalidOperationException("Unable to start llama-server.");
             _endpoint = new Uri(
-                $"http://127.0.0.1:{LlamaCppServerCommand.DefaultPort}/",
+                $"http://127.0.0.1:{port}/",
                 UriKind.Absolute);
+            _serverApiKey = apiKey;
             _modelReference = normalizedModelReference;
 
             try
@@ -243,6 +249,7 @@ public sealed class LlamaCppProviderRuntime :
                 await WaitUntilHealthyAsync(
                     _serverProcess,
                     _endpoint,
+                    apiKey,
                     logFilePath,
                     cancellationToken).ConfigureAwait(false);
                 _generationOptions = normalizedConfiguration.Generation;
@@ -296,14 +303,20 @@ public sealed class LlamaCppProviderRuntime :
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(request);
 
-        if (!IsServerAlive() || _endpoint is null)
+        Uri? endpoint = _endpoint;
+        string? apiKey = _serverApiKey;
+
+        if (!IsServerAlive()
+            || endpoint is null
+            || string.IsNullOrWhiteSpace(apiKey))
         {
             throw new InvalidOperationException(
                 "llama.cpp CUDA is not running. Start a Hugging Face model before sending a message.");
         }
 
         return _chatClient.StreamAsync(
-            _endpoint,
+            endpoint,
+            apiKey,
             request,
             _generationOptions,
             cancellationToken);
@@ -408,6 +421,7 @@ public sealed class LlamaCppProviderRuntime :
         _executablePath = Path.GetFullPath(executablePath);
         _version = ParseVersion(versionProbe.CombinedOutput) ?? expectedVersion;
         _endpoint = null;
+        _serverApiKey = null;
 
         return CreateSnapshot(
             InferenceProviderState.Ready,
@@ -443,6 +457,7 @@ public sealed class LlamaCppProviderRuntime :
     private async Task WaitUntilHealthyAsync(
         Process process,
         Uri endpoint,
+        string apiKey,
         string logFilePath,
         CancellationToken cancellationToken)
     {
@@ -467,6 +482,11 @@ public sealed class LlamaCppProviderRuntime :
 
                 if (response.StatusCode == HttpStatusCode.OK)
                 {
+                    await LlamaCppServerSessionProbe.VerifyOwnershipAsync(
+                        _httpClient,
+                        endpoint,
+                        apiKey,
+                        cancellationToken).ConfigureAwait(false);
                     return;
                 }
 
@@ -490,6 +510,7 @@ public sealed class LlamaCppProviderRuntime :
         Process? process = _serverProcess;
         _serverProcess = null;
         _endpoint = null;
+        _serverApiKey = null;
         _activeConfiguration = null;
 
         if (process is null)
@@ -516,7 +537,9 @@ public sealed class LlamaCppProviderRuntime :
 
     private bool IsServerAlive()
     {
-        return _serverProcess is { HasExited: false } && _endpoint is not null;
+        return _serverProcess is { HasExited: false }
+            && _endpoint is not null
+            && !string.IsNullOrWhiteSpace(_serverApiKey);
     }
 
     private void ClearExitedServer()
@@ -529,6 +552,7 @@ public sealed class LlamaCppProviderRuntime :
         _serverProcess.Dispose();
         _serverProcess = null;
         _endpoint = null;
+        _serverApiKey = null;
         _activeConfiguration = null;
     }
 
