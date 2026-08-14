@@ -18,11 +18,15 @@ internal sealed class LlamaCppChatClient
     };
 
     private readonly HttpClient _httpClient;
+    private readonly LlamaCppProviderTimeouts _timeouts;
 
-    public LlamaCppChatClient(HttpClient httpClient)
+    public LlamaCppChatClient(
+        HttpClient httpClient,
+        LlamaCppProviderTimeouts? timeouts = null)
     {
         ArgumentNullException.ThrowIfNull(httpClient);
         _httpClient = httpClient;
+        _timeouts = timeouts ?? LlamaCppProviderTimeouts.Default;
     }
 
     public async IAsyncEnumerable<ConversationResponseChunk> StreamAsync(
@@ -67,35 +71,36 @@ internal sealed class LlamaCppChatClient
         };
         LlamaCppServerSecurity.Authorize(httpRequest, apiKey);
 
-        using HttpResponseMessage response = await _httpClient
-            .SendAsync(
-                httpRequest,
-                HttpCompletionOption.ResponseHeadersRead,
-                cancellationToken)
-            .ConfigureAwait(false);
+        using HttpResponseMessage response = await SendAsync(
+            httpRequest,
+            cancellationToken).ConfigureAwait(false);
 
         if (!response.IsSuccessStatusCode)
         {
-            string responseBody = await response.Content
-                .ReadAsStringAsync(cancellationToken)
-                .ConfigureAwait(false);
+            string responseBody = await ReadFailureBodyAsync(
+                response,
+                cancellationToken).ConfigureAwait(false);
             throw CreateHttpFailure(response.StatusCode, responseBody);
         }
 
-        await using Stream responseStream = await response.Content
-            .ReadAsStreamAsync(cancellationToken)
-            .ConfigureAwait(false);
+        await using Stream responseStream = await OpenResponseStreamAsync(
+            response,
+            cancellationToken).ConfigureAwait(false);
         using StreamReader reader = new(responseStream, Encoding.UTF8);
 
         while (true)
         {
-            string? line = await reader.ReadLineAsync(cancellationToken)
-                .ConfigureAwait(false);
+            string? line = await ReadStreamLineAsync(
+                reader,
+                cancellationToken).ConfigureAwait(false);
 
             if (line is null)
             {
-                throw new InvalidDataException(
-                    "llama.cpp streaming response ended before the [DONE] marker.");
+                throw new InferenceProviderException(
+                    InferenceProviderFailureKind.Faulted,
+                    "The local AI response ended unexpectedly. Try again, and review the provider if the problem continues.",
+                    new InvalidDataException(
+                        "llama.cpp streaming response ended before the [DONE] marker."));
             }
 
             if (!line.StartsWith("data:", StringComparison.Ordinal))
@@ -134,9 +139,12 @@ internal sealed class LlamaCppChatClient
         }
         catch (JsonException exception)
         {
-            throw new InvalidDataException(
-                "llama.cpp returned malformed JSON while streaming a response.",
-                exception);
+            throw new InferenceProviderException(
+                InferenceProviderFailureKind.Faulted,
+                "The local AI runtime returned an invalid response. Try again, and review the provider if the problem continues.",
+                new InvalidDataException(
+                    "llama.cpp returned malformed JSON while streaming a response.",
+                    exception));
         }
 
         using (document)
@@ -207,7 +215,116 @@ internal sealed class LlamaCppChatClient
         return new ChatCompletionMessage(role, message.Content);
     }
 
-    private static InvalidOperationException CreateHttpFailure(
+    private async Task<HttpResponseMessage> SendAsync(
+        HttpRequestMessage request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await LlamaCppTimeoutGuard.RunAsync(
+                token => _httpClient.SendAsync(
+                    request,
+                    HttpCompletionOption.ResponseHeadersRead,
+                    token),
+                _timeouts.ChatResponseHeaders,
+                InferenceProviderFailureKind.Network,
+                "The local AI server did not respond in time. Check the provider and try again.",
+                cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (HttpRequestException exception)
+        {
+            throw new InferenceProviderException(
+                InferenceProviderFailureKind.Network,
+                "Alicia could not reach the local AI server. Check the provider and try again.",
+                exception);
+        }
+    }
+
+    private async Task<string> ReadFailureBodyAsync(
+        HttpResponseMessage response,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await LlamaCppTimeoutGuard.RunAsync(
+                token => response.Content.ReadAsStringAsync(token),
+                _timeouts.ChatStreamIdle,
+                InferenceProviderFailureKind.Network,
+                "The local AI server stopped responding. Check the provider and try again.",
+                cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (HttpRequestException exception)
+        {
+            throw new InferenceProviderException(
+                InferenceProviderFailureKind.Network,
+                "Alicia could not finish reading the local AI response. Check the provider and try again.",
+                exception);
+        }
+        catch (IOException exception)
+        {
+            throw new InferenceProviderException(
+                InferenceProviderFailureKind.Network,
+                "Alicia could not finish reading the local AI response. Check the provider and try again.",
+                exception);
+        }
+    }
+
+    private async Task<Stream> OpenResponseStreamAsync(
+        HttpResponseMessage response,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await LlamaCppTimeoutGuard.RunAsync(
+                token => response.Content.ReadAsStreamAsync(token),
+                _timeouts.ChatStreamIdle,
+                InferenceProviderFailureKind.Network,
+                "The local AI response did not begin in time. Check the provider and try again.",
+                cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (HttpRequestException exception)
+        {
+            throw new InferenceProviderException(
+                InferenceProviderFailureKind.Network,
+                "Alicia could not open the local AI response stream. Check the provider and try again.",
+                exception);
+        }
+        catch (IOException exception)
+        {
+            throw new InferenceProviderException(
+                InferenceProviderFailureKind.Network,
+                "Alicia could not open the local AI response stream. Check the provider and try again.",
+                exception);
+        }
+    }
+
+    private async Task<string?> ReadStreamLineAsync(
+        StreamReader reader,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await LlamaCppTimeoutGuard.RunAsync(
+                token => reader.ReadLineAsync(token).AsTask(),
+                _timeouts.ChatStreamIdle,
+                InferenceProviderFailureKind.Network,
+                "The local AI response stopped arriving. Check the provider and try again.",
+                cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (IOException exception)
+        {
+            throw new InferenceProviderException(
+                InferenceProviderFailureKind.Network,
+                "The local AI response stream was interrupted. Check the provider and try again.",
+                exception);
+        }
+    }
+
+    private static InferenceProviderException CreateHttpFailure(
         HttpStatusCode statusCode,
         string responseBody)
     {
@@ -220,8 +337,32 @@ internal sealed class LlamaCppChatClient
             detail = $"{detail[..600]}…";
         }
 
-        return new InvalidOperationException(
+        InvalidOperationException diagnostic = new(
             $"llama.cpp returned HTTP {(int)statusCode} ({statusCode}). {detail}");
+
+        if ((int)statusCode is 400 or 413 or 422)
+        {
+            return new InferenceProviderException(
+                InferenceProviderFailureKind.Model,
+                "The local AI server rejected the model request. Review the model and generation settings, then try again.",
+                diagnostic);
+        }
+
+        if (statusCode is HttpStatusCode.RequestTimeout
+            or HttpStatusCode.BadGateway
+            or HttpStatusCode.ServiceUnavailable
+            or HttpStatusCode.GatewayTimeout)
+        {
+            return new InferenceProviderException(
+                InferenceProviderFailureKind.Network,
+                "The local AI server is temporarily unavailable. Check the provider and try again.",
+                diagnostic);
+        }
+
+        return new InferenceProviderException(
+            InferenceProviderFailureKind.Faulted,
+            "The local AI server rejected the request. Review the provider and try again.",
+            diagnostic);
     }
 
     private sealed record ChatCompletionRequest(

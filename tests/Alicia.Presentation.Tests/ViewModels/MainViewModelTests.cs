@@ -640,6 +640,44 @@ public sealed class MainViewModelTests
     }
 
     [Fact]
+    public async Task ProviderResponseFailureShowsOnlySafeMessageAndKeepsRetryAvailable()
+    {
+        DateTimeOffset createdAt = new(2026, 8, 11, 16, 35, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        Conversation conversation = new(ConversationId.New(), "Project", createdAt, createdAt);
+        repository.Seed(conversation);
+        ProviderFailureConversationResponder responder = new(
+            new InferenceProviderException(
+                InferenceProviderFailureKind.Network,
+                "Alicia could not reach the local AI server. Check the provider and try again.",
+                new HttpRequestException(
+                    "connection failed for /home/user/private-model.gguf token=secret")));
+        StubInferenceProviderRuntime provider = new(InferenceProviderState.Running);
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(createdAt.AddMinutes(1)),
+            responder,
+            provider);
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+        viewModel.MessageDraft = "Retry safely";
+
+        await viewModel.SendMessageCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.True(viewModel.HasError);
+        string responseError = Assert.IsType<string>(viewModel.ErrorMessage);
+        Assert.Equal(
+            "Alicia could not reach the local AI server. Check the provider and try again.",
+            responseError);
+        Assert.DoesNotContain("/home/user", responseError, StringComparison.Ordinal);
+        Assert.DoesNotContain("secret", responseError, StringComparison.Ordinal);
+        Assert.True(viewModel.CanRetryResponse);
+        MessageViewModel userMessage = Assert.Single(viewModel.Messages);
+        Assert.True(userMessage.IsUser);
+        Assert.True(viewModel.IsProviderRunning);
+        Assert.Equal(2, provider.DetectCount);
+    }
+
+    [Fact]
     public async Task RetryResponseCompletesExistingUserMessageWithoutDuplicatingIt()
     {
         DateTimeOffset createdAt = new(2026, 8, 11, 16, 40, 0, TimeSpan.Zero);
@@ -881,12 +919,16 @@ public sealed class MainViewModelTests
     }
 
     [Fact]
-    public async Task FailedModelStartReturnsToReadyAndCanRetryWithoutReinstalling()
+    public async Task FailedModelStartReturnsToReadyWithSafeModelGuidance()
     {
         InMemoryConversationRepository repository = new();
         StubInferenceProviderRuntime provider = new(InferenceProviderState.Ready)
         {
-            StartException = new InvalidOperationException("Model could not be loaded."),
+            StartException = new InferenceProviderException(
+                InferenceProviderFailureKind.Model,
+                "The selected model could not be loaded. Review the model settings and try again.",
+                new InvalidOperationException(
+                    "failed to load /home/user/private-model.gguf token=secret")),
         };
         MainViewModel viewModel = CreateViewModel(
             repository,
@@ -900,10 +942,107 @@ public sealed class MainViewModelTests
         await viewModel.StartProviderCommand.ExecuteAsync(null).ConfigureAwait(true);
 
         Assert.True(viewModel.HasError);
-        Assert.Equal("Ready", viewModel.ProviderStatusText);
+        string modelError = Assert.IsType<string>(viewModel.ErrorMessage);
+        Assert.Equal(
+            "The selected model could not be loaded. Review the model settings and try again.",
+            modelError);
+        Assert.DoesNotContain("/home/user", modelError, StringComparison.Ordinal);
+        Assert.DoesNotContain("secret", modelError, StringComparison.Ordinal);
+        Assert.Equal(InferenceProviderFailureKind.Model, viewModel.ProviderFailureKind);
+        Assert.Equal("Model needs attention", viewModel.ProviderStatusText);
         Assert.True(viewModel.CanStartProvider);
         Assert.False(viewModel.CanInstallProvider);
         Assert.Equal(2, provider.DetectCount);
+        Assert.Equal(
+            ConversationConfigurationGateState.ModelConfigurationRequired,
+            viewModel.ConfigurationGate.State);
+        Assert.Equal("Review model", viewModel.ConfigurationGate.PrimaryActionLabel);
+    }
+
+    [Fact]
+    public async Task NetworkStartFailureKeepsReadyRuntimeWithoutOfferingReinstall()
+    {
+        InMemoryConversationRepository repository = new();
+        StubInferenceProviderRuntime provider = new(InferenceProviderState.Ready)
+        {
+            StartException = new InferenceProviderException(
+                InferenceProviderFailureKind.Network,
+                "Alicia could not reach the local AI service. Check the connection and try again.",
+                new HttpRequestException("connect 127.0.0.1:43123 failed")),
+        };
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(new DateTimeOffset(2026, 8, 11, 21, 26, 0, TimeSpan.Zero)),
+            inferenceProvider: provider);
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        await viewModel.StartProviderCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.True(viewModel.HasError);
+        Assert.Equal(InferenceProviderFailureKind.Network, viewModel.ProviderFailureKind);
+        Assert.Equal("Connection problem", viewModel.ProviderStatusText);
+        Assert.False(viewModel.CanInstallProvider);
+        Assert.True(viewModel.CanStartProvider);
+        Assert.Equal(2, provider.DetectCount);
+        Assert.Equal(
+            ConversationConfigurationGateState.ProviderFaulted,
+            viewModel.ConfigurationGate.State);
+        Assert.Equal("Check provider again", viewModel.ConfigurationGate.PrimaryActionLabel);
+    }
+
+    [Fact]
+    public async Task LegacyProviderFailureIsReplacedWithSafeGenericMessage()
+    {
+        InMemoryConversationRepository repository = new();
+        StubInferenceProviderRuntime provider = new(InferenceProviderState.Ready)
+        {
+            StartException = new InvalidOperationException(
+                "private path /home/user/model.gguf api-key=secret"),
+        };
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(new DateTimeOffset(2026, 8, 11, 21, 26, 30, TimeSpan.Zero)),
+            inferenceProvider: provider);
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        await viewModel.StartProviderCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.Equal(InferenceProviderFailureKind.Faulted, viewModel.ProviderFailureKind);
+        string providerError = Assert.IsType<string>(viewModel.ErrorMessage);
+        Assert.Equal(
+            "The local AI provider could not complete the operation. Review the provider and try again.",
+            providerError);
+        Assert.DoesNotContain("/home/user", providerError, StringComparison.Ordinal);
+        Assert.DoesNotContain("secret", providerError, StringComparison.Ordinal);
+        Assert.False(viewModel.CanInstallProvider);
+        Assert.Equal("Review provider", viewModel.ConfigurationGate.PrimaryActionLabel);
+    }
+
+    [Fact]
+    public async Task SuccessfulProviderCheckClearsPreviousRecoverableFailure()
+    {
+        InMemoryConversationRepository repository = new();
+        StubInferenceProviderRuntime provider = new(InferenceProviderState.Ready)
+        {
+            StartException = new InferenceProviderException(
+                InferenceProviderFailureKind.Model,
+                "The selected model could not be loaded."),
+        };
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(new DateTimeOffset(2026, 8, 11, 21, 26, 45, TimeSpan.Zero)),
+            inferenceProvider: provider);
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+        await viewModel.StartProviderCommand.ExecuteAsync(null).ConfigureAwait(true);
+        Assert.Equal(InferenceProviderFailureKind.Model, viewModel.ProviderFailureKind);
+
+        provider.StartException = null;
+        await viewModel.DetectProviderCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.False(viewModel.HasProviderFailure);
+        Assert.Null(viewModel.ProviderFailureKind);
+        Assert.Equal("Ready", viewModel.ProviderStatusText);
+        Assert.Equal("Load model", viewModel.ConfigurationGate.PrimaryActionLabel);
     }
 
     [Fact]

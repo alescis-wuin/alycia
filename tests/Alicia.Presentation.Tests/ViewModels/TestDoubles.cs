@@ -251,6 +251,29 @@ internal sealed class FailOnceConversationResponder :
     }
 }
 
+internal sealed class ProviderFailureConversationResponder : IStreamingConversationResponder
+{
+    private readonly InferenceProviderException _failure;
+
+    public ProviderFailureConversationResponder(InferenceProviderException failure)
+    {
+        ArgumentNullException.ThrowIfNull(failure);
+        _failure = failure;
+    }
+
+    public async IAsyncEnumerable<ConversationResponseChunk> StreamAsync(
+        ConversationResponseRequest request,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        yield return new ConversationResponseChunk("Discarded partial response");
+        await Task.Yield();
+        throw _failure;
+    }
+}
+
 internal sealed class StubInferenceProviderRuntime : IInferenceProviderRuntime
 {
     private const string ProviderName = "llama.cpp CUDA";
@@ -278,10 +301,20 @@ internal sealed class StubInferenceProviderRuntime : IInferenceProviderRuntime
 
     public Exception? StartException { get; set; }
 
+    public Exception? DetectException { get; set; }
+
+    public Exception? InstallException { get; set; }
+
     public Task<InferenceProviderSnapshot> DetectAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         DetectCount++;
+
+        if (DetectException is not null)
+        {
+            throw DetectException;
+        }
+
         return Task.FromResult(Current);
     }
 
@@ -291,6 +324,12 @@ internal sealed class StubInferenceProviderRuntime : IInferenceProviderRuntime
     {
         cancellationToken.ThrowIfCancellationRequested();
         InstallCount++;
+
+        if (InstallException is not null)
+        {
+            throw InstallException;
+        }
+
         progress?.Report(new InferenceProviderProgress(
             "Checking prerequisites",
             "Test prerequisites ready.",

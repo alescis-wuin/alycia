@@ -4,7 +4,7 @@ Alicia is a cross-platform AI chat application built with C#, .NET, and Avalonia
 
 ## Status
 
-The repository contains the engineering foundation, a provider-neutral conversation core, local JSON conversation persistence, tested conversation lifecycle operations, a functional Avalonia shell with dedicated Conversations/Provider/Models workspaces, provider-neutral response generation/streaming, a real local llama.cpp CUDA adapter, and explicit provider/model generation configuration including bounded reasoning. The desktop UI can detect or install a managed Linux x64 CUDA build, save a Hugging Face GGUF model plus optional runtime/generation overrides, launch `llama-server -hf`, stream visible content and separated reasoning incrementally, persist only the completed visible Assistant message, stop an active stream, and retry the same unanswered User message without duplicating it. Tool calling, retrieval, attachments, multimodality, and additional platform installers/hosts are intentionally deferred to later atomic work packages.
+The repository contains the engineering foundation, a provider-neutral conversation core, local JSON conversation persistence, tested conversation lifecycle operations, a functional Avalonia shell with dedicated Conversations/Provider/Models workspaces, provider-neutral response generation/streaming, a real local llama.cpp CUDA adapter, explicit provider/model generation configuration including bounded reasoning, and bounded provider failure handling with safe `Missing/Unsupported/Faulted/Network/Model` classification. The desktop UI can detect or install a managed Linux x64 CUDA build, save a Hugging Face GGUF model plus optional runtime/generation overrides, launch `llama-server -hf`, stream visible content and separated reasoning incrementally, persist only the completed visible Assistant message, stop an active stream, and retry the same unanswered User message without duplicating it. Tool calling, retrieval, attachments, multimodality, and additional platform installers/hosts are intentionally deferred to later atomic work packages.
 
 ## Current platform target
 
@@ -65,7 +65,7 @@ The current Avalonia presentation provides:
 - reasoning kept as an ephemeral in-memory Presentation snapshot rather than silently persisted into conversation documents;
 - loading/empty/error states, keyboard accessibility, visible focus, accessible names, responsive spacing, and large interaction targets.
 
-The provider-neutral Application contracts remain independent of llama.cpp/CUDA/HTTP. The managed compiler path is intentionally limited to Linux x64 + NVIDIA CUDA for the current lot; compatible externally installed CUDA `llama-server` executables can also be detected from `PATH`.
+The provider-neutral Application contracts remain independent of llama.cpp/CUDA/HTTP. Lot 10.3 adds provider-neutral failure classification and safe-message exceptions while Infrastructure owns finite readiness/HTTP/probe deadlines and raw diagnostics. The managed compiler path is intentionally limited to Linux x64 + NVIDIA CUDA for the current lot; compatible externally installed CUDA `llama-server` executables can also be detected from `PATH`.
 
 ## Documentation
 
@@ -94,6 +94,7 @@ The provider-neutral Application contracts remain independent of llama.cpp/CUDA/
 - `docs/decisions/0022-conversation-configuration-gate.md`
 - `docs/decisions/0023-conversation-responsive-delete-modal.md`
 - `docs/decisions/0024-accessibility-reduced-motion-completion.md`
+- `docs/decisions/0025-provider-timeouts-failure-classification.md`
 - `docs/development/roadmap.md`
 - `docs/design/ui-ux-specification.md`
 - `docs/user-guide/README.md`

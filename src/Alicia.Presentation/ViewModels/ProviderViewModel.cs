@@ -10,6 +10,8 @@ public sealed class ProviderViewModel : ViewModelBase
     private IInferenceProviderRuntime? _selectedProviderRuntime;
     private InferenceProviderProgress? _providerProgress;
     private InferenceProviderSnapshot? _providerSnapshot;
+    private InferenceProviderFailureKind? _lastFailureKind;
+    private string? _lastFailureMessage;
 
     public ProviderViewModel(IInferenceProviderRegistry providerRegistry)
     {
@@ -33,24 +35,39 @@ public sealed class ProviderViewModel : ViewModelBase
         ?? SelectedProvider?.Name
         ?? "Local AI provider";
 
-    public string ProviderStatusText => _providerSnapshot?.State switch
+    public string ProviderStatusText => _lastFailureKind switch
     {
-        InferenceProviderState.Detecting => "Detecting",
-        InferenceProviderState.Missing => "Not installed",
-        InferenceProviderState.Ready => "Ready",
-        InferenceProviderState.Installing => "Installing",
-        InferenceProviderState.Starting => "Starting",
-        InferenceProviderState.Running => "Running",
-        InferenceProviderState.Stopping => "Stopping",
-        InferenceProviderState.Unsupported => "CUDA unavailable",
-        InferenceProviderState.Faulted => "Needs attention",
-        _ => SelectedProvider is null ? "Not configured" : "Not detected",
+        InferenceProviderFailureKind.Missing => "Not installed",
+        InferenceProviderFailureKind.Unsupported => "CUDA unavailable",
+        InferenceProviderFailureKind.Network => "Connection problem",
+        InferenceProviderFailureKind.Model => "Model needs attention",
+        InferenceProviderFailureKind.Faulted => "Needs attention",
+        _ => _providerSnapshot?.State switch
+        {
+            InferenceProviderState.Detecting => "Detecting",
+            InferenceProviderState.Missing => "Not installed",
+            InferenceProviderState.Ready => "Ready",
+            InferenceProviderState.Installing => "Installing",
+            InferenceProviderState.Starting => "Starting",
+            InferenceProviderState.Running => "Running",
+            InferenceProviderState.Stopping => "Stopping",
+            InferenceProviderState.Unsupported => "CUDA unavailable",
+            InferenceProviderState.Faulted => "Needs attention",
+            _ => SelectedProvider is null ? "Not configured" : "Not detected",
+        },
     };
 
-    public string ProviderDetailText => _providerSnapshot?.Detail
+    public string ProviderDetailText => _lastFailureMessage
+        ?? _providerSnapshot?.Detail
         ?? (SelectedProvider is null
             ? "Select an inference provider."
             : "Use Detect to inspect the selected inference provider runtime.");
+
+    public bool HasProviderFailure => _lastFailureKind is not null;
+
+    public InferenceProviderFailureKind? ProviderFailureKind => _lastFailureKind;
+
+    public string ProviderFailureMessage => _lastFailureMessage ?? string.Empty;
 
     public string ProviderVersionText => string.IsNullOrWhiteSpace(_providerSnapshot?.Version)
         ? "Version not detected"
@@ -86,6 +103,8 @@ public sealed class ProviderViewModel : ViewModelBase
             : _providerRegistry.GetRequiredRuntime(descriptor.Id);
         _providerSnapshot = null;
         _providerProgress = null;
+        _lastFailureKind = null;
+        _lastFailureMessage = null;
 
         OnPropertyChanged(nameof(SelectedProvider));
         RaiseProjectionChanged();
@@ -107,6 +126,10 @@ public sealed class ProviderViewModel : ViewModelBase
     {
         ArgumentNullException.ThrowIfNull(snapshot);
         _providerSnapshot = snapshot;
+        _lastFailureKind = snapshot.FailureKind;
+        _lastFailureMessage = snapshot.FailureKind is null
+            ? null
+            : snapshot.Detail;
         RaiseProjectionChanged();
     }
 
@@ -115,6 +138,8 @@ public sealed class ProviderViewModel : ViewModelBase
         string detail,
         string modelReference)
     {
+        _lastFailureKind = null;
+        _lastFailureMessage = null;
         _providerSnapshot = new InferenceProviderSnapshot(
             _providerSnapshot?.Name ?? SelectedProvider?.Name ?? "Local AI provider",
             state,
@@ -130,17 +155,47 @@ public sealed class ProviderViewModel : ViewModelBase
     internal void SetFault(
         string detail,
         InferenceProviderState state,
-        string modelReference)
+        string modelReference,
+        InferenceProviderFailureKind failureKind)
     {
         _providerSnapshot = new InferenceProviderSnapshot(
             _providerSnapshot?.Name ?? SelectedProvider?.Name ?? "Local AI provider",
             state,
             _providerSnapshot?.Version,
-            _providerSnapshot?.IsCudaEnabled ?? false,
-            _providerSnapshot?.ExecutablePath,
+            state == InferenceProviderState.Missing
+                ? false
+                : _providerSnapshot?.IsCudaEnabled ?? false,
+            state == InferenceProviderState.Missing
+                ? null
+                : _providerSnapshot?.ExecutablePath,
             string.IsNullOrWhiteSpace(modelReference) ? null : modelReference,
             endpoint: null,
-            detail: detail);
+            detail: detail,
+            failureKind: failureKind);
+        _lastFailureKind = failureKind;
+        _lastFailureMessage = detail;
+        RaiseProjectionChanged();
+    }
+
+    internal void SetLastFailure(
+        InferenceProviderFailureKind failureKind,
+        string userMessage)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userMessage);
+        _lastFailureKind = failureKind;
+        _lastFailureMessage = userMessage.Trim();
+        RaiseProjectionChanged();
+    }
+
+    internal void ClearFailure()
+    {
+        if (_lastFailureKind is null && _lastFailureMessage is null)
+        {
+            return;
+        }
+
+        _lastFailureKind = null;
+        _lastFailureMessage = null;
         RaiseProjectionChanged();
     }
 
@@ -168,6 +223,9 @@ public sealed class ProviderViewModel : ViewModelBase
         OnPropertyChanged(nameof(ProviderName));
         OnPropertyChanged(nameof(ProviderStatusText));
         OnPropertyChanged(nameof(ProviderDetailText));
+        OnPropertyChanged(nameof(HasProviderFailure));
+        OnPropertyChanged(nameof(ProviderFailureKind));
+        OnPropertyChanged(nameof(ProviderFailureMessage));
         OnPropertyChanged(nameof(ProviderVersionText));
         OnPropertyChanged(nameof(IsProviderProgressVisible));
         OnPropertyChanged(nameof(IsProviderProgressIndeterminate));

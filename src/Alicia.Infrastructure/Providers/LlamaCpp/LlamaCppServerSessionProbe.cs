@@ -1,4 +1,5 @@
 using System.Net;
+using Alicia.Application.Providers;
 
 namespace Alicia.Infrastructure.Providers.LlamaCpp;
 
@@ -26,8 +27,11 @@ internal static class LlamaCppServerSessionProbe
         {
             if (unauthenticatedResponse.StatusCode != HttpStatusCode.Unauthorized)
             {
-                throw new InvalidOperationException(
-                    "The selected llama-server endpoint does not enforce the Alicia session credential.");
+                throw new InferenceProviderException(
+                    InferenceProviderFailureKind.Faulted,
+                    "The local AI server failed its session security check. Restart the provider and try again.",
+                    new InvalidOperationException(
+                        "The selected llama-server endpoint does not enforce the Alicia session credential."));
             }
         }
 
@@ -42,8 +46,11 @@ internal static class LlamaCppServerSessionProbe
 
         if (authenticatedResponse.StatusCode != HttpStatusCode.OK)
         {
-            throw new InvalidOperationException(
-                $"The selected llama-server endpoint rejected the Alicia session credential with HTTP {(int)authenticatedResponse.StatusCode} ({authenticatedResponse.StatusCode}).");
+            throw new InferenceProviderException(
+                InferenceProviderFailureKind.Faulted,
+                "The local AI server rejected its Alicia session credential. Restart the provider and try again.",
+                new InvalidOperationException(
+                    $"The selected llama-server endpoint rejected the Alicia session credential with HTTP {(int)authenticatedResponse.StatusCode} ({authenticatedResponse.StatusCode})."));
         }
     }
 }

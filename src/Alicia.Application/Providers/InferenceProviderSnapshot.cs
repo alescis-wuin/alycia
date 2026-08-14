@@ -10,7 +10,8 @@ public sealed record InferenceProviderSnapshot
         string? executablePath = null,
         string? modelReference = null,
         Uri? endpoint = null,
-        string? detail = null)
+        string? detail = null,
+        InferenceProviderFailureKind? failureKind = null)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
@@ -29,6 +30,10 @@ public sealed record InferenceProviderSnapshot
                 nameof(endpoint));
         }
 
+        InferenceProviderFailureKind? resolvedFailureKind = ResolveFailureKind(
+            state,
+            failureKind);
+
         Name = name.Trim();
         State = state;
         Version = NormalizeOptional(version);
@@ -37,6 +42,7 @@ public sealed record InferenceProviderSnapshot
         ModelReference = NormalizeOptional(modelReference);
         Endpoint = endpoint;
         Detail = NormalizeOptional(detail);
+        FailureKind = resolvedFailureKind;
     }
 
     public string Name { get; }
@@ -54,6 +60,40 @@ public sealed record InferenceProviderSnapshot
     public Uri? Endpoint { get; }
 
     public string? Detail { get; }
+
+    public InferenceProviderFailureKind? FailureKind { get; }
+
+    private static InferenceProviderFailureKind? ResolveFailureKind(
+        InferenceProviderState state,
+        InferenceProviderFailureKind? failureKind)
+    {
+        InferenceProviderFailureKind? resolved = failureKind ?? state switch
+        {
+            InferenceProviderState.Missing => InferenceProviderFailureKind.Missing,
+            InferenceProviderState.Unsupported => InferenceProviderFailureKind.Unsupported,
+            InferenceProviderState.Faulted => InferenceProviderFailureKind.Faulted,
+            _ => null,
+        };
+
+        bool isValid = state switch
+        {
+            InferenceProviderState.Missing => resolved == InferenceProviderFailureKind.Missing,
+            InferenceProviderState.Unsupported => resolved == InferenceProviderFailureKind.Unsupported,
+            InferenceProviderState.Faulted => resolved is InferenceProviderFailureKind.Faulted
+                or InferenceProviderFailureKind.Network
+                or InferenceProviderFailureKind.Model,
+            _ => resolved is null,
+        };
+
+        if (!isValid)
+        {
+            throw new ArgumentException(
+                $"Failure kind '{resolved}' is not valid for provider state '{state}'.",
+                nameof(failureKind));
+        }
+
+        return resolved;
+    }
 
     private static string? NormalizeOptional(string? value)
     {

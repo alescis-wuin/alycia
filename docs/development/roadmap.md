@@ -42,7 +42,7 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 | Lot 08 llama.cpp CUDA | terminé | `427e25c` |
 | Lot 09 Provider/model configuration | terminé | `cf0a5c5` + stabilisations |
 | UIX-01 Stages 1–7 | terminé | `ed4cc29` → `c51f1ef` |
-| Lot 10 Robustesse/sécurité/observabilité | en cours | 10.1/10.2 terminés sur cette branche |
+| Lot 10 Robustesse/sécurité/observabilité | en cours | 10.1–10.3 terminés sur cette branche |
 | Lot 10.1/10.2 sécurité + ownership | terminé | session locale durcie |
 | UIX-01 Stage 8 | terminé | FOLLOWING / DETACHED + UI state |
 | UIX-01 Stage 9 | terminé | décomposition Presentation en six ViewModels |
@@ -71,13 +71,14 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 - rattacher endpoint et secret à l'instance runtime ;
 - ne pas accepter le `/health` d'un autre process comme preuve d'ownership.
 
-### 10.3 Timeouts et erreurs
+### 10.3 Timeouts et erreurs — P0 — terminé
 
-- timeout de readiness ;
-- timeout HTTP contrôlé ;
-- process-exit/crash detection ;
-- classification `Missing/Unsupported/Faulted/Network/Model` ;
-- messages utilisateur sûrs.
+- readiness bornée par une échéance explicite ;
+- délais HTTP contrôlés pour health/ownership, installation, headers de chat et idle de stream ;
+- probes d'exécutable bornées et process-exit/crash detection ;
+- classification provider-neutral `Missing/Unsupported/Faulted/Network/Model` ;
+- messages utilisateur sûrs séparés des diagnostics techniques ;
+- récupération `Ready + last failure` pour ne pas confondre erreur modèle/réseau et réinstallation provider.
 
 ### 10.4 Retry
 
@@ -225,7 +226,9 @@ UIX-01 Stage 10C — terminé
    ↓
 UIX-01 Stage 10D — terminé
    ↓
-Lot 10.3–10.7 — prochain
+Lot 10.3 — terminé
+   ↓
+Lot 10.4–10.7 — prochain
    ↓
 Lot 10B
    ↓

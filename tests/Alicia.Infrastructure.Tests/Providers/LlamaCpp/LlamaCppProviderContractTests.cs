@@ -119,14 +119,16 @@ public sealed class LlamaCppProviderContractTests
         SessionOwnershipHttpMessageHandler handler = new(expectedApiKey: null);
         using HttpClient httpClient = new(handler);
 
-        InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(
+        InferenceProviderException exception = await Assert.ThrowsAsync<InferenceProviderException>(
             () => LlamaCppServerSessionProbe.VerifyOwnershipAsync(
                 httpClient,
                 new Uri("http://127.0.0.1:43125/"),
                 TestApiKey,
                 CancellationToken.None)).ConfigureAwait(true);
 
-        Assert.Contains("does not enforce", exception.Message, StringComparison.Ordinal);
+        Assert.Equal(InferenceProviderFailureKind.Faulted, exception.Kind);
+        Assert.Contains("session security", exception.UserMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("does not enforce", exception.UserMessage, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -136,15 +138,16 @@ public sealed class LlamaCppProviderContractTests
             "00112233445566778899AABBCCDDEEFF");
         using HttpClient httpClient = new(handler);
 
-        InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(
+        InferenceProviderException exception = await Assert.ThrowsAsync<InferenceProviderException>(
             () => LlamaCppServerSessionProbe.VerifyOwnershipAsync(
                 httpClient,
                 new Uri("http://127.0.0.1:43125/"),
                 TestApiKey,
                 CancellationToken.None)).ConfigureAwait(true);
 
-        Assert.Contains("rejected", exception.Message, StringComparison.Ordinal);
-        Assert.Contains("401", exception.Message, StringComparison.Ordinal);
+        Assert.Equal(InferenceProviderFailureKind.Faulted, exception.Kind);
+        Assert.Contains("credential", exception.UserMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("401", exception.UserMessage, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -436,7 +439,7 @@ public sealed class LlamaCppProviderContractTests
         using HttpClient httpClient = new(handler);
         LlamaCppChatClient client = new(httpClient);
 
-        InvalidDataException exception = await Assert.ThrowsAsync<InvalidDataException>(
+        InferenceProviderException exception = await Assert.ThrowsAsync<InferenceProviderException>(
             () => ConsumeAsync(client.StreamAsync(
                 new Uri("http://127.0.0.1:8080/"),
                 TestApiKey,
@@ -444,11 +447,13 @@ public sealed class LlamaCppProviderContractTests
                 new InferenceGenerationOptions(),
                 CancellationToken.None))).ConfigureAwait(true);
 
-        Assert.Contains("[DONE]", exception.Message, StringComparison.Ordinal);
+        Assert.Equal(InferenceProviderFailureKind.Faulted, exception.Kind);
+        Assert.Contains("ended unexpectedly", exception.UserMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("[DONE]", exception.UserMessage, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task ChatClientMapsMalformedSseJsonToInvalidData()
+    public async Task ChatClientClassifiesMalformedSseJsonAsFaulted()
     {
         CapturingHttpMessageHandler handler = new(
             HttpStatusCode.OK,
@@ -456,7 +461,7 @@ public sealed class LlamaCppProviderContractTests
         using HttpClient httpClient = new(handler);
         LlamaCppChatClient client = new(httpClient);
 
-        InvalidDataException exception = await Assert.ThrowsAsync<InvalidDataException>(
+        InferenceProviderException exception = await Assert.ThrowsAsync<InferenceProviderException>(
             () => ConsumeAsync(client.StreamAsync(
                 new Uri("http://127.0.0.1:8080/"),
                 TestApiKey,
@@ -464,19 +469,21 @@ public sealed class LlamaCppProviderContractTests
                 new InferenceGenerationOptions(),
                 CancellationToken.None))).ConfigureAwait(true);
 
-        Assert.Contains("malformed JSON", exception.Message, StringComparison.Ordinal);
+        Assert.Equal(InferenceProviderFailureKind.Faulted, exception.Kind);
+        Assert.Contains("invalid response", exception.UserMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("malformed JSON", exception.UserMessage, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task ChatClientSurfacesServerFailureWithoutHidingStatus()
+    public async Task ChatClientClassifiesServerUnavailableWithoutLeakingResponseBody()
     {
         CapturingHttpMessageHandler handler = new(
             HttpStatusCode.ServiceUnavailable,
-            "{\"error\":{\"message\":\"Loading model\"}}");
+            "{\"error\":{\"message\":\"Loading /home/user/private-model.gguf token=secret\"}}");
         using HttpClient httpClient = new(handler);
         LlamaCppChatClient client = new(httpClient);
 
-        InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(
+        InferenceProviderException exception = await Assert.ThrowsAsync<InferenceProviderException>(
             () => ConsumeAsync(client.StreamAsync(
                 new Uri("http://127.0.0.1:8080/"),
                 TestApiKey,
@@ -484,8 +491,136 @@ public sealed class LlamaCppProviderContractTests
                 new InferenceGenerationOptions(),
                 CancellationToken.None))).ConfigureAwait(true);
 
-        Assert.Contains("503", exception.Message, StringComparison.Ordinal);
-        Assert.Contains("Loading model", exception.Message, StringComparison.Ordinal);
+        Assert.Equal(InferenceProviderFailureKind.Network, exception.Kind);
+        Assert.Contains("temporarily unavailable", exception.UserMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("/home/user", exception.UserMessage, StringComparison.Ordinal);
+        Assert.DoesNotContain("secret", exception.UserMessage, StringComparison.Ordinal);
+        Assert.DoesNotContain("503", exception.UserMessage, StringComparison.Ordinal);
+        InvalidOperationException diagnostic = Assert.IsType<InvalidOperationException>(
+            exception.InnerException);
+        Assert.Contains("503", diagnostic.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ChatClientClassifiesRejectedModelRequestWithoutLeakingResponseBody()
+    {
+        CapturingHttpMessageHandler handler = new(
+            HttpStatusCode.BadRequest,
+            "model /home/user/private-model.gguf failed: secret-detail");
+        using HttpClient httpClient = new(handler);
+        LlamaCppChatClient client = new(httpClient);
+
+        InferenceProviderException exception = await Assert.ThrowsAsync<InferenceProviderException>(
+            () => ConsumeAsync(client.StreamAsync(
+                new Uri("http://127.0.0.1:8080/"),
+                TestApiKey,
+                CreateRequest(),
+                new InferenceGenerationOptions(),
+                CancellationToken.None))).ConfigureAwait(true);
+
+        Assert.Equal(InferenceProviderFailureKind.Model, exception.Kind);
+        Assert.Contains("model", exception.UserMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("/home/user", exception.UserMessage, StringComparison.Ordinal);
+        Assert.DoesNotContain("secret-detail", exception.UserMessage, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ChatClientBoundsResponseHeaderWaitAndClassifiesTimeoutAsNetwork()
+    {
+        using HttpClient httpClient = new(new HangingHttpMessageHandler());
+        LlamaCppChatClient client = new(
+            httpClient,
+            new LlamaCppProviderTimeouts(
+                chatResponseHeaders: TimeSpan.FromMilliseconds(25)));
+
+        InferenceProviderException exception = await Assert.ThrowsAsync<InferenceProviderException>(
+            () => ConsumeAsync(client.StreamAsync(
+                new Uri("http://127.0.0.1:8080/"),
+                TestApiKey,
+                CreateRequest(),
+                new InferenceGenerationOptions(),
+                CancellationToken.None))).ConfigureAwait(true);
+
+        Assert.Equal(InferenceProviderFailureKind.Network, exception.Kind);
+        Assert.Contains("did not respond in time", exception.UserMessage, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task ChatClientPreservesCallerCancellationInsteadOfReportingTimeout()
+    {
+        using HttpClient httpClient = new(new HangingHttpMessageHandler());
+        LlamaCppChatClient client = new(
+            httpClient,
+            new LlamaCppProviderTimeouts(
+                chatResponseHeaders: TimeSpan.FromSeconds(2)));
+        using CancellationTokenSource cancellationSource = new(TimeSpan.FromMilliseconds(25));
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => ConsumeAsync(client.StreamAsync(
+                new Uri("http://127.0.0.1:8080/"),
+                TestApiKey,
+                CreateRequest(),
+                new InferenceGenerationOptions(),
+                cancellationSource.Token))).ConfigureAwait(true);
+    }
+
+    [Fact]
+    public void RuntimeStartupFailureKeepsRawLogTailOutOfUserMessage()
+    {
+        InferenceProviderException exception = LlamaCppProviderRuntime.CreateStartupExitFailure(
+            1,
+            " Last log lines: failed to load model /home/user/private.gguf token=secret");
+
+        Assert.Equal(InferenceProviderFailureKind.Model, exception.Kind);
+        Assert.DoesNotContain("/home/user", exception.UserMessage, StringComparison.Ordinal);
+        Assert.DoesNotContain("secret", exception.UserMessage, StringComparison.Ordinal);
+        InvalidOperationException diagnostic = Assert.IsType<InvalidOperationException>(
+            exception.InnerException);
+        Assert.Contains("/home/user", diagnostic.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task TimeoutGuardBoundsOperationWithoutReclassifyingCallerCancellation()
+    {
+        InferenceProviderException timeout = await Assert.ThrowsAsync<InferenceProviderException>(
+            () => LlamaCppTimeoutGuard.RunAsync(
+                async token =>
+                {
+                    await Task.Delay(Timeout.InfiniteTimeSpan, token).ConfigureAwait(false);
+                    return true;
+                },
+                TimeSpan.FromMilliseconds(25),
+                InferenceProviderFailureKind.Model,
+                "The model did not become ready in time.",
+                CancellationToken.None)).ConfigureAwait(true);
+
+        Assert.Equal(InferenceProviderFailureKind.Model, timeout.Kind);
+
+        using CancellationTokenSource cancellationSource = new(TimeSpan.FromMilliseconds(25));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => LlamaCppTimeoutGuard.RunAsync(
+                async token =>
+                {
+                    await Task.Delay(Timeout.InfiniteTimeSpan, token).ConfigureAwait(false);
+                    return true;
+                },
+                TimeSpan.FromSeconds(2),
+                InferenceProviderFailureKind.Model,
+                "The model did not become ready in time.",
+                cancellationSource.Token)).ConfigureAwait(true);
+    }
+
+    [Theory]
+    [InlineData("error: failed to load model owner/model-GGUF", true)]
+    [InlineData("CUDA error: out of memory while allocating tensors", true)]
+    [InlineData("fatal: unexpected socket shutdown", false)]
+    public void RuntimeClassifiesStartupDiagnosticsWithoutExposingThem(
+        string diagnostic,
+        bool expectedModelFailure)
+    {
+        Assert.Equal(
+            expectedModelFailure,
+            LlamaCppProviderRuntime.LooksLikeModelStartupFailure(diagnostic));
     }
 
     private static ConversationResponseRequest CreateRequest()
@@ -559,6 +694,17 @@ public sealed class LlamaCppProviderContractTests
                 Content = new StringContent("{}", Encoding.UTF8, "application/json"),
                 RequestMessage = request,
             });
+        }
+    }
+
+    private sealed class HangingHttpMessageHandler : HttpMessageHandler
+    {
+        protected override async Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+        {
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken).ConfigureAwait(false);
+            return new HttpResponseMessage(HttpStatusCode.OK) { RequestMessage = request };
         }
     }
 

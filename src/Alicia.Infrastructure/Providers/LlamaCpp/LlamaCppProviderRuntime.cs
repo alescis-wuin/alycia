@@ -15,6 +15,19 @@ public sealed class LlamaCppProviderRuntime :
 
     public const string ProviderName = "llama.cpp CUDA";
 
+    private static readonly string[] _modelStartupFailureMarkers =
+    [
+        "model",
+        "gguf",
+        "hugging face",
+        "failed to load",
+        "tensor",
+        "context",
+        "kv cache",
+        "out of memory",
+        "cuda error",
+    ];
+
     private readonly SemaphoreSlim _lifecycleGate = new(1, 1);
     private readonly string _runtimeDirectory;
     private readonly string _logDirectory;
@@ -22,6 +35,7 @@ public sealed class LlamaCppProviderRuntime :
     private readonly HttpClient _httpClient;
     private readonly LlamaCppInstaller _installer;
     private readonly LlamaCppChatClient _chatClient;
+    private readonly LlamaCppProviderTimeouts _timeouts;
     private Process? _serverProcess;
     private string? _executablePath;
     private string? _version;
@@ -35,20 +49,33 @@ public sealed class LlamaCppProviderRuntime :
     public LlamaCppProviderRuntime(
         string runtimeDirectory,
         TimeProvider? timeProvider = null)
+        : this(
+            runtimeDirectory,
+            timeProvider ?? TimeProvider.System,
+            LlamaCppProviderTimeouts.Default)
+    {
+    }
+
+    internal LlamaCppProviderRuntime(
+        string runtimeDirectory,
+        TimeProvider timeProvider,
+        LlamaCppProviderTimeouts timeouts,
+        HttpMessageHandler? httpMessageHandler = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(runtimeDirectory);
+        ArgumentNullException.ThrowIfNull(timeProvider);
+        ArgumentNullException.ThrowIfNull(timeouts);
 
         _runtimeDirectory = Path.GetFullPath(runtimeDirectory);
         _logDirectory = Path.Combine(_runtimeDirectory, "logs");
         _modelCacheDirectory = Path.Combine(_runtimeDirectory, "models");
-        _httpClient = new HttpClient
-        {
-            Timeout = Timeout.InfiniteTimeSpan,
-        };
-        _installer = new LlamaCppInstaller(
-            _httpClient,
-            timeProvider ?? TimeProvider.System);
-        _chatClient = new LlamaCppChatClient(_httpClient);
+        _timeouts = timeouts;
+        _httpClient = httpMessageHandler is null
+            ? new HttpClient()
+            : new HttpClient(httpMessageHandler, disposeHandler: true);
+        _httpClient.Timeout = Timeout.InfiniteTimeSpan;
+        _installer = new LlamaCppInstaller(_httpClient, timeProvider, _timeouts);
+        _chatClient = new LlamaCppChatClient(_httpClient, _timeouts);
     }
 
     public async Task<InferenceProviderSnapshot> DetectAsync(
@@ -65,6 +92,14 @@ public sealed class LlamaCppProviderRuntime :
                 return CreateSnapshot(
                     InferenceProviderState.Running,
                     detail: "Managed llama-server is running and ready for local chat.");
+            }
+
+            if (TryConsumeUnexpectedServerExit())
+            {
+                return CreateSnapshot(
+                    InferenceProviderState.Faulted,
+                    detail: "The local AI server stopped unexpectedly. Review the provider and start the model again.",
+                    failureKind: InferenceProviderFailureKind.Faulted);
             }
 
             ClearExitedServer();
@@ -146,8 +181,47 @@ public sealed class LlamaCppProviderRuntime :
                 installation.Version,
                 cancellationToken).ConfigureAwait(false);
 
-            return snapshot ?? throw new InvalidOperationException(
-                "The managed llama.cpp installation could not be validated as a CUDA runtime.");
+            return snapshot ?? throw new InferenceProviderException(
+                InferenceProviderFailureKind.Unsupported,
+                "The installed local AI runtime could not use CUDA. Review the NVIDIA driver and CUDA Toolkit, then try again.");
+        }
+        catch (InferenceProviderException)
+        {
+            throw;
+        }
+        catch (PlatformNotSupportedException exception)
+        {
+            throw new InferenceProviderException(
+                InferenceProviderFailureKind.Unsupported,
+                "This system is missing requirements for the managed CUDA provider. Review the provider prerequisites and try again.",
+                exception);
+        }
+        catch (HttpRequestException exception)
+        {
+            throw new InferenceProviderException(
+                InferenceProviderFailureKind.Network,
+                "Alicia could not download the local AI runtime. Check the network connection and try again.",
+                exception);
+        }
+        catch (InvalidDataException exception)
+        {
+            throw CreateInstallFailure(exception);
+        }
+        catch (IOException exception)
+        {
+            throw CreateInstallFailure(exception);
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            throw CreateInstallFailure(exception);
+        }
+        catch (InvalidOperationException exception)
+        {
+            throw CreateInstallFailure(exception);
+        }
+        catch (System.ComponentModel.Win32Exception exception)
+        {
+            throw CreateInstallFailure(exception);
         }
         finally
         {
@@ -176,8 +250,20 @@ public sealed class LlamaCppProviderRuntime :
                 nameof(configuration));
         }
 
-        string normalizedModelReference = LlamaCppModelReference.Normalize(
-            configuration.ModelReference!);
+        string normalizedModelReference;
+
+        try
+        {
+            normalizedModelReference = LlamaCppModelReference.Normalize(
+                configuration.ModelReference!);
+        }
+        catch (ArgumentException exception)
+        {
+            throw new InferenceProviderException(
+                InferenceProviderFailureKind.Model,
+                "The saved model reference is invalid. Review the model settings and try again.",
+                exception);
+        }
 
         await _lifecycleGate.WaitAsync(cancellationToken).ConfigureAwait(false);
 
@@ -205,8 +291,9 @@ public sealed class LlamaCppProviderRuntime :
 
             if (string.IsNullOrWhiteSpace(_executablePath) || !File.Exists(_executablePath))
             {
-                throw new InvalidOperationException(
-                    "llama.cpp CUDA is not ready. Detect or install the provider before starting a model.");
+                throw new InferenceProviderException(
+                    InferenceProviderFailureKind.Missing,
+                    "The local AI runtime is not ready. Detect or install the provider before loading a model.");
             }
 
             Directory.CreateDirectory(_logDirectory);
@@ -236,8 +323,20 @@ public sealed class LlamaCppProviderRuntime :
             startInfo.Environment["LLAMA_CACHE"] = _modelCacheDirectory;
             LlamaCppServerSecurity.ApplyApiKey(startInfo, apiKey);
 
-            _serverProcess = Process.Start(startInfo)
-                ?? throw new InvalidOperationException("Unable to start llama-server.");
+            try
+            {
+                _serverProcess = Process.Start(startInfo)
+                    ?? throw new InvalidOperationException("Unable to start llama-server.");
+            }
+            catch (InvalidOperationException exception)
+            {
+                throw CreateStartFailure(exception);
+            }
+            catch (System.ComponentModel.Win32Exception exception)
+            {
+                throw CreateStartFailure(exception);
+            }
+
             _endpoint = new Uri(
                 $"http://127.0.0.1:{port}/",
                 UriKind.Absolute);
@@ -306,12 +405,20 @@ public sealed class LlamaCppProviderRuntime :
         Uri? endpoint = _endpoint;
         string? apiKey = _serverApiKey;
 
+        if (TryConsumeUnexpectedServerExit())
+        {
+            throw new InferenceProviderException(
+                InferenceProviderFailureKind.Faulted,
+                "The local AI server stopped unexpectedly. Review the provider and start the model again.");
+        }
+
         if (!IsServerAlive()
             || endpoint is null
             || string.IsNullOrWhiteSpace(apiKey))
         {
-            throw new InvalidOperationException(
-                "llama.cpp CUDA is not running. Start a Hugging Face model before sending a message.");
+            throw new InferenceProviderException(
+                InferenceProviderFailureKind.Faulted,
+                "The local AI server is not running. Start the configured model before sending a message.");
         }
 
         return _chatClient.StreamAsync(
@@ -392,26 +499,22 @@ public sealed class LlamaCppProviderRuntime :
         CancellationToken cancellationToken)
     {
         string? workingDirectory = Path.GetDirectoryName(executablePath);
-        ProcessCommandResult versionProbe = await ProcessCommandRunner.RunAsync(
-                executablePath,
-                ["--version"],
-                workingDirectory,
-                environment: null,
-                cancellationToken)
-            .ConfigureAwait(false);
+        ProcessCommandResult versionProbe = await RunProbeCommandAsync(
+            executablePath,
+            ["--version"],
+            workingDirectory,
+            cancellationToken).ConfigureAwait(false);
 
         if (versionProbe.ExitCode != 0)
         {
             return null;
         }
 
-        ProcessCommandResult deviceProbe = await ProcessCommandRunner.RunAsync(
-                executablePath,
-                ["--list-devices"],
-                workingDirectory,
-                environment: null,
-                cancellationToken)
-            .ConfigureAwait(false);
+        ProcessCommandResult deviceProbe = await RunProbeCommandAsync(
+            executablePath,
+            ["--list-devices"],
+            workingDirectory,
+            cancellationToken).ConfigureAwait(false);
 
         if (deviceProbe.ExitCode != 0 || !OutputShowsCuda(deviceProbe.CombinedOutput))
         {
@@ -462,22 +565,36 @@ public sealed class LlamaCppProviderRuntime :
         CancellationToken cancellationToken)
     {
         Uri healthUri = new(endpoint, "health");
+        using CancellationTokenSource readinessSource =
+            CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        readinessSource.CancelAfter(_timeouts.Readiness);
 
         while (true)
         {
-            cancellationToken.ThrowIfCancellationRequested();
+            if (readinessSource.IsCancellationRequested)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                throw new InferenceProviderException(
+                    InferenceProviderFailureKind.Model,
+                    "The selected model did not become ready in time. Review the model and provider settings, then try again.",
+                    new TimeoutException(
+                        $"llama-server did not become ready within {_timeouts.Readiness}."));
+            }
 
             if (process.HasExited)
             {
                 string logTail = ReadLogTail(logFilePath);
-                throw new InvalidOperationException(
-                    $"llama-server exited before becoming ready.{logTail}");
+                throw CreateStartupExitFailure(TryGetExitCode(process), logTail);
             }
 
             try
             {
+                using CancellationTokenSource requestSource =
+                    CancellationTokenSource.CreateLinkedTokenSource(readinessSource.Token);
+                requestSource.CancelAfter(_timeouts.HealthRequest);
+
                 using HttpResponseMessage response = await _httpClient
-                    .GetAsync(healthUri, cancellationToken)
+                    .GetAsync(healthUri, requestSource.Token)
                     .ConfigureAwait(false);
 
                 if (response.StatusCode == HttpStatusCode.OK)
@@ -486,23 +603,118 @@ public sealed class LlamaCppProviderRuntime :
                         _httpClient,
                         endpoint,
                         apiKey,
-                        cancellationToken).ConfigureAwait(false);
+                        requestSource.Token).ConfigureAwait(false);
                     return;
                 }
 
                 if (response.StatusCode != HttpStatusCode.ServiceUnavailable)
                 {
-                    throw new InvalidOperationException(
-                        $"llama-server health check returned HTTP {(int)response.StatusCode} ({response.StatusCode}).");
+                    throw new InferenceProviderException(
+                        InferenceProviderFailureKind.Faulted,
+                        "The local AI server reported an unexpected health state. Review the provider and try again.",
+                        new InvalidOperationException(
+                            $"llama-server health check returned HTTP {(int)response.StatusCode} ({response.StatusCode})."));
                 }
+            }
+            catch (OperationCanceledException)
+                when (!cancellationToken.IsCancellationRequested
+                    && !readinessSource.IsCancellationRequested)
+            {
+                // A single health request timed out. Retry until the bounded readiness deadline.
+            }
+            catch (OperationCanceledException)
+                when (!cancellationToken.IsCancellationRequested
+                    && readinessSource.IsCancellationRequested)
+            {
+                throw new InferenceProviderException(
+                    InferenceProviderFailureKind.Model,
+                    "The selected model did not become ready in time. Review the model and provider settings, then try again.",
+                    new TimeoutException(
+                        $"llama-server did not become ready within {_timeouts.Readiness}."));
             }
             catch (HttpRequestException)
             {
+                // The process can accept connections slightly after it starts. Retry until readiness expires.
             }
 
-            await Task.Delay(TimeSpan.FromMilliseconds(300), cancellationToken)
-                .ConfigureAwait(false);
+            try
+            {
+                await Task.Delay(
+                    TimeSpan.FromMilliseconds(300),
+                    readinessSource.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                throw new InferenceProviderException(
+                    InferenceProviderFailureKind.Model,
+                    "The selected model did not become ready in time. Review the model and provider settings, then try again.",
+                    new TimeoutException(
+                        $"llama-server did not become ready within {_timeouts.Readiness}."));
+            }
         }
+    }
+
+    private async Task<ProcessCommandResult> RunProbeCommandAsync(
+        string executablePath,
+        IReadOnlyList<string> arguments,
+        string? workingDirectory,
+        CancellationToken cancellationToken)
+    {
+        using CancellationTokenSource timeoutSource =
+            CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeoutSource.CancelAfter(_timeouts.CommandProbe);
+
+        try
+        {
+            return await ProcessCommandRunner.RunAsync(
+                executablePath,
+                arguments,
+                workingDirectory,
+                environment: null,
+                timeoutSource.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException exception)
+            when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new InferenceProviderException(
+                InferenceProviderFailureKind.Faulted,
+                "The local AI runtime check did not finish in time. Review the provider installation and try again.",
+                new TimeoutException(
+                    $"llama-server probe exceeded {_timeouts.CommandProbe}.",
+                    exception));
+        }
+        catch (InvalidOperationException exception)
+        {
+            throw CreateProbeFailure(exception);
+        }
+        catch (System.ComponentModel.Win32Exception exception)
+        {
+            throw CreateProbeFailure(exception);
+        }
+    }
+
+    private static InferenceProviderException CreateInstallFailure(Exception exception)
+    {
+        return new InferenceProviderException(
+            InferenceProviderFailureKind.Faulted,
+            "Alicia could not install the local AI runtime. Review the provider prerequisites and try again.",
+            exception);
+    }
+
+    private static InferenceProviderException CreateStartFailure(Exception exception)
+    {
+        return new InferenceProviderException(
+            InferenceProviderFailureKind.Faulted,
+            "Alicia could not start the local AI server. Review the provider installation and try again.",
+            exception);
+    }
+
+    private static InferenceProviderException CreateProbeFailure(Exception exception)
+    {
+        return new InferenceProviderException(
+            InferenceProviderFailureKind.Faulted,
+            "Alicia could not inspect the local AI runtime. Review the provider installation and try again.",
+            exception);
     }
 
     private async Task StopServerCoreAsync(CancellationToken cancellationToken)
@@ -558,7 +770,8 @@ public sealed class LlamaCppProviderRuntime :
 
     private InferenceProviderSnapshot CreateSnapshot(
         InferenceProviderState state,
-        string? detail)
+        string? detail,
+        InferenceProviderFailureKind? failureKind = null)
     {
         return new InferenceProviderSnapshot(
             ProviderName,
@@ -568,7 +781,65 @@ public sealed class LlamaCppProviderRuntime :
             _executablePath,
             _modelReference,
             _endpoint,
-            detail);
+            detail,
+            failureKind);
+    }
+
+    private bool TryConsumeUnexpectedServerExit()
+    {
+        if (_serverProcess is null || !_serverProcess.HasExited)
+        {
+            return false;
+        }
+
+        ClearExitedServer();
+        return true;
+    }
+
+    internal static InferenceProviderException CreateStartupExitFailure(
+        int? exitCode,
+        string logTail)
+    {
+        string diagnosticText = "llama-server exited before readiness"
+            + (exitCode is null ? "." : $" with exit code {exitCode}.")
+            + logTail;
+        InvalidOperationException diagnostic = new(diagnosticText);
+
+        if (LooksLikeModelStartupFailure(logTail))
+        {
+            return new InferenceProviderException(
+                InferenceProviderFailureKind.Model,
+                "The selected model could not be loaded by the local AI runtime. Review the model reference and settings, then try again.",
+                diagnostic);
+        }
+
+        return new InferenceProviderException(
+            InferenceProviderFailureKind.Faulted,
+            "The local AI server stopped unexpectedly while starting. Review the provider installation and try again.",
+            diagnostic);
+    }
+
+    private static int? TryGetExitCode(Process process)
+    {
+        try
+        {
+            return process.ExitCode;
+        }
+        catch (InvalidOperationException)
+        {
+            return null;
+        }
+    }
+
+    internal static bool LooksLikeModelStartupFailure(string diagnostic)
+    {
+        if (string.IsNullOrWhiteSpace(diagnostic))
+        {
+            return false;
+        }
+
+        return _modelStartupFailureMarkers.Any(
+            marker => diagnostic.Contains(marker, StringComparison.OrdinalIgnoreCase));
     }
 
     private static string ReadLogTail(string logFilePath)

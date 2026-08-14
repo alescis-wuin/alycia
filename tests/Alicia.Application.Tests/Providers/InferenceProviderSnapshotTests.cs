@@ -25,6 +25,7 @@ public sealed class InferenceProviderSnapshotTests
         Assert.Equal("Ready", snapshot.Detail);
         Assert.Equal(endpoint, snapshot.Endpoint);
         Assert.True(snapshot.IsCudaEnabled);
+        Assert.Null(snapshot.FailureKind);
     }
 
     [Fact]

@@ -44,9 +44,11 @@ Blank optional values preserve provider/model defaults. Save the configuration b
 
 ## Conversation setup gate
 
-The Conversation workspace now explains the single next step whenever local AI is not ready. Existing history and messages remain readable while the composer is replaced by one gate action. Depending on the diagnosis, Alicia offers **Configure provider**, **Check provider**, **Install provider**, **Review provider**, **Configure model**, **Review model settings**, or **Load model**. Configuration actions navigate to the dedicated Provider or Models workspace; lifecycle actions run through the existing provider commands.
+The Conversation workspace now explains the single next step whenever local AI is not ready. Existing history and messages remain readable while the composer is replaced by one gate action. Depending on the diagnosis, Alicia offers **Configure provider**, **Check provider**, **Install provider**, **Review provider**, **Configure model**, **Review model settings**, **Review model**, **Check provider again**, or **Load model**. Configuration actions navigate to the dedicated Provider or Models workspace; lifecycle actions run through the existing provider commands.
 
 If no conversation exists and local AI is unavailable, the same gate becomes the central onboarding surface and the empty history panel is hidden. Once the provider reaches `Running`, the gate disappears and the normal composer becomes available.
+
+Provider failures are classified before they reach the UI. A model-load failure keeps a still-valid runtime reusable and points back to Models; a network failure offers a new provider check; a missing/unsupported runtime stays a provider setup problem. Alicia does not display raw HTTP response bodies, server log tails, local file paths, or provider exception diagnostics as the user-facing error.
 
 ## Chat
 

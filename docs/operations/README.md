@@ -29,9 +29,11 @@ The current provider runtime can:
 2. verify that the executable exposes a CUDA backend;
 3. build a managed Linux x64 CUDA server from the official llama.cpp source release;
 4. start the selected Hugging Face GGUF model on IPv4 loopback;
-5. poll `/health` until the model is ready;
-6. stream OpenAI-compatible chat-completion SSE responses;
-7. stop the complete managed process tree.
+5. poll `/health` until the model is ready within a finite readiness deadline;
+6. bound provider HTTP/probe waits and classify failures as `Missing`, `Unsupported`, `Faulted`, `Network`, or `Model`;
+7. detect unexpected managed-process exit;
+8. stream OpenAI-compatible chat-completion SSE responses with bounded response-header and idle waits;
+9. stop the complete managed process tree.
 
 Server logs are written below `providers/llama.cpp/logs`. The installation descriptor is `providers/llama.cpp/installation.json`.
 
@@ -49,7 +51,7 @@ The Alicia-managed llama.cpp session is process-owned rather than a fixed localh
 - chat-completion requests carry the same Bearer credential;
 - endpoint and secret are cleared with the managed process session.
 
-The bind-probe socket is released before `llama-server` starts, so a narrow port race remains possible. The ownership handshake fails closed if another local process wins that race; retry/timeouts and richer error classification remain Lot 10.3/10.4 work.
+The bind-probe socket is released before `llama-server` starts, so a narrow port race remains possible. The ownership handshake fails closed if another local process wins that race. Lot 10.3 now bounds readiness/HTTP/probe waits and classifies failures; retry policy remains explicit Lot 10.4 work.
 
 Credentials must not be copied into repository files or logs. `HF_TOKEN`, when set by the user environment, is inherited for Hugging Face access and is not stored in provider configuration.
 
@@ -86,7 +88,7 @@ Ninja is preferred when available; Make is supported as fallback.
 
 ### Start
 
-A valid Hugging Face model reference is required. Inspect the newest file under `providers/llama.cpp/logs` if the process exits before `/health` becomes ready.
+A valid Hugging Face model reference is required. Alicia reports only a safe model/provider message if startup fails or times out. For engineering diagnosis, the newest file under `providers/llama.cpp/logs` can still be inspected manually; its raw contents are not projected automatically into the UI.
 
 ## Deferred operational work
 

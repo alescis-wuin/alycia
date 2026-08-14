@@ -461,6 +461,8 @@ public sealed class MainViewModel : ViewModelBase
     public bool CanInstallProvider => SelectedProvider is not null
         && !IsProviderBusy
         && !IsGeneratingResponse
+        && ProviderFailureKind is not InferenceProviderFailureKind.Network
+            and not InferenceProviderFailureKind.Model
         && Provider.Snapshot?.State is InferenceProviderState.Missing
             or InferenceProviderState.Unsupported
             or InferenceProviderState.Faulted;
@@ -510,6 +512,12 @@ public sealed class MainViewModel : ViewModelBase
     public string ProviderStatusText => Provider.ProviderStatusText;
 
     public string ProviderDetailText => Provider.ProviderDetailText;
+
+    public bool HasProviderFailure => Provider.HasProviderFailure;
+
+    public InferenceProviderFailureKind? ProviderFailureKind => Provider.ProviderFailureKind;
+
+    public string ProviderFailureMessage => Provider.ProviderFailureMessage;
 
     public string ProviderVersionText => Provider.ProviderVersionText;
 
@@ -1058,6 +1066,8 @@ public sealed class MainViewModel : ViewModelBase
                 .SaveAsync(SelectedProvider)
                 .ConfigureAwait(true);
             Provider.PersistSelection(configuration.ProviderId);
+            Provider.ClearFailure();
+            RaiseProviderStateChanged();
             RaiseProviderConfigurationStateChanged();
         }).ConfigureAwait(true);
     }
@@ -1198,15 +1208,15 @@ public sealed class MainViewModel : ViewModelBase
                     isEnabled: true);
                 return;
             case InferenceProviderState.Faulted:
-                ConfigureGate(
-                    ConversationConfigurationGateState.ProviderFaulted,
-                    "Provider needs attention",
-                    ProviderDetailText,
-                    ConversationConfigurationGateAction.OpenProviders,
-                    "Review provider",
-                    isEnabled: true);
+                ConfigureProviderFailureGate();
                 return;
             case InferenceProviderState.Ready:
+                if (HasProviderFailure)
+                {
+                    ConfigureProviderFailureGate();
+                    return;
+                }
+
                 ConfigureReadyProviderGate();
                 return;
             case InferenceProviderState.Starting:
@@ -1230,6 +1240,60 @@ public sealed class MainViewModel : ViewModelBase
             default:
                 throw new InvalidOperationException(
                     $"Unsupported provider state '{snapshot.State}'.");
+        }
+    }
+
+    private void ConfigureProviderFailureGate()
+    {
+        switch (ProviderFailureKind)
+        {
+            case InferenceProviderFailureKind.Model:
+                ConfigureGate(
+                    ConversationConfigurationGateState.ModelConfigurationRequired,
+                    "Review model settings",
+                    ProviderDetailText,
+                    ConversationConfigurationGateAction.OpenModels,
+                    "Review model",
+                    isEnabled: true);
+                return;
+            case InferenceProviderFailureKind.Network:
+                ConfigureGate(
+                    ConversationConfigurationGateState.ProviderFaulted,
+                    "Local AI connection problem",
+                    ProviderDetailText,
+                    ConversationConfigurationGateAction.DetectProvider,
+                    "Check provider again",
+                    CanDetectProvider);
+                return;
+            case InferenceProviderFailureKind.Missing:
+                ConfigureGate(
+                    ConversationConfigurationGateState.ProviderMissing,
+                    $"Install {ProviderName}",
+                    ProviderDetailText,
+                    ConversationConfigurationGateAction.InstallProvider,
+                    "Install provider",
+                    CanInstallProvider);
+                return;
+            case InferenceProviderFailureKind.Unsupported:
+                ConfigureGate(
+                    ConversationConfigurationGateState.ProviderUnsupported,
+                    "Provider unavailable on this system",
+                    ProviderDetailText,
+                    ConversationConfigurationGateAction.OpenProviders,
+                    "Review provider",
+                    isEnabled: true);
+                return;
+            case InferenceProviderFailureKind.Faulted:
+            case null:
+            default:
+                ConfigureGate(
+                    ConversationConfigurationGateState.ProviderFaulted,
+                    "Provider needs attention",
+                    ProviderDetailText,
+                    ConversationConfigurationGateAction.OpenProviders,
+                    "Review provider",
+                    isEnabled: true);
+                return;
         }
     }
 
@@ -1392,13 +1456,24 @@ public sealed class MainViewModel : ViewModelBase
             ApplyProviderSnapshot(snapshot);
             ClearError();
         }
-        catch (InvalidOperationException exception)
+        catch (InferenceProviderException exception)
         {
-            ErrorMessage = exception.Message;
+            SetProviderFault(
+                exception.UserMessage,
+                MapFailureState(exception.Kind),
+                exception.Kind);
         }
-        catch (IOException exception)
+        catch (InvalidOperationException)
         {
-            ErrorMessage = exception.Message;
+            SetProviderStopFault();
+        }
+        catch (IOException)
+        {
+            SetProviderStopFault();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            SetProviderStopFault();
         }
     }
 
@@ -1441,33 +1516,43 @@ public sealed class MainViewModel : ViewModelBase
                 .ConfigureAwait(true);
             ApplyProviderSnapshot(snapshot);
         }
+        catch (InferenceProviderException exception)
+        {
+            await HandleProviderFailureAsync(exception).ConfigureAwait(true);
+        }
         catch (PlatformNotSupportedException exception)
         {
-            SetProviderFault(exception.Message, InferenceProviderState.Unsupported);
+            await HandleProviderFailureAsync(new InferenceProviderException(
+                InferenceProviderFailureKind.Unsupported,
+                "This system does not support the selected local AI provider configuration. Review the provider requirements and try again.",
+                exception)).ConfigureAwait(true);
         }
         catch (HttpRequestException exception)
         {
-            await RestoreProviderAfterFailureAsync(exception.Message).ConfigureAwait(true);
+            await HandleProviderFailureAsync(new InferenceProviderException(
+                InferenceProviderFailureKind.Network,
+                "Alicia could not reach a service required by the local AI provider. Check the connection and try again.",
+                exception)).ConfigureAwait(true);
         }
         catch (InvalidDataException exception)
         {
-            await RestoreProviderAfterFailureAsync(exception.Message).ConfigureAwait(true);
+            await HandleLegacyProviderFailureAsync(exception).ConfigureAwait(true);
         }
         catch (IOException exception)
         {
-            await RestoreProviderAfterFailureAsync(exception.Message).ConfigureAwait(true);
+            await HandleLegacyProviderFailureAsync(exception).ConfigureAwait(true);
         }
         catch (UnauthorizedAccessException exception)
         {
-            await RestoreProviderAfterFailureAsync(exception.Message).ConfigureAwait(true);
+            await HandleLegacyProviderFailureAsync(exception).ConfigureAwait(true);
         }
         catch (ArgumentException exception)
         {
-            await RestoreProviderAfterFailureAsync(exception.Message).ConfigureAwait(true);
+            await HandleLegacyProviderFailureAsync(exception).ConfigureAwait(true);
         }
         catch (InvalidOperationException exception)
         {
-            await RestoreProviderAfterFailureAsync(exception.Message).ConfigureAwait(true);
+            await HandleLegacyProviderFailureAsync(exception).ConfigureAwait(true);
         }
         finally
         {
@@ -1480,56 +1565,126 @@ public sealed class MainViewModel : ViewModelBase
         }
     }
 
-    private async Task RestoreProviderAfterFailureAsync(string errorMessage)
+    private Task HandleLegacyProviderFailureAsync(Exception exception)
     {
-        ErrorMessage = errorMessage;
+        return HandleProviderFailureAsync(new InferenceProviderException(
+            InferenceProviderFailureKind.Faulted,
+            "The local AI provider could not complete the operation. Review the provider and try again.",
+            exception));
+    }
 
+    private async Task HandleProviderFailureAsync(InferenceProviderException failure)
+    {
+        ErrorMessage = failure.UserMessage;
+
+        if (failure.Kind == InferenceProviderFailureKind.Missing)
+        {
+            SetProviderFault(
+                failure.UserMessage,
+                InferenceProviderState.Missing,
+                InferenceProviderFailureKind.Missing);
+            return;
+        }
+
+        if (failure.Kind == InferenceProviderFailureKind.Unsupported)
+        {
+            SetProviderFault(
+                failure.UserMessage,
+                InferenceProviderState.Unsupported,
+                InferenceProviderFailureKind.Unsupported);
+            return;
+        }
+
+        await RestoreProviderAfterFailureAsync(failure).ConfigureAwait(true);
+    }
+
+    private async Task RestoreProviderAfterFailureAsync(InferenceProviderException failure)
+    {
         try
         {
             InferenceProviderSnapshot snapshot = await GetSelectedProviderRuntime()
                 .DetectAsync(CancellationToken.None)
                 .ConfigureAwait(true);
             ApplyProviderSnapshot(snapshot);
+
+            if (snapshot.State == InferenceProviderState.Ready)
+            {
+                Provider.SetLastFailure(failure.Kind, failure.UserMessage);
+                RaiseProviderStateChanged();
+            }
+        }
+        catch (InferenceProviderException detectionFailure)
+        {
+            SetProviderRedetectionFault(failure, detectionFailure);
         }
         catch (PlatformNotSupportedException exception)
         {
-            SetProviderFault(
-                $"{errorMessage} {exception.Message}",
-                InferenceProviderState.Unsupported);
+            SetProviderRedetectionFault(
+                failure,
+                new InferenceProviderException(
+                    InferenceProviderFailureKind.Unsupported,
+                    "Alicia could not verify the local AI provider on this system.",
+                    exception));
         }
         catch (HttpRequestException exception)
         {
-            SetProviderRedetectionFault(errorMessage, exception.Message);
+            SetProviderRedetectionFault(failure, CreateRedetectionFailure(exception));
         }
         catch (InvalidDataException exception)
         {
-            SetProviderRedetectionFault(errorMessage, exception.Message);
+            SetProviderRedetectionFault(failure, CreateRedetectionFailure(exception));
         }
         catch (IOException exception)
         {
-            SetProviderRedetectionFault(errorMessage, exception.Message);
+            SetProviderRedetectionFault(failure, CreateRedetectionFailure(exception));
         }
         catch (UnauthorizedAccessException exception)
         {
-            SetProviderRedetectionFault(errorMessage, exception.Message);
+            SetProviderRedetectionFault(failure, CreateRedetectionFailure(exception));
         }
         catch (ArgumentException exception)
         {
-            SetProviderRedetectionFault(errorMessage, exception.Message);
+            SetProviderRedetectionFault(failure, CreateRedetectionFailure(exception));
         }
         catch (InvalidOperationException exception)
         {
-            SetProviderRedetectionFault(errorMessage, exception.Message);
+            SetProviderRedetectionFault(failure, CreateRedetectionFailure(exception));
         }
     }
 
-    private void SetProviderRedetectionFault(
-        string originalError,
-        string detectionError)
+    private static InferenceProviderException CreateRedetectionFailure(Exception exception)
     {
+        return new InferenceProviderException(
+            InferenceProviderFailureKind.Faulted,
+            "Alicia could not verify the local AI provider after the operation failed.",
+            exception);
+    }
+
+    private static InferenceProviderException CreateResponseRedetectionFailure(Exception exception)
+    {
+        return new InferenceProviderException(
+            InferenceProviderFailureKind.Faulted,
+            "Alicia could not verify the local AI provider after the response failed.",
+            exception);
+    }
+
+    private void SetProviderRedetectionFault(
+        InferenceProviderException originalFailure,
+        InferenceProviderException detectionFailure)
+    {
+        bool detectionDefinesProviderAvailability = detectionFailure.Kind
+            is InferenceProviderFailureKind.Missing
+                or InferenceProviderFailureKind.Unsupported;
+        InferenceProviderFailureKind failureKind = detectionDefinesProviderAvailability
+            ? detectionFailure.Kind
+            : originalFailure.Kind;
+        string safeMessage = detectionDefinesProviderAvailability
+            ? detectionFailure.UserMessage
+            : $"{originalFailure.UserMessage} Alicia could not verify the provider afterward.";
         SetProviderFault(
-            $"{originalError} Provider re-detection also failed: {detectionError}",
-            InferenceProviderState.Faulted);
+            safeMessage,
+            MapFailureState(failureKind),
+            failureKind);
     }
 
     private void ApplyProviderProgress(InferenceProviderProgress progress)
@@ -1568,10 +1723,36 @@ public sealed class MainViewModel : ViewModelBase
         RaiseProviderStateChanged();
     }
 
-    private void SetProviderFault(string detail, InferenceProviderState state)
+    private void SetProviderStopFault()
+    {
+        SetProviderFault(
+            "Alicia could not stop the local AI provider cleanly. Review the provider and try again.",
+            InferenceProviderState.Faulted,
+            InferenceProviderFailureKind.Faulted);
+    }
+
+    private static InferenceProviderState MapFailureState(
+        InferenceProviderFailureKind failureKind)
+    {
+        return failureKind switch
+        {
+            InferenceProviderFailureKind.Missing => InferenceProviderState.Missing,
+            InferenceProviderFailureKind.Unsupported => InferenceProviderState.Unsupported,
+            _ => InferenceProviderState.Faulted,
+        };
+    }
+
+    private void SetProviderFault(
+        string detail,
+        InferenceProviderState state,
+        InferenceProviderFailureKind failureKind)
     {
         ErrorMessage = detail;
-        Provider.SetFault(detail, state, ProviderModelReference);
+        Provider.SetFault(
+            detail,
+            state,
+            ProviderModelReference,
+            failureKind);
         RaiseProviderStateChanged();
     }
 
@@ -1710,6 +1891,13 @@ public sealed class MainViewModel : ViewModelBase
             ClearError();
             ScheduleRetryResponseUnlock();
         }
+        catch (InferenceProviderException exception)
+        {
+            RemoveStreamingMessage(streamingMessage);
+            ScheduleRetryResponseUnlock();
+            await ReconcileProviderAfterResponseFailureAsync(exception).ConfigureAwait(true);
+            throw;
+        }
         catch
         {
             RemoveStreamingMessage(streamingMessage);
@@ -1733,6 +1921,58 @@ public sealed class MainViewModel : ViewModelBase
             _isStopResponseUnlocked = false;
             OnPropertyChanged(nameof(CanStopResponse));
             StopResponseCommand.NotifyCanExecuteChanged();
+        }
+    }
+
+    private async Task ReconcileProviderAfterResponseFailureAsync(
+        InferenceProviderException failure)
+    {
+        if (failure.Kind is not InferenceProviderFailureKind.Network
+            and not InferenceProviderFailureKind.Faulted)
+        {
+            return;
+        }
+
+        try
+        {
+            InferenceProviderSnapshot snapshot = await GetSelectedProviderRuntime()
+                .DetectAsync(CancellationToken.None)
+                .ConfigureAwait(true);
+            ApplyProviderSnapshot(snapshot);
+
+            if (snapshot.State != InferenceProviderState.Running)
+            {
+                Provider.SetLastFailure(failure.Kind, failure.UserMessage);
+                RaiseProviderStateChanged();
+            }
+        }
+        catch (InferenceProviderException detectionFailure)
+        {
+            SetProviderRedetectionFault(failure, detectionFailure);
+        }
+        catch (HttpRequestException exception)
+        {
+            SetProviderRedetectionFault(failure, CreateResponseRedetectionFailure(exception));
+        }
+        catch (InvalidDataException exception)
+        {
+            SetProviderRedetectionFault(failure, CreateResponseRedetectionFailure(exception));
+        }
+        catch (IOException exception)
+        {
+            SetProviderRedetectionFault(failure, CreateResponseRedetectionFailure(exception));
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            SetProviderRedetectionFault(failure, CreateResponseRedetectionFailure(exception));
+        }
+        catch (ArgumentException exception)
+        {
+            SetProviderRedetectionFault(failure, CreateResponseRedetectionFailure(exception));
+        }
+        catch (InvalidOperationException exception)
+        {
+            SetProviderRedetectionFault(failure, CreateResponseRedetectionFailure(exception));
         }
     }
 
@@ -2327,6 +2567,10 @@ public sealed class MainViewModel : ViewModelBase
         {
             await operation().ConfigureAwait(true);
         }
+        catch (InferenceProviderException exception)
+        {
+            ErrorMessage = exception.UserMessage;
+        }
         catch (InvalidDataException exception)
         {
             ErrorMessage = exception.Message;
@@ -2418,6 +2662,9 @@ public sealed class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(ProviderName));
         OnPropertyChanged(nameof(ProviderStatusText));
         OnPropertyChanged(nameof(ProviderDetailText));
+        OnPropertyChanged(nameof(HasProviderFailure));
+        OnPropertyChanged(nameof(ProviderFailureKind));
+        OnPropertyChanged(nameof(ProviderFailureMessage));
         OnPropertyChanged(nameof(ProviderVersionText));
         OnPropertyChanged(nameof(IsProviderProgressVisible));
         OnPropertyChanged(nameof(IsProviderProgressIndeterminate));

@@ -25,16 +25,19 @@ internal sealed class LlamaCppInstaller
 
     private readonly HttpClient _httpClient;
     private readonly TimeProvider _timeProvider;
+    private readonly LlamaCppProviderTimeouts _timeouts;
 
     public LlamaCppInstaller(
         HttpClient httpClient,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider,
+        LlamaCppProviderTimeouts? timeouts = null)
     {
         ArgumentNullException.ThrowIfNull(httpClient);
         ArgumentNullException.ThrowIfNull(timeProvider);
 
         _httpClient = httpClient;
         _timeProvider = timeProvider;
+        _timeouts = timeouts ?? LlamaCppProviderTimeouts.Default;
     }
 
     public async Task<LlamaCppInstallation> InstallAsync(
@@ -226,7 +229,7 @@ internal sealed class LlamaCppInstaller
                 cancellationToken).ConfigureAwait(false))
             {
                 File.Delete(executablePath);
-                throw new InvalidOperationException(
+                throw new PlatformNotSupportedException(
                     "The compiled llama-server did not expose an active CUDA backend. Verify the NVIDIA driver and CUDA Toolkit, then retry installation.");
             }
 
@@ -403,7 +406,7 @@ internal sealed class LlamaCppInstaller
 
         if (missing.Count > 0)
         {
-            throw new InvalidOperationException(
+            throw new PlatformNotSupportedException(
                 $"Cannot build llama.cpp with CUDA. Missing system prerequisite(s): {string.Join(", ", missing)}.");
         }
 
@@ -423,11 +426,16 @@ internal sealed class LlamaCppInstaller
         request.Headers.UserAgent.Add(new ProductInfoHeaderValue("Alicia", "1.0"));
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
 
-        using HttpResponseMessage response = await _httpClient
-            .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
-            .ConfigureAwait(false);
+        using HttpResponseMessage response = await SendHttpAsync(
+            request,
+            cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
-        string json = await response.Content.ReadAsStringAsync(cancellationToken)
+        string json = await LlamaCppTimeoutGuard.RunAsync(
+            token => response.Content.ReadAsStringAsync(token),
+            _timeouts.InstallerReadIdle,
+            InferenceProviderFailureKind.Network,
+            "The llama.cpp release service stopped responding. Check the network connection and try again.",
+            cancellationToken)
             .ConfigureAwait(false);
 
         return ParseReleaseDescriptor(json);
@@ -442,14 +450,18 @@ internal sealed class LlamaCppInstaller
         using HttpRequestMessage request = new(HttpMethod.Get, uri);
         request.Headers.UserAgent.Add(new ProductInfoHeaderValue("Alicia", "1.0"));
 
-        using HttpResponseMessage response = await _httpClient
-            .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
-            .ConfigureAwait(false);
+        using HttpResponseMessage response = await SendHttpAsync(
+            request,
+            cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 
         long? contentLength = response.Content.Headers.ContentLength;
-        await using Stream input = await response.Content
-            .ReadAsStreamAsync(cancellationToken)
+        await using Stream input = await LlamaCppTimeoutGuard.RunAsync(
+            token => response.Content.ReadAsStreamAsync(token),
+            _timeouts.InstallerReadIdle,
+            InferenceProviderFailureKind.Network,
+            "The llama.cpp download did not begin in time. Check the network connection and try again.",
+            cancellationToken)
             .ConfigureAwait(false);
         await using FileStream output = new(
             destinationPath,
@@ -464,8 +476,12 @@ internal sealed class LlamaCppInstaller
 
         while (true)
         {
-            int bytesRead = await input
-                .ReadAsync(buffer.AsMemory(), cancellationToken)
+            int bytesRead = await LlamaCppTimeoutGuard.RunAsync(
+                token => input.ReadAsync(buffer.AsMemory(), token).AsTask(),
+                _timeouts.InstallerReadIdle,
+                InferenceProviderFailureKind.Network,
+                "The llama.cpp download stopped making progress. Check the network connection and try again.",
+                cancellationToken)
                 .ConfigureAwait(false);
 
             if (bytesRead == 0)
@@ -518,6 +534,32 @@ internal sealed class LlamaCppInstaller
             gzipStream,
             destinationDirectory,
             overwriteFiles: false);
+    }
+
+    private async Task<HttpResponseMessage> SendHttpAsync(
+        HttpRequestMessage request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await LlamaCppTimeoutGuard.RunAsync(
+                token => _httpClient.SendAsync(
+                    request,
+                    HttpCompletionOption.ResponseHeadersRead,
+                    token),
+                _timeouts.InstallerResponseHeaders,
+                InferenceProviderFailureKind.Network,
+                "The llama.cpp download service did not respond in time. Check the network connection and try again.",
+                cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (HttpRequestException exception)
+        {
+            throw new InferenceProviderException(
+                InferenceProviderFailureKind.Network,
+                "Alicia could not reach the llama.cpp download service. Check the network connection and try again.",
+                exception);
+        }
     }
 
     private static string ResolveSourceDirectory(string extractDirectory)
