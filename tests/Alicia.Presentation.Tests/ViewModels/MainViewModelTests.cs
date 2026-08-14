@@ -896,6 +896,123 @@ public sealed class MainViewModelTests
     }
 
     [Fact]
+    public async Task ProviderUpdateCheckProjectsManagedValidatedAndLatestVersions()
+    {
+        InMemoryConversationRepository repository = new();
+        StubInferenceProviderRuntime provider = new(InferenceProviderState.Ready)
+        {
+            UpdateInfo = new InferenceProviderUpdateInfo(
+                installedVersion: "b10434",
+                validatedVersion: "b10435",
+                latestVersion: "b10435",
+                isManagedInstallation: true,
+                isUpdateAvailable: true,
+                isLatestVersionValidated: true,
+                detail: "Validated update available."),
+        };
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(new DateTimeOffset(2026, 8, 15, 0, 20, 0, TimeSpan.Zero)),
+            inferenceProvider: provider);
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        Assert.True(viewModel.SupportsProviderUpdates);
+        Assert.True(viewModel.CanCheckProviderUpdate);
+        Assert.False(viewModel.CanUpdateProvider);
+        Assert.Equal("Alicia validated b10435", viewModel.ProviderValidatedReleaseText);
+
+        await viewModel.CheckProviderUpdateCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.Equal(1, provider.CheckUpdateCount);
+        Assert.Equal("Managed release b10434", viewModel.ProviderInstalledReleaseText);
+        Assert.Equal("Alicia validated b10435", viewModel.ProviderValidatedReleaseText);
+        Assert.Equal("Upstream latest b10435", viewModel.ProviderLatestReleaseText);
+        Assert.Equal("Validated update available.", viewModel.ProviderUpdateStatusText);
+        Assert.True(viewModel.IsProviderUpdateAvailable);
+        Assert.True(viewModel.CanUpdateProvider);
+        Assert.Equal(0, provider.UpdateCount);
+    }
+
+    [Fact]
+    public async Task ProviderUpdateRunsOnlyAfterExplicitCommandAndReturnsToReady()
+    {
+        InMemoryConversationRepository repository = new();
+        StubInferenceProviderRuntime provider = new(InferenceProviderState.Ready)
+        {
+            UpdateInfo = new InferenceProviderUpdateInfo(
+                installedVersion: "b10434",
+                validatedVersion: "b10435",
+                latestVersion: "b10435",
+                isManagedInstallation: true,
+                isUpdateAvailable: true,
+                isLatestVersionValidated: true,
+                detail: "Validated update available."),
+        };
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(new DateTimeOffset(2026, 8, 15, 0, 21, 0, TimeSpan.Zero)),
+            inferenceProvider: provider);
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+        await viewModel.CheckProviderUpdateCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.Equal(0, provider.UpdateCount);
+        Assert.True(viewModel.CanUpdateProvider);
+
+        await viewModel.UpdateProviderCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.Equal(1, provider.UpdateCount);
+        Assert.Equal("Ready", viewModel.ProviderStatusText);
+        Assert.Equal("Managed release b10435", viewModel.ProviderInstalledReleaseText);
+        Assert.Equal("Managed runtime is up to date.", viewModel.ProviderUpdateStatusText);
+        Assert.False(viewModel.IsProviderUpdateAvailable);
+        Assert.False(viewModel.CanUpdateProvider);
+        Assert.False(viewModel.HasProviderFailure);
+        Assert.False(viewModel.HasError);
+        Assert.Equal(100d, viewModel.ProviderProgressValue);
+    }
+
+    [Fact]
+    public async Task ProviderUpdateFailureKeepsHealthyRuntimeReadyAndRetryable()
+    {
+        InMemoryConversationRepository repository = new();
+        StubInferenceProviderRuntime provider = new(InferenceProviderState.Ready)
+        {
+            UpdateInfo = new InferenceProviderUpdateInfo(
+                installedVersion: "b10434",
+                validatedVersion: "b10435",
+                latestVersion: "b10435",
+                isManagedInstallation: true,
+                isUpdateAvailable: true,
+                isLatestVersionValidated: true,
+                detail: "Validated update available."),
+            UpdateException = new InferenceProviderException(
+                InferenceProviderFailureKind.Network,
+                "Alicia could not download the validated llama.cpp update. Check the network connection and try again.",
+                new HttpRequestException("private mirror token=secret")),
+        };
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(new DateTimeOffset(2026, 8, 15, 0, 22, 0, TimeSpan.Zero)),
+            inferenceProvider: provider);
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+        await viewModel.CheckProviderUpdateCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        await viewModel.UpdateProviderCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.Equal(1, provider.UpdateCount);
+        Assert.Equal("Ready", viewModel.ProviderStatusText);
+        Assert.False(viewModel.HasProviderFailure);
+        Assert.True(viewModel.HasError);
+        string updateError = Assert.IsType<string>(viewModel.ErrorMessage);
+        Assert.Equal(
+            "Alicia could not download the validated llama.cpp update. Check the network connection and try again.",
+            updateError);
+        Assert.DoesNotContain("secret", updateError, StringComparison.Ordinal);
+        Assert.Equal(updateError, viewModel.ProviderUpdateStatusText);
+        Assert.True(viewModel.CanUpdateProvider);
+    }
+
+    [Fact]
     public async Task StartProviderPassesHuggingFaceModelReferenceAndEnablesChat()
     {
         InMemoryConversationRepository repository = new();

@@ -8,12 +8,15 @@ namespace Alicia.Infrastructure.Providers.LlamaCpp;
 
 public sealed class LlamaCppProviderRuntime :
     IInferenceProviderRuntime,
+    IInferenceProviderUpdateRuntime,
     IStreamingConversationResponder,
     IAsyncDisposable
 {
     public const string ProviderId = "llama.cpp.cuda";
 
     public const string ProviderName = "llama.cpp CUDA";
+
+    public string ValidatedVersion => LlamaCppReleasePolicy.ValidatedReleaseTag;
 
     private static readonly string[] _modelStartupFailureMarkers =
     [
@@ -149,7 +152,7 @@ public sealed class LlamaCppProviderRuntime :
 
             return CreateSnapshot(
                 InferenceProviderState.Missing,
-                detail: "llama.cpp CUDA is not installed. Alicia can download the latest official source release and compile llama-server locally.");
+                detail: $"llama.cpp CUDA is not installed. Alicia can build the validated managed release {LlamaCppReleasePolicy.ValidatedReleaseTag} locally.");
         }
         finally
         {
@@ -173,17 +176,24 @@ public sealed class LlamaCppProviderRuntime :
                     "Stop llama.cpp before installing or replacing the managed runtime.");
             }
 
-            LlamaCppInstallation installation = await _installer
-                .InstallAsync(_runtimeDirectory, progress, cancellationToken)
+            LlamaCppReleaseDescriptor release = await _installer
+                .GetValidatedReleaseAsync(
+                    LlamaCppReleasePolicy.ValidatedReleaseTag,
+                    LlamaCppReleasePolicy.ValidatedCommitSha,
+                    cancellationToken)
                 .ConfigureAwait(false);
-            InferenceProviderSnapshot? snapshot = await ProbeExecutableAsync(
-                installation.ExecutablePath,
-                installation.Version,
-                cancellationToken).ConfigureAwait(false);
+            LlamaCppInstallation installation = await _installer
+                .InstallAsync(_runtimeDirectory, release, progress, cancellationToken)
+                .ConfigureAwait(false);
 
-            return snapshot ?? throw new InferenceProviderException(
-                InferenceProviderFailureKind.Unsupported,
-                "The installed local AI runtime could not use CUDA. Review the NVIDIA driver and CUDA Toolkit, then try again.");
+            InferenceProviderSnapshot snapshot = await ActivateManagedInstallationAsync(
+                installation,
+                cancellationToken).ConfigureAwait(false);
+            progress?.Report(new InferenceProviderProgress(
+                "Installation complete",
+                $"Managed llama.cpp {installation.Version} is active. Previous managed releases are retained until explicit cleanup.",
+                1.0));
+            return snapshot;
         }
         catch (InferenceProviderException)
         {
@@ -222,6 +232,160 @@ public sealed class LlamaCppProviderRuntime :
         catch (System.ComponentModel.Win32Exception exception)
         {
             throw CreateInstallFailure(exception);
+        }
+        finally
+        {
+            _lifecycleGate.Release();
+        }
+    }
+
+    public async Task<InferenceProviderUpdateInfo> CheckForUpdateAsync(
+        CancellationToken cancellationToken = default)
+    {
+        ThrowIfDisposed();
+
+        await _lifecycleGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+        try
+        {
+            return await CheckForUpdateCoreAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (InferenceProviderException)
+        {
+            throw;
+        }
+        catch (HttpRequestException exception)
+        {
+            throw new InferenceProviderException(
+                InferenceProviderFailureKind.Network,
+                "Alicia could not check llama.cpp updates. Check the network connection and try again.",
+                exception);
+        }
+        catch (InvalidDataException exception)
+        {
+            throw CreateUpdateFailure(exception);
+        }
+        catch (ArgumentException exception)
+        {
+            throw CreateUpdateFailure(exception);
+        }
+        catch (IOException exception)
+        {
+            throw CreateUpdateFailure(exception);
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            throw CreateUpdateFailure(exception);
+        }
+        finally
+        {
+            _lifecycleGate.Release();
+        }
+    }
+
+    public async Task<InferenceProviderUpdateResult> UpdateAsync(
+        IProgress<InferenceProviderProgress>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        ThrowIfDisposed();
+
+        await _lifecycleGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+        try
+        {
+            if (IsServerAlive())
+            {
+                throw new InferenceProviderException(
+                    InferenceProviderFailureKind.Faulted,
+                    "Stop the local AI model before updating llama.cpp.");
+            }
+
+            LlamaCppInstallation? currentInstallation = await ReadManagedInstallationAsync(cancellationToken)
+                .ConfigureAwait(false);
+            LlamaCppReleaseDescriptor latestRelease = await _installer
+                .GetLatestReleaseAsync(cancellationToken)
+                .ConfigureAwait(false);
+            InferenceProviderUpdateInfo currentInfo = CreateUpdateInfo(
+                currentInstallation,
+                latestRelease);
+
+            if (!currentInfo.IsManagedInstallation)
+            {
+                throw new InferenceProviderException(
+                    InferenceProviderFailureKind.Missing,
+                    "Alicia can update only a managed llama.cpp installation. Install the validated managed runtime first.");
+            }
+
+            if (!currentInfo.IsUpdateAvailable)
+            {
+                InferenceProviderSnapshot snapshot = await DetectManagedRuntimeCoreAsync(cancellationToken)
+                    .ConfigureAwait(false);
+                return new InferenceProviderUpdateResult(snapshot, currentInfo);
+            }
+
+            LlamaCppReleaseDescriptor release = await _installer
+                .GetValidatedReleaseAsync(
+                    LlamaCppReleasePolicy.ValidatedReleaseTag,
+                    LlamaCppReleasePolicy.ValidatedCommitSha,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            LlamaCppInstallation installation = await _installer
+                .InstallAsync(_runtimeDirectory, release, progress, cancellationToken)
+                .ConfigureAwait(false);
+            InferenceProviderSnapshot updatedSnapshot = await ActivateManagedInstallationAsync(
+                installation,
+                cancellationToken).ConfigureAwait(false);
+            InferenceProviderUpdateInfo updatedInfo = CreateUpdateInfo(
+                installation,
+                latestRelease);
+            progress?.Report(new InferenceProviderProgress(
+                "Update complete",
+                $"Managed llama.cpp {installation.Version} is active. The previous managed release was retained.",
+                1.0));
+
+            return new InferenceProviderUpdateResult(updatedSnapshot, updatedInfo);
+        }
+        catch (InferenceProviderException)
+        {
+            throw;
+        }
+        catch (PlatformNotSupportedException exception)
+        {
+            throw new InferenceProviderException(
+                InferenceProviderFailureKind.Unsupported,
+                "This system is missing requirements for the managed CUDA provider update. Review the provider prerequisites and try again.",
+                exception);
+        }
+        catch (HttpRequestException exception)
+        {
+            throw new InferenceProviderException(
+                InferenceProviderFailureKind.Network,
+                "Alicia could not download the validated llama.cpp update. Check the network connection and try again.",
+                exception);
+        }
+        catch (InvalidDataException exception)
+        {
+            throw CreateUpdateFailure(exception);
+        }
+        catch (ArgumentException exception)
+        {
+            throw CreateUpdateFailure(exception);
+        }
+        catch (IOException exception)
+        {
+            throw CreateUpdateFailure(exception);
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            throw CreateUpdateFailure(exception);
+        }
+        catch (InvalidOperationException exception)
+        {
+            throw CreateUpdateFailure(exception);
+        }
+        catch (System.ComponentModel.Win32Exception exception)
+        {
+            throw CreateUpdateFailure(exception);
         }
         finally
         {
@@ -493,6 +657,156 @@ public sealed class LlamaCppProviderRuntime :
         return null;
     }
 
+    private async Task<InferenceProviderUpdateInfo> CheckForUpdateCoreAsync(
+        CancellationToken cancellationToken)
+    {
+        LlamaCppInstallation? installation = await ReadManagedInstallationAsync(cancellationToken)
+            .ConfigureAwait(false);
+        LlamaCppReleaseDescriptor latestRelease = await _installer
+            .GetLatestReleaseAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return CreateUpdateInfo(installation, latestRelease);
+    }
+
+    private static InferenceProviderUpdateInfo CreateUpdateInfo(
+        LlamaCppInstallation? installation,
+        LlamaCppReleaseDescriptor latestRelease)
+    {
+        ArgumentNullException.ThrowIfNull(latestRelease);
+
+        bool isManagedInstallation = installation is not null
+            && File.Exists(installation.ExecutablePath);
+        string? installedVersion = isManagedInstallation
+            ? installation!.Version
+            : null;
+        bool isLatestVersionValidated = string.Equals(
+            latestRelease.TagName,
+            LlamaCppReleasePolicy.ValidatedReleaseTag,
+            StringComparison.Ordinal)
+            && string.Equals(
+                latestRelease.TargetCommitish,
+                LlamaCppReleasePolicy.ValidatedCommitSha,
+                StringComparison.OrdinalIgnoreCase);
+        bool isUpdateAvailable = false;
+        string detail;
+
+        if (!isManagedInstallation || installedVersion is null)
+        {
+            detail = isLatestVersionValidated
+                ? $"No managed llama.cpp release is active. Alicia validates {LlamaCppReleasePolicy.ValidatedReleaseTag}; install the managed runtime to use controlled updates."
+                : $"No managed llama.cpp release is active. Alicia validates {LlamaCppReleasePolicy.ValidatedReleaseTag}; upstream latest is {latestRelease.TagName} and is not automatically trusted.";
+        }
+        else
+        {
+            int installedVsValidated = LlamaCppReleasePolicy.CompareReleaseTags(
+                installedVersion,
+                LlamaCppReleasePolicy.ValidatedReleaseTag);
+            isUpdateAvailable = installedVsValidated < 0;
+
+            if (isUpdateAvailable)
+            {
+                detail = $"Validated update available: {installedVersion} → {LlamaCppReleasePolicy.ValidatedReleaseTag}. The previous managed release will be kept.";
+            }
+            else if (installedVsValidated > 0)
+            {
+                detail = $"Managed release {installedVersion} is newer than Alicia's validated {LlamaCppReleasePolicy.ValidatedReleaseTag}; Alicia will not downgrade it automatically.";
+            }
+            else if (!isLatestVersionValidated)
+            {
+                detail = $"Managed release {installedVersion} matches Alicia's validated version. Upstream latest {latestRelease.TagName} has not been validated by this Alicia build.";
+            }
+            else
+            {
+                detail = $"Managed llama.cpp {installedVersion} matches Alicia's validated release and upstream latest.";
+            }
+        }
+
+        return new InferenceProviderUpdateInfo(
+            installedVersion,
+            LlamaCppReleasePolicy.ValidatedReleaseTag,
+            latestRelease.TagName,
+            isManagedInstallation,
+            isUpdateAvailable,
+            isLatestVersionValidated,
+            detail);
+    }
+
+    private async Task<InferenceProviderSnapshot> DetectManagedRuntimeCoreAsync(
+        CancellationToken cancellationToken)
+    {
+        LlamaCppInstallation? installation = await ReadManagedInstallationAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        if (installation is null || !File.Exists(installation.ExecutablePath))
+        {
+            throw new InferenceProviderException(
+                InferenceProviderFailureKind.Missing,
+                "The managed llama.cpp runtime is no longer available. Reinstall the validated provider runtime.");
+        }
+
+        InferenceProviderSnapshot? snapshot = await ProbeExecutableAsync(
+            installation.ExecutablePath,
+            installation.Version,
+            cancellationToken).ConfigureAwait(false);
+
+        return snapshot ?? throw new InferenceProviderException(
+            InferenceProviderFailureKind.Unsupported,
+            "The managed llama.cpp runtime could not use CUDA. Review the NVIDIA driver and CUDA Toolkit, then try again.");
+    }
+
+    private async Task<InferenceProviderSnapshot> ActivateManagedInstallationAsync(
+        LlamaCppInstallation installation,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(installation);
+
+        string? previousExecutablePath = _executablePath;
+        string? previousVersion = _version;
+        string? previousModelReference = _modelReference;
+        Uri? previousEndpoint = _endpoint;
+        string? previousApiKey = _serverApiKey;
+
+        bool activated = false;
+
+        try
+        {
+            InferenceProviderSnapshot? snapshot = await ProbeExecutableAsync(
+                installation.ExecutablePath,
+                installation.Version,
+                cancellationToken).ConfigureAwait(false);
+
+            if (snapshot is null)
+            {
+                throw new InferenceProviderException(
+                    InferenceProviderFailureKind.Unsupported,
+                    "The validated local AI runtime could not use CUDA. The previous managed release remains active.");
+            }
+
+            await LlamaCppInstaller.WriteInstallationMetadataAsync(
+                _runtimeDirectory,
+                installation,
+                cancellationToken).ConfigureAwait(false);
+
+            InferenceProviderSnapshot activatedSnapshot = CreateSnapshot(
+                InferenceProviderState.Ready,
+                detail: $"Managed llama.cpp {installation.Version} is active. Previous managed releases are retained until explicit cleanup.");
+            activated = true;
+            return activatedSnapshot;
+        }
+        finally
+        {
+            if (!activated)
+            {
+                _executablePath = previousExecutablePath;
+                _version = previousVersion;
+                _modelReference = previousModelReference;
+                _endpoint = previousEndpoint;
+                _serverApiKey = previousApiKey;
+            }
+        }
+    }
+
     private async Task<InferenceProviderSnapshot?> ProbeExecutableAsync(
         string executablePath,
         string? expectedVersion,
@@ -699,6 +1013,14 @@ public sealed class LlamaCppProviderRuntime :
         {
             throw CreateProbeFailure(exception);
         }
+    }
+
+    private static InferenceProviderException CreateUpdateFailure(Exception exception)
+    {
+        return new InferenceProviderException(
+            InferenceProviderFailureKind.Faulted,
+            "Alicia could not complete the managed llama.cpp update. The previous managed release remains selected.",
+            exception);
     }
 
     private static InferenceProviderException CreateInstallFailure(Exception exception)

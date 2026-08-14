@@ -277,7 +277,9 @@ internal sealed class ProviderFailureConversationResponder : IStreamingConversat
     }
 }
 
-internal sealed class StubInferenceProviderRuntime : IInferenceProviderRuntime
+internal sealed class StubInferenceProviderRuntime :
+    IInferenceProviderRuntime,
+    IInferenceProviderUpdateRuntime
 {
     private const string ProviderName = "llama.cpp CUDA";
 
@@ -286,9 +288,27 @@ internal sealed class StubInferenceProviderRuntime : IInferenceProviderRuntime
         Current = CreateSnapshot(initialState, modelReference: initialState == InferenceProviderState.Running
             ? "owner/model-GGUF:Q4_K_M"
             : null);
+        UpdateInfo = initialState == InferenceProviderState.Missing
+            ? new InferenceProviderUpdateInfo(
+                installedVersion: null,
+                validatedVersion: ValidatedVersion,
+                latestVersion: ValidatedVersion,
+                isManagedInstallation: false,
+                isUpdateAvailable: false,
+                isLatestVersionValidated: true,
+                detail: "No managed runtime installed.")
+            : CreateUpToDateInfo();
     }
 
     public InferenceProviderSnapshot Current { get; private set; }
+
+    public string ValidatedVersion => "b10435";
+
+    public InferenceProviderUpdateInfo UpdateInfo { get; set; }
+
+    public int CheckUpdateCount { get; private set; }
+
+    public int UpdateCount { get; private set; }
 
     public int DetectCount { get; private set; }
 
@@ -307,6 +327,10 @@ internal sealed class StubInferenceProviderRuntime : IInferenceProviderRuntime
     public Exception? DetectException { get; set; }
 
     public Exception? InstallException { get; set; }
+
+    public Exception? CheckUpdateException { get; set; }
+
+    public Exception? UpdateException { get; set; }
 
     public Task<InferenceProviderSnapshot> DetectAsync(CancellationToken cancellationToken = default)
     {
@@ -343,7 +367,51 @@ internal sealed class StubInferenceProviderRuntime : IInferenceProviderRuntime
             1.0));
         await Task.Yield();
         Current = CreateSnapshot(InferenceProviderState.Ready);
+        UpdateInfo = CreateUpToDateInfo();
         return Current;
+    }
+
+    public Task<InferenceProviderUpdateInfo> CheckForUpdateAsync(
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        CheckUpdateCount++;
+
+        if (CheckUpdateException is not null)
+        {
+            throw CheckUpdateException;
+        }
+
+        return Task.FromResult(UpdateInfo);
+    }
+
+    public async Task<InferenceProviderUpdateResult> UpdateAsync(
+        IProgress<InferenceProviderProgress>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        UpdateCount++;
+
+        if (UpdateException is not null)
+        {
+            throw UpdateException;
+        }
+
+        progress?.Report(new InferenceProviderProgress(
+            "Updating runtime",
+            "Installing Alicia validated release.",
+            0.5));
+        await Task.Yield();
+        cancellationToken.ThrowIfCancellationRequested();
+
+        Current = CreateSnapshot(InferenceProviderState.Ready);
+        UpdateInfo = CreateUpToDateInfo();
+        progress?.Report(new InferenceProviderProgress(
+            "Update complete",
+            "Validated runtime active.",
+            1.0));
+
+        return new InferenceProviderUpdateResult(Current, UpdateInfo);
     }
 
     public Task<InferenceProviderSnapshot> StartAsync(
@@ -370,6 +438,18 @@ internal sealed class StubInferenceProviderRuntime : IInferenceProviderRuntime
         StopCount++;
         Current = CreateSnapshot(InferenceProviderState.Ready, Current.ModelReference);
         return Task.FromResult(Current);
+    }
+
+    private InferenceProviderUpdateInfo CreateUpToDateInfo()
+    {
+        return new InferenceProviderUpdateInfo(
+            installedVersion: ValidatedVersion,
+            validatedVersion: ValidatedVersion,
+            latestVersion: ValidatedVersion,
+            isManagedInstallation: true,
+            isUpdateAvailable: false,
+            isLatestVersionValidated: true,
+            detail: "Managed runtime is up to date.");
     }
 
     private static InferenceProviderSnapshot CreateSnapshot(

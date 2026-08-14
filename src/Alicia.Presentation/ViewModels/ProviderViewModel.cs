@@ -12,6 +12,8 @@ public sealed class ProviderViewModel : ViewModelBase
     private InferenceProviderSnapshot? _providerSnapshot;
     private InferenceProviderFailureKind? _lastFailureKind;
     private string? _lastFailureMessage;
+    private InferenceProviderUpdateInfo? _providerUpdateInfo;
+    private string? _providerUpdateStatusMessage;
 
     public ProviderViewModel(IInferenceProviderRegistry providerRegistry)
     {
@@ -73,6 +75,28 @@ public sealed class ProviderViewModel : ViewModelBase
         ? "Version not detected"
         : $"Version {_providerSnapshot.Version}";
 
+    public bool SupportsProviderUpdates => _selectedProviderRuntime is IInferenceProviderUpdateRuntime;
+
+    public bool IsProviderUpdateAvailable => _providerUpdateInfo?.IsUpdateAvailable == true;
+
+    public string ProviderInstalledReleaseText => _providerUpdateInfo?.InstalledVersion is string installedVersion
+        ? $"Managed release {installedVersion}"
+        : "Managed release not checked";
+
+    public string ProviderValidatedReleaseText => _selectedProviderRuntime is IInferenceProviderUpdateRuntime updateRuntime
+        ? $"Alicia validated {updateRuntime.ValidatedVersion}"
+        : "Validated release unavailable";
+
+    public string ProviderLatestReleaseText => _providerUpdateInfo?.LatestVersion is string latestVersion
+        ? $"Upstream latest {latestVersion}"
+        : "Upstream release not checked";
+
+    public string ProviderUpdateStatusText => _providerUpdateStatusMessage
+        ?? _providerUpdateInfo?.Detail
+        ?? (SupportsProviderUpdates
+            ? "Use Check update to compare the managed runtime with Alicia's validated release and upstream latest."
+            : "Managed runtime updates are not available for this provider.");
+
     public bool IsProviderProgressVisible => _providerProgress is not null;
 
     public bool IsProviderProgressIndeterminate => IsProviderBusy
@@ -105,6 +129,8 @@ public sealed class ProviderViewModel : ViewModelBase
         _providerProgress = null;
         _lastFailureKind = null;
         _lastFailureMessage = null;
+        _providerUpdateInfo = null;
+        _providerUpdateStatusMessage = null;
 
         OnPropertyChanged(nameof(SelectedProvider));
         RaiseProjectionChanged();
@@ -120,6 +146,28 @@ public sealed class ProviderViewModel : ViewModelBase
         return _selectedProviderRuntime
             ?? throw new InvalidOperationException(
                 "Select an inference provider before performing this operation.");
+    }
+
+    internal IInferenceProviderUpdateRuntime GetSelectedProviderUpdateRuntime()
+    {
+        return _selectedProviderRuntime as IInferenceProviderUpdateRuntime
+            ?? throw new InvalidOperationException(
+                "The selected inference provider does not expose managed update operations.");
+    }
+
+    internal void ApplyUpdateInfo(InferenceProviderUpdateInfo updateInfo)
+    {
+        ArgumentNullException.ThrowIfNull(updateInfo);
+        _providerUpdateInfo = updateInfo;
+        _providerUpdateStatusMessage = null;
+        RaiseProjectionChanged();
+    }
+
+    internal void SetUpdateStatusMessage(string message)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(message);
+        _providerUpdateStatusMessage = message.Trim();
+        RaiseProjectionChanged();
     }
 
     internal void ApplySnapshot(InferenceProviderSnapshot snapshot)
@@ -227,6 +275,12 @@ public sealed class ProviderViewModel : ViewModelBase
         OnPropertyChanged(nameof(ProviderFailureKind));
         OnPropertyChanged(nameof(ProviderFailureMessage));
         OnPropertyChanged(nameof(ProviderVersionText));
+        OnPropertyChanged(nameof(SupportsProviderUpdates));
+        OnPropertyChanged(nameof(IsProviderUpdateAvailable));
+        OnPropertyChanged(nameof(ProviderInstalledReleaseText));
+        OnPropertyChanged(nameof(ProviderValidatedReleaseText));
+        OnPropertyChanged(nameof(ProviderLatestReleaseText));
+        OnPropertyChanged(nameof(ProviderUpdateStatusText));
         OnPropertyChanged(nameof(IsProviderProgressVisible));
         OnPropertyChanged(nameof(IsProviderProgressIndeterminate));
         OnPropertyChanged(nameof(ProviderProgressValue));

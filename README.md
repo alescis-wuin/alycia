@@ -4,7 +4,7 @@ Alicia is a cross-platform AI chat application built with C#, .NET, and Avalonia
 
 ## Status
 
-The repository contains the engineering foundation, a provider-neutral conversation core, local JSON conversation persistence, tested conversation lifecycle operations, a functional Avalonia shell with dedicated Conversations/Provider/Models workspaces, provider-neutral response generation/streaming, a real local llama.cpp CUDA adapter, explicit provider/model generation configuration including bounded reasoning, and bounded provider failure handling with safe `Missing/Unsupported/Faulted/Network/Model` classification. The desktop UI can detect or install a managed Linux x64 CUDA build, save a Hugging Face GGUF model plus optional runtime/generation overrides, launch `llama-server -hf`, stream visible content and separated reasoning incrementally, persist only the completed visible Assistant message, stop an active stream, and explicitly retry the same unanswered User message without duplicating it. Automatic transport retry is restricted to bounded idempotent provider GET boundaries; generation POSTs are never replayed automatically. Tool calling, retrieval, attachments, multimodality, and additional platform installers/hosts are intentionally deferred to later atomic work packages.
+The repository contains the engineering foundation, a provider-neutral conversation core, local JSON conversation persistence, tested conversation lifecycle operations, a functional Avalonia shell with dedicated Conversations/Provider/Models workspaces, provider-neutral response generation/streaming, a real local llama.cpp CUDA adapter, explicit provider/model generation configuration including bounded reasoning, and bounded provider failure handling with safe `Missing/Unsupported/Faulted/Network/Model` classification. The desktop UI can detect or install a managed Linux x64 CUDA build, save a Hugging Face GGUF model plus optional runtime/generation overrides, launch `llama-server -hf`, stream visible content and separated reasoning incrementally, persist only the completed visible Assistant message, stop an active stream, and explicitly retry the same unanswered User message without duplicating it. Automatic transport retry is restricted to bounded idempotent provider GET boundaries; generation POSTs are never replayed automatically. Managed llama.cpp installation/update now targets an Alicia-validated pinned release, exposes explicit update checking, and preserves the previous managed release until explicit cleanup. Tool calling, retrieval, attachments, multimodality, and additional platform installers/hosts are intentionally deferred to later atomic work packages.
 
 ## Current platform target
 
@@ -65,7 +65,7 @@ The current Avalonia presentation provides:
 - reasoning kept as an ephemeral in-memory Presentation snapshot rather than silently persisted into conversation documents;
 - loading/empty/error states, keyboard accessibility, visible focus, accessible names, responsive spacing, and large interaction targets.
 
-The provider-neutral Application contracts remain independent of llama.cpp/CUDA/HTTP. Lot 10.3 adds provider-neutral failure classification and safe-message exceptions while Infrastructure owns finite readiness/HTTP/probe deadlines and raw diagnostics. Lot 10.4 constrains automatic retry to explicitly idempotent GET boundaries while keeping generation retry user-driven. The managed compiler path is intentionally limited to Linux x64 + NVIDIA CUDA for the current lot; compatible externally installed CUDA `llama-server` executables can also be detected from `PATH`.
+The provider-neutral Application contracts remain independent of llama.cpp/CUDA/HTTP. Lot 10.3 adds provider-neutral failure classification and safe-message exceptions while Infrastructure owns finite readiness/HTTP/probe deadlines and raw diagnostics. Lot 10.4 constrains automatic retry to explicitly idempotent GET boundaries while keeping generation retry user-driven. Lot 10.5 adds the optional provider-neutral update capability, pins managed llama.cpp to validated release `b10435` / commit `9e40df63ba151d771d8b247ac4011cf203337e99`, reports upstream latest separately, and atomically activates only an explicitly requested validated update while retaining older managed releases. The managed compiler path is intentionally limited to Linux x64 + NVIDIA CUDA for the current lot; compatible externally installed CUDA `llama-server` executables can also be detected from `PATH`.
 
 ## Documentation
 
@@ -96,6 +96,7 @@ The provider-neutral Application contracts remain independent of llama.cpp/CUDA/
 - `docs/decisions/0024-accessibility-reduced-motion-completion.md`
 - `docs/decisions/0025-provider-timeouts-failure-classification.md`
 - `docs/decisions/0026-idempotent-retry-boundaries.md`
+- `docs/decisions/0027-validated-llama-cpp-release-updates.md`
 - `docs/development/roadmap.md`
 - `docs/design/ui-ux-specification.md`
 - `docs/user-guide/README.md`

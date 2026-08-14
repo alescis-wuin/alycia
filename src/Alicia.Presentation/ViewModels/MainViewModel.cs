@@ -122,6 +122,12 @@ public sealed class MainViewModel : ViewModelBase
             () => HasSelectedConversation && IsConversationScrollDetached);
         DetectProviderCommand = new AsyncRelayCommand(DetectProviderAsync, () => CanDetectProvider);
         InstallProviderCommand = new AsyncRelayCommand(InstallProviderAsync, () => CanInstallProvider);
+        CheckProviderUpdateCommand = new AsyncRelayCommand(
+            CheckProviderUpdateAsync,
+            () => CanCheckProviderUpdate);
+        UpdateProviderCommand = new AsyncRelayCommand(
+            UpdateProviderAsync,
+            () => CanUpdateProvider);
         StartProviderCommand = new AsyncRelayCommand(StartProviderAsync, () => CanStartProvider);
         StopProviderCommand = new AsyncRelayCommand(StopProviderAsync, () => CanStopProvider);
         SaveProviderConfigurationCommand = new AsyncRelayCommand(
@@ -184,6 +190,10 @@ public sealed class MainViewModel : ViewModelBase
     public IAsyncRelayCommand DetectProviderCommand { get; }
 
     public IAsyncRelayCommand InstallProviderCommand { get; }
+
+    public IAsyncRelayCommand CheckProviderUpdateCommand { get; }
+
+    public IAsyncRelayCommand UpdateProviderCommand { get; }
 
     public IAsyncRelayCommand StartProviderCommand { get; }
 
@@ -481,6 +491,16 @@ public sealed class MainViewModel : ViewModelBase
     public bool CanStopProvider => IsProviderRunning
         || Provider.Snapshot?.State == InferenceProviderState.Starting;
 
+    public bool CanCheckProviderUpdate => SelectedProvider is not null
+        && Provider.SupportsProviderUpdates
+        && !IsProviderBusy
+        && !IsGeneratingResponse;
+
+    public bool CanUpdateProvider => CanCheckProviderUpdate
+        && !IsProviderRunning
+        && Provider.IsProviderUpdateAvailable
+        && Provider.Snapshot?.State == InferenceProviderState.Ready;
+
     public bool IsProviderModelEditable => IsProviderSettingsEditable;
 
     public bool HasProviderConfigurationChanges =>
@@ -520,6 +540,18 @@ public sealed class MainViewModel : ViewModelBase
     public string ProviderFailureMessage => Provider.ProviderFailureMessage;
 
     public string ProviderVersionText => Provider.ProviderVersionText;
+
+    public bool SupportsProviderUpdates => Provider.SupportsProviderUpdates;
+
+    public bool IsProviderUpdateAvailable => Provider.IsProviderUpdateAvailable;
+
+    public string ProviderInstalledReleaseText => Provider.ProviderInstalledReleaseText;
+
+    public string ProviderValidatedReleaseText => Provider.ProviderValidatedReleaseText;
+
+    public string ProviderLatestReleaseText => Provider.ProviderLatestReleaseText;
+
+    public string ProviderUpdateStatusText => Provider.ProviderUpdateStatusText;
 
     public bool IsProviderProgressVisible => Provider.IsProviderProgressVisible;
 
@@ -1077,6 +1109,11 @@ public sealed class MainViewModel : ViewModelBase
         return Provider.GetSelectedProviderRuntime();
     }
 
+    private IInferenceProviderUpdateRuntime GetSelectedProviderUpdateRuntime()
+    {
+        return Provider.GetSelectedProviderUpdateRuntime();
+    }
+
     private bool TryBuildProviderConfiguration(
         out InferenceProviderConfiguration? configuration,
         out string? validationError)
@@ -1411,6 +1448,157 @@ public sealed class MainViewModel : ViewModelBase
             async cancellationToken => await GetSelectedProviderRuntime()
                 .InstallAsync(progress, cancellationToken)
                 .ConfigureAwait(true)).ConfigureAwait(true);
+    }
+
+    private async Task CheckProviderUpdateAsync()
+    {
+        if (!CanCheckProviderUpdate)
+        {
+            return;
+        }
+
+        using CancellationTokenSource cancellationSource = new();
+        _providerOperationCancellation = cancellationSource;
+        IsProviderBusy = true;
+        ClearError();
+
+        try
+        {
+            InferenceProviderUpdateInfo updateInfo = await GetSelectedProviderUpdateRuntime()
+                .CheckForUpdateAsync(cancellationSource.Token)
+                .ConfigureAwait(true);
+            Provider.ApplyUpdateInfo(updateInfo);
+            RaiseProviderStateChanged();
+        }
+        catch (OperationCanceledException) when (cancellationSource.IsCancellationRequested)
+        {
+            ClearError();
+        }
+        catch (InferenceProviderException exception)
+        {
+            ErrorMessage = exception.UserMessage;
+            Provider.SetUpdateStatusMessage(exception.UserMessage);
+            RaiseProviderStateChanged();
+        }
+        catch (HttpRequestException)
+        {
+            SetProviderUpdateOperationFailure(
+                "Alicia could not check the managed provider update. The active runtime was not changed.");
+        }
+        catch (InvalidDataException)
+        {
+            SetProviderUpdateOperationFailure(
+                "Alicia could not check the managed provider update. The active runtime was not changed.");
+        }
+        catch (IOException)
+        {
+            SetProviderUpdateOperationFailure(
+                "Alicia could not check the managed provider update. The active runtime was not changed.");
+        }
+        catch (UnauthorizedAccessException)
+        {
+            SetProviderUpdateOperationFailure(
+                "Alicia could not check the managed provider update. The active runtime was not changed.");
+        }
+        catch (InvalidOperationException)
+        {
+            SetProviderUpdateOperationFailure(
+                "Alicia could not check the managed provider update. The active runtime was not changed.");
+        }
+        finally
+        {
+            if (ReferenceEquals(_providerOperationCancellation, cancellationSource))
+            {
+                _providerOperationCancellation = null;
+            }
+
+            IsProviderBusy = false;
+        }
+    }
+
+    private async Task UpdateProviderAsync()
+    {
+        if (!CanUpdateProvider)
+        {
+            return;
+        }
+
+        ClearProviderProgress();
+        SerializedProgress<InferenceProviderProgress> progress = new(ApplyProviderProgress);
+        using CancellationTokenSource cancellationSource = new();
+        _providerOperationCancellation = cancellationSource;
+        IsProviderBusy = true;
+        ClearError();
+
+        try
+        {
+            InferenceProviderUpdateResult result = await GetSelectedProviderUpdateRuntime()
+                .UpdateAsync(progress, cancellationSource.Token)
+                .ConfigureAwait(true);
+            ApplyProviderSnapshot(result.Snapshot);
+            Provider.ApplyUpdateInfo(result.UpdateInfo);
+            ClearError();
+            RaiseProviderStateChanged();
+        }
+        catch (OperationCanceledException) when (cancellationSource.IsCancellationRequested)
+        {
+            ClearProviderProgress();
+            ClearError();
+        }
+        catch (InferenceProviderException exception)
+        {
+            ClearProviderProgress();
+            ErrorMessage = exception.UserMessage;
+            Provider.SetUpdateStatusMessage(exception.UserMessage);
+            RaiseProviderStateChanged();
+        }
+        catch (HttpRequestException)
+        {
+            ClearProviderProgress();
+            SetProviderUpdateOperationFailure(
+                "Alicia could not complete the managed provider update. The previous release remains selected.");
+        }
+        catch (InvalidDataException)
+        {
+            ClearProviderProgress();
+            SetProviderUpdateOperationFailure(
+                "Alicia could not complete the managed provider update. The previous release remains selected.");
+        }
+        catch (IOException)
+        {
+            ClearProviderProgress();
+            SetProviderUpdateOperationFailure(
+                "Alicia could not complete the managed provider update. The previous release remains selected.");
+        }
+        catch (UnauthorizedAccessException)
+        {
+            ClearProviderProgress();
+            SetProviderUpdateOperationFailure(
+                "Alicia could not complete the managed provider update. The previous release remains selected.");
+        }
+        catch (InvalidOperationException)
+        {
+            ClearProviderProgress();
+            SetProviderUpdateOperationFailure(
+                "Alicia could not complete the managed provider update. The previous release remains selected.");
+        }
+        finally
+        {
+            if (ReferenceEquals(_providerOperationCancellation, cancellationSource))
+            {
+                _providerOperationCancellation = null;
+            }
+
+            IsProviderBusy = false;
+        }
+    }
+
+    private void SetProviderUpdateOperationFailure(string message)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(message);
+        ErrorMessage = message;
+        Provider.SetUpdateStatusMessage(message);
+        RaiseProviderStateChanged();
     }
 
     private async Task StartProviderAsync()
@@ -2650,6 +2838,8 @@ public sealed class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(CanInstallProvider));
         OnPropertyChanged(nameof(CanStartProvider));
         OnPropertyChanged(nameof(CanStopProvider));
+        OnPropertyChanged(nameof(CanCheckProviderUpdate));
+        OnPropertyChanged(nameof(CanUpdateProvider));
         OnPropertyChanged(nameof(IsProviderModelEditable));
         OnPropertyChanged(nameof(IsProviderSettingsEditable));
         OnPropertyChanged(nameof(IsProviderSelectionEditable));
@@ -2666,6 +2856,12 @@ public sealed class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(ProviderFailureKind));
         OnPropertyChanged(nameof(ProviderFailureMessage));
         OnPropertyChanged(nameof(ProviderVersionText));
+        OnPropertyChanged(nameof(SupportsProviderUpdates));
+        OnPropertyChanged(nameof(IsProviderUpdateAvailable));
+        OnPropertyChanged(nameof(ProviderInstalledReleaseText));
+        OnPropertyChanged(nameof(ProviderValidatedReleaseText));
+        OnPropertyChanged(nameof(ProviderLatestReleaseText));
+        OnPropertyChanged(nameof(ProviderUpdateStatusText));
         OnPropertyChanged(nameof(IsProviderProgressVisible));
         OnPropertyChanged(nameof(IsProviderProgressIndeterminate));
         OnPropertyChanged(nameof(IsProviderProgressIndeterminateAnimationEnabled));
@@ -2679,6 +2875,8 @@ public sealed class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(StatusText));
         DetectProviderCommand.NotifyCanExecuteChanged();
         InstallProviderCommand.NotifyCanExecuteChanged();
+        CheckProviderUpdateCommand.NotifyCanExecuteChanged();
+        UpdateProviderCommand.NotifyCanExecuteChanged();
         StartProviderCommand.NotifyCanExecuteChanged();
         StopProviderCommand.NotifyCanExecuteChanged();
         SaveProviderConfigurationCommand.NotifyCanExecuteChanged();

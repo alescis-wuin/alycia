@@ -17,7 +17,7 @@
                    FontWeight="Bold"
                    AutomationProperties.HeadingLevel="1"
                    Foreground="{DynamicResource TextPrimaryBrush}" />
-        <TextBlock Text="Detect, install and control the selected local inference runtime."
+        <TextBlock Text="Detect, install, update and control the selected local inference runtime."
                    FontSize="14"
                    Foreground="{DynamicResource TextSecondaryBrush}" />
       </StackPanel>
@@ -114,6 +114,36 @@
                     IsEnabled="{Binding CanStopProvider}"
                     Content="Stop local AI"
                     AutomationProperties.Name="Stop selected provider" />
+
+            <Border Height="1"
+                    Margin="0,4"
+                    Background="{DynamicResource BorderBrush}" />
+
+            <TextBlock Text="Runtime updates"
+                       FontSize="15"
+                       FontWeight="SemiBold"
+                       AutomationProperties.HeadingLevel="3"
+                       Foreground="{DynamicResource TextPrimaryBrush}" />
+            <TextBlock Text="Alicia updates only to its pinned validated release. Newer upstream releases are reported but never installed automatically."
+                       FontSize="12"
+                       LineHeight="18"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource TextSecondaryBrush}" />
+
+            <Grid ColumnDefinitions="*,10,*">
+              <Button Grid.Column="0"
+                      Classes="secondary-action"
+                      Command="{Binding CheckProviderUpdateCommand}"
+                      IsEnabled="{Binding CanCheckProviderUpdate}"
+                      Content="Check update"
+                      AutomationProperties.Name="Check provider update" />
+              <Button Grid.Column="2"
+                      Classes="primary-action"
+                      Command="{Binding UpdateProviderCommand}"
+                      IsEnabled="{Binding CanUpdateProvider}"
+                      Content="Update validated"
+                      AutomationProperties.Name="Update provider to Alicia validated release" />
+            </Grid>
           </StackPanel>
         </Border>
 
@@ -133,6 +163,21 @@
                        Foreground="{DynamicResource TextPrimaryBrush}" />
             <TextBlock Text="{Binding ProviderVersionText}"
                        FontSize="13"
+                       Foreground="{DynamicResource TextSecondaryBrush}" />
+            <TextBlock Text="{Binding ProviderInstalledReleaseText}"
+                       FontSize="12"
+                       Foreground="{DynamicResource TextSecondaryBrush}" />
+            <TextBlock Text="{Binding ProviderValidatedReleaseText}"
+                       FontSize="12"
+                       Foreground="{DynamicResource TextSecondaryBrush}" />
+            <TextBlock Text="{Binding ProviderLatestReleaseText}"
+                       FontSize="12"
+                       Foreground="{DynamicResource TextSecondaryBrush}" />
+            <TextBlock Text="{Binding ProviderUpdateStatusText}"
+                       FontSize="12"
+                       LineHeight="18"
+                       TextWrapping="Wrap"
+                       AutomationProperties.LiveSetting="Polite"
                        Foreground="{DynamicResource TextSecondaryBrush}" />
             <TextBlock Text="{Binding ProviderDetailText}"
                        FontSize="13"

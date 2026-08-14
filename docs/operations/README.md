@@ -27,15 +27,17 @@ The current provider runtime can:
 
 1. detect a managed or external `llama-server`;
 2. verify that the executable exposes a CUDA backend;
-3. build a managed Linux x64 CUDA server from the official llama.cpp source release;
-4. start the selected Hugging Face GGUF model on IPv4 loopback;
-5. poll `/health` until the model is ready within a finite readiness deadline;
-6. bound provider HTTP/probe waits and classify failures as `Missing`, `Unsupported`, `Faulted`, `Network`, or `Model`;
-7. detect unexpected managed-process exit;
-8. stream OpenAI-compatible chat-completion SSE responses with bounded response-header and idle waits;
-9. stop the complete managed process tree.
+3. build a managed Linux x64 CUDA server from Alicia's validated/pinned llama.cpp release;
+4. explicitly check the managed release against Alicia's validated pin and upstream latest;
+5. explicitly update an older managed runtime to the validated release while retaining previous release directories;
+6. start the selected Hugging Face GGUF model on IPv4 loopback;
+7. poll `/health` until the model is ready within a finite readiness deadline;
+8. bound provider HTTP/probe waits and classify failures as `Missing`, `Unsupported`, `Faulted`, `Network`, or `Model`;
+9. detect unexpected managed-process exit;
+10. stream OpenAI-compatible chat-completion SSE responses with bounded response-header and idle waits;
+11. stop the complete managed process tree.
 
-Server logs are written below `providers/llama.cpp/logs`. The installation descriptor is `providers/llama.cpp/installation.json`.
+Server logs are written below `providers/llama.cpp/logs`. The installation descriptor is `providers/llama.cpp/installation.json`. Lot 10.5 pins the validated release to `b10435` / source commit `9e40df63ba151d771d8b247ac4011cf203337e99`. Candidate releases live under version-specific `releases/<tag>/` directories; `installation.json` is switched atomically only after candidate CUDA validation, and previous release directories are retained until explicit cleanup.
 
 ## Local server security boundary
 
@@ -90,12 +92,17 @@ Ninja is preferred when available; Make is supported as fallback.
 
 A valid Hugging Face model reference is required. Alicia reports only a safe model/provider message if startup fails or times out. For engineering diagnosis, the newest file under `providers/llama.cpp/logs` can still be inspected manually; its raw contents are not projected automatically into the UI.
 
+## Managed update policy
+
+The Provider workspace exposes **Check update** and, only when applicable, **Update validated**. Update checking compares three distinct values: the active Alicia-managed release from `installation.json`, the release validated and pinned by this Alicia build, and GitHub upstream latest. A newer upstream release is reported but is not executed until a future Alicia build explicitly validates it.
+
+Alicia never auto-updates llama.cpp. **Update validated** is enabled only for a stopped, healthy managed runtime whose installed release is older than the validated pin. A managed release newer than the pin is not downgraded. Update preparation uses the official release tag only to verify its pinned source commit, then downloads the tarball by immutable commit SHA. Cancellation/failure before metadata activation leaves the previous release selected. Old release directories are intentionally retained; destructive cleanup belongs to Lot 10.6.
+
 ## Deferred operational work
 
 The following remain later-roadmap work:
 
 - distribution and deployment packaging;
-- runtime update channels and rollback policy;
 - crash reporting;
 - product telemetry;
 - release signing/package publication.

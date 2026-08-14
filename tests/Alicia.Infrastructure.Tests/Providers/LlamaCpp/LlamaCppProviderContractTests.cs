@@ -308,22 +308,400 @@ public sealed class LlamaCppProviderContractTests
             """
             {
               "tag_name": "b9999",
+              "target_commitish": "0123456789abcdef0123456789abcdef01234567",
               "tarball_url": "https://api.github.com/repos/ggml-org/llama.cpp/tarball/b9999"
             }
             """);
 
         Assert.Equal("b9999", descriptor.TagName);
+        Assert.Equal("0123456789abcdef0123456789abcdef01234567", descriptor.TargetCommitish);
         Assert.Equal(Uri.UriSchemeHttps, descriptor.TarballUri.Scheme);
 
         Assert.Throws<InvalidDataException>(() =>
             LlamaCppInstaller.ParseReleaseDescriptor(
-                "{\"tag_name\":\"b1\",\"tarball_url\":\"http://example.test/source\"}"));
+                "{\"tag_name\":\"b1\",\"target_commitish\":\"0123456789abcdef0123456789abcdef01234567\",\"tarball_url\":\"http://example.test/source\"}"));
         Assert.Throws<InvalidDataException>(() =>
             LlamaCppInstaller.ParseReleaseDescriptor(
-                "{\"tag_name\":\"b1\",\"tarball_url\":\"https://example.test/source\"}"));
+                "{\"tag_name\":\"b1\",\"target_commitish\":\"0123456789abcdef0123456789abcdef01234567\",\"tarball_url\":\"https://example.test/source\"}"));
         Assert.Throws<InvalidDataException>(() =>
             LlamaCppInstaller.ParseReleaseDescriptor(
-                "{\"tag_name\":\"../escape\",\"tarball_url\":\"https://example.test/source\"}"));
+                "{\"tag_name\":\"../escape\",\"target_commitish\":\"0123456789abcdef0123456789abcdef01234567\",\"tarball_url\":\"https://api.github.com/repos/ggml-org/llama.cpp/tarball/b1\"}"));
+    }
+
+    [Fact]
+    public void ReleasePolicyPinsValidatedTagCommitAndImmutableTarball()
+    {
+        Assert.Equal("b10435", LlamaCppReleasePolicy.ValidatedReleaseTag);
+        Assert.Equal(
+            "9e40df63ba151d771d8b247ac4011cf203337e99",
+            LlamaCppReleasePolicy.ValidatedCommitSha);
+        Assert.Equal(
+            "/repos/ggml-org/llama.cpp/tarball/9e40df63ba151d771d8b247ac4011cf203337e99",
+            LlamaCppReleasePolicy.ValidatedTarballUri.AbsolutePath);
+        Assert.Equal(
+            0,
+            LlamaCppReleasePolicy.CompareReleaseTags("b10435", "b10435"));
+        Assert.True(LlamaCppReleasePolicy.CompareReleaseTags("b10434", "b10435") < 0);
+        Assert.True(LlamaCppReleasePolicy.CompareReleaseTags("b10436", "b10435") > 0);
+        Assert.Throws<ArgumentException>(() => LlamaCppReleasePolicy.ParseReleaseSequence("latest"));
+    }
+
+    [Fact]
+    public async Task ValidatedReleaseLookupRequiresPinnedGitCommit()
+    {
+        CapturingHttpMessageHandler handler = new(
+            HttpStatusCode.OK,
+            """
+            {
+              "tag_name": "b10435",
+              "target_commitish": "9e40df63ba151d771d8b247ac4011cf203337e99",
+              "tarball_url": "https://api.github.com/repos/ggml-org/llama.cpp/tarball/b10435"
+            }
+            """);
+        using HttpClient httpClient = new(handler);
+        LlamaCppInstaller installer = new(httpClient, TimeProvider.System);
+
+        LlamaCppReleaseDescriptor release = await installer.GetValidatedReleaseAsync(
+            LlamaCppReleasePolicy.ValidatedReleaseTag,
+            LlamaCppReleasePolicy.ValidatedCommitSha,
+            CancellationToken.None).ConfigureAwait(true);
+
+        Assert.Equal("b10435", release.TagName);
+        Assert.Equal(LlamaCppReleasePolicy.ValidatedCommitSha, release.TargetCommitish);
+        Assert.Equal(LlamaCppReleasePolicy.ValidatedTarballUri, release.TarballUri);
+        Assert.Equal(
+            "/repos/ggml-org/llama.cpp/releases/tags/b10435",
+            handler.RequestUri?.AbsolutePath);
+    }
+
+    [Fact]
+    public async Task ValidatedReleaseLookupRejectsMovedReleaseTag()
+    {
+        CapturingHttpMessageHandler handler = new(
+            HttpStatusCode.OK,
+            """
+            {
+              "tag_name": "b10435",
+              "target_commitish": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "tarball_url": "https://api.github.com/repos/ggml-org/llama.cpp/tarball/b10435"
+            }
+            """);
+        using HttpClient httpClient = new(handler);
+        LlamaCppInstaller installer = new(httpClient, TimeProvider.System);
+
+        await Assert.ThrowsAsync<InvalidDataException>(() => installer.GetValidatedReleaseAsync(
+            LlamaCppReleasePolicy.ValidatedReleaseTag,
+            LlamaCppReleasePolicy.ValidatedCommitSha,
+            CancellationToken.None)).ConfigureAwait(true);
+    }
+
+    [Fact]
+    public async Task RuntimeUpdateCheckComparesManagedValidatedAndLatestReleases()
+    {
+        string runtimeDirectory = Path.Combine(
+            Path.GetTempPath(),
+            $"alicia-update-check-{Guid.NewGuid():N}");
+        string releaseDirectory = Path.Combine(runtimeDirectory, "releases", "b10434");
+        string executablePath = Path.Combine(releaseDirectory, "llama-server");
+        Directory.CreateDirectory(releaseDirectory);
+        await File.WriteAllTextAsync(executablePath, "test", TestContext.Current.CancellationToken)
+            .ConfigureAwait(true);
+        LlamaCppInstallation installation = new(
+            "b10434",
+            executablePath,
+            new DateTimeOffset(2026, 8, 14, 20, 0, 0, TimeSpan.Zero));
+        await LlamaCppInstaller.WriteInstallationMetadataAsync(
+            runtimeDirectory,
+            installation,
+            TestContext.Current.CancellationToken).ConfigureAwait(true);
+
+        CapturingHttpMessageHandler handler = new(
+            HttpStatusCode.OK,
+            """
+            {
+              "tag_name": "b10435",
+              "target_commitish": "9e40df63ba151d771d8b247ac4011cf203337e99",
+              "tarball_url": "https://api.github.com/repos/ggml-org/llama.cpp/tarball/b10435"
+            }
+            """);
+
+        try
+        {
+            await using LlamaCppProviderRuntime runtime = new(
+                runtimeDirectory,
+                TimeProvider.System,
+                LlamaCppProviderTimeouts.Default,
+                handler);
+
+            InferenceProviderUpdateInfo info = await runtime.CheckForUpdateAsync(
+                TestContext.Current.CancellationToken).ConfigureAwait(true);
+
+            Assert.Equal("b10434", info.InstalledVersion);
+            Assert.Equal("b10435", info.ValidatedVersion);
+            Assert.Equal("b10435", info.LatestVersion);
+            Assert.True(info.IsManagedInstallation);
+            Assert.True(info.IsUpdateAvailable);
+            Assert.True(info.IsLatestVersionValidated);
+            Assert.Contains("previous managed release will be kept", info.Detail, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            Directory.Delete(runtimeDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task RuntimeUpdateCheckNeverDowngradesManagedReleaseNewerThanValidated()
+    {
+        string runtimeDirectory = Path.Combine(
+            Path.GetTempPath(),
+            $"alicia-update-no-downgrade-{Guid.NewGuid():N}");
+        string releaseDirectory = Path.Combine(runtimeDirectory, "releases", "b10436");
+        string executablePath = Path.Combine(releaseDirectory, "llama-server");
+        Directory.CreateDirectory(releaseDirectory);
+        await File.WriteAllTextAsync(executablePath, "test", TestContext.Current.CancellationToken)
+            .ConfigureAwait(true);
+        LlamaCppInstallation installation = new(
+            "b10436",
+            executablePath,
+            new DateTimeOffset(2026, 8, 15, 0, 0, 0, TimeSpan.Zero));
+        await LlamaCppInstaller.WriteInstallationMetadataAsync(
+            runtimeDirectory,
+            installation,
+            TestContext.Current.CancellationToken).ConfigureAwait(true);
+
+        CapturingHttpMessageHandler handler = new(
+            HttpStatusCode.OK,
+            """
+            {
+              "tag_name": "b10437",
+              "target_commitish": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "tarball_url": "https://api.github.com/repos/ggml-org/llama.cpp/tarball/b10437"
+            }
+            """);
+
+        try
+        {
+            await using LlamaCppProviderRuntime runtime = new(
+                runtimeDirectory,
+                TimeProvider.System,
+                LlamaCppProviderTimeouts.Default,
+                handler);
+
+            InferenceProviderUpdateInfo info = await runtime.CheckForUpdateAsync(
+                TestContext.Current.CancellationToken).ConfigureAwait(true);
+
+            Assert.Equal("b10436", info.InstalledVersion);
+            Assert.Equal("b10435", info.ValidatedVersion);
+            Assert.Equal("b10437", info.LatestVersion);
+            Assert.False(info.IsUpdateAvailable);
+            Assert.False(info.IsLatestVersionValidated);
+            Assert.Contains("will not downgrade", info.Detail, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            Directory.Delete(runtimeDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task RuntimeUpdateCheckReportsNewerUpstreamReleaseWithoutTrustingIt()
+    {
+        string runtimeDirectory = Path.Combine(
+            Path.GetTempPath(),
+            $"alicia-update-unvalidated-latest-{Guid.NewGuid():N}");
+        string releaseDirectory = Path.Combine(runtimeDirectory, "releases", "b10435");
+        string executablePath = Path.Combine(releaseDirectory, "llama-server");
+        Directory.CreateDirectory(releaseDirectory);
+        await File.WriteAllTextAsync(executablePath, "test", TestContext.Current.CancellationToken)
+            .ConfigureAwait(true);
+        LlamaCppInstallation installation = new(
+            "b10435",
+            executablePath,
+            new DateTimeOffset(2026, 8, 15, 0, 0, 0, TimeSpan.Zero));
+        await LlamaCppInstaller.WriteInstallationMetadataAsync(
+            runtimeDirectory,
+            installation,
+            TestContext.Current.CancellationToken).ConfigureAwait(true);
+
+        CapturingHttpMessageHandler handler = new(
+            HttpStatusCode.OK,
+            """
+            {
+              "tag_name": "b10436",
+              "target_commitish": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "tarball_url": "https://api.github.com/repos/ggml-org/llama.cpp/tarball/b10436"
+            }
+            """);
+
+        try
+        {
+            await using LlamaCppProviderRuntime runtime = new(
+                runtimeDirectory,
+                TimeProvider.System,
+                LlamaCppProviderTimeouts.Default,
+                handler);
+
+            InferenceProviderUpdateInfo info = await runtime.CheckForUpdateAsync(
+                TestContext.Current.CancellationToken).ConfigureAwait(true);
+
+            Assert.False(info.IsUpdateAvailable);
+            Assert.False(info.IsLatestVersionValidated);
+            Assert.Equal("b10436", info.LatestVersion);
+            Assert.Contains("has not been validated", info.Detail, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            Directory.Delete(runtimeDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task RuntimeUpdateCheckDoesNotTrustMovedValidatedLatestReleaseTag()
+    {
+        string runtimeDirectory = Path.Combine(
+            Path.GetTempPath(),
+            $"alicia-update-moved-latest-{Guid.NewGuid():N}");
+        string releaseDirectory = Path.Combine(runtimeDirectory, "releases", "b10435");
+        string executablePath = Path.Combine(releaseDirectory, "llama-server");
+        Directory.CreateDirectory(releaseDirectory);
+        await File.WriteAllTextAsync(executablePath, "test", TestContext.Current.CancellationToken)
+            .ConfigureAwait(true);
+        LlamaCppInstallation installation = new(
+            "b10435",
+            executablePath,
+            new DateTimeOffset(2026, 8, 15, 0, 0, 0, TimeSpan.Zero));
+        await LlamaCppInstaller.WriteInstallationMetadataAsync(
+            runtimeDirectory,
+            installation,
+            TestContext.Current.CancellationToken).ConfigureAwait(true);
+
+        CapturingHttpMessageHandler handler = new(
+            HttpStatusCode.OK,
+            """
+            {
+              "tag_name": "b10435",
+              "target_commitish": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "tarball_url": "https://api.github.com/repos/ggml-org/llama.cpp/tarball/b10435"
+            }
+            """);
+
+        try
+        {
+            await using LlamaCppProviderRuntime runtime = new(
+                runtimeDirectory,
+                TimeProvider.System,
+                LlamaCppProviderTimeouts.Default,
+                handler);
+
+            InferenceProviderUpdateInfo info = await runtime.CheckForUpdateAsync(
+                TestContext.Current.CancellationToken).ConfigureAwait(true);
+
+            Assert.False(info.IsUpdateAvailable);
+            Assert.False(info.IsLatestVersionValidated);
+            Assert.Equal("b10435", info.LatestVersion);
+            Assert.Contains("has not been validated", info.Detail, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            Directory.Delete(runtimeDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task RuntimeUpdateCheckSanitizesInvalidManagedReleaseMetadata()
+    {
+        string runtimeDirectory = Path.Combine(
+            Path.GetTempPath(),
+            $"alicia-update-invalid-metadata-{Guid.NewGuid():N}");
+        string releaseDirectory = Path.Combine(runtimeDirectory, "releases", "legacy");
+        string executablePath = Path.Combine(releaseDirectory, "llama-server");
+        Directory.CreateDirectory(releaseDirectory);
+        await File.WriteAllTextAsync(executablePath, "test", TestContext.Current.CancellationToken)
+            .ConfigureAwait(true);
+        LlamaCppInstallation installation = new(
+            "legacy-version",
+            executablePath,
+            new DateTimeOffset(2026, 8, 15, 0, 0, 0, TimeSpan.Zero));
+        await LlamaCppInstaller.WriteInstallationMetadataAsync(
+            runtimeDirectory,
+            installation,
+            TestContext.Current.CancellationToken).ConfigureAwait(true);
+
+        CapturingHttpMessageHandler handler = new(
+            HttpStatusCode.OK,
+            """
+            {
+              "tag_name": "b10435",
+              "target_commitish": "9e40df63ba151d771d8b247ac4011cf203337e99",
+              "tarball_url": "https://api.github.com/repos/ggml-org/llama.cpp/tarball/b10435"
+            }
+            """);
+
+        try
+        {
+            await using LlamaCppProviderRuntime runtime = new(
+                runtimeDirectory,
+                TimeProvider.System,
+                LlamaCppProviderTimeouts.Default,
+                handler);
+
+            InferenceProviderException exception = await Assert.ThrowsAsync<InferenceProviderException>(
+                () => runtime.CheckForUpdateAsync(TestContext.Current.CancellationToken)).ConfigureAwait(true);
+
+            Assert.Equal(InferenceProviderFailureKind.Faulted, exception.Kind);
+            Assert.Equal(
+                "Alicia could not complete the managed llama.cpp update. The previous managed release remains selected.",
+                exception.UserMessage);
+            Assert.DoesNotContain("legacy-version", exception.UserMessage, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(runtimeDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task InstallationMetadataCancellationPreservesPreviousActiveRelease()
+    {
+        string runtimeDirectory = Path.Combine(
+            Path.GetTempPath(),
+            $"alicia-update-rollback-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(runtimeDirectory);
+        LlamaCppInstallation previous = new(
+            "b10434",
+            Path.Combine(runtimeDirectory, "releases", "b10434", "llama-server"),
+            new DateTimeOffset(2026, 8, 14, 20, 0, 0, TimeSpan.Zero));
+        LlamaCppInstallation candidate = new(
+            "b10435",
+            Path.Combine(runtimeDirectory, "releases", "b10435", "llama-server"),
+            new DateTimeOffset(2026, 8, 15, 0, 0, 0, TimeSpan.Zero));
+
+        try
+        {
+            await LlamaCppInstaller.WriteInstallationMetadataAsync(
+                runtimeDirectory,
+                previous,
+                CancellationToken.None).ConfigureAwait(true);
+            using CancellationTokenSource cancellationSource = new();
+            cancellationSource.Cancel();
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+                LlamaCppInstaller.WriteInstallationMetadataAsync(
+                    runtimeDirectory,
+                    candidate,
+                    cancellationSource.Token)).ConfigureAwait(true);
+
+            string json = await File.ReadAllTextAsync(
+                Path.Combine(runtimeDirectory, "installation.json"),
+                TestContext.Current.CancellationToken).ConfigureAwait(true);
+            using JsonDocument document = JsonDocument.Parse(json);
+            Assert.Equal("b10434", document.RootElement.GetProperty("Version").GetString());
+        }
+        finally
+        {
+            Directory.Delete(runtimeDirectory, recursive: true);
+        }
     }
 
     [Theory]
@@ -898,12 +1276,15 @@ public sealed class LlamaCppProviderContractTests
 
         public string? AuthorizationParameter { get; private set; }
 
+        public Uri? RequestUri { get; private set; }
+
         protected override async Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
             CancellationToken cancellationToken)
         {
             AuthorizationScheme = request.Headers.Authorization?.Scheme;
             AuthorizationParameter = request.Headers.Authorization?.Parameter;
+            RequestUri = request.RequestUri;
             RequestBody = request.Content is null
                 ? null
                 : await request.Content

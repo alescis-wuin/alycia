@@ -15,12 +15,15 @@ internal sealed record LlamaCppInstallation(
 
 internal sealed record LlamaCppReleaseDescriptor(
     string TagName,
+    string TargetCommitish,
     Uri TarballUri);
 
 internal sealed class LlamaCppInstaller
 {
     private static readonly Uri _latestReleaseUri = new(
         "https://api.github.com/repos/ggml-org/llama.cpp/releases/latest");
+    private static readonly Uri _releaseByTagBaseUri = new(
+        "https://api.github.com/repos/ggml-org/llama.cpp/releases/tags/");
     private static readonly JsonSerializerOptions _jsonOptions = new() { WriteIndented = true };
 
     private readonly HttpClient _httpClient;
@@ -45,10 +48,12 @@ internal sealed class LlamaCppInstaller
 
     public async Task<LlamaCppInstallation> InstallAsync(
         string runtimeDirectory,
+        LlamaCppReleaseDescriptor release,
         IProgress<InferenceProviderProgress>? progress,
         CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(runtimeDirectory);
+        ArgumentNullException.ThrowIfNull(release);
         ReportProgress(
             progress,
             "Checking prerequisites",
@@ -60,14 +65,7 @@ internal sealed class LlamaCppInstaller
         ReportProgress(
             progress,
             "Resolving release",
-            "Querying GitHub for the latest official llama.cpp release.",
-            0.06);
-        LlamaCppReleaseDescriptor release = await GetLatestReleaseAsync(cancellationToken)
-            .ConfigureAwait(false);
-        ReportProgress(
-            progress,
-            "Resolving release",
-            $"Latest official release: {release.TagName}.",
+            $"Preparing Alicia-validated llama.cpp {release.TagName}.",
             0.10);
 
         string normalizedRuntimeDirectory = Path.GetFullPath(runtimeDirectory);
@@ -93,15 +91,11 @@ internal sealed class LlamaCppInstaller
                     release.TagName,
                     executablePath,
                     _timeProvider.GetUtcNow());
-                await WriteInstallationMetadataAsync(
-                    normalizedRuntimeDirectory,
-                    existingInstallation,
-                    cancellationToken).ConfigureAwait(false);
                 ReportProgress(
                     progress,
-                    "Installation complete",
-                    $"Managed llama.cpp {release.TagName} with CUDA is already ready.",
-                    1.0);
+                    "Candidate ready",
+                    $"Validated llama.cpp {release.TagName} with CUDA is ready for activation.",
+                    0.99);
                 return existingInstallation;
             }
 
@@ -243,18 +237,14 @@ internal sealed class LlamaCppInstaller
             ReportProgress(
                 progress,
                 "Finalizing installation",
-                "Saving managed runtime metadata.",
-                0.99);
-            await WriteInstallationMetadataAsync(
-                normalizedRuntimeDirectory,
-                installation,
-                cancellationToken).ConfigureAwait(false);
+                "The validated runtime is ready for atomic activation.",
+                0.98);
 
             ReportProgress(
                 progress,
-                "Installation complete",
-                $"Managed llama.cpp {release.TagName} with CUDA is ready.",
-                1.0);
+                "Candidate ready",
+                $"Validated llama.cpp {release.TagName} with CUDA is ready for activation.",
+                0.99);
             return installation;
         }
         finally
@@ -302,6 +292,8 @@ internal sealed class LlamaCppInstaller
         if (response is null
             || string.IsNullOrWhiteSpace(response.TagName)
             || !IsSafeReleaseTag(response.TagName)
+            || string.IsNullOrWhiteSpace(response.TargetCommitish)
+            || !IsSafeCommitish(response.TargetCommitish)
             || string.IsNullOrWhiteSpace(response.TarballUrl)
             || !Uri.TryCreate(response.TarballUrl, UriKind.Absolute, out Uri? tarballUri)
             || tarballUri.Scheme != Uri.UriSchemeHttps
@@ -314,7 +306,10 @@ internal sealed class LlamaCppInstaller
                 "GitHub returned an invalid llama.cpp release descriptor.");
         }
 
-        return new LlamaCppReleaseDescriptor(response.TagName.Trim(), tarballUri);
+        return new LlamaCppReleaseDescriptor(
+            response.TagName.Trim(),
+            response.TargetCommitish.Trim(),
+            tarballUri);
     }
 
     private static bool IsSafeReleaseTag(string tagName)
@@ -326,6 +321,17 @@ internal sealed class LlamaCppInstaller
             && normalized.All(character =>
                 char.IsAsciiLetterOrDigit(character)
                 || character is '.' or '-' or '_');
+    }
+
+    private static bool IsSafeCommitish(string commitish)
+    {
+        string normalized = commitish.Trim();
+
+        return normalized.Length is > 0 and <= 80
+            && !normalized.Contains("..", StringComparison.Ordinal)
+            && normalized.All(character =>
+                char.IsAsciiLetterOrDigit(character)
+                || character is '.' or '-' or '_' or '/');
     }
 
     internal static IReadOnlyList<string> CreateConfigureArguments(
@@ -422,16 +428,53 @@ internal sealed class LlamaCppInstaller
             ninja is null ? "Unix Makefiles" : "Ninja");
     }
 
-    private async Task<LlamaCppReleaseDescriptor> GetLatestReleaseAsync(
+    internal Task<LlamaCppReleaseDescriptor> GetLatestReleaseAsync(
         CancellationToken cancellationToken)
     {
+        return GetReleaseDescriptorAsync(
+            CreateLatestReleaseRequest,
+            "Alicia could not reach the llama.cpp release service after several attempts. Check the network connection and try again.",
+            cancellationToken);
+    }
+
+    internal async Task<LlamaCppReleaseDescriptor> GetValidatedReleaseAsync(
+        string expectedTag,
+        string expectedCommitSha,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(expectedTag);
+        ArgumentException.ThrowIfNullOrWhiteSpace(expectedCommitSha);
+
+        LlamaCppReleaseDescriptor release = await GetReleaseDescriptorAsync(
+            () => CreateReleaseByTagRequest(expectedTag),
+            "Alicia could not verify the validated llama.cpp release after several attempts. Check the network connection and try again.",
+            cancellationToken).ConfigureAwait(false);
+
+        if (!string.Equals(release.TagName, expectedTag, StringComparison.Ordinal)
+            || !string.Equals(release.TargetCommitish, expectedCommitSha, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidDataException(
+                "The validated llama.cpp release no longer resolves to Alicia's pinned source commit.");
+        }
+
+        return release with { TarballUri = LlamaCppReleasePolicy.ValidatedTarballUri };
+    }
+
+    private async Task<LlamaCppReleaseDescriptor> GetReleaseDescriptorAsync(
+        Func<HttpRequestMessage> createRequest,
+        string retryUserMessage,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(createRequest);
+        ArgumentException.ThrowIfNullOrWhiteSpace(retryUserMessage);
+
         using HttpResponseMessage response = await _retryPolicy.SendAsync(
             async token =>
             {
-                using HttpRequestMessage request = CreateLatestReleaseRequest();
+                using HttpRequestMessage request = createRequest();
                 return await SendHttpAsync(request, token).ConfigureAwait(false);
             },
-            "Alicia could not reach the llama.cpp release service after several attempts. Check the network connection and try again.",
+            retryUserMessage,
             cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
         string json = await LlamaCppTimeoutGuard.RunAsync(
@@ -533,6 +576,17 @@ internal sealed class LlamaCppInstaller
     private static HttpRequestMessage CreateLatestReleaseRequest()
     {
         HttpRequestMessage request = new(HttpMethod.Get, _latestReleaseUri);
+        request.Headers.UserAgent.Add(new ProductInfoHeaderValue("Alicia", "1.0"));
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
+        return request;
+    }
+
+    private static HttpRequestMessage CreateReleaseByTagRequest(string releaseTag)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(releaseTag);
+
+        Uri uri = new(_releaseByTagBaseUri, Uri.EscapeDataString(releaseTag.Trim()));
+        HttpRequestMessage request = new(HttpMethod.Get, uri);
         request.Headers.UserAgent.Add(new ProductInfoHeaderValue("Alicia", "1.0"));
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
         return request;
@@ -807,7 +861,7 @@ internal sealed class LlamaCppInstaller
         return null;
     }
 
-    private static async Task WriteInstallationMetadataAsync(
+    internal static async Task WriteInstallationMetadataAsync(
         string runtimeDirectory,
         LlamaCppInstallation installation,
         CancellationToken cancellationToken)
@@ -879,6 +933,7 @@ internal sealed class LlamaCppInstaller
 
     private sealed record LatestReleaseResponse(
         [property: JsonPropertyName("tag_name")] string? TagName,
+        [property: JsonPropertyName("target_commitish")] string? TargetCommitish,
         [property: JsonPropertyName("tarball_url")] string? TarballUrl);
 }
 

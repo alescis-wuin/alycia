@@ -42,7 +42,7 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 | Lot 08 llama.cpp CUDA | terminé | `427e25c` |
 | Lot 09 Provider/model configuration | terminé | `cf0a5c5` + stabilisations |
 | UIX-01 Stages 1–7 | terminé | `ed4cc29` → `c51f1ef` |
-| Lot 10 Robustesse/sécurité/observabilité | en cours | 10.1–10.4 terminés sur cette branche |
+| Lot 10 Robustesse/sécurité/observabilité | en cours | 10.1–10.5 terminés sur cette branche |
 | Lot 10.1/10.2 sécurité + ownership | terminé | session locale durcie |
 | UIX-01 Stage 8 | terminé | FOLLOWING / DETACHED + UI state |
 | UIX-01 Stage 9 | terminé | décomposition Presentation en six ViewModels |
@@ -90,14 +90,19 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 - cancellation prioritaire sur toute tentative et tout backoff ;
 - readiness health polling conservé comme boucle idempotente sous deadline 10.3.
 
-### 10.5 Version / update llama.cpp — prochain
+### 10.5 Version / update llama.cpp — P0 — terminé
 
-- version installée et version validée/pinnée ;
-- check update ;
-- update explicite ;
-- rollback/conservation de l'ancienne version si pertinent.
+- release gérée installée distinguée de la version binaire détectée ;
+- release validée/pinnée par Alicia : `b10435` au commit source `9e40df63ba151d771d8b247ac4011cf203337e99` ;
+- installation et update résolvent le tag officiel puis téléchargent le tarball par SHA immuable ;
+- Check update explicite compare release gérée, release validée et dernière release upstream ;
+- une release upstream plus récente reste informative tant qu'elle n'est pas validée par Alicia ;
+- update explicite uniquement d'une installation gérée plus ancienne vers la release validée ;
+- aucun downgrade automatique d'une installation gérée plus récente ;
+- activation atomique de `installation.json` après validation CUDA du candidat ;
+- ancienne release conservée en cas d'échec/cancellation et jusqu'au nettoyage explicite du Lot 10.6.
 
-### 10.6 Uninstall / cache
+### 10.6 Uninstall / cache — prochain
 
 - runtime only ;
 - runtime + modèles/cache ;
@@ -232,7 +237,11 @@ UIX-01 Stage 10D — terminé
    ↓
 Lot 10.3 — terminé
    ↓
-Lot 10.5–10.7 — prochain
+Lot 10.4 — terminé
+   ↓
+Lot 10.5 — terminé
+   ↓
+Lot 10.6–10.7 — prochain
    ↓
 Lot 10B
    ↓

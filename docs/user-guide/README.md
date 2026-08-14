@@ -24,11 +24,15 @@ The **Provider** workspace owns provider lifecycle operations.
 For `llama.cpp CUDA`:
 
 1. **Detect** checks for a managed or externally installed CUDA-capable `llama-server`.
-2. **Install** downloads the official llama.cpp source release and builds the Linux x64 CUDA server locally.
+2. **Install** verifies and builds the llama.cpp release pinned and validated by this Alicia build instead of following a moving `latest` release.
+3. **Check update** compares the active Alicia-managed release, Alicia's validated release, and upstream latest release.
+4. **Update validated** is enabled only when a stopped Alicia-managed runtime is older than the validated release. The update is always explicit.
 3. **Start** launches the saved model configuration.
 4. **Stop** terminates the Alicia-managed server process.
 
 Alicia does not silently fall back to another provider when the selected provider is unavailable.
+
+Alicia currently validates managed llama.cpp release `b10435` at source commit `9e40df63ba151d771d8b247ac4011cf203337e99`. If GitHub publishes a newer release, **Check update** may report it as upstream latest, but Alicia will not install it until a later Alicia build validates and pins it. A managed release newer than the current pin is never automatically downgraded. Previous managed releases remain on disk until explicit cleanup.
 
 ## Models
 
