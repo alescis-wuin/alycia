@@ -51,7 +51,7 @@ The Alicia-managed llama.cpp session is process-owned rather than a fixed localh
 - chat-completion requests carry the same Bearer credential;
 - endpoint and secret are cleared with the managed process session.
 
-The bind-probe socket is released before `llama-server` starts, so a narrow port race remains possible. The ownership handshake fails closed if another local process wins that race. Lot 10.3 now bounds readiness/HTTP/probe waits and classifies failures; retry policy remains explicit Lot 10.4 work.
+The bind-probe socket is released before `llama-server` starts, so a narrow port race remains possible. The ownership handshake fails closed if another local process wins that race. Lot 10.3 bounds readiness/HTTP/probe waits and classifies failures; Lot 10.4 retries only explicitly idempotent transient GET boundaries and never replays generation POSTs automatically.
 
 Credentials must not be copied into repository files or logs. `HF_TOKEN`, when set by the user environment, is inherited for Hugging Face access and is not stored in provider configuration.
 
@@ -99,3 +99,10 @@ The following remain later-roadmap work:
 - crash reporting;
 - product telemetry;
 - release signing/package publication.
+
+
+## Retry policy
+
+Alicia does not retry local model generation automatically. `POST /v1/chat/completions` is a single-attempt operation because a timeout or disconnect can occur after llama-server accepted the request. The Conversation `Retry response` action is the explicit replay boundary.
+
+Automatic retry is limited to idempotent provider HTTP GET boundaries. The llama.cpp adapter retries transient 408/429/500/502/503/504 or network-class failures up to three attempts with a short delay. Permanent HTTP responses are not retried. Release discovery and initial download connection establishment use this policy; an already-started archive stream is not silently restarted. Session ownership probes also use the policy inside the overall readiness deadline. Cancellation immediately aborts pending retry/backoff.

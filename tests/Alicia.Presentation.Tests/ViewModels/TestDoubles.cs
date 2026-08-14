@@ -261,6 +261,8 @@ internal sealed class ProviderFailureConversationResponder : IStreamingConversat
         _failure = failure;
     }
 
+    public int CallCount { get; private set; }
+
     public async IAsyncEnumerable<ConversationResponseChunk> StreamAsync(
         ConversationResponseRequest request,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
@@ -268,6 +270,7 @@ internal sealed class ProviderFailureConversationResponder : IStreamingConversat
         ArgumentNullException.ThrowIfNull(request);
         cancellationToken.ThrowIfCancellationRequested();
 
+        CallCount++;
         yield return new ConversationResponseChunk("Discarded partial response");
         await Task.Yield();
         throw _failure;

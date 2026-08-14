@@ -26,11 +26,13 @@ internal sealed class LlamaCppInstaller
     private readonly HttpClient _httpClient;
     private readonly TimeProvider _timeProvider;
     private readonly LlamaCppProviderTimeouts _timeouts;
+    private readonly LlamaCppIdempotentHttpRetryPolicy _retryPolicy;
 
     public LlamaCppInstaller(
         HttpClient httpClient,
         TimeProvider timeProvider,
-        LlamaCppProviderTimeouts? timeouts = null)
+        LlamaCppProviderTimeouts? timeouts = null,
+        LlamaCppIdempotentHttpRetryPolicy? retryPolicy = null)
     {
         ArgumentNullException.ThrowIfNull(httpClient);
         ArgumentNullException.ThrowIfNull(timeProvider);
@@ -38,6 +40,7 @@ internal sealed class LlamaCppInstaller
         _httpClient = httpClient;
         _timeProvider = timeProvider;
         _timeouts = timeouts ?? LlamaCppProviderTimeouts.Default;
+        _retryPolicy = retryPolicy ?? LlamaCppIdempotentHttpRetryPolicy.Default;
     }
 
     public async Task<LlamaCppInstallation> InstallAsync(
@@ -422,12 +425,13 @@ internal sealed class LlamaCppInstaller
     private async Task<LlamaCppReleaseDescriptor> GetLatestReleaseAsync(
         CancellationToken cancellationToken)
     {
-        using HttpRequestMessage request = new(HttpMethod.Get, _latestReleaseUri);
-        request.Headers.UserAgent.Add(new ProductInfoHeaderValue("Alicia", "1.0"));
-        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
-
-        using HttpResponseMessage response = await SendHttpAsync(
-            request,
+        using HttpResponseMessage response = await _retryPolicy.SendAsync(
+            async token =>
+            {
+                using HttpRequestMessage request = CreateLatestReleaseRequest();
+                return await SendHttpAsync(request, token).ConfigureAwait(false);
+            },
+            "Alicia could not reach the llama.cpp release service after several attempts. Check the network connection and try again.",
             cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
         string json = await LlamaCppTimeoutGuard.RunAsync(
@@ -447,11 +451,13 @@ internal sealed class LlamaCppInstaller
         IProgress<InferenceProviderProgress>? progress,
         CancellationToken cancellationToken)
     {
-        using HttpRequestMessage request = new(HttpMethod.Get, uri);
-        request.Headers.UserAgent.Add(new ProductInfoHeaderValue("Alicia", "1.0"));
-
-        using HttpResponseMessage response = await SendHttpAsync(
-            request,
+        using HttpResponseMessage response = await _retryPolicy.SendAsync(
+            async token =>
+            {
+                using HttpRequestMessage request = CreateDownloadRequest(uri);
+                return await SendHttpAsync(request, token).ConfigureAwait(false);
+            },
+            "Alicia could not start the llama.cpp source download after several attempts. Check the network connection and try again.",
             cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 
@@ -522,6 +528,23 @@ internal sealed class LlamaCppInstaller
             "Downloading source",
             $"{FormatBytes(downloadedBytes)} downloaded.",
             0.32);
+    }
+
+    private static HttpRequestMessage CreateLatestReleaseRequest()
+    {
+        HttpRequestMessage request = new(HttpMethod.Get, _latestReleaseUri);
+        request.Headers.UserAgent.Add(new ProductInfoHeaderValue("Alicia", "1.0"));
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
+        return request;
+    }
+
+    private static HttpRequestMessage CreateDownloadRequest(Uri uri)
+    {
+        ArgumentNullException.ThrowIfNull(uri);
+
+        HttpRequestMessage request = new(HttpMethod.Get, uri);
+        request.Headers.UserAgent.Add(new ProductInfoHeaderValue("Alicia", "1.0"));
+        return request;
     }
 
     private static void ExtractArchive(string archivePath, string destinationDirectory)

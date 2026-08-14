@@ -636,6 +636,14 @@ public sealed class LlamaCppProviderRuntime :
             {
                 // The process can accept connections slightly after it starts. Retry until readiness expires.
             }
+            catch (InferenceProviderException exception)
+                when (exception.Kind == InferenceProviderFailureKind.Network
+                    && !cancellationToken.IsCancellationRequested
+                    && !readinessSource.IsCancellationRequested)
+            {
+                // Ownership probes are idempotent GETs. A bounded probe retry may still fail
+                // transiently while llama-server finishes starting, so keep polling until readiness expires.
+            }
 
             try
             {

@@ -33,3 +33,8 @@ The desktop executable composition root for Windows, Linux, and macOS. It select
 - Infrastructure may depend on Application and Domain.
 - Presentation may depend on Application and Domain, but never Infrastructure.
 - Desktop is the platform-specific composition root and may depend on Presentation and Infrastructure; it must not contain domain rules or persistence behavior.
+
+
+### Retry boundary policy
+
+Provider robustness distinguishes request replay safety from transport recoverability. Conversation generation POSTs are never replayed automatically because timeout or disconnect after request acceptance is ambiguous. Alicia only exposes the existing explicit user Retry for an unanswered persisted user message. Infrastructure may retry bounded transient failures only on idempotent HTTP GET boundaries such as release discovery, download response establishment, and session ownership probes; caller cancellation always aborts the retry/backoff immediately. llama-server readiness remains a bounded idempotent health poll.

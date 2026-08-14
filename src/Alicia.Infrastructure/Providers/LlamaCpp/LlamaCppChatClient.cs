@@ -71,7 +71,10 @@ internal sealed class LlamaCppChatClient
         };
         LlamaCppServerSecurity.Authorize(httpRequest, apiKey);
 
-        using HttpResponseMessage response = await SendAsync(
+        // A generation POST is intentionally sent exactly once. A timeout, disconnect, or
+        // server error can be ambiguous after request acceptance; only an explicit user Retry
+        // may replay the unanswered turn.
+        using HttpResponseMessage response = await SendGenerationOnceAsync(
             httpRequest,
             cancellationToken).ConfigureAwait(false);
 
@@ -215,7 +218,7 @@ internal sealed class LlamaCppChatClient
         return new ChatCompletionMessage(role, message.Content);
     }
 
-    private async Task<HttpResponseMessage> SendAsync(
+    private async Task<HttpResponseMessage> SendGenerationOnceAsync(
         HttpRequestMessage request,
         CancellationToken cancellationToken)
     {

@@ -114,6 +114,109 @@ public sealed class LlamaCppProviderContractTests
     }
 
     [Fact]
+    public async Task IdempotentHttpRetryRetriesTransientStatusesAndThenSucceeds()
+    {
+        ScriptedHttpMessageHandler handler = new(
+            HttpStatusCode.ServiceUnavailable,
+            HttpStatusCode.OK);
+        using HttpClient httpClient = new(handler);
+        LlamaCppIdempotentHttpRetryPolicy retryPolicy = new(
+            maxAttempts: 3,
+            retryDelay: TimeSpan.Zero);
+
+        using HttpResponseMessage response = await retryPolicy.SendAsync(
+            async token =>
+            {
+                using HttpRequestMessage request = new(
+                    HttpMethod.Get,
+                    "https://example.test/idempotent");
+                return await httpClient.SendAsync(request, token).ConfigureAwait(false);
+            },
+            "The idempotent request failed.",
+            CancellationToken.None).ConfigureAwait(true);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(2, handler.CallCount);
+    }
+
+    [Fact]
+    public async Task IdempotentHttpRetryDoesNotReplayPermanentResponses()
+    {
+        ScriptedHttpMessageHandler handler = new(
+            HttpStatusCode.Unauthorized,
+            HttpStatusCode.OK);
+        using HttpClient httpClient = new(handler);
+        LlamaCppIdempotentHttpRetryPolicy retryPolicy = new(
+            maxAttempts: 3,
+            retryDelay: TimeSpan.Zero);
+
+        using HttpResponseMessage response = await retryPolicy.SendAsync(
+            async token =>
+            {
+                using HttpRequestMessage request = new(
+                    HttpMethod.Get,
+                    "https://example.test/idempotent");
+                return await httpClient.SendAsync(request, token).ConfigureAwait(false);
+            },
+            "The idempotent request failed.",
+            CancellationToken.None).ConfigureAwait(true);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.Equal(1, handler.CallCount);
+    }
+
+    [Fact]
+    public async Task IdempotentHttpRetryRespectsCancellationDuringBackoff()
+    {
+        ScriptedHttpMessageHandler handler = new(
+            HttpStatusCode.ServiceUnavailable,
+            HttpStatusCode.OK);
+        using HttpClient httpClient = new(handler);
+        LlamaCppIdempotentHttpRetryPolicy retryPolicy = new(
+            maxAttempts: 3,
+            retryDelay: TimeSpan.FromSeconds(1));
+        using CancellationTokenSource cancellationSource = new(TimeSpan.FromMilliseconds(25));
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => retryPolicy.SendAsync(
+                async token =>
+                {
+                    using HttpRequestMessage request = new(
+                        HttpMethod.Get,
+                        "https://example.test/idempotent");
+                    return await httpClient.SendAsync(request, token).ConfigureAwait(false);
+                },
+                "The idempotent request failed.",
+                cancellationSource.Token)).ConfigureAwait(true);
+
+        Assert.Equal(1, handler.CallCount);
+    }
+
+    [Fact]
+    public async Task ServerSessionProbeRetriesOnlyTransientIdempotentResponses()
+    {
+        ScriptedHttpMessageHandler handler = new(
+            HttpStatusCode.ServiceUnavailable,
+            HttpStatusCode.Unauthorized,
+            HttpStatusCode.ServiceUnavailable,
+            HttpStatusCode.OK);
+        using HttpClient httpClient = new(handler);
+        LlamaCppIdempotentHttpRetryPolicy retryPolicy = new(
+            maxAttempts: 3,
+            retryDelay: TimeSpan.Zero);
+
+        await LlamaCppServerSessionProbe.VerifyOwnershipAsync(
+            httpClient,
+            new Uri("http://127.0.0.1:43125/"),
+            TestApiKey,
+            retryPolicy,
+            CancellationToken.None).ConfigureAwait(true);
+
+        Assert.Equal(4, handler.CallCount);
+        Assert.Equal(new string?[] { null, null, TestApiKey, TestApiKey }, handler.AuthorizationParameters);
+    }
+
+    [Fact]
     public async Task ServerSessionProbeRejectsEndpointWithoutAuthentication()
     {
         SessionOwnershipHttpMessageHandler handler = new(expectedApiKey: null);
@@ -296,6 +399,27 @@ public sealed class LlamaCppProviderContractTests
         JsonElement messages = document.RootElement.GetProperty("messages");
         Assert.Equal("system", messages[0].GetProperty("role").GetString());
         Assert.Equal("user", messages[1].GetProperty("role").GetString());
+    }
+
+    [Fact]
+    public async Task ChatClientNeverAutomaticallyRetriesAmbiguousGenerationPost()
+    {
+        ScriptedHttpMessageHandler handler = new(
+            HttpStatusCode.ServiceUnavailable,
+            HttpStatusCode.OK);
+        using HttpClient httpClient = new(handler);
+        LlamaCppChatClient client = new(httpClient);
+
+        InferenceProviderException exception = await Assert.ThrowsAsync<InferenceProviderException>(
+            () => ConsumeAsync(client.StreamAsync(
+                new Uri("http://127.0.0.1:8080/"),
+                TestApiKey,
+                CreateRequest(),
+                new InferenceGenerationOptions(),
+                CancellationToken.None))).ConfigureAwait(true);
+
+        Assert.Equal(InferenceProviderFailureKind.Network, exception.Kind);
+        Assert.Equal(1, handler.CallCount);
     }
 
     [Fact]
@@ -659,6 +783,53 @@ public sealed class LlamaCppProviderContractTests
     {
         await foreach (ConversationResponseChunk _ in stream.ConfigureAwait(true))
         {
+        }
+    }
+
+    private sealed class ScriptedHttpMessageHandler : HttpMessageHandler
+    {
+        private readonly Queue<HttpStatusCode> _statuses;
+
+        public ScriptedHttpMessageHandler(params HttpStatusCode[] statuses)
+        {
+            ArgumentNullException.ThrowIfNull(statuses);
+
+            if (statuses.Length == 0)
+            {
+                throw new ArgumentException("At least one status is required.", nameof(statuses));
+            }
+
+            _statuses = new Queue<HttpStatusCode>(statuses);
+        }
+
+        public int CallCount { get; private set; }
+
+        public List<string?> AuthorizationParameters { get; } = [];
+
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            CallCount++;
+            AuthorizationParameters.Add(request.Headers.Authorization?.Parameter);
+
+            HttpStatusCode statusCode = _statuses.Count > 1
+                ? _statuses.Dequeue()
+                : _statuses.Peek();
+
+            string mediaType = statusCode == HttpStatusCode.OK
+                ? "text/event-stream"
+                : "application/json";
+            string body = statusCode == HttpStatusCode.OK
+                ? "data: [DONE]\n\n"
+                : "{}";
+
+            return Task.FromResult(new HttpResponseMessage(statusCode)
+            {
+                Content = new StringContent(body, Encoding.UTF8, mediaType),
+                RequestMessage = request,
+            });
         }
     }
 

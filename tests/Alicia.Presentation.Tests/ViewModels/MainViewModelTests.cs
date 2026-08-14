@@ -627,6 +627,9 @@ public sealed class MainViewModelTests
         Assert.False(viewModel.CanStopResponse);
         Assert.True(viewModel.CanRetryResponse);
         Assert.False(viewModel.HasError);
+        Assert.Equal(1, responder.CallCount);
+        await Task.Delay(50, TestContext.Current.CancellationToken).ConfigureAwait(true);
+        Assert.Equal(1, responder.CallCount);
         MessageViewModel userMessage = Assert.Single(viewModel.Messages);
         Assert.True(userMessage.IsUser);
         Assert.Equal("Stop this", userMessage.Content);
@@ -671,6 +674,9 @@ public sealed class MainViewModelTests
         Assert.DoesNotContain("/home/user", responseError, StringComparison.Ordinal);
         Assert.DoesNotContain("secret", responseError, StringComparison.Ordinal);
         Assert.True(viewModel.CanRetryResponse);
+        Assert.Equal(1, responder.CallCount);
+        await Task.Delay(50, TestContext.Current.CancellationToken).ConfigureAwait(true);
+        Assert.Equal(1, responder.CallCount);
         MessageViewModel userMessage = Assert.Single(viewModel.Messages);
         Assert.True(userMessage.IsUser);
         Assert.True(viewModel.IsProviderRunning);

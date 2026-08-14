@@ -119,3 +119,10 @@ For Alicia-managed llama.cpp installation on Linux x64, the host needs:
 - Ninja or Make.
 
 Alicia does not install privileged system packages.
+
+
+## Retry behavior
+
+Alicia never silently resends a model-generation request after a timeout, disconnect, Stop, or provider error. If an unanswered user message can be tried again, the composer exposes **Retry response**. Choosing it sends a new explicit generation request for that same stored user message; the user message is not duplicated.
+
+Provider maintenance can transparently retry a small number of read-only network checks when the failure is transient. These retries are bounded and stop immediately when the operation is cancelled.

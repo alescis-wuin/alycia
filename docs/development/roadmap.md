@@ -42,7 +42,7 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 | Lot 08 llama.cpp CUDA | terminé | `427e25c` |
 | Lot 09 Provider/model configuration | terminé | `cf0a5c5` + stabilisations |
 | UIX-01 Stages 1–7 | terminé | `ed4cc29` → `c51f1ef` |
-| Lot 10 Robustesse/sécurité/observabilité | en cours | 10.1–10.3 terminés sur cette branche |
+| Lot 10 Robustesse/sécurité/observabilité | en cours | 10.1–10.4 terminés sur cette branche |
 | Lot 10.1/10.2 sécurité + ownership | terminé | session locale durcie |
 | UIX-01 Stage 8 | terminé | FOLLOWING / DETACHED + UI state |
 | UIX-01 Stage 9 | terminé | décomposition Presentation en six ViewModels |
@@ -80,13 +80,17 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 - messages utilisateur sûrs séparés des diagnostics techniques ;
 - récupération `Ready + last failure` pour ne pas confondre erreur modèle/réseau et réinstallation provider.
 
-### 10.4 Retry
+### 10.4 Retry — P0 — terminé
 
-- aucun retry automatique d'une génération ambiguë ;
-- retry seulement aux frontières idempotentes ;
-- cancellation respectée.
+- aucun replay automatique de `POST /v1/chat/completions` ;
+- Retry conversation uniquement sur action explicite de l'utilisateur et sans duplication du message utilisateur persisté ;
+- retries automatiques bornés aux frontières HTTP GET idempotentes explicitement identifiées ;
+- statuts transitoires 408/429/500/502/503/504 et erreurs réseau bornés à trois tentatives ;
+- réponses permanentes non rejouées ;
+- cancellation prioritaire sur toute tentative et tout backoff ;
+- readiness health polling conservé comme boucle idempotente sous deadline 10.3.
 
-### 10.5 Version / update llama.cpp
+### 10.5 Version / update llama.cpp — prochain
 
 - version installée et version validée/pinnée ;
 - check update ;
@@ -228,7 +232,7 @@ UIX-01 Stage 10D — terminé
    ↓
 Lot 10.3 — terminé
    ↓
-Lot 10.4–10.7 — prochain
+Lot 10.5–10.7 — prochain
    ↓
 Lot 10B
    ↓
