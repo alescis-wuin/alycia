@@ -46,7 +46,8 @@
       <Button Classes="global-nav-label"
               Classes.selected="{Binding IsConversationsSelected}"
               Command="{Binding NavigateToConversationsCommand}"
-              AutomationProperties.Name="Conversations">
+              AutomationProperties.Name="Conversations"
+              AutomationProperties.ItemStatus="{Binding ConversationsNavigationStatus}">
         <Grid ColumnDefinitions="3,10,*">
           <Border Grid.Column="0"
                   Width="3"
@@ -62,7 +63,8 @@
       <Button Classes="global-nav-label"
               Classes.selected="{Binding IsProvidersSelected}"
               Command="{Binding NavigateToProvidersCommand}"
-              AutomationProperties.Name="Providers">
+              AutomationProperties.Name="Providers"
+              AutomationProperties.ItemStatus="{Binding ProvidersNavigationStatus}">
         <Grid ColumnDefinitions="3,10,*">
           <Border Grid.Column="0"
                   Width="3"
@@ -78,7 +80,8 @@
       <Button Classes="global-nav-label"
               Classes.selected="{Binding IsModelsSelected}"
               Command="{Binding NavigateToModelsCommand}"
-              AutomationProperties.Name="Models">
+              AutomationProperties.Name="Models"
+              AutomationProperties.ItemStatus="{Binding ModelsNavigationStatus}">
         <Grid ColumnDefinitions="3,10,*">
           <Border Grid.Column="0"
                   Width="3"

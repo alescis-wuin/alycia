@@ -5,12 +5,10 @@
              x:DataType="vm:MainViewModel"
              HorizontalAlignment="Stretch"
              VerticalAlignment="Stretch"
+             KeyDown="OnDialogKeyDown"
+             KeyboardNavigation.TabNavigation="Cycle"
              AutomationProperties.Name="Delete conversation confirmation"
              AutomationProperties.AccessibilityView="Control">
-  <UserControl.KeyBindings>
-    <KeyBinding Gesture="Escape" Command="{Binding CancelDeleteCommand}" />
-  </UserControl.KeyBindings>
-
   <Grid Background="#B3090D18">
     <Border MaxWidth="480"
             Margin="24"
@@ -43,6 +41,7 @@
                       VerticalAlignment="Center">
             <TextBlock Text="Delete conversation?"
                        FontSize="20"
+                       AutomationProperties.HeadingLevel="2"
                        FontWeight="Bold"
                        Foreground="{DynamicResource TextPrimaryBrush}" />
             <TextBlock Text="{Binding DeletePrompt}"
@@ -60,7 +59,8 @@
                    Foreground="{DynamicResource TextSecondaryBrush}" />
 
         <Grid ColumnDefinitions="*,Auto,10,Auto">
-          <Button Grid.Column="1"
+          <Button x:Name="CancelDeleteButton"
+                  Grid.Column="1"
                   Classes="secondary-action"
                   Command="{Binding CancelDeleteCommand}"
                   IsEnabled="{Binding IsInteractionEnabled}"

@@ -45,7 +45,8 @@
 
         <Grid Grid.Row="2"
               ColumnDefinitions="*,10,40">
-          <TextBox Grid.Column="0"
+          <TextBox x:Name="HistorySearchBox"
+                   Grid.Column="0"
                    Classes="history-search"
                    Text="{Binding HistorySearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, Delay=250}"
                    PlaceholderText="Search conversations"
@@ -71,7 +72,7 @@
         <ProgressBar Grid.Row="3"
                      Height="2"
                      Margin="4,0"
-                     IsIndeterminate="True"
+                     IsIndeterminate="{Binding IsStandardMotionEnabled}"
                      IsVisible="{Binding IsHistorySearchBusy}"
                      AutomationProperties.Name="Searching conversation history" />
 
@@ -142,7 +143,7 @@
                               ToolTip.HorizontalOffset="12"
                               AutomationProperties.Name="{Binding SelectionAutomationName}"
                               AutomationProperties.HelpText="Open this conversation. Hover for a short preview or use the actions menu."
-                              AutomationProperties.ItemStatus="{Binding MetadataLabel}">
+                              AutomationProperties.ItemStatus="{Binding AccessibilityItemStatus}">
                         <ToolTip.Tip>
                           <Border Classes="history-preview-card"
                                   Width="360"

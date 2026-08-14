@@ -46,7 +46,7 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 | Lot 10.1/10.2 sécurité + ownership | terminé | session locale durcie |
 | UIX-01 Stage 8 | terminé | FOLLOWING / DETACHED + UI state |
 | UIX-01 Stage 9 | terminé | décomposition Presentation en six ViewModels |
-| UIX-01 Stage 10 | en cours | 10A–10C terminés; 10D prochain |
+| UIX-01 Stage 10 | terminé | 10A–10D terminés; UIX-01 foundation clôturée |
 | Lot 10B Profiles/revisions/provenance/context | planifié | à faire |
 | Lot 11 RAG foundation | planifié | à faire |
 | Lot 12 Retrieval/grounded generation | planifié | à faire |
@@ -135,7 +135,7 @@ ModelViewModel
 GenerationSettingsViewModel
 ```
 
-### Stage 10 — History / gates / responsive completion — en cours
+### Stage 10 — History / gates / responsive completion — terminé
 
 #### Stage 10A — History identity — terminé
 
@@ -164,10 +164,14 @@ GenerationSettingsViewModel
 - remplacement du bandeau de suppression par une modale racine compacte et bloquante `Cancel | Delete` ;
 - `Escape` annule la suppression et aucun clic extérieur ne confirme ni ne ferme implicitement la modale.
 
-#### Stage 10D — Accessibility / motion completion — prochain
+#### Stage 10D — Accessibility / motion completion — terminé
 
-- accessibility pass ;
-- Reduced Motion pass final.
+- focus initial, cycle Tab/Shift+Tab et restauration du focus pour l’overlay history étroit et la modale de suppression ;
+- `Escape` ferme d’abord modale/overlay avant toute action Stop ;
+- état Automation explicite pour le workspace global courant et pour sélection/métadonnées/identité des conversations ;
+- Reduced Motion projeté jusqu’au shell, avec navigation quasi immédiate et indicateurs indéterminés statiques ;
+- sémantique heading/progress/live-status complétée sur les surfaces Conversation/Provider ;
+- UIX-01 foundation clôturée, sans nouveau contrat Domain/Application.
 
 ## Lot 10B — Generation state / revisions / provenance / context
 
@@ -219,9 +223,9 @@ UIX-01 Stage 10B — terminé
    ↓
 UIX-01 Stage 10C — terminé
    ↓
-UIX-01 Stage 10D — prochain
+UIX-01 Stage 10D — terminé
    ↓
-Lot 10.3–10.7
+Lot 10.3–10.7 — prochain
    ↓
 Lot 10B
    ↓

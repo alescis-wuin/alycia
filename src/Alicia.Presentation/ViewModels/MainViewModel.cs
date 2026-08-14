@@ -662,6 +662,11 @@ public sealed class MainViewModel : ViewModelBase
 
     public bool IsReducedMotionEnabled => ConversationStream.IsReducedMotionEnabled;
 
+    public bool IsStandardMotionEnabled => !IsReducedMotionEnabled;
+
+    public bool IsProviderProgressIndeterminateAnimationEnabled =>
+        IsProviderProgressIndeterminate && IsStandardMotionEnabled;
+
     public ConversationScrollMode CurrentConversationScrollMode => SelectedConversation is null
         ? ConversationScrollMode.Following
         : _conversationUiState
@@ -1543,6 +1548,7 @@ public sealed class MainViewModel : ViewModelBase
     {
         OnPropertyChanged(nameof(IsProviderProgressVisible));
         OnPropertyChanged(nameof(IsProviderProgressIndeterminate));
+        OnPropertyChanged(nameof(IsProviderProgressIndeterminateAnimationEnabled));
         OnPropertyChanged(nameof(ProviderProgressValue));
         OnPropertyChanged(nameof(ProviderProgressText));
         OnPropertyChanged(nameof(ProviderProgressDetailText));
@@ -1865,14 +1871,24 @@ public sealed class MainViewModel : ViewModelBase
 
     private void CancelTransientAction()
     {
-        if (CanStopResponse)
+        if (IsDeleteConfirmationVisible)
         {
-            StopResponse();
+            CancelDelete();
+            return;
+        }
+
+        if (ShowNarrowConversationHistoryPanel)
+        {
+            CloseNarrowHistoryOverlay();
             return;
         }
 
         CancelAllRenames();
-        CancelDelete();
+
+        if (CanStopResponse)
+        {
+            StopResponse();
+        }
     }
 
     private async Task ConfirmDeleteAsync()
@@ -2405,6 +2421,7 @@ public sealed class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(ProviderVersionText));
         OnPropertyChanged(nameof(IsProviderProgressVisible));
         OnPropertyChanged(nameof(IsProviderProgressIndeterminate));
+        OnPropertyChanged(nameof(IsProviderProgressIndeterminateAnimationEnabled));
         OnPropertyChanged(nameof(ProviderProgressValue));
         OnPropertyChanged(nameof(ProviderProgressText));
         OnPropertyChanged(nameof(ProviderProgressDetailText));

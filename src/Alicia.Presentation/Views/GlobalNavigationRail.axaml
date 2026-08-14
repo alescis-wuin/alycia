@@ -51,6 +51,7 @@
               Classes.selected="{Binding IsConversationsSelected}"
               Command="{Binding NavigateToConversationsCommand}"
               AutomationProperties.Name="Conversations"
+              AutomationProperties.ItemStatus="{Binding ConversationsNavigationStatus}"
               AutomationProperties.HelpText="Open the conversation workspace."
               ToolTip.Tip="Conversations">
         <Grid>
@@ -75,6 +76,7 @@
               Classes.selected="{Binding IsProvidersSelected}"
               Command="{Binding NavigateToProvidersCommand}"
               AutomationProperties.Name="Providers"
+              AutomationProperties.ItemStatus="{Binding ProvidersNavigationStatus}"
               AutomationProperties.HelpText="Open the inference provider workspace."
               ToolTip.Tip="Providers">
         <Grid>
@@ -99,6 +101,7 @@
               Classes.selected="{Binding IsModelsSelected}"
               Command="{Binding NavigateToModelsCommand}"
               AutomationProperties.Name="Models"
+              AutomationProperties.ItemStatus="{Binding ModelsNavigationStatus}"
               AutomationProperties.HelpText="Open the model configuration workspace."
               ToolTip.Tip="Models">
         <Grid>

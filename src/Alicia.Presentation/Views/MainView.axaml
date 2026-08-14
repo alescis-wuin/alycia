@@ -118,9 +118,12 @@
                         VerticalAlignment="Center"
                         Spacing="12"
                         IsVisible="{Binding ShowLoadingState}">
-              <ProgressBar Width="220" IsIndeterminate="True" />
+              <ProgressBar Width="220"
+                           IsIndeterminate="{Binding IsStandardMotionEnabled}"
+                           AutomationProperties.Name="Loading local conversation history" />
               <TextBlock Text="Loading local history…"
                          FontSize="20"
+                         AutomationProperties.HeadingLevel="2"
                          FontWeight="SemiBold"
                          TextAlignment="Center"
                          Foreground="{DynamicResource TextPrimaryBrush}" />
@@ -154,6 +157,7 @@
               </Border>
               <TextBlock Text="Start a conversation"
                          FontSize="28"
+                         AutomationProperties.HeadingLevel="1"
                          FontWeight="Bold"
                          TextAlignment="Center"
                          Foreground="{DynamicResource TextPrimaryBrush}" />
@@ -177,6 +181,7 @@
                         IsVisible="{Binding ShowNoSelectionState}">
               <TextBlock Text="Select a conversation"
                          FontSize="24"
+                         AutomationProperties.HeadingLevel="2"
                          FontWeight="Bold"
                          Foreground="{DynamicResource TextPrimaryBrush}" />
               <TextBlock Text="Choose an item from the history sidebar."
@@ -190,6 +195,7 @@
                         IsVisible="{Binding IsSelectedConversationEmpty}">
               <TextBlock Text="This conversation is empty"
                          FontSize="26"
+                         AutomationProperties.HeadingLevel="2"
                          FontWeight="Bold"
                          TextAlignment="Center"
                          Foreground="{DynamicResource TextPrimaryBrush}" />
@@ -379,11 +385,14 @@
             AutomationProperties.Name="Close conversation history overlay"
             AutomationProperties.HelpText="Close the temporary conversation history overlay and return to the conversation." />
 
-    <views:ConversationHistoryView
-        Width="300"
-        HorizontalAlignment="Left"
-        IsVisible="{Binding ShowNarrowConversationHistoryPanel}"
-        ZIndex="60" />
+    <Grid Width="300"
+          HorizontalAlignment="Left"
+          IsVisible="{Binding ShowNarrowConversationHistoryPanel}"
+          KeyboardNavigation.TabNavigation="Cycle"
+          ZIndex="60">
+      <views:ConversationHistoryView FocusSearchWhenShown="True"
+                                     IsVisible="{Binding ShowNarrowConversationHistoryPanel}" />
+    </Grid>
 
     <views:ConversationDeleteDialogView
         IsVisible="{Binding IsDeleteConfirmationVisible}"

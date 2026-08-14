@@ -38,6 +38,9 @@ public sealed class ShellViewModel : ViewModelBase
                 OnPropertyChanged(nameof(IsConversationsSelected));
                 OnPropertyChanged(nameof(IsProvidersSelected));
                 OnPropertyChanged(nameof(IsModelsSelected));
+                OnPropertyChanged(nameof(ConversationsNavigationStatus));
+                OnPropertyChanged(nameof(ProvidersNavigationStatus));
+                OnPropertyChanged(nameof(ModelsNavigationStatus));
             }
         }
     }
@@ -47,6 +50,20 @@ public sealed class ShellViewModel : ViewModelBase
     public bool IsProvidersSelected => SelectedSection == WorkspaceSection.Providers;
 
     public bool IsModelsSelected => SelectedSection == WorkspaceSection.Models;
+
+    public bool IsReducedMotionEnabled => Workspace.IsReducedMotionEnabled;
+
+    public string ConversationsNavigationStatus => IsConversationsSelected
+        ? "Current workspace"
+        : "Available workspace";
+
+    public string ProvidersNavigationStatus => IsProvidersSelected
+        ? "Current workspace"
+        : "Available workspace";
+
+    public string ModelsNavigationStatus => IsModelsSelected
+        ? "Current workspace"
+        : "Available workspace";
 
     private void NavigateToRequestedSection(
         object? sender,

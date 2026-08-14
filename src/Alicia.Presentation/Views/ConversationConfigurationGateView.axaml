@@ -55,7 +55,8 @@
                      Minimum="0"
                      Maximum="100"
                      Value="{Binding ProviderProgressValue}"
-                     IsIndeterminate="{Binding IsProviderProgressIndeterminate}" />
+                     IsIndeterminate="{Binding IsProviderProgressIndeterminateAnimationEnabled}"
+                     AutomationProperties.Name="Local AI setup progress indicator" />
         <TextBlock Text="{Binding ProviderProgressDetailText}"
                    FontSize="12"
                    TextWrapping="Wrap"

@@ -18,6 +18,9 @@ public sealed class ShellViewModelTests
         Assert.True(shell.IsConversationsSelected);
         Assert.False(shell.IsProvidersSelected);
         Assert.False(shell.IsModelsSelected);
+        Assert.Equal("Current workspace", shell.ConversationsNavigationStatus);
+        Assert.Equal("Available workspace", shell.ProvidersNavigationStatus);
+        Assert.Equal("Available workspace", shell.ModelsNavigationStatus);
     }
 
     [Fact]
@@ -32,6 +35,9 @@ public sealed class ShellViewModelTests
         Assert.False(shell.IsConversationsSelected);
         Assert.True(shell.IsProvidersSelected);
         Assert.False(shell.IsModelsSelected);
+        Assert.Equal("Available workspace", shell.ConversationsNavigationStatus);
+        Assert.Equal("Current workspace", shell.ProvidersNavigationStatus);
+        Assert.Equal("Available workspace", shell.ModelsNavigationStatus);
         Assert.Same(workspace, shell.Workspace);
 
         shell.NavigateToModelsCommand.Execute(null);
@@ -49,6 +55,16 @@ public sealed class ShellViewModelTests
         Assert.False(shell.IsProvidersSelected);
         Assert.False(shell.IsModelsSelected);
         Assert.Same(workspace, shell.Workspace);
+    }
+
+
+    [Fact]
+    public void ReducedMotionPreferenceIsProjectedThroughShell()
+    {
+        MainViewModel workspace = CreateWorkspace(isReducedMotionEnabled: true);
+        ShellViewModel shell = new(workspace);
+
+        Assert.True(shell.IsReducedMotionEnabled);
     }
 
     [Fact]
@@ -74,7 +90,8 @@ public sealed class ShellViewModelTests
 
     private static MainViewModel CreateWorkspace(
         StubInferenceProviderRuntime? provider = null,
-        StubInferenceProviderConfigurationStore? configurationStore = null)
+        StubInferenceProviderConfigurationStore? configurationStore = null,
+        bool isReducedMotionEnabled = false)
     {
         InMemoryConversationRepository repository = new();
         TimeProvider timeProvider = new MutableTimeProvider(
@@ -99,6 +116,7 @@ public sealed class ShellViewModelTests
             new RenameConversationUseCase(repository, timeProvider),
             new DeleteConversationUseCase(repository),
             providerRegistry,
-            resolvedConfigurationStore);
+            resolvedConfigurationStore,
+            isReducedMotionEnabled: isReducedMotionEnabled);
     }
 }

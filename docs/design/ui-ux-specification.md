@@ -1,7 +1,7 @@
 # Alicia — Spécification globale UI/UX et principes d’interaction
 
 **Version :** v0.4
-**Statut :** spécification consolidée — Stage 10A identité visuelle de conversation implémentée
+**Statut :** spécification consolidée — UIX-01 foundation complète (Stages 1–10D)
 **Cible :** Alicia Desktop (Avalonia, Windows/Linux/macOS)
 **Objectif :** fournir une interface simple, moderne, ludique, accessible et extensible sans accumuler de bruit visuel à mesure que les fonctions IA se complexifient.
 
@@ -777,6 +777,13 @@ Animations :
 - aucune animation continue décorative ;
 - jamais bloquante.
 
+**Implémentation Stage 10D :**
+
+- l’overlay history étroit et la confirmation de suppression deviennent des régions de focus temporaires avec focus initial, cycle Tab/Shift+Tab et restauration best-effort ;
+- `Escape` ferme ces surfaces avant d’être interprété comme Stop de génération ;
+- le workspace global courant et l’état sélectionné/métadonnées/identité des conversations sont exposés aux technologies d’assistance sans dépendre de la couleur ;
+- Reduced Motion couvre aussi la temporisation du flyout global et les progressions indéterminées, tout en conservant les libellés/live-status.
+
 Erreurs :
 
 - toast pour événement ponctuel ;
@@ -1082,7 +1089,7 @@ Ces durées sont UX, pas des invariants métier ; elles doivent rester testables
 
 ---
 
-## 23. État d’implémentation au checkpoint c51f1ef
+## 23. État d’implémentation après UIX-01 Stage 10D
 
 ### Implémenté
 
@@ -1102,15 +1109,15 @@ Ces durées sont UX, pas des invariants métier ; elles doivent rester testables
 - reasoning SSE séparé ;
 - thinking indicator ;
 - reasoning expander/steps ;
-- Stop/Retry guard.
+- Stop/Retry guard ;
+- FOLLOWING / DETACHED + scroll persistant par conversation ;
+- identité icône/couleur de conversation ;
+- gate de configuration déterministe ;
+- history responsive en overlay + modale de suppression ;
+- accessibilité clavier/focus/Automation et Reduced Motion foundation.
 
 ### Encore requis par cette spécification
 
-- persistence collapse history ;
-- auto-collapse responsive sans perte de préférence ;
-- FOLLOWING / DETACHED ;
-- scroll per conversation ;
-- conversation icons ;
 - title generation ;
 - assistant avatar ;
 - hover/focus timestamp/provenance/copy ;
@@ -1118,14 +1125,12 @@ Ces durées sont UX, pas des invariants métier ; elles doivent rester testables
 - profiles ;
 - context button/panel ;
 - one-shot features ;
-- configuration gates complets ;
 - timeline Message/Event ;
 - immutable revisions ;
 - GenerationSnapshot ;
 - branching ;
 - Provider final cards/logs/update/uninstall ;
 - Model library/load/unload/profiles ;
-- Reduced Motion complet.
 
 ---
 

@@ -344,6 +344,9 @@ public sealed class MainViewModelTests
         Assert.Equal(ConversationVisualIdentity.Default, viewModel.Identity);
         Assert.False(string.IsNullOrWhiteSpace(viewModel.IdentityGlyph));
         Assert.Contains("Conversation", viewModel.IdentityDescription, StringComparison.Ordinal);
+        Assert.Contains("2 messages", viewModel.AccessibilityItemStatus, StringComparison.Ordinal);
+        Assert.DoesNotContain("Selected", viewModel.AccessibilityItemStatus, StringComparison.Ordinal);
+        Assert.Contains("Conversation icon", viewModel.AccessibilityItemStatus, StringComparison.Ordinal);
         Assert.Equal(8, viewModel.IconChoices.Count);
         Assert.Equal(7, viewModel.ColorChoices.Count);
         Assert.Equal(
@@ -565,6 +568,7 @@ public sealed class MainViewModelTests
         await olderItem.SelectCommand.ExecuteAsync(null).ConfigureAwait(true);
 
         Assert.Equal(older.Id, viewModel.SelectedConversation?.Id);
+        Assert.Contains("Selected", olderItem.AccessibilityItemStatus, StringComparison.Ordinal);
         Assert.Equal(string.Empty, viewModel.MessageDraft);
         Assert.False(viewModel.CanSendMessage);
     }
@@ -1598,6 +1602,37 @@ public sealed class MainViewModelTests
     }
 
     [Fact]
+    public async Task CancelTransientActionClosesNarrowHistoryBeforeStoppingStreamingResponse()
+    {
+        DateTimeOffset createdAt = new(2026, 8, 13, 1, 58, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        Conversation conversation = new(ConversationId.New(), "Streaming", createdAt, createdAt);
+        repository.Seed(conversation);
+        PausingStreamingConversationResponder responder = new("Partial ", "response");
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(createdAt.AddMinutes(1)),
+            responder);
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+        viewModel.SetConversationHistoryNarrowLayout(isNarrow: true);
+        await viewModel.ToggleConversationHistoryCommand.ExecuteAsync(null).ConfigureAwait(true);
+        Assert.True(viewModel.ShowNarrowConversationHistoryPanel);
+
+        viewModel.MessageDraft = "Continue";
+        Task sendTask = viewModel.SendMessageCommand.ExecuteAsync(null);
+        await responder.FirstChunkObserved.ConfigureAwait(true);
+        Assert.True(viewModel.IsGeneratingResponse);
+
+        viewModel.CancelTransientActionCommand.Execute(null);
+
+        Assert.False(viewModel.ShowNarrowConversationHistoryPanel);
+        Assert.True(viewModel.IsGeneratingResponse);
+
+        responder.Release();
+        await sendTask.ConfigureAwait(true);
+    }
+
+    [Fact]
     public async Task ReducedMotionPreferenceIsProjectedToPresentation()
     {
         InMemoryConversationRepository repository = new();
@@ -1609,6 +1644,8 @@ public sealed class MainViewModelTests
         await viewModel.InitializeAsync().ConfigureAwait(true);
 
         Assert.True(viewModel.IsReducedMotionEnabled);
+        Assert.False(viewModel.IsStandardMotionEnabled);
+        Assert.False(viewModel.IsProviderProgressIndeterminateAnimationEnabled);
     }
 
     [Fact]

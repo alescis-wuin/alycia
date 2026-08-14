@@ -76,6 +76,17 @@ When reasoning is enabled and the selected model emits separated reasoning delta
 - reasoning is an in-memory presentation snapshot only in the current implementation;
 - reloading the conversation or restarting Alicia discards that reasoning snapshot.
 
+
+## Accessibility and motion
+
+- The global rail, history actions, composer actions, configuration gate and destructive confirmation expose accessible names/status in addition to color and iconography.
+- Keyboard focus is visibly indicated. When the narrow history overlay opens, focus moves to **Search conversations** and Tab/Shift+Tab stay inside until the overlay closes; `Escape` closes it and restores the previous focus when possible.
+- The delete confirmation moves focus to **Cancel** and cycles focus between its actions. `Escape`/Cancel restore the previous focus when possible.
+- `Escape` dismisses an open delete dialog or narrow-history overlay before it can stop an active streamed response.
+- With Reduced Motion enabled, Alicia keeps the thinking label static, makes global-navigation disclosure effectively immediate, and stops indeterminate progress animation while retaining progress/status text.
+
+For deterministic testing, `ALICIA_REDUCED_MOTION=1` forces Reduced Motion and `ALICIA_REDUCED_MOTION=0` forces normal motion.
+
 ## Local data
 
 The desktop composition root stores Alicia data below `.NET`'s `LocalApplicationData/Alicia` directory:
@@ -94,8 +105,6 @@ Alicia/
 ```
 
 The exact platform path is resolved by `Environment.SpecialFolder.LocalApplicationData`. `ui-state.json` contains Presentation-only history, per-conversation scroll state, and per-conversation icon/color identity; it is not part of conversation history. Stage 10A writes UI-state version 2 while continuing to read version 1 documents safely.
-
-For accessibility testing or as an explicit host override, `ALICIA_REDUCED_MOTION=1` forces reduced motion and `ALICIA_REDUCED_MOTION=0` forces the normal thinking animation.
 
 ## CUDA prerequisites
 

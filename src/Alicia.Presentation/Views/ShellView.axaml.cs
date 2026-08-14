@@ -1,3 +1,4 @@
+using Alicia.Presentation.ViewModels;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -9,6 +10,7 @@ public partial class ShellView : UserControl
 {
     private static readonly TimeSpan _navigationOpenDelay = TimeSpan.FromMilliseconds(275);
     private static readonly TimeSpan _navigationCloseDelay = TimeSpan.FromMilliseconds(450);
+    private static readonly TimeSpan _reducedMotionNavigationCloseDelay = TimeSpan.FromMilliseconds(75);
 
     private bool _isPointerOverRail;
     private bool _isPointerOverFlyout;
@@ -85,7 +87,10 @@ public partial class ShellView : UserControl
     private void ScheduleOpenDelay()
     {
         int generation = ++_openDelayGeneration;
-        _ = OpenNavigationAfterDelayAsync(generation);
+        TimeSpan delay = IsReducedMotionEnabled
+            ? TimeSpan.Zero
+            : _navigationOpenDelay;
+        _ = OpenNavigationAfterDelayAsync(generation, delay);
     }
 
     private void ScheduleCloseIfNavigationInactive()
@@ -96,12 +101,15 @@ public partial class ShellView : UserControl
         }
 
         int generation = ++_closeDelayGeneration;
-        _ = CloseNavigationAfterDelayAsync(generation);
+        TimeSpan delay = IsReducedMotionEnabled
+            ? _reducedMotionNavigationCloseDelay
+            : _navigationCloseDelay;
+        _ = CloseNavigationAfterDelayAsync(generation, delay);
     }
 
-    private async Task OpenNavigationAfterDelayAsync(int generation)
+    private async Task OpenNavigationAfterDelayAsync(int generation, TimeSpan delay)
     {
-        await Task.Delay(_navigationOpenDelay).ConfigureAwait(false);
+        await Task.Delay(delay).ConfigureAwait(false);
 
         Dispatcher.UIThread.Post(() =>
         {
@@ -112,9 +120,9 @@ public partial class ShellView : UserControl
         });
     }
 
-    private async Task CloseNavigationAfterDelayAsync(int generation)
+    private async Task CloseNavigationAfterDelayAsync(int generation, TimeSpan delay)
     {
-        await Task.Delay(_navigationCloseDelay).ConfigureAwait(false);
+        await Task.Delay(delay).ConfigureAwait(false);
 
         Dispatcher.UIThread.Post(() =>
         {
@@ -124,6 +132,9 @@ public partial class ShellView : UserControl
             }
         });
     }
+
+    private bool IsReducedMotionEnabled =>
+        DataContext is ShellViewModel { IsReducedMotionEnabled: true };
 
     private void CancelOpenDelay()
     {

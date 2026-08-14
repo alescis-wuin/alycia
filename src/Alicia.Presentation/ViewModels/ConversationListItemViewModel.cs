@@ -186,6 +186,9 @@ public sealed class ConversationListItemViewModel : ViewModelBase
         $"{ConversationIdentityPresentationCatalog.GetIconLabel(_identity.Icon)} icon • "
         + ConversationIdentityPresentationCatalog.GetColorLabel(_identity.Color);
 
+    public string AccessibilityItemStatus =>
+        $"{(IsSelected ? "Selected • " : string.Empty)}{MetadataLabel} • {IdentityDescription}";
+
     public IBrush IdentityColorBrush =>
         ConversationIdentityPresentationCatalog.GetAccentBrush(_identity.Color);
 
@@ -242,7 +245,13 @@ public sealed class ConversationListItemViewModel : ViewModelBase
     public bool IsSelected
     {
         get => _isSelected;
-        private set => SetProperty(ref _isSelected, value);
+        private set
+        {
+            if (SetProperty(ref _isSelected, value))
+            {
+                OnPropertyChanged(nameof(AccessibilityItemStatus));
+            }
+        }
     }
 
     public bool IsPreviewLoading
@@ -402,6 +411,7 @@ public sealed class ConversationListItemViewModel : ViewModelBase
         OnPropertyChanged(nameof(IdentityDescription));
         OnPropertyChanged(nameof(IdentityColorBrush));
         OnPropertyChanged(nameof(IdentitySurfaceBrush));
+        OnPropertyChanged(nameof(AccessibilityItemStatus));
         UpdateIdentityChoiceSelection();
     }
 

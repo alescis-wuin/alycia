@@ -59,6 +59,7 @@ The current Avalonia presentation provides:
 - a managed llama.cpp session bound to a dynamically selected IPv4-loopback port with localhost-only CORS, the bundled UI disabled, a per-launch ephemeral API key outside the command line, public `/health` readiness followed by authenticated `/props` ownership verification, and Bearer-authenticated chat streaming;
 - OpenAI-compatible SSE streaming with separate visible Content and Reasoning chunks;
 - a first-delta thinking indicator with a Reduced Motion path and darker collapsible reasoning-step surface while preserving only visible final Assistant content;
+- completed UIX-01 accessibility behavior with focus-contained temporary history/delete surfaces, Escape-first transient dismissal, assistive current-workspace/history-item status, and Reduced Motion applied to navigation timing and indeterminate progress;
 - per-conversation `FOLLOWING`/`DETACHED` scroll state with a low 32 px gesture threshold, persisted viewport position, an explicit ↑ pause control, and a ↓ resume-and-jump-to-latest control that streaming never overrides while detached;
 - short Stop/Retry guard windows, cancellation that discards partial output, and retry of the existing unanswered User message without duplication;
 - reasoning kept as an ephemeral in-memory Presentation snapshot rather than silently persisted into conversation documents;
@@ -92,6 +93,7 @@ The provider-neutral Application contracts remain independent of llama.cpp/CUDA/
 - `docs/decisions/0021-conversation-history-visual-identity.md`
 - `docs/decisions/0022-conversation-configuration-gate.md`
 - `docs/decisions/0023-conversation-responsive-delete-modal.md`
+- `docs/decisions/0024-accessibility-reduced-motion-completion.md`
 - `docs/development/roadmap.md`
 - `docs/design/ui-ux-specification.md`
 - `docs/user-guide/README.md`
