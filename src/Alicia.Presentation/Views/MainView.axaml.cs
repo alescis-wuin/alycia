@@ -12,7 +12,7 @@ namespace Alicia.Presentation.Views;
 
 public partial class MainView : UserControl
 {
-    private const double NarrowConversationLayoutWidth = 780d;
+    private const double NarrowConversationLayoutWidth = 900d;
 
     private static readonly string[] _thinkingIndicatorFrames =
     [
@@ -100,20 +100,6 @@ public partial class MainView : UserControl
             viewModel.SetConversationHistoryNarrowLayout(
                 eventArgs.NewSize.Width <= NarrowConversationLayoutWidth);
         }
-    }
-
-    private async void OnConversationPreviewPointerEntered(
-        object? sender,
-        PointerEventArgs eventArgs)
-    {
-        _ = eventArgs;
-
-        if (sender is not Control { DataContext: ConversationListItemViewModel item })
-        {
-            return;
-        }
-
-        await item.EnsurePreviewLoadedAsync().ConfigureAwait(true);
     }
 
     private void OnMessageComposerShellPointerPressed(

@@ -246,6 +246,21 @@
       <Setter Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
     </Style>
 
+    <Style Selector="Button.narrow-history-backdrop">
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="CornerRadius" Value="0" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Background" Value="#8A090D18" />
+    </Style>
+
+    <Style Selector="Button.narrow-history-backdrop:pointerover">
+      <Setter Property="Background" Value="#8A090D18" />
+    </Style>
+
+    <Style Selector="Button.narrow-history-backdrop:pressed">
+      <Setter Property="Background" Value="#8A090D18" />
+    </Style>
+
     <Style Selector="Button.conversation-follow-action">
       <Setter Property="MinHeight" Value="40" />
       <Setter Property="Padding" Value="14,8" />

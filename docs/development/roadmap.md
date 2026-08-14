@@ -46,7 +46,7 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 | Lot 10.1/10.2 sécurité + ownership | terminé | session locale durcie |
 | UIX-01 Stage 8 | terminé | FOLLOWING / DETACHED + UI state |
 | UIX-01 Stage 9 | terminé | décomposition Presentation en six ViewModels |
-| UIX-01 Stage 10 | en cours | 10A History identity + 10B Configuration gate terminés; 10C prochain |
+| UIX-01 Stage 10 | en cours | 10A–10C terminés; 10D prochain |
 | Lot 10B Profiles/revisions/provenance/context | planifié | à faire |
 | Lot 11 RAG foundation | planifié | à faire |
 | Lot 12 Retrieval/grounded generation | planifié | à faire |
@@ -155,12 +155,16 @@ GenerationSettingsViewModel
 - CTA unique vers Detect/Install/Load ou vers les workspaces Provider/Models ;
 - opérations transitoires représentées par un CTA unique désactivé.
 
-#### Stage 10C — Responsive + delete modal — prochain
+#### Stage 10C — Responsive + delete modal — terminé
 
-- responsive final ;
-- delete modal final.
+- seuil étroit porté à 900 DIP pour protéger la largeur utile de la conversation ;
+- historique étroit rendu comme overlay temporaire avec backdrop, sans modifier la préférence persistée du layout large ;
+- fermeture automatique de l’overlay après sélection ou création d’une conversation ;
+- resserrement progressif des marges/paddings à 980/900/700 DIP ;
+- remplacement du bandeau de suppression par une modale racine compacte et bloquante `Cancel | Delete` ;
+- `Escape` annule la suppression et aucun clic extérieur ne confirme ni ne ferme implicitement la modale.
 
-#### Stage 10D — Accessibility / motion completion — planifié
+#### Stage 10D — Accessibility / motion completion — prochain
 
 - accessibility pass ;
 - Reduced Motion pass final.
@@ -213,9 +217,9 @@ UIX-01 Stage 10A — terminé
    ↓
 UIX-01 Stage 10B — terminé
    ↓
-UIX-01 Stage 10C — prochain
+UIX-01 Stage 10C — terminé
    ↓
-UIX-01 Stage 10D — planifié
+UIX-01 Stage 10D — prochain
    ↓
 Lot 10.3–10.7
    ↓

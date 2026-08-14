@@ -1,0 +1,372 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:Alicia.Presentation.Controls"
+             xmlns:vm="using:Alicia.Presentation.ViewModels"
+             x:Class="Alicia.Presentation.Views.ConversationHistoryView"
+             x:DataType="vm:MainViewModel"
+             HorizontalAlignment="Stretch"
+             VerticalAlignment="Stretch">
+  <Border Classes="sidebar-shell"
+            Background="{DynamicResource SidebarBrush}"
+            BorderThickness="0"
+            Padding="14"
+            AutomationProperties.Name="Conversation history"
+            AutomationProperties.LandmarkType="Navigation"
+            AutomationProperties.AccessibilityView="Control">
+      <Grid RowDefinitions="Auto,12,Auto,2,*">
+        <Grid ColumnDefinitions="36,*,36">
+          <Border Grid.Column="0"
+                  Width="36"
+                  Height="36"
+                  Background="Transparent" />
+
+          <TextBlock Grid.Column="1"
+                     Text="Conversations"
+                     FontSize="16"
+                     FontWeight="SemiBold"
+                     HorizontalAlignment="Center"
+                     VerticalAlignment="Center"
+                     TextAlignment="Center"
+                     AutomationProperties.HeadingLevel="2"
+                     Foreground="{DynamicResource TextPrimaryBrush}" />
+
+          <Button Grid.Column="2"
+                  Classes="history-collapse-action"
+                  Command="{Binding ToggleConversationHistoryCommand}"
+                  AutomationProperties.Name="Collapse conversation history"
+                  AutomationProperties.HelpText="Hide the conversation history panel."
+                  ToolTip.Tip="Collapse conversation history">
+            <PathIcon Width="18"
+                      Height="18"
+                      Foreground="{DynamicResource TextSecondaryBrush}"
+                      Data="M15.41,7.41 L14,6 L8,12 L14,18 L15.41,16.59 L10.83,12 Z" />
+          </Button>
+        </Grid>
+
+        <Grid Grid.Row="2"
+              ColumnDefinitions="*,10,40">
+          <TextBox Grid.Column="0"
+                   Classes="history-search"
+                   Text="{Binding HistorySearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, Delay=250}"
+                   PlaceholderText="Search conversations"
+                   IsEnabled="{Binding IsInteractionEnabled}"
+                   AutomationProperties.Name="Search conversations"
+                   AutomationProperties.HelpText="Search conversation titles and message content." />
+
+          <Button Grid.Column="2"
+                  Classes="create-conversation-action"
+                  Command="{Binding CreateConversationCommand}"
+                  IsEnabled="{Binding IsInteractionEnabled}"
+                  AutomationProperties.Name="Create new conversation"
+                  AutomationProperties.HelpText="Create and select a new local conversation."
+                  AutomationProperties.AcceleratorKey="Ctrl+N"
+                  ToolTip.Tip="Create a new conversation (Ctrl+N)">
+            <PathIcon Width="20"
+                      Height="20"
+                      Foreground="{DynamicResource TextOnAccentBrush}"
+                      Data="M11,5 H13 V11 H19 V13 H13 V19 H11 V13 H5 V11 H11 Z" />
+          </Button>
+        </Grid>
+
+        <ProgressBar Grid.Row="3"
+                     Height="2"
+                     Margin="4,0"
+                     IsIndeterminate="True"
+                     IsVisible="{Binding IsHistorySearchBusy}"
+                     AutomationProperties.Name="Searching conversation history" />
+
+        <Grid Grid.Row="4"
+              Margin="0,10,0,0">
+          <ScrollViewer VerticalScrollBarVisibility="Auto"
+                        HorizontalScrollBarVisibility="Disabled">
+            <ItemsControl ItemsSource="{Binding Conversations}"
+                          HorizontalAlignment="Stretch"
+                          KeyboardNavigation.TabNavigation="Continue">
+              <ItemsControl.Styles>
+                <Style Selector="ContentPresenter">
+                  <Setter Property="HorizontalAlignment" Value="Stretch" />
+                </Style>
+              </ItemsControl.Styles>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:ConversationListItemViewModel">
+                  <Border Classes="history-row"
+                          MinHeight="54"
+                          HorizontalAlignment="Stretch"
+                          Classes.selected="{Binding IsSelected}"
+                          Classes.editing="{Binding IsRenaming}">
+                    <Border.ContextMenu>
+                      <ContextMenu>
+                        <MenuItem Header="Rename"
+                                  Command="{Binding RenameCommand}" />
+                        <MenuItem Header="Change icon"
+                                  ItemsSource="{Binding IconChoices}">
+                          <MenuItem.Styles>
+                            <Style Selector="MenuItem"
+                                   x:DataType="vm:ConversationIdentityChoiceViewModel">
+                              <Setter Property="Header" Value="{Binding Label}" />
+                              <Setter Property="Command" Value="{Binding SelectCommand}" />
+                              <Setter Property="ToggleType" Value="Radio" />
+                              <Setter Property="IsChecked" Value="{Binding IsSelected, Mode=OneWay}" />
+                            </Style>
+                          </MenuItem.Styles>
+                        </MenuItem>
+                        <MenuItem Header="Change color"
+                                  ItemsSource="{Binding ColorChoices}">
+                          <MenuItem.Styles>
+                            <Style Selector="MenuItem"
+                                   x:DataType="vm:ConversationIdentityChoiceViewModel">
+                              <Setter Property="Header" Value="{Binding Label}" />
+                              <Setter Property="Command" Value="{Binding SelectCommand}" />
+                              <Setter Property="ToggleType" Value="Radio" />
+                              <Setter Property="IsChecked" Value="{Binding IsSelected, Mode=OneWay}" />
+                            </Style>
+                          </MenuItem.Styles>
+                        </MenuItem>
+                        <Separator />
+                        <MenuItem Header="Delete"
+                                  Command="{Binding DeleteCommand}" />
+                      </ContextMenu>
+                    </Border.ContextMenu>
+
+                    <Grid HorizontalAlignment="Stretch">
+                      <Button Classes="history-item"
+                              MinHeight="52"
+                              HorizontalAlignment="Stretch"
+                              HorizontalContentAlignment="Stretch"
+                              Command="{Binding SelectCommand}"
+                              IsVisible="{Binding IsTitleVisible}"
+                              PointerEntered="OnConversationPreviewPointerEntered"
+                              ToolTip.Placement="RightEdgeAlignedTop"
+                              ToolTip.ShowDelay="350"
+                              ToolTip.BetweenShowDelay="-1"
+                              ToolTip.HorizontalOffset="12"
+                              AutomationProperties.Name="{Binding SelectionAutomationName}"
+                              AutomationProperties.HelpText="Open this conversation. Hover for a short preview or use the actions menu."
+                              AutomationProperties.ItemStatus="{Binding MetadataLabel}">
+                        <ToolTip.Tip>
+                          <Border Classes="history-preview-card"
+                                  Width="360"
+                                  Padding="14">
+                            <StackPanel Spacing="10">
+                              <TextBlock Text="{Binding Title}"
+                                         FontSize="15"
+                                         FontWeight="SemiBold"
+                                         TextTrimming="CharacterEllipsis"
+                                         Foreground="{DynamicResource TextPrimaryBrush}" />
+
+                              <ItemsControl ItemsSource="{Binding PreviewMessages}">
+                                <ItemsControl.ItemTemplate>
+                                  <DataTemplate x:DataType="vm:ConversationPreviewMessageViewModel">
+                                    <StackPanel Spacing="3"
+                                                Margin="0,0,0,7">
+                                      <TextBlock Text="{Binding RoleLabel}"
+                                                 FontSize="11"
+                                                 FontWeight="SemiBold"
+                                                 Foreground="{DynamicResource AccentSecondaryBrush}" />
+                                      <TextBlock Text="{Binding Content}"
+                                                 FontSize="13"
+                                                 MaxLines="3"
+                                                 TextWrapping="Wrap"
+                                                 TextTrimming="CharacterEllipsis"
+                                                 Foreground="{DynamicResource TextSecondaryBrush}" />
+                                    </StackPanel>
+                                  </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                              </ItemsControl>
+
+                              <TextBlock Text="{Binding PreviewStatusText}"
+                                         IsVisible="{Binding HasPreviewStatusText}"
+                                         FontSize="12"
+                                         Foreground="{DynamicResource TextSecondaryBrush}" />
+                            </StackPanel>
+                          </Border>
+                        </ToolTip.Tip>
+
+                        <Grid ColumnDefinitions="5,10,34,10,*"
+                              HorizontalAlignment="Stretch">
+                          <Border Grid.Column="0"
+                                  Margin="0,9,0,9"
+                                  CornerRadius="3"
+                                  Background="{Binding IdentityColorBrush}"
+                                  IsVisible="{Binding IsSelected}" />
+
+                          <Border Grid.Column="2"
+                                  Classes="conversation-identity"
+                                  Width="34"
+                                  Height="34"
+                                  Background="{Binding IdentitySurfaceBrush}"
+                                  BorderBrush="{Binding IdentityColorBrush}"
+                                  AutomationProperties.Name="{Binding IdentityDescription}"
+                                  ToolTip.Tip="{Binding IdentityDescription}">
+                            <TextBlock Text="{Binding IdentityGlyph}"
+                                       FontSize="13"
+                                       FontWeight="SemiBold"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       Foreground="{Binding IdentityColorBrush}" />
+                          </Border>
+
+                          <TextBlock Grid.Column="4"
+                                     Margin="0,0,48,0"
+                                     Text="{Binding Title}"
+                                     FontSize="15"
+                                     FontWeight="SemiBold"
+                                     VerticalAlignment="Center"
+                                     TextTrimming="CharacterEllipsis"
+                                     Foreground="{DynamicResource TextPrimaryBrush}" />
+                        </Grid>
+                      </Button>
+
+                      <StackPanel Classes="history-actions"
+                                  Orientation="Horizontal"
+                                  Margin="0,0,10,0"
+                                  HorizontalAlignment="Right"
+                                  VerticalAlignment="Center"
+                                  IsVisible="{Binding IsTitleVisible}">
+                        <Button Classes="history-action"
+                                Content="⋯"
+                                FontSize="19"
+                                AutomationProperties.Name="Conversation actions"
+                                AutomationProperties.HelpText="Open actions for this conversation."
+                                ToolTip.Tip="Conversation actions">
+                          <Button.Flyout>
+                            <MenuFlyout Placement="BottomEdgeAlignedRight">
+                              <MenuItem Header="Rename"
+                                        Command="{Binding RenameCommand}" />
+                              <MenuItem Header="Change icon"
+                                        ItemsSource="{Binding IconChoices}">
+                                <MenuItem.Styles>
+                                  <Style Selector="MenuItem"
+                                         x:DataType="vm:ConversationIdentityChoiceViewModel">
+                                    <Setter Property="Header" Value="{Binding Label}" />
+                                    <Setter Property="Command" Value="{Binding SelectCommand}" />
+                                    <Setter Property="ToggleType" Value="Radio" />
+                                    <Setter Property="IsChecked" Value="{Binding IsSelected, Mode=OneWay}" />
+                                  </Style>
+                                </MenuItem.Styles>
+                              </MenuItem>
+                              <MenuItem Header="Change color"
+                                        ItemsSource="{Binding ColorChoices}">
+                                <MenuItem.Styles>
+                                  <Style Selector="MenuItem"
+                                         x:DataType="vm:ConversationIdentityChoiceViewModel">
+                                    <Setter Property="Header" Value="{Binding Label}" />
+                                    <Setter Property="Command" Value="{Binding SelectCommand}" />
+                                    <Setter Property="ToggleType" Value="Radio" />
+                                    <Setter Property="IsChecked" Value="{Binding IsSelected, Mode=OneWay}" />
+                                  </Style>
+                                </MenuItem.Styles>
+                              </MenuItem>
+                              <Separator />
+                              <MenuItem Header="Delete"
+                                        Command="{Binding DeleteCommand}" />
+                            </MenuFlyout>
+                          </Button.Flyout>
+                        </Button>
+                      </StackPanel>
+
+                      <Grid ColumnDefinitions="5,10,34,10,*,Auto,Auto"
+                            HorizontalAlignment="Stretch"
+                            IsVisible="{Binding IsRenaming}">
+                        <Border Grid.Column="0"
+                                Margin="0,8,0,8"
+                                CornerRadius="3"
+                                Background="{DynamicResource EditBrush}" />
+
+                        <Border Grid.Column="2"
+                                Classes="conversation-identity"
+                                Width="34"
+                                Height="34"
+                                Background="{Binding IdentitySurfaceBrush}"
+                                BorderBrush="{Binding IdentityColorBrush}"
+                                ToolTip.Tip="{Binding IdentityDescription}">
+                          <TextBlock Text="{Binding IdentityGlyph}"
+                                     FontSize="13"
+                                     FontWeight="SemiBold"
+                                     HorizontalAlignment="Center"
+                                     VerticalAlignment="Center"
+                                     Foreground="{Binding IdentityColorBrush}" />
+                        </Border>
+
+                        <controls:InlineRenameTextBox Grid.Column="4"
+                                                      Classes="inline-rename"
+                                                      Margin="0,7,8,7"
+                                                      Text="{Binding RenameTitle, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                      MaxLength="120"
+                                                      AutomationProperties.Name="{Binding RenameInputAutomationName}"
+                                                      AutomationProperties.HelpText="Type a new title. Press Enter to save or Escape to cancel."
+                                                      ToolTip.Tip="{Binding RenameInputToolTip}">
+                          <controls:InlineRenameTextBox.KeyBindings>
+                            <KeyBinding Gesture="Enter" Command="{Binding SaveRenameCommand}" />
+                            <KeyBinding Gesture="Escape" Command="{Binding CancelRenameCommand}" />
+                          </controls:InlineRenameTextBox.KeyBindings>
+                        </controls:InlineRenameTextBox>
+
+                        <Button Grid.Column="5"
+                                Classes="history-action save-history-action"
+                                Margin="0,0,6,0"
+                                VerticalAlignment="Center"
+                                Command="{Binding SaveRenameCommand}"
+                                IsEnabled="{Binding CanSaveRename}"
+                                AutomationProperties.Name="{Binding SaveRenameAutomationName}"
+                                AutomationProperties.HelpText="Save the edited title."
+                                AutomationProperties.AcceleratorKey="Enter"
+                                ToolTip.Tip="Save title (Enter)">
+                          <PathIcon Width="17"
+                                    Height="17"
+                                    Foreground="{DynamicResource SuccessBrush}"
+                                    Data="M9,16.17 L4.83,12 L3.41,13.41 L9,19 L21,7 L19.59,5.59 Z" />
+                        </Button>
+
+                        <Button Grid.Column="6"
+                                Classes="history-action"
+                                Margin="0,0,10,0"
+                                VerticalAlignment="Center"
+                                Command="{Binding CancelRenameCommand}"
+                                AutomationProperties.Name="{Binding CancelRenameAutomationName}"
+                                AutomationProperties.HelpText="Cancel title editing."
+                                AutomationProperties.AcceleratorKey="Escape"
+                                ToolTip.Tip="Cancel rename (Escape)">
+                          <PathIcon Width="17"
+                                    Height="17"
+                                    Foreground="{DynamicResource TextSecondaryBrush}"
+                                    Data="M18.3,5.71 L12,12 L5.7,5.71 L4.29,7.12 L10.59,13.41 L4.29,19.71 L5.7,21.12 L12,14.83 L18.3,21.12 L19.71,19.71 L13.41,13.41 L19.71,7.12 Z" />
+                        </Button>
+                      </Grid>
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+
+          <Border Classes="surface"
+                  Padding="14"
+                  VerticalAlignment="Top"
+                  IsVisible="{Binding IsHistoryEmpty}">
+            <TextBlock Text="No conversations yet"
+                       FontSize="13"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource TextSecondaryBrush}" />
+          </Border>
+
+          <Border Classes="surface"
+                  Padding="14"
+                  VerticalAlignment="Top"
+                  IsVisible="{Binding ShowNoHistorySearchResults}">
+            <StackPanel Spacing="4">
+              <TextBlock Text="No matching conversations"
+                         FontSize="13"
+                         FontWeight="SemiBold"
+                         Foreground="{DynamicResource TextPrimaryBrush}" />
+              <TextBlock Text="Try another title or a phrase from a message."
+                         FontSize="12"
+                         TextWrapping="Wrap"
+                         Foreground="{DynamicResource TextSecondaryBrush}" />
+            </StackPanel>
+          </Border>
+        </Grid>
+      </Grid>
+    </Border>
+
+  </UserControl>

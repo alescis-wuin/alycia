@@ -13,8 +13,9 @@ The **Conversations** workspace owns the conversation history and chat surface.
 - Rename or delete a conversation from its `…` menu or context menu.
 - Use **Change icon** or **Change color** from either menu to assign a persistent visual identity without opening that conversation.
 - Stage 10A provides eight predefined icon categories and seven accent colors; existing conversations use `Conversation + Teal` until customized.
-- The history panel can be collapsed; the explicit expanded/collapsed preference is restored on the next launch.
-- On narrow windows Alicia auto-collapses history without overwriting that explicit preference.
+- The history panel can be collapsed; the explicit expanded/collapsed preference is restored on the next launch and applies to wide layouts.
+- At 900 DIP or below, history opens as a temporary overlay above the conversation. Closing it, selecting a conversation, or creating a conversation does not overwrite the wide-layout preference.
+- Deleting a conversation opens a compact blocking confirmation modal. `Escape` or **Cancel** keeps the conversation; only **Delete** confirms permanent removal.
 
 ## Provider
 

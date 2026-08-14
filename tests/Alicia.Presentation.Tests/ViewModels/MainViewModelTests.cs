@@ -1478,7 +1478,7 @@ public sealed class MainViewModelTests
     }
 
     [Fact]
-    public async Task NarrowHistoryAutoCollapsePreservesExpandedPreferenceUntilExplicitToggle()
+    public async Task NarrowHistoryOverlayPreservesWidePreferenceAcrossOpenAndClose()
     {
         DateTimeOffset createdAt = new(2026, 8, 13, 1, 45, 0, TimeSpan.Zero);
         InMemoryConversationRepository repository = new();
@@ -1490,21 +1490,111 @@ public sealed class MainViewModelTests
         await viewModel.InitializeAsync().ConfigureAwait(true);
 
         Assert.True(viewModel.IsConversationHistoryExpanded);
+        Assert.False(viewModel.IsNarrowConversationLayout);
+        Assert.True(viewModel.ShowWideConversationHistoryPanel);
+        Assert.False(viewModel.ShowNarrowConversationHistoryPanel);
         viewModel.SetConversationHistoryNarrowLayout(isNarrow: true);
+
+        Assert.True(viewModel.IsNarrowConversationLayout);
         Assert.True(viewModel.IsConversationHistoryCollapsed);
+        Assert.False(viewModel.ShowWideConversationHistoryPanel);
+        Assert.False(viewModel.ShowNarrowConversationHistoryPanel);
+        Assert.False(viewModel.ShowNarrowHistoryBackdrop);
         Assert.True(uiStateStore.Snapshot.IsConversationHistoryExpanded);
 
         await viewModel.ToggleConversationHistoryCommand.ExecuteAsync(null).ConfigureAwait(true);
+
         Assert.True(viewModel.IsConversationHistoryExpanded);
+        Assert.False(viewModel.ShowWideConversationHistoryPanel);
+        Assert.True(viewModel.ShowNarrowConversationHistoryPanel);
+        Assert.True(viewModel.ShowNarrowHistoryBackdrop);
+        Assert.Equal(0, uiStateStore.SaveCount);
+
+        await viewModel.ToggleConversationHistoryCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.True(viewModel.IsConversationHistoryCollapsed);
+        Assert.False(viewModel.ShowNarrowHistoryBackdrop);
         Assert.Equal(0, uiStateStore.SaveCount);
 
         viewModel.SetConversationHistoryNarrowLayout(isNarrow: false);
+
+        Assert.False(viewModel.IsNarrowConversationLayout);
         Assert.True(viewModel.IsConversationHistoryExpanded);
+        Assert.True(viewModel.ShowWideConversationHistoryPanel);
+        Assert.False(viewModel.ShowNarrowConversationHistoryPanel);
 
         await viewModel.ToggleConversationHistoryCommand.ExecuteAsync(null).ConfigureAwait(true);
+
         Assert.True(viewModel.IsConversationHistoryCollapsed);
         Assert.False(uiStateStore.Snapshot.IsConversationHistoryExpanded);
         Assert.Equal(1, uiStateStore.SaveCount);
+
+        viewModel.SetConversationHistoryNarrowLayout(isNarrow: true);
+        await viewModel.ToggleConversationHistoryCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.True(viewModel.IsConversationHistoryExpanded);
+        Assert.True(viewModel.ShowNarrowHistoryBackdrop);
+        Assert.False(uiStateStore.Snapshot.IsConversationHistoryExpanded);
+        Assert.Equal(1, uiStateStore.SaveCount);
+
+        viewModel.SetConversationHistoryNarrowLayout(isNarrow: false);
+
+        Assert.True(viewModel.IsConversationHistoryCollapsed);
+        Assert.False(uiStateStore.Snapshot.IsConversationHistoryExpanded);
+    }
+
+
+    [Fact]
+    public async Task NarrowHistoryOverlayClosesAfterConversationSelection()
+    {
+        DateTimeOffset createdAt = new(2026, 8, 13, 1, 50, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        Conversation older = new(ConversationId.New(), "Older", createdAt, createdAt);
+        Conversation newer = new(
+            ConversationId.New(),
+            "Newer",
+            createdAt.AddMinutes(1),
+            createdAt.AddMinutes(1));
+        repository.Seed(older);
+        repository.Seed(newer);
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(createdAt.AddMinutes(2)));
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        viewModel.SetConversationHistoryNarrowLayout(isNarrow: true);
+        await viewModel.ToggleConversationHistoryCommand.ExecuteAsync(null).ConfigureAwait(true);
+        Assert.True(viewModel.ShowNarrowHistoryBackdrop);
+
+        ConversationListItemViewModel olderItem = Assert.Single(
+            viewModel.Conversations,
+            item => item.Id == older.Id);
+        await olderItem.SelectCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.Equal(older.Id, viewModel.SelectedConversation?.Id);
+        Assert.True(viewModel.IsConversationHistoryCollapsed);
+        Assert.False(viewModel.ShowNarrowHistoryBackdrop);
+    }
+
+    [Fact]
+    public async Task NarrowHistoryOverlayClosesAfterCreatingConversation()
+    {
+        DateTimeOffset createdAt = new(2026, 8, 13, 1, 55, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(createdAt));
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        viewModel.SetConversationHistoryNarrowLayout(isNarrow: true);
+        await viewModel.ToggleConversationHistoryCommand.ExecuteAsync(null).ConfigureAwait(true);
+        Assert.True(viewModel.ShowNarrowHistoryBackdrop);
+
+        await viewModel.CreateConversationCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.NotNull(viewModel.SelectedConversation);
+        Assert.True(viewModel.IsConversationHistoryCollapsed);
+        Assert.False(viewModel.ShowNarrowHistoryBackdrop);
     }
 
     [Fact]

@@ -102,6 +102,16 @@ Icônes :
 
 Suppression : confirmation modale compacte `Annuler | Supprimer`.
 
+#### 4.1.1 Responsive history + suppression — Stage 10C
+
+- seuil de layout Conversation étroit : **~900 DIP** dans la surface Conversation (hors rail global) ;
+- en dessous du seuil, l’historique ne réduit plus la largeur des messages : il s’ouvre comme un overlay de **300 DIP** avec backdrop ;
+- l’ouverture/fermeture de cet overlay est temporaire et ne modifie jamais la préférence persistée du layout large ;
+- sélectionner ou créer une conversation referme l’overlay automatiquement ;
+- les marges de contenu passent progressivement de 28 à 18, 14 puis 10 DIP aux seuils 980/900/700 ;
+- la confirmation de suppression est une modale racine qui couvre historique + conversation, bloque les interactions en arrière-plan et n’est jamais validée par clic sur le backdrop ;
+- ordre des actions destructives : `Cancel | Delete` ; `Escape` annule.
+
 ### 4.2 Recherche et preview
 
 Recherche dans :

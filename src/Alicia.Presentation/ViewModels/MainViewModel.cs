@@ -27,7 +27,7 @@ public sealed class MainViewModel : ViewModelBase
     private readonly TimeSpan _retryResponseLockDuration;
     private CancellationTokenSource? _historySearchCancellation;
     private Task _historySearchTask = Task.CompletedTask;
-    private bool _isConversationHistoryAutoCollapsed;
+    private bool _isNarrowHistoryOverlayOpen;
     private bool _isNarrowConversationLayout;
     private bool _isRetryResponseUnlocked;
     private bool _isStopResponseUnlocked;
@@ -641,11 +641,24 @@ public sealed class MainViewModel : ViewModelBase
             OnPropertyChanged();
             OnPropertyChanged(nameof(IsConversationHistoryCollapsed));
             OnPropertyChanged(nameof(ShowConversationHistoryPanel));
+            OnPropertyChanged(nameof(ShowWideConversationHistoryPanel));
+            OnPropertyChanged(nameof(ShowNarrowConversationHistoryPanel));
             OnPropertyChanged(nameof(ShowConversationHistoryReopenButton));
+            OnPropertyChanged(nameof(ShowNarrowHistoryBackdrop));
         }
     }
 
     public bool IsConversationHistoryCollapsed => ConversationHistory.IsConversationHistoryCollapsed;
+
+    public bool IsNarrowConversationLayout => _isNarrowConversationLayout;
+
+    public bool ShowWideConversationHistoryPanel =>
+        ShowConversationHistoryPanel && !IsNarrowConversationLayout;
+
+    public bool ShowNarrowConversationHistoryPanel =>
+        ShowConversationHistoryPanel && IsNarrowConversationLayout;
+
+    public bool ShowNarrowHistoryBackdrop => ShowNarrowConversationHistoryPanel;
 
     public bool IsReducedMotionEnabled => ConversationStream.IsReducedMotionEnabled;
 
@@ -799,9 +812,12 @@ public sealed class MainViewModel : ViewModelBase
         }
 
         _isNarrowConversationLayout = isNarrow;
-        _isConversationHistoryAutoCollapsed = isNarrow
-            && _conversationUiState.IsConversationHistoryExpanded;
+        _isNarrowHistoryOverlayOpen = false;
+        OnPropertyChanged(nameof(IsNarrowConversationLayout));
         ApplyConversationHistoryExpansion();
+        OnPropertyChanged(nameof(ShowWideConversationHistoryPanel));
+        OnPropertyChanged(nameof(ShowNarrowConversationHistoryPanel));
+        OnPropertyChanged(nameof(ShowNarrowHistoryBackdrop));
     }
 
     public void ReportConversationScrollPosition(
@@ -875,16 +891,27 @@ public sealed class MainViewModel : ViewModelBase
         _conversationUiState = await _conversationUiStateStore
             .LoadAsync()
             .ConfigureAwait(true);
-        _isConversationHistoryAutoCollapsed = _isNarrowConversationLayout
-            && _conversationUiState.IsConversationHistoryExpanded;
+        _isNarrowHistoryOverlayOpen = false;
         ApplyConversationHistoryExpansion();
         RaiseConversationScrollStateChanged();
     }
 
     private void ApplyConversationHistoryExpansion()
     {
-        IsConversationHistoryExpanded = _conversationUiState.IsConversationHistoryExpanded
-            && !_isConversationHistoryAutoCollapsed;
+        IsConversationHistoryExpanded = _isNarrowConversationLayout
+            ? _isNarrowHistoryOverlayOpen
+            : _conversationUiState.IsConversationHistoryExpanded;
+    }
+
+    private void CloseNarrowHistoryOverlay()
+    {
+        if (!_isNarrowConversationLayout || !_isNarrowHistoryOverlayOpen)
+        {
+            return;
+        }
+
+        _isNarrowHistoryOverlayOpen = false;
+        ApplyConversationHistoryExpansion();
     }
 
     private async Task PauseAutoScrollAsync()
@@ -1554,6 +1581,11 @@ public sealed class MainViewModel : ViewModelBase
 
             await ReloadConversationsAsync(conversation.Id).ConfigureAwait(true);
         }).ConfigureAwait(true);
+
+        if (!HasError)
+        {
+            CloseNarrowHistoryOverlay();
+        }
     }
 
     private async Task RefreshAsync()
@@ -1871,8 +1903,14 @@ public sealed class MainViewModel : ViewModelBase
     {
         ArgumentNullException.ThrowIfNull(conversation);
 
-        if (IsBusy || SelectedConversation?.Id == conversation.Id)
+        if (IsBusy)
         {
+            return;
+        }
+
+        if (SelectedConversation?.Id == conversation.Id)
+        {
+            CloseNarrowHistoryOverlay();
             return;
         }
 
@@ -1880,6 +1918,11 @@ public sealed class MainViewModel : ViewModelBase
         {
             await LoadConversationAsync(conversation).ConfigureAwait(true);
         }).ConfigureAwait(true);
+
+        if (!HasError)
+        {
+            CloseNarrowHistoryOverlay();
+        }
     }
 
     private async Task BeginRenameConversationAsync(ConversationListItemViewModel conversation)
@@ -2047,16 +2090,15 @@ public sealed class MainViewModel : ViewModelBase
 
     private async Task ToggleConversationHistoryAsync()
     {
-        if (_isConversationHistoryAutoCollapsed)
+        if (_isNarrowConversationLayout)
         {
-            _isConversationHistoryAutoCollapsed = false;
+            _isNarrowHistoryOverlayOpen = !IsConversationHistoryExpanded;
             ApplyConversationHistoryExpansion();
             return;
         }
 
         bool isExpanded = !IsConversationHistoryExpanded;
         _conversationUiState = _conversationUiState.WithHistoryExpanded(isExpanded);
-        _isConversationHistoryAutoCollapsed = false;
         ApplyConversationHistoryExpansion();
         await PersistConversationUiStateAsync().ConfigureAwait(true);
     }
@@ -2426,6 +2468,9 @@ public sealed class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(ShowReadyEmptyConversationState));
         OnPropertyChanged(nameof(ShowMessageComposer));
         OnPropertyChanged(nameof(ShowConversationHistoryPanel));
+        OnPropertyChanged(nameof(ShowWideConversationHistoryPanel));
+        OnPropertyChanged(nameof(ShowNarrowConversationHistoryPanel));
         OnPropertyChanged(nameof(ShowConversationHistoryReopenButton));
+        OnPropertyChanged(nameof(ShowNarrowHistoryBackdrop));
     }
 }
