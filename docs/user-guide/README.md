@@ -27,12 +27,14 @@ For `llama.cpp CUDA`:
 2. **Install** verifies and builds the llama.cpp release pinned and validated by this Alicia build instead of following a moving `latest` release.
 3. **Check update** compares the active Alicia-managed release, Alicia's validated release, and upstream latest release.
 4. **Update validated** is enabled only when a stopped Alicia-managed runtime is older than the validated release. The update is always explicit.
-3. **Start** launches the saved model configuration.
-4. **Stop** terminates the Alicia-managed server process.
+5. **Inspect storage** reports managed runtime, retained-release, and local model-cache usage without deleting anything.
+6. **Clean old releases**, **Uninstall runtime**, and **Uninstall runtime + cache** are separate maintenance requests. Each opens its own confirmation and requires the provider to be stopped.
+7. **Start** launches the saved model configuration.
+8. **Stop** terminates the Alicia-managed server process.
 
 Alicia does not silently fall back to another provider when the selected provider is unavailable.
 
-Alicia currently validates managed llama.cpp release `b10435` at source commit `9e40df63ba151d771d8b247ac4011cf203337e99`. If GitHub publishes a newer release, **Check update** may report it as upstream latest, but Alicia will not install it until a later Alicia build validates and pins it. A managed release newer than the current pin is never automatically downgraded. Previous managed releases remain on disk until explicit cleanup.
+Alicia currently validates managed llama.cpp release `b10435` at source commit `9e40df63ba151d771d8b247ac4011cf203337e99`. If GitHub publishes a newer release, **Check update** may report it as upstream latest, but Alicia will not install it until a later Alicia build validates and pins it. A managed release newer than the current pin is never automatically downgraded. Previous managed releases remain on disk until **Clean old releases** is explicitly confirmed. **Uninstall runtime** preserves the local model cache; **Uninstall runtime + cache** is a separate destructive action. Neither removes saved provider configuration or conversations.
 
 ## Models
 
@@ -88,7 +90,7 @@ When reasoning is enabled and the selected model emits separated reasoning delta
 - The global rail, history actions, composer actions, configuration gate and destructive confirmation expose accessible names/status in addition to color and iconography.
 - Keyboard focus is visibly indicated. When the narrow history overlay opens, focus moves to **Search conversations** and Tab/Shift+Tab stay inside until the overlay closes; `Escape` closes it and restores the previous focus when possible.
 - The delete confirmation moves focus to **Cancel** and cycles focus between its actions. `Escape`/Cancel restore the previous focus when possible.
-- `Escape` dismisses an open delete dialog or narrow-history overlay before it can stop an active streamed response.
+- `Escape` dismisses an open delete dialog, provider-maintenance confirmation, or narrow-history overlay before it can stop an active streamed response.
 - With Reduced Motion enabled, Alicia keeps the thinking label static, makes global-navigation disclosure effectively immediate, and stops indeterminate progress animation while retaining progress/status text.
 
 For deterministic testing, `ALICIA_REDUCED_MOTION=1` forces Reduced Motion and `ALICIA_REDUCED_MOTION=0` forces normal motion.
@@ -109,6 +111,8 @@ Alicia/
         ├── models/
         └── releases/
 ```
+
+Runtime maintenance targets only Alicia-owned provider artifacts. `providers/configuration.json` and `conversations/` are outside the uninstall scope. Runtime-only uninstall also preserves `providers/llama.cpp/models/`; full runtime + cache uninstall removes that directory only after a separate confirmation.
 
 The exact platform path is resolved by `Environment.SpecialFolder.LocalApplicationData`. `ui-state.json` contains Presentation-only history, per-conversation scroll state, and per-conversation icon/color identity; it is not part of conversation history. Stage 10A writes UI-state version 2 while continuing to read version 1 documents safely.
 

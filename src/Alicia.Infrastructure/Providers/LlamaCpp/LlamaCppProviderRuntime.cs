@@ -9,6 +9,7 @@ namespace Alicia.Infrastructure.Providers.LlamaCpp;
 public sealed class LlamaCppProviderRuntime :
     IInferenceProviderRuntime,
     IInferenceProviderUpdateRuntime,
+    IInferenceProviderMaintenanceRuntime,
     IStreamingConversationResponder,
     IAsyncDisposable
 {
@@ -393,6 +394,202 @@ public sealed class LlamaCppProviderRuntime :
         }
     }
 
+    public async Task<InferenceProviderStorageInfo> InspectStorageAsync(
+        CancellationToken cancellationToken = default)
+    {
+        ThrowIfDisposed();
+
+        await _lifecycleGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+        try
+        {
+            return await InspectStorageCoreAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (InferenceProviderException)
+        {
+            throw;
+        }
+        catch (IOException exception)
+        {
+            throw CreateMaintenanceFailure(exception);
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            throw CreateMaintenanceFailure(exception);
+        }
+        catch (InvalidOperationException exception)
+        {
+            throw CreateMaintenanceFailure(exception);
+        }
+        finally
+        {
+            _lifecycleGate.Release();
+        }
+    }
+
+    public async Task<InferenceProviderMaintenanceResult> CleanupRetainedReleasesAsync(
+        IProgress<InferenceProviderProgress>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        ThrowIfDisposed();
+
+        await _lifecycleGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+        try
+        {
+            EnsureMaintenanceCanMutateStorage();
+            InferenceProviderStorageInfo before = await InspectStorageCoreAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            if (!before.HasManagedRuntime || string.IsNullOrWhiteSpace(before.ManagedVersion))
+            {
+                throw new InferenceProviderException(
+                    InferenceProviderFailureKind.Missing,
+                    "No active Alicia-managed llama.cpp release is available to preserve. Use the explicit uninstall action to remove remaining runtime files instead.");
+            }
+
+            IReadOnlyList<string> retainedDirectories =
+                LlamaCppManagedStorage.GetRetainedReleaseDirectories(
+                    _runtimeDirectory,
+                    before.ManagedVersion);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            progress?.Report(new InferenceProviderProgress(
+                "Cleaning retained releases",
+                retainedDirectories.Count == 0
+                    ? "No inactive Alicia-managed llama.cpp releases need cleanup."
+                    : $"Removing {retainedDirectories.Count} inactive managed release(s) while preserving {before.ManagedVersion}."));
+
+            // Destructive maintenance is cancellation-aware before mutation. Once deletion starts,
+            // complete the confirmed scope so cancellation cannot leave an intentionally half-removed tree.
+            foreach (string directory in retainedDirectories)
+            {
+                LlamaCppManagedStorage.DeleteOwnedDirectory(_runtimeDirectory, directory);
+            }
+
+            InferenceProviderStorageInfo after = await InspectStorageCoreAsync(CancellationToken.None)
+                .ConfigureAwait(false);
+            RestoreManagedReadyState(before.ManagedVersion);
+            InferenceProviderSnapshot snapshot = CreateSnapshot(
+                InferenceProviderState.Ready,
+                detail: $"Managed llama.cpp {before.ManagedVersion} remains active after retained-release cleanup.");
+            long reclaimedBytes = CalculateReclaimedBytes(before, after, includeModelCache: false);
+            string detail = retainedDirectories.Count == 0
+                ? $"No retained managed releases required cleanup. Active release {before.ManagedVersion} and the model cache were preserved."
+                : $"Removed {retainedDirectories.Count} retained managed release(s). Active release {before.ManagedVersion} and the model cache were preserved.";
+
+            progress?.Report(new InferenceProviderProgress(
+                "Cleanup complete",
+                detail,
+                1.0));
+
+            return new InferenceProviderMaintenanceResult(
+                snapshot,
+                after,
+                reclaimedBytes,
+                detail);
+        }
+        catch (InferenceProviderException)
+        {
+            throw;
+        }
+        catch (IOException exception)
+        {
+            throw CreateMaintenanceFailure(exception);
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            throw CreateMaintenanceFailure(exception);
+        }
+        catch (InvalidOperationException exception)
+        {
+            throw CreateMaintenanceFailure(exception);
+        }
+        finally
+        {
+            _lifecycleGate.Release();
+        }
+    }
+
+    public async Task<InferenceProviderMaintenanceResult> UninstallAsync(
+        InferenceProviderRemovalMode mode,
+        IProgress<InferenceProviderProgress>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        ThrowIfDisposed();
+
+        if (!Enum.IsDefined(mode))
+        {
+            throw new ArgumentOutOfRangeException(nameof(mode));
+        }
+
+        await _lifecycleGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+        try
+        {
+            EnsureMaintenanceCanMutateStorage();
+            InferenceProviderStorageInfo before = await InspectStorageCoreAsync(cancellationToken)
+                .ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            bool removeModelCache = mode == InferenceProviderRemovalMode.RuntimeAndModelCache;
+            progress?.Report(new InferenceProviderProgress(
+                "Removing managed runtime",
+                removeModelCache
+                    ? "Removing Alicia-managed llama.cpp runtime artifacts and the local model cache."
+                    : "Removing Alicia-managed llama.cpp runtime artifacts while preserving the local model cache."));
+
+            LlamaCppManagedStorage.DeleteRuntimeArtifacts(_runtimeDirectory);
+
+            if (removeModelCache)
+            {
+                LlamaCppManagedStorage.DeleteModelCache(_runtimeDirectory);
+            }
+
+            ResetManagedRuntimeState();
+            InferenceProviderStorageInfo after = await InspectStorageCoreAsync(CancellationToken.None)
+                .ConfigureAwait(false);
+            string detail = removeModelCache
+                ? "Managed llama.cpp runtime and local model cache removed. Provider configuration and conversations were preserved."
+                : "Managed llama.cpp runtime removed. Local model cache, provider configuration, and conversations were preserved.";
+            InferenceProviderSnapshot snapshot = CreateSnapshot(
+                InferenceProviderState.Missing,
+                detail);
+            long reclaimedBytes = CalculateReclaimedBytes(before, after, removeModelCache);
+
+            progress?.Report(new InferenceProviderProgress(
+                "Uninstall complete",
+                detail,
+                1.0));
+
+            return new InferenceProviderMaintenanceResult(
+                snapshot,
+                after,
+                reclaimedBytes,
+                detail);
+        }
+        catch (InferenceProviderException)
+        {
+            throw;
+        }
+        catch (IOException exception)
+        {
+            throw CreateMaintenanceFailure(exception);
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            throw CreateMaintenanceFailure(exception);
+        }
+        catch (InvalidOperationException exception)
+        {
+            throw CreateMaintenanceFailure(exception);
+        }
+        finally
+        {
+            _lifecycleGate.Release();
+        }
+    }
+
     public async Task<InferenceProviderSnapshot> StartAsync(
         InferenceProviderConfiguration configuration,
         CancellationToken cancellationToken = default)
@@ -655,6 +852,129 @@ public sealed class LlamaCppProviderRuntime :
         }
 
         return null;
+    }
+
+    private async Task<InferenceProviderStorageInfo> InspectStorageCoreAsync(
+        CancellationToken cancellationToken)
+    {
+        LlamaCppInstallation? installation = await ReadManagedInstallationAsync(cancellationToken)
+            .ConfigureAwait(false);
+        string? managedVersion = ResolveActiveManagedVersion(installation);
+        int retainedReleaseCount = managedVersion is null
+            ? 0
+            : LlamaCppManagedStorage.GetRetainedReleaseDirectories(
+                _runtimeDirectory,
+                managedVersion).Count;
+
+        return new InferenceProviderStorageInfo(
+            hasManagedRuntime: managedVersion is not null,
+            managedVersion: managedVersion,
+            retainedReleaseCount: retainedReleaseCount,
+            runtimeBytes: LlamaCppManagedStorage.GetRuntimeBytes(_runtimeDirectory),
+            modelCacheBytes: LlamaCppManagedStorage.GetModelCacheBytes(_runtimeDirectory));
+    }
+
+    private string? ResolveActiveManagedVersion(LlamaCppInstallation? installation)
+    {
+        if (installation is null || string.IsNullOrWhiteSpace(installation.Version))
+        {
+            return null;
+        }
+
+        try
+        {
+            _ = LlamaCppReleasePolicy.ParseReleaseSequence(installation.Version);
+            string expectedExecutablePath = LlamaCppManagedStorage.GetOwnedChildPath(
+                _runtimeDirectory,
+                LlamaCppManagedStorage.ReleasesDirectoryName,
+                installation.Version,
+                "llama-server");
+            string actualExecutablePath = Path.GetFullPath(installation.ExecutablePath);
+            StringComparison comparison = OperatingSystem.IsWindows()
+                ? StringComparison.OrdinalIgnoreCase
+                : StringComparison.Ordinal;
+
+            return string.Equals(
+                    expectedExecutablePath,
+                    actualExecutablePath,
+                    comparison)
+                && File.Exists(expectedExecutablePath)
+                    ? installation.Version
+                    : null;
+        }
+        catch (ArgumentException)
+        {
+            return null;
+        }
+        catch (NotSupportedException)
+        {
+            return null;
+        }
+    }
+
+    private void EnsureMaintenanceCanMutateStorage()
+    {
+        if (IsServerAlive())
+        {
+            throw new InferenceProviderException(
+                InferenceProviderFailureKind.Faulted,
+                "Stop the local AI model before cleaning or uninstalling managed provider files.");
+        }
+
+        ClearExitedServer();
+    }
+
+    private void RestoreManagedReadyState(string managedVersion)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(managedVersion);
+
+        _executablePath = LlamaCppManagedStorage.GetOwnedChildPath(
+            _runtimeDirectory,
+            LlamaCppManagedStorage.ReleasesDirectoryName,
+            managedVersion,
+            "llama-server");
+        _version ??= managedVersion;
+        _endpoint = null;
+        _serverApiKey = null;
+        _activeConfiguration = null;
+    }
+
+    private void ResetManagedRuntimeState()
+    {
+        _executablePath = null;
+        _version = null;
+        _modelReference = null;
+        _endpoint = null;
+        _serverApiKey = null;
+        _activeConfiguration = null;
+        _generationOptions = new InferenceGenerationOptions();
+    }
+
+    private static long CalculateReclaimedBytes(
+        InferenceProviderStorageInfo before,
+        InferenceProviderStorageInfo after,
+        bool includeModelCache)
+    {
+        ArgumentNullException.ThrowIfNull(before);
+        ArgumentNullException.ThrowIfNull(after);
+
+        long reclaimedRuntime = Math.Max(0, before.RuntimeBytes - after.RuntimeBytes);
+        long reclaimedModels = includeModelCache
+            ? Math.Max(0, before.ModelCacheBytes - after.ModelCacheBytes)
+            : 0;
+
+        return reclaimedModels > long.MaxValue - reclaimedRuntime
+            ? long.MaxValue
+            : reclaimedRuntime + reclaimedModels;
+    }
+
+    private static InferenceProviderException CreateMaintenanceFailure(Exception exception)
+    {
+        ArgumentNullException.ThrowIfNull(exception);
+        return new InferenceProviderException(
+            InferenceProviderFailureKind.Faulted,
+            "Alicia could not complete the requested provider maintenance. Review file permissions and try again. No files outside Alicia's managed provider storage are targeted.",
+            exception);
     }
 
     private async Task<InferenceProviderUpdateInfo> CheckForUpdateCoreAsync(

@@ -10,6 +10,14 @@ namespace Alicia.Presentation.ViewModels;
 
 public sealed class MainViewModel : ViewModelBase
 {
+    private enum ProviderMaintenanceConfirmation
+    {
+        None = 0,
+        CleanupRetainedReleases = 1,
+        UninstallRuntime = 2,
+        UninstallRuntimeAndModelCache = 3,
+    }
+
     private const double ScrollDetachThreshold = 32d;
 
     private static readonly TimeSpan _defaultResponseStopLockDuration = TimeSpan.FromMilliseconds(1200);
@@ -36,6 +44,7 @@ public sealed class MainViewModel : ViewModelBase
     private CancellationTokenSource? _responseCancellation;
     private CancellationTokenSource? _retryResponseUnlockCancellation;
     private CancellationTokenSource? _providerOperationCancellation;
+    private ProviderMaintenanceConfirmation _providerMaintenanceConfirmation;
     private ConversationUiStateSnapshot _conversationUiState = ConversationUiStateSnapshot.Default;
     private int _conversationScrollRestoreRevision;
 
@@ -128,6 +137,24 @@ public sealed class MainViewModel : ViewModelBase
         UpdateProviderCommand = new AsyncRelayCommand(
             UpdateProviderAsync,
             () => CanUpdateProvider);
+        InspectProviderStorageCommand = new AsyncRelayCommand(
+            InspectProviderStorageAsync,
+            () => CanInspectProviderStorage);
+        RequestCleanupRetainedProviderReleasesCommand = new RelayCommand(
+            RequestCleanupRetainedProviderReleases,
+            () => CanCleanupRetainedProviderReleases);
+        RequestUninstallProviderRuntimeCommand = new RelayCommand(
+            RequestUninstallProviderRuntime,
+            () => CanRequestProviderMaintenance);
+        RequestUninstallProviderRuntimeAndCacheCommand = new RelayCommand(
+            RequestUninstallProviderRuntimeAndCache,
+            () => CanRequestProviderMaintenance);
+        CancelProviderMaintenanceCommand = new RelayCommand(
+            CancelProviderMaintenance,
+            () => IsProviderMaintenanceConfirmationVisible);
+        ConfirmProviderMaintenanceCommand = new AsyncRelayCommand(
+            ConfirmProviderMaintenanceAsync,
+            () => CanConfirmProviderMaintenance);
         StartProviderCommand = new AsyncRelayCommand(StartProviderAsync, () => CanStartProvider);
         StopProviderCommand = new AsyncRelayCommand(StopProviderAsync, () => CanStopProvider);
         SaveProviderConfigurationCommand = new AsyncRelayCommand(
@@ -194,6 +221,18 @@ public sealed class MainViewModel : ViewModelBase
     public IAsyncRelayCommand CheckProviderUpdateCommand { get; }
 
     public IAsyncRelayCommand UpdateProviderCommand { get; }
+
+    public IAsyncRelayCommand InspectProviderStorageCommand { get; }
+
+    public IRelayCommand RequestCleanupRetainedProviderReleasesCommand { get; }
+
+    public IRelayCommand RequestUninstallProviderRuntimeCommand { get; }
+
+    public IRelayCommand RequestUninstallProviderRuntimeAndCacheCommand { get; }
+
+    public IRelayCommand CancelProviderMaintenanceCommand { get; }
+
+    public IAsyncRelayCommand ConfirmProviderMaintenanceCommand { get; }
 
     public IAsyncRelayCommand StartProviderCommand { get; }
 
@@ -460,17 +499,20 @@ public sealed class MainViewModel : ViewModelBase
 
     public bool IsProviderSettingsEditable => !IsProviderBusy
         && !IsProviderRunning
-        && !IsGeneratingResponse;
+        && !IsGeneratingResponse
+        && !IsProviderMaintenanceConfirmationVisible;
 
     public bool IsProviderSelectionEditable => IsProviderSettingsEditable;
 
     public bool CanDetectProvider => SelectedProvider is not null
         && !IsProviderBusy
-        && !IsGeneratingResponse;
+        && !IsGeneratingResponse
+        && !IsProviderMaintenanceConfirmationVisible;
 
     public bool CanInstallProvider => SelectedProvider is not null
         && !IsProviderBusy
         && !IsGeneratingResponse
+        && !IsProviderMaintenanceConfirmationVisible
         && ProviderFailureKind is not InferenceProviderFailureKind.Network
             and not InferenceProviderFailureKind.Model
         && Provider.Snapshot?.State is InferenceProviderState.Missing
@@ -480,6 +522,7 @@ public sealed class MainViewModel : ViewModelBase
     public bool CanStartProvider => SelectedProvider is not null
         && !IsProviderBusy
         && !IsGeneratingResponse
+        && !IsProviderMaintenanceConfirmationVisible
         && Provider.Snapshot?.State == InferenceProviderState.Ready
         && !HasProviderConfigurationChanges
         && Model.SavedProviderConfiguration?.HasModelReference == true
@@ -494,12 +537,61 @@ public sealed class MainViewModel : ViewModelBase
     public bool CanCheckProviderUpdate => SelectedProvider is not null
         && Provider.SupportsProviderUpdates
         && !IsProviderBusy
-        && !IsGeneratingResponse;
+        && !IsGeneratingResponse
+        && !IsProviderMaintenanceConfirmationVisible;
 
     public bool CanUpdateProvider => CanCheckProviderUpdate
         && !IsProviderRunning
         && Provider.IsProviderUpdateAvailable
         && Provider.Snapshot?.State == InferenceProviderState.Ready;
+
+    public bool CanInspectProviderStorage => SelectedProvider is not null
+        && Provider.SupportsProviderMaintenance
+        && !IsProviderBusy
+        && !IsGeneratingResponse
+        && !IsProviderMaintenanceConfirmationVisible;
+
+    public bool CanRequestProviderMaintenance => CanInspectProviderStorage
+        && HasProviderStorageInfo
+        && !IsProviderRunning;
+
+    public bool CanCleanupRetainedProviderReleases => CanRequestProviderMaintenance
+        && HasRetainedProviderReleases;
+
+    public bool CanConfirmProviderMaintenance => IsProviderMaintenanceConfirmationVisible
+        && !IsProviderBusy
+        && !IsGeneratingResponse
+        && !IsProviderRunning;
+
+    public bool IsProviderMaintenanceConfirmationVisible =>
+        _providerMaintenanceConfirmation != ProviderMaintenanceConfirmation.None;
+
+    public string ProviderMaintenanceConfirmationTitle => _providerMaintenanceConfirmation switch
+    {
+        ProviderMaintenanceConfirmation.CleanupRetainedReleases => "Clean retained runtime releases?",
+        ProviderMaintenanceConfirmation.UninstallRuntime => "Uninstall managed runtime?",
+        ProviderMaintenanceConfirmation.UninstallRuntimeAndModelCache => "Uninstall runtime and model cache?",
+        _ => string.Empty,
+    };
+
+    public string ProviderMaintenanceConfirmationDescription => _providerMaintenanceConfirmation switch
+    {
+        ProviderMaintenanceConfirmation.CleanupRetainedReleases =>
+            "Only inactive Alicia-managed release directories are removed. The active managed release, model cache, provider configuration, and conversations are preserved.",
+        ProviderMaintenanceConfirmation.UninstallRuntime =>
+            "Managed llama.cpp binaries, activation metadata, stale build staging, and provider logs are removed. The local model cache, provider configuration, and conversations are preserved.",
+        ProviderMaintenanceConfirmation.UninstallRuntimeAndModelCache =>
+            "Managed llama.cpp runtime files and the local model cache are removed. Provider configuration and conversations are preserved. Cached model files must be downloaded again before reuse.",
+        _ => string.Empty,
+    };
+
+    public string ProviderMaintenanceConfirmLabel => _providerMaintenanceConfirmation switch
+    {
+        ProviderMaintenanceConfirmation.CleanupRetainedReleases => "Clean releases",
+        ProviderMaintenanceConfirmation.UninstallRuntime => "Uninstall runtime",
+        ProviderMaintenanceConfirmation.UninstallRuntimeAndModelCache => "Uninstall runtime + cache",
+        _ => string.Empty,
+    };
 
     public bool IsProviderModelEditable => IsProviderSettingsEditable;
 
@@ -552,6 +644,20 @@ public sealed class MainViewModel : ViewModelBase
     public string ProviderLatestReleaseText => Provider.ProviderLatestReleaseText;
 
     public string ProviderUpdateStatusText => Provider.ProviderUpdateStatusText;
+
+    public bool SupportsProviderMaintenance => Provider.SupportsProviderMaintenance;
+
+    public bool HasProviderStorageInfo => Provider.HasProviderStorageInfo;
+
+    public bool HasRetainedProviderReleases => Provider.HasRetainedProviderReleases;
+
+    public string ProviderRuntimeStorageText => Provider.ProviderRuntimeStorageText;
+
+    public string ProviderModelCacheStorageText => Provider.ProviderModelCacheStorageText;
+
+    public string ProviderRetainedReleasesText => Provider.ProviderRetainedReleasesText;
+
+    public string ProviderMaintenanceStatusText => Provider.ProviderMaintenanceStatusText;
 
     public bool IsProviderProgressVisible => Provider.IsProviderProgressVisible;
 
@@ -1114,6 +1220,11 @@ public sealed class MainViewModel : ViewModelBase
         return Provider.GetSelectedProviderUpdateRuntime();
     }
 
+    private IInferenceProviderMaintenanceRuntime GetSelectedProviderMaintenanceRuntime()
+    {
+        return Provider.GetSelectedProviderMaintenanceRuntime();
+    }
+
     private bool TryBuildProviderConfiguration(
         out InferenceProviderConfiguration? configuration,
         out string? validationError)
@@ -1440,6 +1551,8 @@ public sealed class MainViewModel : ViewModelBase
         }
 
         ClearProviderProgress();
+        Provider.InvalidateStorageInfo();
+        RaiseProviderStateChanged();
         SerializedProgress<InferenceProviderProgress> progress = new(ApplyProviderProgress);
 
         await ExecuteProviderOperationAsync(
@@ -1524,6 +1637,8 @@ public sealed class MainViewModel : ViewModelBase
         }
 
         ClearProviderProgress();
+        Provider.InvalidateStorageInfo();
+        RaiseProviderStateChanged();
         SerializedProgress<InferenceProviderProgress> progress = new(ApplyProviderProgress);
         using CancellationTokenSource cancellationSource = new();
         _providerOperationCancellation = cancellationSource;
@@ -1599,6 +1714,229 @@ public sealed class MainViewModel : ViewModelBase
         ErrorMessage = message;
         Provider.SetUpdateStatusMessage(message);
         RaiseProviderStateChanged();
+    }
+
+    private async Task InspectProviderStorageAsync()
+    {
+        if (!CanInspectProviderStorage)
+        {
+            return;
+        }
+
+        using CancellationTokenSource cancellationSource = new();
+        _providerOperationCancellation = cancellationSource;
+        IsProviderBusy = true;
+        ClearError();
+
+        try
+        {
+            InferenceProviderStorageInfo storageInfo = await GetSelectedProviderMaintenanceRuntime()
+                .InspectStorageAsync(cancellationSource.Token)
+                .ConfigureAwait(true);
+            Provider.ApplyStorageInfo(storageInfo);
+            RaiseProviderStateChanged();
+        }
+        catch (OperationCanceledException) when (cancellationSource.IsCancellationRequested)
+        {
+            ClearError();
+        }
+        catch (InferenceProviderException exception)
+        {
+            SetProviderMaintenanceOperationFailure(exception.UserMessage);
+        }
+        catch (IOException)
+        {
+            SetProviderMaintenanceOperationFailure(
+                "Alicia could not inspect managed provider storage. No files were intentionally removed.");
+        }
+        catch (UnauthorizedAccessException)
+        {
+            SetProviderMaintenanceOperationFailure(
+                "Alicia could not inspect managed provider storage. No files were intentionally removed.");
+        }
+        catch (InvalidOperationException)
+        {
+            SetProviderMaintenanceOperationFailure(
+                "Alicia could not inspect managed provider storage. No files were intentionally removed.");
+        }
+        finally
+        {
+            if (ReferenceEquals(_providerOperationCancellation, cancellationSource))
+            {
+                _providerOperationCancellation = null;
+            }
+
+            IsProviderBusy = false;
+        }
+    }
+
+    private void RequestCleanupRetainedProviderReleases()
+    {
+        RequestProviderMaintenance(ProviderMaintenanceConfirmation.CleanupRetainedReleases);
+    }
+
+    private void RequestUninstallProviderRuntime()
+    {
+        RequestProviderMaintenance(ProviderMaintenanceConfirmation.UninstallRuntime);
+    }
+
+    private void RequestUninstallProviderRuntimeAndCache()
+    {
+        RequestProviderMaintenance(ProviderMaintenanceConfirmation.UninstallRuntimeAndModelCache);
+    }
+
+    private void RequestProviderMaintenance(ProviderMaintenanceConfirmation confirmation)
+    {
+        bool canRequest = confirmation == ProviderMaintenanceConfirmation.CleanupRetainedReleases
+            ? CanCleanupRetainedProviderReleases
+            : CanRequestProviderMaintenance;
+
+        if (!canRequest || confirmation == ProviderMaintenanceConfirmation.None)
+        {
+            return;
+        }
+
+        _providerMaintenanceConfirmation = confirmation;
+        ClearError();
+        RaiseProviderMaintenanceConfirmationChanged();
+    }
+
+    private void CancelProviderMaintenance()
+    {
+        if (!IsProviderMaintenanceConfirmationVisible)
+        {
+            return;
+        }
+
+        _providerMaintenanceConfirmation = ProviderMaintenanceConfirmation.None;
+        RaiseProviderMaintenanceConfirmationChanged();
+    }
+
+    private async Task ConfirmProviderMaintenanceAsync()
+    {
+        if (!CanConfirmProviderMaintenance)
+        {
+            return;
+        }
+
+        ProviderMaintenanceConfirmation confirmation = _providerMaintenanceConfirmation;
+        _providerMaintenanceConfirmation = ProviderMaintenanceConfirmation.None;
+        RaiseProviderMaintenanceConfirmationChanged();
+        ClearProviderProgress();
+        SerializedProgress<InferenceProviderProgress> progress = new(ApplyProviderProgress);
+        using CancellationTokenSource cancellationSource = new();
+        _providerOperationCancellation = cancellationSource;
+        IsProviderBusy = true;
+        ClearError();
+
+        try
+        {
+            IInferenceProviderMaintenanceRuntime runtime = GetSelectedProviderMaintenanceRuntime();
+            InferenceProviderMaintenanceResult result = confirmation switch
+            {
+                ProviderMaintenanceConfirmation.CleanupRetainedReleases =>
+                    await runtime.CleanupRetainedReleasesAsync(progress, cancellationSource.Token)
+                        .ConfigureAwait(true),
+                ProviderMaintenanceConfirmation.UninstallRuntime =>
+                    await runtime.UninstallAsync(
+                            InferenceProviderRemovalMode.RuntimeOnly,
+                            progress,
+                            cancellationSource.Token)
+                        .ConfigureAwait(true),
+                ProviderMaintenanceConfirmation.UninstallRuntimeAndModelCache =>
+                    await runtime.UninstallAsync(
+                            InferenceProviderRemovalMode.RuntimeAndModelCache,
+                            progress,
+                            cancellationSource.Token)
+                        .ConfigureAwait(true),
+                _ => throw new InvalidOperationException(
+                    "No provider maintenance action is awaiting confirmation."),
+            };
+
+            ApplyProviderSnapshot(result.Snapshot);
+            Provider.ApplyMaintenanceResult(result);
+            ClearError();
+            RaiseProviderStateChanged();
+        }
+        catch (OperationCanceledException) when (cancellationSource.IsCancellationRequested)
+        {
+            ClearProviderProgress();
+            ClearError();
+        }
+        catch (InferenceProviderException exception)
+        {
+            ClearProviderProgress();
+            SetProviderMaintenanceOperationFailure(exception.UserMessage);
+        }
+        catch (IOException)
+        {
+            ClearProviderProgress();
+            SetProviderMaintenanceOperationFailure(
+                "Alicia could not complete the requested provider maintenance. Review file permissions and try again.");
+        }
+        catch (UnauthorizedAccessException)
+        {
+            ClearProviderProgress();
+            SetProviderMaintenanceOperationFailure(
+                "Alicia could not complete the requested provider maintenance. Review file permissions and try again.");
+        }
+        catch (InvalidOperationException)
+        {
+            ClearProviderProgress();
+            SetProviderMaintenanceOperationFailure(
+                "Alicia could not complete the requested provider maintenance. Review the provider state and try again.");
+        }
+        finally
+        {
+            if (ReferenceEquals(_providerOperationCancellation, cancellationSource))
+            {
+                _providerOperationCancellation = null;
+            }
+
+            IsProviderBusy = false;
+        }
+    }
+
+    private void SetProviderMaintenanceOperationFailure(string message)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(message);
+        ErrorMessage = message;
+        Provider.SetMaintenanceStatusMessage(message);
+        RaiseProviderStateChanged();
+    }
+
+    private void RaiseProviderMaintenanceConfirmationChanged()
+    {
+        OnPropertyChanged(nameof(IsProviderMaintenanceConfirmationVisible));
+        OnPropertyChanged(nameof(ProviderMaintenanceConfirmationTitle));
+        OnPropertyChanged(nameof(ProviderMaintenanceConfirmationDescription));
+        OnPropertyChanged(nameof(ProviderMaintenanceConfirmLabel));
+        OnPropertyChanged(nameof(CanInspectProviderStorage));
+        OnPropertyChanged(nameof(CanRequestProviderMaintenance));
+        OnPropertyChanged(nameof(CanCleanupRetainedProviderReleases));
+        OnPropertyChanged(nameof(CanConfirmProviderMaintenance));
+        OnPropertyChanged(nameof(IsProviderSettingsEditable));
+        OnPropertyChanged(nameof(IsProviderSelectionEditable));
+        OnPropertyChanged(nameof(IsProviderModelEditable));
+        OnPropertyChanged(nameof(IsProviderReasoningBudgetEditable));
+        OnPropertyChanged(nameof(CanSaveProviderConfiguration));
+        OnPropertyChanged(nameof(CanDetectProvider));
+        OnPropertyChanged(nameof(CanInstallProvider));
+        OnPropertyChanged(nameof(CanStartProvider));
+        OnPropertyChanged(nameof(CanCheckProviderUpdate));
+        OnPropertyChanged(nameof(CanUpdateProvider));
+        InspectProviderStorageCommand.NotifyCanExecuteChanged();
+        RequestCleanupRetainedProviderReleasesCommand.NotifyCanExecuteChanged();
+        RequestUninstallProviderRuntimeCommand.NotifyCanExecuteChanged();
+        RequestUninstallProviderRuntimeAndCacheCommand.NotifyCanExecuteChanged();
+        CancelProviderMaintenanceCommand.NotifyCanExecuteChanged();
+        ConfirmProviderMaintenanceCommand.NotifyCanExecuteChanged();
+        DetectProviderCommand.NotifyCanExecuteChanged();
+        InstallProviderCommand.NotifyCanExecuteChanged();
+        StartProviderCommand.NotifyCanExecuteChanged();
+        CheckProviderUpdateCommand.NotifyCanExecuteChanged();
+        UpdateProviderCommand.NotifyCanExecuteChanged();
+        SaveProviderConfigurationCommand.NotifyCanExecuteChanged();
     }
 
     private async Task StartProviderAsync()
@@ -2305,6 +2643,12 @@ public sealed class MainViewModel : ViewModelBase
             return;
         }
 
+        if (IsProviderMaintenanceConfirmationVisible)
+        {
+            CancelProviderMaintenance();
+            return;
+        }
+
         if (ShowNarrowConversationHistoryPanel)
         {
             CloseNarrowHistoryOverlay();
@@ -2862,6 +3206,17 @@ public sealed class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(ProviderValidatedReleaseText));
         OnPropertyChanged(nameof(ProviderLatestReleaseText));
         OnPropertyChanged(nameof(ProviderUpdateStatusText));
+        OnPropertyChanged(nameof(SupportsProviderMaintenance));
+        OnPropertyChanged(nameof(HasProviderStorageInfo));
+        OnPropertyChanged(nameof(HasRetainedProviderReleases));
+        OnPropertyChanged(nameof(ProviderRuntimeStorageText));
+        OnPropertyChanged(nameof(ProviderModelCacheStorageText));
+        OnPropertyChanged(nameof(ProviderRetainedReleasesText));
+        OnPropertyChanged(nameof(ProviderMaintenanceStatusText));
+        OnPropertyChanged(nameof(CanInspectProviderStorage));
+        OnPropertyChanged(nameof(CanRequestProviderMaintenance));
+        OnPropertyChanged(nameof(CanCleanupRetainedProviderReleases));
+        OnPropertyChanged(nameof(CanConfirmProviderMaintenance));
         OnPropertyChanged(nameof(IsProviderProgressVisible));
         OnPropertyChanged(nameof(IsProviderProgressIndeterminate));
         OnPropertyChanged(nameof(IsProviderProgressIndeterminateAnimationEnabled));
@@ -2877,6 +3232,12 @@ public sealed class MainViewModel : ViewModelBase
         InstallProviderCommand.NotifyCanExecuteChanged();
         CheckProviderUpdateCommand.NotifyCanExecuteChanged();
         UpdateProviderCommand.NotifyCanExecuteChanged();
+        InspectProviderStorageCommand.NotifyCanExecuteChanged();
+        RequestCleanupRetainedProviderReleasesCommand.NotifyCanExecuteChanged();
+        RequestUninstallProviderRuntimeCommand.NotifyCanExecuteChanged();
+        RequestUninstallProviderRuntimeAndCacheCommand.NotifyCanExecuteChanged();
+        CancelProviderMaintenanceCommand.NotifyCanExecuteChanged();
+        ConfirmProviderMaintenanceCommand.NotifyCanExecuteChanged();
         StartProviderCommand.NotifyCanExecuteChanged();
         StopProviderCommand.NotifyCanExecuteChanged();
         SaveProviderConfigurationCommand.NotifyCanExecuteChanged();

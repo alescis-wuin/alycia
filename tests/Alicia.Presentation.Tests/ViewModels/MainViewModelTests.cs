@@ -1013,6 +1013,178 @@ public sealed class MainViewModelTests
     }
 
     [Fact]
+    public async Task ProviderStorageInspectionIsRequiredBeforeDestructiveMaintenance()
+    {
+        InMemoryConversationRepository repository = new();
+        StubInferenceProviderRuntime provider = new(InferenceProviderState.Ready);
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(new DateTimeOffset(2026, 8, 15, 1, 0, 0, TimeSpan.Zero)),
+            inferenceProvider: provider);
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        Assert.True(viewModel.SupportsProviderMaintenance);
+        Assert.True(viewModel.CanInspectProviderStorage);
+        Assert.False(viewModel.HasProviderStorageInfo);
+        Assert.False(viewModel.CanRequestProviderMaintenance);
+        Assert.False(viewModel.CanCleanupRetainedProviderReleases);
+
+        await viewModel.InspectProviderStorageCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.Equal(1, provider.InspectStorageCount);
+        Assert.True(viewModel.HasProviderStorageInfo);
+        Assert.True(viewModel.CanRequestProviderMaintenance);
+        Assert.True(viewModel.CanCleanupRetainedProviderReleases);
+        Assert.Contains("b10435", viewModel.ProviderRuntimeStorageText, StringComparison.Ordinal);
+        Assert.Contains("model cache", viewModel.ProviderModelCacheStorageText, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("1 inactive", viewModel.ProviderRetainedReleasesText, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task ProviderUninstallRequestDoesNotDeleteAnythingUntilExplicitConfirmation()
+    {
+        InMemoryConversationRepository repository = new();
+        StubInferenceProviderRuntime provider = new(InferenceProviderState.Ready);
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(new DateTimeOffset(2026, 8, 15, 1, 1, 0, TimeSpan.Zero)),
+            inferenceProvider: provider);
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+        await viewModel.InspectProviderStorageCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        viewModel.RequestUninstallProviderRuntimeCommand.Execute(null);
+
+        Assert.True(viewModel.IsProviderMaintenanceConfirmationVisible);
+        Assert.Equal("Uninstall managed runtime?", viewModel.ProviderMaintenanceConfirmationTitle);
+        Assert.Equal(0, provider.UninstallCount);
+
+        viewModel.CancelProviderMaintenanceCommand.Execute(null);
+
+        Assert.False(viewModel.IsProviderMaintenanceConfirmationVisible);
+        Assert.Equal(0, provider.UninstallCount);
+        Assert.True(provider.StorageInfo.HasManagedRuntime);
+    }
+
+    [Fact]
+    public async Task ConfirmedRuntimeOnlyUninstallPreservesModelCacheScope()
+    {
+        InMemoryConversationRepository repository = new();
+        StubInferenceProviderRuntime provider = new(InferenceProviderState.Ready);
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(new DateTimeOffset(2026, 8, 15, 1, 2, 0, TimeSpan.Zero)),
+            inferenceProvider: provider);
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+        await viewModel.InspectProviderStorageCommand.ExecuteAsync(null).ConfigureAwait(true);
+        string savedModelReference = viewModel.ProviderModelReference;
+
+        viewModel.RequestUninstallProviderRuntimeCommand.Execute(null);
+        await viewModel.ConfirmProviderMaintenanceCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.Equal(1, provider.UninstallCount);
+        Assert.Equal(InferenceProviderRemovalMode.RuntimeOnly, provider.LastRemovalMode);
+        Assert.False(viewModel.IsProviderMaintenanceConfirmationVisible);
+        Assert.Equal("Not installed", viewModel.ProviderStatusText);
+        Assert.True(viewModel.HasProviderStorageInfo);
+        Assert.Contains("0 B remaining runtime files", viewModel.ProviderRuntimeStorageText, StringComparison.Ordinal);
+        Assert.DoesNotContain("0 B", viewModel.ProviderModelCacheStorageText, StringComparison.Ordinal);
+        Assert.Contains("model cache", viewModel.ProviderMaintenanceStatusText, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(savedModelReference, viewModel.ProviderModelReference);
+        Assert.True(viewModel.CanInstallProvider);
+    }
+
+    [Fact]
+    public async Task ConfirmedRuntimeAndCacheUninstallUsesDistinctDestructiveScope()
+    {
+        InMemoryConversationRepository repository = new();
+        StubInferenceProviderRuntime provider = new(InferenceProviderState.Ready);
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(new DateTimeOffset(2026, 8, 15, 1, 3, 0, TimeSpan.Zero)),
+            inferenceProvider: provider);
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+        await viewModel.InspectProviderStorageCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        viewModel.RequestUninstallProviderRuntimeAndCacheCommand.Execute(null);
+        Assert.Equal(0, provider.UninstallCount);
+        await viewModel.ConfirmProviderMaintenanceCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.Equal(1, provider.UninstallCount);
+        Assert.Equal(InferenceProviderRemovalMode.RuntimeAndModelCache, provider.LastRemovalMode);
+        Assert.Equal("Local model cache • 0 B", viewModel.ProviderModelCacheStorageText);
+        Assert.Contains("configuration and conversations preserved", viewModel.ProviderMaintenanceStatusText, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task RetainedReleaseCleanupRequiresConfirmationAndPreservesActiveRuntime()
+    {
+        InMemoryConversationRepository repository = new();
+        StubInferenceProviderRuntime provider = new(InferenceProviderState.Ready);
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(new DateTimeOffset(2026, 8, 15, 1, 4, 0, TimeSpan.Zero)),
+            inferenceProvider: provider);
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+        await viewModel.InspectProviderStorageCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        viewModel.RequestCleanupRetainedProviderReleasesCommand.Execute(null);
+
+        Assert.True(viewModel.IsProviderMaintenanceConfirmationVisible);
+        Assert.Equal(0, provider.CleanupRetainedReleasesCount);
+        await viewModel.ConfirmProviderMaintenanceCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.Equal(1, provider.CleanupRetainedReleasesCount);
+        Assert.False(viewModel.HasRetainedProviderReleases);
+        Assert.False(viewModel.CanCleanupRetainedProviderReleases);
+        Assert.Equal("Ready", viewModel.ProviderStatusText);
+        Assert.True(provider.StorageInfo.HasManagedRuntime);
+        Assert.True(provider.StorageInfo.ModelCacheBytes > 0);
+        Assert.Equal(100d, viewModel.ProviderProgressValue);
+    }
+
+    [Fact]
+    public async Task EscapeCancelsProviderMaintenanceConfirmationWithoutMutation()
+    {
+        InMemoryConversationRepository repository = new();
+        StubInferenceProviderRuntime provider = new(InferenceProviderState.Ready);
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(new DateTimeOffset(2026, 8, 15, 1, 5, 0, TimeSpan.Zero)),
+            inferenceProvider: provider);
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+        await viewModel.InspectProviderStorageCommand.ExecuteAsync(null).ConfigureAwait(true);
+        viewModel.RequestUninstallProviderRuntimeAndCacheCommand.Execute(null);
+        Assert.True(viewModel.IsProviderMaintenanceConfirmationVisible);
+
+        viewModel.CancelTransientActionCommand.Execute(null);
+
+        Assert.False(viewModel.IsProviderMaintenanceConfirmationVisible);
+        Assert.Equal(0, provider.UninstallCount);
+    }
+
+    [Fact]
+    public async Task RunningProviderAllowsInspectionButBlocksDestructiveMaintenance()
+    {
+        InMemoryConversationRepository repository = new();
+        StubInferenceProviderRuntime provider = new(InferenceProviderState.Running);
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(new DateTimeOffset(2026, 8, 15, 1, 6, 0, TimeSpan.Zero)),
+            inferenceProvider: provider);
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        Assert.True(viewModel.IsProviderRunning);
+        Assert.True(viewModel.CanInspectProviderStorage);
+        await viewModel.InspectProviderStorageCommand.ExecuteAsync(null).ConfigureAwait(true);
+        Assert.True(viewModel.HasProviderStorageInfo);
+        Assert.False(viewModel.CanRequestProviderMaintenance);
+
+        viewModel.RequestUninstallProviderRuntimeCommand.Execute(null);
+        Assert.False(viewModel.IsProviderMaintenanceConfirmationVisible);
+        Assert.Equal(0, provider.UninstallCount);
+    }
+
+    [Fact]
     public async Task StartProviderPassesHuggingFaceModelReferenceAndEnablesChat()
     {
         InMemoryConversationRepository repository = new();

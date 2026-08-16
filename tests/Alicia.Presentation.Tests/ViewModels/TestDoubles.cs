@@ -279,7 +279,8 @@ internal sealed class ProviderFailureConversationResponder : IStreamingConversat
 
 internal sealed class StubInferenceProviderRuntime :
     IInferenceProviderRuntime,
-    IInferenceProviderUpdateRuntime
+    IInferenceProviderUpdateRuntime,
+    IInferenceProviderMaintenanceRuntime
 {
     private const string ProviderName = "llama.cpp CUDA";
 
@@ -298,6 +299,19 @@ internal sealed class StubInferenceProviderRuntime :
                 isLatestVersionValidated: true,
                 detail: "No managed runtime installed.")
             : CreateUpToDateInfo();
+        StorageInfo = initialState == InferenceProviderState.Missing
+            ? new InferenceProviderStorageInfo(
+                hasManagedRuntime: false,
+                managedVersion: null,
+                retainedReleaseCount: 0,
+                runtimeBytes: 0,
+                modelCacheBytes: 2048)
+            : new InferenceProviderStorageInfo(
+                hasManagedRuntime: true,
+                managedVersion: ValidatedVersion,
+                retainedReleaseCount: 1,
+                runtimeBytes: 4096,
+                modelCacheBytes: 2048);
     }
 
     public InferenceProviderSnapshot Current { get; private set; }
@@ -305,6 +319,16 @@ internal sealed class StubInferenceProviderRuntime :
     public string ValidatedVersion => "b10435";
 
     public InferenceProviderUpdateInfo UpdateInfo { get; set; }
+
+    public InferenceProviderStorageInfo StorageInfo { get; set; }
+
+    public int InspectStorageCount { get; private set; }
+
+    public int CleanupRetainedReleasesCount { get; private set; }
+
+    public int UninstallCount { get; private set; }
+
+    public InferenceProviderRemovalMode? LastRemovalMode { get; private set; }
 
     public int CheckUpdateCount { get; private set; }
 
@@ -331,6 +355,10 @@ internal sealed class StubInferenceProviderRuntime :
     public Exception? CheckUpdateException { get; set; }
 
     public Exception? UpdateException { get; set; }
+
+    public Exception? InspectStorageException { get; set; }
+
+    public Exception? MaintenanceException { get; set; }
 
     public Task<InferenceProviderSnapshot> DetectAsync(CancellationToken cancellationToken = default)
     {
@@ -368,6 +396,7 @@ internal sealed class StubInferenceProviderRuntime :
         await Task.Yield();
         Current = CreateSnapshot(InferenceProviderState.Ready);
         UpdateInfo = CreateUpToDateInfo();
+        StorageInfo = CreateManagedStorageInfo();
         return Current;
     }
 
@@ -406,12 +435,116 @@ internal sealed class StubInferenceProviderRuntime :
 
         Current = CreateSnapshot(InferenceProviderState.Ready);
         UpdateInfo = CreateUpToDateInfo();
+        StorageInfo = CreateManagedStorageInfo();
         progress?.Report(new InferenceProviderProgress(
             "Update complete",
             "Validated runtime active.",
             1.0));
 
         return new InferenceProviderUpdateResult(Current, UpdateInfo);
+    }
+
+    public Task<InferenceProviderStorageInfo> InspectStorageAsync(
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        InspectStorageCount++;
+
+        if (InspectStorageException is not null)
+        {
+            throw InspectStorageException;
+        }
+
+        return Task.FromResult(StorageInfo);
+    }
+
+    public async Task<InferenceProviderMaintenanceResult> CleanupRetainedReleasesAsync(
+        IProgress<InferenceProviderProgress>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        CleanupRetainedReleasesCount++;
+
+        if (MaintenanceException is not null)
+        {
+            throw MaintenanceException;
+        }
+
+        progress?.Report(new InferenceProviderProgress(
+            "Cleaning retained releases",
+            "Removing inactive managed releases."));
+        await Task.Yield();
+        cancellationToken.ThrowIfCancellationRequested();
+
+        StorageInfo = new InferenceProviderStorageInfo(
+            StorageInfo.HasManagedRuntime,
+            StorageInfo.ManagedVersion,
+            retainedReleaseCount: 0,
+            runtimeBytes: Math.Max(0, StorageInfo.RuntimeBytes - 1024),
+            modelCacheBytes: StorageInfo.ModelCacheBytes);
+        Current = CreateSnapshot(InferenceProviderState.Ready, Current.ModelReference);
+        const string Detail = "Retained runtime releases removed; active runtime and model cache preserved.";
+        progress?.Report(new InferenceProviderProgress(
+            "Cleanup complete",
+            Detail,
+            1.0));
+
+        return new InferenceProviderMaintenanceResult(
+            Current,
+            StorageInfo,
+            reclaimedBytes: 1024,
+            detail: Detail);
+    }
+
+    public async Task<InferenceProviderMaintenanceResult> UninstallAsync(
+        InferenceProviderRemovalMode mode,
+        IProgress<InferenceProviderProgress>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (!Enum.IsDefined(mode))
+        {
+            throw new ArgumentOutOfRangeException(nameof(mode));
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        UninstallCount++;
+        LastRemovalMode = mode;
+
+        if (MaintenanceException is not null)
+        {
+            throw MaintenanceException;
+        }
+
+        progress?.Report(new InferenceProviderProgress(
+            "Removing managed runtime",
+            "Removing explicitly confirmed provider storage."));
+        await Task.Yield();
+        cancellationToken.ThrowIfCancellationRequested();
+
+        bool removeModelCache = mode == InferenceProviderRemovalMode.RuntimeAndModelCache;
+        long preservedModelBytes = removeModelCache ? 0 : StorageInfo.ModelCacheBytes;
+        long reclaimedBytes = StorageInfo.RuntimeBytes
+            + (removeModelCache ? StorageInfo.ModelCacheBytes : 0);
+        StorageInfo = new InferenceProviderStorageInfo(
+            hasManagedRuntime: false,
+            managedVersion: null,
+            retainedReleaseCount: 0,
+            runtimeBytes: 0,
+            modelCacheBytes: preservedModelBytes);
+        Current = CreateSnapshot(InferenceProviderState.Missing);
+        string detail = removeModelCache
+            ? "Managed runtime and local model cache removed; provider configuration and conversations preserved."
+            : "Managed runtime removed; local model cache, provider configuration, and conversations preserved.";
+        progress?.Report(new InferenceProviderProgress(
+            "Uninstall complete",
+            detail,
+            1.0));
+
+        return new InferenceProviderMaintenanceResult(
+            Current,
+            StorageInfo,
+            reclaimedBytes,
+            detail);
     }
 
     public Task<InferenceProviderSnapshot> StartAsync(
@@ -438,6 +571,16 @@ internal sealed class StubInferenceProviderRuntime :
         StopCount++;
         Current = CreateSnapshot(InferenceProviderState.Ready, Current.ModelReference);
         return Task.FromResult(Current);
+    }
+
+    private InferenceProviderStorageInfo CreateManagedStorageInfo()
+    {
+        return new InferenceProviderStorageInfo(
+            hasManagedRuntime: true,
+            managedVersion: ValidatedVersion,
+            retainedReleaseCount: 0,
+            runtimeBytes: 4096,
+            modelCacheBytes: StorageInfo.ModelCacheBytes);
     }
 
     private InferenceProviderUpdateInfo CreateUpToDateInfo()

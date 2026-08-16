@@ -14,6 +14,8 @@ public sealed class ProviderViewModel : ViewModelBase
     private string? _lastFailureMessage;
     private InferenceProviderUpdateInfo? _providerUpdateInfo;
     private string? _providerUpdateStatusMessage;
+    private InferenceProviderStorageInfo? _providerStorageInfo;
+    private string? _providerMaintenanceStatusMessage;
 
     public ProviderViewModel(IInferenceProviderRegistry providerRegistry)
     {
@@ -97,6 +99,36 @@ public sealed class ProviderViewModel : ViewModelBase
             ? "Use Check update to compare the managed runtime with Alicia's validated release and upstream latest."
             : "Managed runtime updates are not available for this provider.");
 
+    public bool SupportsProviderMaintenance =>
+        _selectedProviderRuntime is IInferenceProviderMaintenanceRuntime;
+
+    public bool HasProviderStorageInfo => _providerStorageInfo is not null;
+
+    public bool HasRetainedProviderReleases => _providerStorageInfo?.RetainedReleaseCount > 0;
+
+    public string ProviderRuntimeStorageText => _providerStorageInfo is null
+        ? "Runtime storage not inspected"
+        : _providerStorageInfo.HasManagedRuntime
+            ? $"Managed runtime {_providerStorageInfo.ManagedVersion} • {FormatBytes(_providerStorageInfo.RuntimeBytes)}"
+            : $"Managed runtime not active • {FormatBytes(_providerStorageInfo.RuntimeBytes)} remaining runtime files";
+
+    public string ProviderModelCacheStorageText => _providerStorageInfo is null
+        ? "Model cache not inspected"
+        : $"Local model cache • {FormatBytes(_providerStorageInfo.ModelCacheBytes)}";
+
+    public string ProviderRetainedReleasesText => _providerStorageInfo is null
+        ? "Retained releases not inspected"
+        : _providerStorageInfo.RetainedReleaseCount == 0
+            ? "No inactive managed releases retained"
+            : $"{_providerStorageInfo.RetainedReleaseCount} inactive managed release(s) retained";
+
+    public string ProviderMaintenanceStatusText => _providerMaintenanceStatusMessage
+        ?? (_providerStorageInfo is not null
+            ? "Storage inspected. Choose a separate, explicit maintenance action only for the scope you intend to remove."
+            : SupportsProviderMaintenance
+                ? "Inspect storage before destructive maintenance. Runtime and model-cache deletion are always separate, explicit actions."
+                : "Managed storage maintenance is not available for this provider.");
+
     public bool IsProviderProgressVisible => _providerProgress is not null;
 
     public bool IsProviderProgressIndeterminate => IsProviderBusy
@@ -131,6 +163,8 @@ public sealed class ProviderViewModel : ViewModelBase
         _lastFailureMessage = null;
         _providerUpdateInfo = null;
         _providerUpdateStatusMessage = null;
+        _providerStorageInfo = null;
+        _providerMaintenanceStatusMessage = null;
 
         OnPropertyChanged(nameof(SelectedProvider));
         RaiseProjectionChanged();
@@ -153,6 +187,57 @@ public sealed class ProviderViewModel : ViewModelBase
         return _selectedProviderRuntime as IInferenceProviderUpdateRuntime
             ?? throw new InvalidOperationException(
                 "The selected inference provider does not expose managed update operations.");
+    }
+
+    internal IInferenceProviderMaintenanceRuntime GetSelectedProviderMaintenanceRuntime()
+    {
+        return _selectedProviderRuntime as IInferenceProviderMaintenanceRuntime
+            ?? throw new InvalidOperationException(
+                "The selected inference provider does not expose managed storage maintenance operations.");
+    }
+
+    internal void ApplyStorageInfo(InferenceProviderStorageInfo storageInfo)
+    {
+        ArgumentNullException.ThrowIfNull(storageInfo);
+        _providerStorageInfo = storageInfo;
+        _providerMaintenanceStatusMessage = null;
+        RaiseProjectionChanged();
+    }
+
+    internal void InvalidateStorageInfo()
+    {
+        if (_providerStorageInfo is null && _providerMaintenanceStatusMessage is null)
+        {
+            return;
+        }
+
+        _providerStorageInfo = null;
+        _providerMaintenanceStatusMessage = null;
+        RaiseProjectionChanged();
+    }
+
+    internal void ApplyMaintenanceResult(InferenceProviderMaintenanceResult result)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        _providerStorageInfo = result.StorageInfo;
+        _providerMaintenanceStatusMessage = result.ReclaimedBytes == 0
+            ? result.Detail
+            : $"{result.Detail} Reclaimed {FormatBytes(result.ReclaimedBytes)}.";
+
+        if (!result.StorageInfo.HasManagedRuntime)
+        {
+            _providerUpdateInfo = null;
+            _providerUpdateStatusMessage = null;
+        }
+
+        RaiseProjectionChanged();
+    }
+
+    internal void SetMaintenanceStatusMessage(string message)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(message);
+        _providerMaintenanceStatusMessage = message.Trim();
+        RaiseProjectionChanged();
     }
 
     internal void ApplyUpdateInfo(InferenceProviderUpdateInfo updateInfo)
@@ -265,6 +350,21 @@ public sealed class ProviderViewModel : ViewModelBase
         RaiseProjectionChanged();
     }
 
+    private static string FormatBytes(long bytes)
+    {
+        const double KiB = 1024d;
+        const double MiB = KiB * 1024d;
+        const double GiB = MiB * 1024d;
+
+        return bytes switch
+        {
+            >= 1024L * 1024L * 1024L => $"{bytes / GiB:0.00} GiB",
+            >= 1024L * 1024L => $"{bytes / MiB:0.0} MiB",
+            >= 1024L => $"{bytes / KiB:0.0} KiB",
+            _ => $"{bytes} B",
+        };
+    }
+
     private void RaiseProjectionChanged()
     {
         OnPropertyChanged(nameof(IsProviderRunning));
@@ -281,6 +381,13 @@ public sealed class ProviderViewModel : ViewModelBase
         OnPropertyChanged(nameof(ProviderValidatedReleaseText));
         OnPropertyChanged(nameof(ProviderLatestReleaseText));
         OnPropertyChanged(nameof(ProviderUpdateStatusText));
+        OnPropertyChanged(nameof(SupportsProviderMaintenance));
+        OnPropertyChanged(nameof(HasProviderStorageInfo));
+        OnPropertyChanged(nameof(HasRetainedProviderReleases));
+        OnPropertyChanged(nameof(ProviderRuntimeStorageText));
+        OnPropertyChanged(nameof(ProviderModelCacheStorageText));
+        OnPropertyChanged(nameof(ProviderRetainedReleasesText));
+        OnPropertyChanged(nameof(ProviderMaintenanceStatusText));
         OnPropertyChanged(nameof(IsProviderProgressVisible));
         OnPropertyChanged(nameof(IsProviderProgressIndeterminate));
         OnPropertyChanged(nameof(ProviderProgressValue));

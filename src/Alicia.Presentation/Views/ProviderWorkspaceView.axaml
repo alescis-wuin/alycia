@@ -144,6 +144,124 @@
                       Content="Update validated"
                       AutomationProperties.Name="Update provider to Alicia validated release" />
             </Grid>
+
+            <StackPanel Spacing="10"
+                        IsVisible="{Binding SupportsProviderMaintenance}">
+              <Border Height="1"
+                      Margin="0,4"
+                      Background="{DynamicResource BorderBrush}" />
+
+              <TextBlock Text="Managed storage"
+                         FontSize="15"
+                         FontWeight="SemiBold"
+                         AutomationProperties.HeadingLevel="3"
+                         Foreground="{DynamicResource TextPrimaryBrush}" />
+              <TextBlock Text="Inspect Alicia-owned llama.cpp files before any cleanup. Provider configuration and conversations are outside this maintenance scope."
+                         FontSize="12"
+                         LineHeight="18"
+                         TextWrapping="Wrap"
+                         Foreground="{DynamicResource TextSecondaryBrush}" />
+
+              <Button Classes="secondary-action"
+                      Command="{Binding InspectProviderStorageCommand}"
+                      IsEnabled="{Binding CanInspectProviderStorage}"
+                      Content="Inspect storage"
+                      AutomationProperties.Name="Inspect managed provider storage" />
+
+              <StackPanel Spacing="4"
+                          IsVisible="{Binding HasProviderStorageInfo}"
+                          AutomationProperties.Name="Managed provider storage summary">
+                <TextBlock Text="{Binding ProviderRuntimeStorageText}"
+                           FontSize="12"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource TextSecondaryBrush}" />
+                <TextBlock Text="{Binding ProviderModelCacheStorageText}"
+                           FontSize="12"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource TextSecondaryBrush}" />
+                <TextBlock Text="{Binding ProviderRetainedReleasesText}"
+                           FontSize="12"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource TextSecondaryBrush}" />
+              </StackPanel>
+
+              <TextBlock Text="{Binding ProviderMaintenanceStatusText}"
+                         FontSize="12"
+                         LineHeight="18"
+                         TextWrapping="Wrap"
+                         AutomationProperties.LiveSetting="Polite"
+                         Foreground="{DynamicResource TextSecondaryBrush}" />
+
+              <TextBlock Text="Danger zone"
+                         Margin="0,4,0,0"
+                         FontSize="15"
+                         FontWeight="SemiBold"
+                         AutomationProperties.HeadingLevel="3"
+                         Foreground="{DynamicResource DangerBrush}" />
+              <TextBlock Text="No files are removed until a separate confirmation is accepted. Stop the local AI model first."
+                         FontSize="12"
+                         LineHeight="18"
+                         TextWrapping="Wrap"
+                         Foreground="{DynamicResource TextSecondaryBrush}" />
+
+              <Button Classes="secondary-action"
+                      Command="{Binding RequestCleanupRetainedProviderReleasesCommand}"
+                      IsEnabled="{Binding CanCleanupRetainedProviderReleases}"
+                      Content="Clean old releases"
+                      AutomationProperties.Name="Request cleanup of inactive managed runtime releases"
+                      AutomationProperties.HelpText="Preserves the active runtime and local model cache." />
+
+              <Grid ColumnDefinitions="*,10,*">
+                <Button Grid.Column="0"
+                        Classes="danger-action"
+                        Command="{Binding RequestUninstallProviderRuntimeCommand}"
+                        IsEnabled="{Binding CanRequestProviderMaintenance}"
+                        Content="Uninstall runtime"
+                        AutomationProperties.Name="Request managed runtime uninstall"
+                        AutomationProperties.HelpText="Preserves the local model cache, provider configuration, and conversations." />
+                <Button Grid.Column="2"
+                        Classes="danger-action"
+                        Command="{Binding RequestUninstallProviderRuntimeAndCacheCommand}"
+                        IsEnabled="{Binding CanRequestProviderMaintenance}"
+                        Content="Uninstall runtime + cache"
+                        AutomationProperties.Name="Request managed runtime and model cache uninstall"
+                        AutomationProperties.HelpText="Removes managed runtime files and the local model cache, but preserves provider configuration and conversations." />
+              </Grid>
+
+              <Border IsVisible="{Binding IsProviderMaintenanceConfirmationVisible}"
+                      Background="{DynamicResource DangerSurfaceBrush}"
+                      BorderBrush="{DynamicResource DangerBrush}"
+                      BorderThickness="1"
+                      CornerRadius="14"
+                      Padding="14"
+                      AutomationProperties.Name="Provider maintenance confirmation">
+                <StackPanel Spacing="10">
+                  <TextBlock Text="{Binding ProviderMaintenanceConfirmationTitle}"
+                             FontSize="14"
+                             FontWeight="SemiBold"
+                             AutomationProperties.HeadingLevel="4"
+                             Foreground="{DynamicResource TextPrimaryBrush}" />
+                  <TextBlock Text="{Binding ProviderMaintenanceConfirmationDescription}"
+                             FontSize="12"
+                             LineHeight="18"
+                             TextWrapping="Wrap"
+                             Foreground="{DynamicResource TextSecondaryBrush}" />
+                  <Grid ColumnDefinitions="*,10,*">
+                    <Button Grid.Column="0"
+                            Classes="secondary-action"
+                            Command="{Binding CancelProviderMaintenanceCommand}"
+                            Content="Cancel"
+                            AutomationProperties.Name="Cancel provider maintenance" />
+                    <Button Grid.Column="2"
+                            Classes="danger-action"
+                            Command="{Binding ConfirmProviderMaintenanceCommand}"
+                            IsEnabled="{Binding CanConfirmProviderMaintenance}"
+                            Content="{Binding ProviderMaintenanceConfirmLabel}"
+                            AutomationProperties.Name="Confirm provider maintenance" />
+                  </Grid>
+                </StackPanel>
+              </Border>
+            </StackPanel>
           </StackPanel>
         </Border>
 

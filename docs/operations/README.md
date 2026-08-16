@@ -92,11 +92,23 @@ Ninja is preferred when available; Make is supported as fallback.
 
 A valid Hugging Face model reference is required. Alicia reports only a safe model/provider message if startup fails or times out. For engineering diagnosis, the newest file under `providers/llama.cpp/logs` can still be inspected manually; its raw contents are not projected automatically into the UI.
 
+## Managed storage maintenance
+
+The Provider workspace exposes **Inspect storage** before any destructive maintenance. Alicia reports runtime bytes, model-cache bytes, and the count of inactive managed release directories. Inspection does not remove files and can run while the local model is active.
+
+Destructive actions require the managed server to be stopped and always open a separate confirmation surface:
+
+- **Clean old releases** removes only inactive Alicia-managed `releases/b<sequence>/` directories and preserves the release selected by `installation.json`, the model cache, provider configuration, and conversations. Unrecognized release-directory names are preserved.
+- **Uninstall runtime** removes `installation.json`, `releases/`, `.staging/`, and `logs/`; it deliberately preserves `models/`, `providers/configuration.json`, conversations, UI state, and the legacy `providers/llama.cpp/settings.json` file.
+- **Uninstall runtime + cache** removes the same runtime scope plus `providers/llama.cpp/models/`. Model files must then be downloaded again before reuse.
+
+Alicia never stops the provider implicitly to perform these actions. Requested deletion is canonicalized beneath the configured `providers/llama.cpp` root; symbolic links/reparse points are deleted as links and are never traversed. The path stored in `installation.json` is not trusted as a deletion target. Cancellation is honored before mutation starts; after the confirmed bounded deletion begins, Alicia finishes that scope instead of deliberately leaving a half-deleted tree.
+
 ## Managed update policy
 
 The Provider workspace exposes **Check update** and, only when applicable, **Update validated**. Update checking compares three distinct values: the active Alicia-managed release from `installation.json`, the release validated and pinned by this Alicia build, and GitHub upstream latest. A newer upstream release is reported but is not executed until a future Alicia build explicitly validates it.
 
-Alicia never auto-updates llama.cpp. **Update validated** is enabled only for a stopped, healthy managed runtime whose installed release is older than the validated pin. A managed release newer than the pin is not downgraded. Update preparation uses the official release tag only to verify its pinned source commit, then downloads the tarball by immutable commit SHA. Cancellation/failure before metadata activation leaves the previous release selected. Old release directories are intentionally retained; destructive cleanup belongs to Lot 10.6.
+Alicia never auto-updates llama.cpp. **Update validated** is enabled only for a stopped, healthy managed runtime whose installed release is older than the validated pin. A managed release newer than the pin is not downgraded. Update preparation uses the official release tag only to verify its pinned source commit, then downloads the tarball by immutable commit SHA. Cancellation/failure before metadata activation leaves the previous release selected. Old release directories are intentionally retained after update and can now be reclaimed only through the explicit Lot 10.6 managed-storage cleanup action.
 
 ## Deferred operational work
 

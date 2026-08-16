@@ -42,7 +42,7 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 | Lot 08 llama.cpp CUDA | terminé | `427e25c` |
 | Lot 09 Provider/model configuration | terminé | `cf0a5c5` + stabilisations |
 | UIX-01 Stages 1–7 | terminé | `ed4cc29` → `c51f1ef` |
-| Lot 10 Robustesse/sécurité/observabilité | en cours | 10.1–10.5 terminés sur cette branche |
+| Lot 10 Robustesse/sécurité/observabilité | en cours | 10.1–10.6 terminés sur cette branche |
 | Lot 10.1/10.2 sécurité + ownership | terminé | session locale durcie |
 | UIX-01 Stage 8 | terminé | FOLLOWING / DETACHED + UI state |
 | UIX-01 Stage 9 | terminé | décomposition Presentation en six ViewModels |
@@ -102,12 +102,16 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 - activation atomique de `installation.json` après validation CUDA du candidat ;
 - ancienne release conservée en cas d'échec/cancellation et jusqu'au nettoyage explicite du Lot 10.6.
 
-### 10.6 Uninstall / cache — prochain
+### 10.6 Uninstall / cache — P0 — terminé
 
-- runtime only ;
-- runtime + modèles/cache ;
-- confirmations explicites ;
-- aucune destruction implicite.
+- inspection explicite de l'espace runtime et du cache modèles avant maintenance destructive ;
+- nettoyage séparé des anciennes releases gérées conservées par 10.5, sans toucher à la release active ;
+- désinstallation `runtime only` : `installation.json`, `releases/`, `.staging/` et logs, en conservant `models/` ;
+- désinstallation `runtime + modèles/cache` comme action distincte ;
+- confirmation explicite obligatoire avant chaque suppression, `Escape`/Cancel sans mutation ;
+- aucune fermeture implicite du provider : maintenance destructive refusée tant que le serveur tourne ;
+- configuration provider, conversations, UI state et legacy settings préservés ;
+- suppression confinée au répertoire géré Alicia, sans suivre les symlinks/reparse points ni faire confiance à un chemin arbitraire issu des metadata.
 
 ### 10.7 Observabilité
 
@@ -241,7 +245,9 @@ Lot 10.4 — terminé
    ↓
 Lot 10.5 — terminé
    ↓
-Lot 10.6–10.7 — prochain
+Lot 10.6 — terminé
+   ↓
+Lot 10.7 — prochain
    ↓
 Lot 10B
    ↓

@@ -1125,6 +1125,426 @@ public sealed class LlamaCppProviderContractTests
             LlamaCppProviderRuntime.LooksLikeModelStartupFailure(diagnostic));
     }
 
+    [Fact]
+    public async Task ManagedStorageInspectionSeparatesRuntimeAndModelCacheBytes()
+    {
+        string rootDirectory = Path.Combine(
+            Path.GetTempPath(),
+            $"alicia-maintenance-inspect-{Guid.NewGuid():N}");
+        string runtimeDirectory = Path.Combine(rootDirectory, "providers", "llama.cpp");
+        string activeExecutable = Path.Combine(runtimeDirectory, "releases", "b10435", "llama-server");
+        string oldExecutable = Path.Combine(runtimeDirectory, "releases", "b10434", "llama-server");
+        string modelFile = Path.Combine(runtimeDirectory, "models", "model.gguf");
+
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(activeExecutable)!);
+            Directory.CreateDirectory(Path.GetDirectoryName(oldExecutable)!);
+            Directory.CreateDirectory(Path.GetDirectoryName(modelFile)!);
+            await File.WriteAllBytesAsync(
+                activeExecutable,
+                new byte[128],
+                TestContext.Current.CancellationToken).ConfigureAwait(true);
+            await File.WriteAllBytesAsync(
+                oldExecutable,
+                new byte[64],
+                TestContext.Current.CancellationToken).ConfigureAwait(true);
+            await File.WriteAllBytesAsync(
+                modelFile,
+                new byte[512],
+                TestContext.Current.CancellationToken).ConfigureAwait(true);
+            await LlamaCppInstaller.WriteInstallationMetadataAsync(
+                runtimeDirectory,
+                new LlamaCppInstallation(
+                    "b10435",
+                    activeExecutable,
+                    new DateTimeOffset(2026, 8, 15, 0, 0, 0, TimeSpan.Zero)),
+                TestContext.Current.CancellationToken).ConfigureAwait(true);
+
+            await using LlamaCppProviderRuntime runtime = new(runtimeDirectory);
+            InferenceProviderStorageInfo info = await runtime.InspectStorageAsync(
+                TestContext.Current.CancellationToken).ConfigureAwait(true);
+
+            Assert.True(info.HasManagedRuntime);
+            Assert.Equal("b10435", info.ManagedVersion);
+            Assert.Equal(1, info.RetainedReleaseCount);
+            Assert.True(info.RuntimeBytes >= 192);
+            Assert.Equal(512, info.ModelCacheBytes);
+        }
+        finally
+        {
+            if (Directory.Exists(rootDirectory))
+            {
+                Directory.Delete(rootDirectory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task RuntimeOnlyUninstallPreservesModelCacheConfigurationAndConversations()
+    {
+        string rootDirectory = Path.Combine(
+            Path.GetTempPath(),
+            $"alicia-maintenance-runtime-only-{Guid.NewGuid():N}");
+        string providersDirectory = Path.Combine(rootDirectory, "providers");
+        string runtimeDirectory = Path.Combine(providersDirectory, "llama.cpp");
+        string activeExecutable = Path.Combine(runtimeDirectory, "releases", "b10435", "llama-server");
+        string modelFile = Path.Combine(runtimeDirectory, "models", "model.gguf");
+        string configurationFile = Path.Combine(providersDirectory, "configuration.json");
+        string conversationFile = Path.Combine(rootDirectory, "conversations", "conversation.json");
+        string legacySettingsFile = Path.Combine(runtimeDirectory, "settings.json");
+
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(activeExecutable)!);
+            Directory.CreateDirectory(Path.GetDirectoryName(modelFile)!);
+            Directory.CreateDirectory(Path.GetDirectoryName(configurationFile)!);
+            Directory.CreateDirectory(Path.GetDirectoryName(conversationFile)!);
+            Directory.CreateDirectory(Path.Combine(runtimeDirectory, "logs"));
+            Directory.CreateDirectory(Path.Combine(runtimeDirectory, ".staging", "stale"));
+            await File.WriteAllTextAsync(activeExecutable, "runtime", TestContext.Current.CancellationToken)
+                .ConfigureAwait(true);
+            await File.WriteAllTextAsync(modelFile, "cached-model", TestContext.Current.CancellationToken)
+                .ConfigureAwait(true);
+            await File.WriteAllTextAsync(configurationFile, "configuration", TestContext.Current.CancellationToken)
+                .ConfigureAwait(true);
+            await File.WriteAllTextAsync(conversationFile, "conversation", TestContext.Current.CancellationToken)
+                .ConfigureAwait(true);
+            await File.WriteAllTextAsync(legacySettingsFile, "legacy-settings", TestContext.Current.CancellationToken)
+                .ConfigureAwait(true);
+            await File.WriteAllTextAsync(
+                Path.Combine(runtimeDirectory, "logs", "server.log"),
+                "log",
+                TestContext.Current.CancellationToken).ConfigureAwait(true);
+            await LlamaCppInstaller.WriteInstallationMetadataAsync(
+                runtimeDirectory,
+                new LlamaCppInstallation(
+                    "b10435",
+                    activeExecutable,
+                    new DateTimeOffset(2026, 8, 15, 0, 0, 0, TimeSpan.Zero)),
+                TestContext.Current.CancellationToken).ConfigureAwait(true);
+
+            await using LlamaCppProviderRuntime runtime = new(runtimeDirectory);
+            InferenceProviderMaintenanceResult result = await runtime.UninstallAsync(
+                InferenceProviderRemovalMode.RuntimeOnly,
+                cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
+
+            Assert.Equal(InferenceProviderState.Missing, result.Snapshot.State);
+            Assert.False(result.StorageInfo.HasManagedRuntime);
+            Assert.Equal(0, result.StorageInfo.RuntimeBytes);
+            Assert.True(result.StorageInfo.ModelCacheBytes > 0);
+            Assert.False(File.Exists(Path.Combine(runtimeDirectory, "installation.json")));
+            Assert.False(Directory.Exists(Path.Combine(runtimeDirectory, "releases")));
+            Assert.False(Directory.Exists(Path.Combine(runtimeDirectory, ".staging")));
+            Assert.False(Directory.Exists(Path.Combine(runtimeDirectory, "logs")));
+            Assert.True(File.Exists(modelFile));
+            Assert.True(File.Exists(legacySettingsFile));
+            Assert.True(File.Exists(configurationFile));
+            Assert.True(File.Exists(conversationFile));
+            Assert.Contains("model cache", result.Detail, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            if (Directory.Exists(rootDirectory))
+            {
+                Directory.Delete(rootDirectory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task RuntimeAndModelCacheUninstallRemovesOnlyConfirmedProviderScopes()
+    {
+        string rootDirectory = Path.Combine(
+            Path.GetTempPath(),
+            $"alicia-maintenance-full-{Guid.NewGuid():N}");
+        string providersDirectory = Path.Combine(rootDirectory, "providers");
+        string runtimeDirectory = Path.Combine(providersDirectory, "llama.cpp");
+        string activeExecutable = Path.Combine(runtimeDirectory, "releases", "b10435", "llama-server");
+        string modelFile = Path.Combine(runtimeDirectory, "models", "model.gguf");
+        string configurationFile = Path.Combine(providersDirectory, "configuration.json");
+        string conversationFile = Path.Combine(rootDirectory, "conversations", "conversation.json");
+        string legacySettingsFile = Path.Combine(runtimeDirectory, "settings.json");
+
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(activeExecutable)!);
+            Directory.CreateDirectory(Path.GetDirectoryName(modelFile)!);
+            Directory.CreateDirectory(Path.GetDirectoryName(configurationFile)!);
+            Directory.CreateDirectory(Path.GetDirectoryName(conversationFile)!);
+            await File.WriteAllTextAsync(activeExecutable, "runtime", TestContext.Current.CancellationToken)
+                .ConfigureAwait(true);
+            await File.WriteAllTextAsync(modelFile, "cached-model", TestContext.Current.CancellationToken)
+                .ConfigureAwait(true);
+            await File.WriteAllTextAsync(configurationFile, "configuration", TestContext.Current.CancellationToken)
+                .ConfigureAwait(true);
+            await File.WriteAllTextAsync(conversationFile, "conversation", TestContext.Current.CancellationToken)
+                .ConfigureAwait(true);
+            await File.WriteAllTextAsync(legacySettingsFile, "legacy-settings", TestContext.Current.CancellationToken)
+                .ConfigureAwait(true);
+            await LlamaCppInstaller.WriteInstallationMetadataAsync(
+                runtimeDirectory,
+                new LlamaCppInstallation(
+                    "b10435",
+                    activeExecutable,
+                    new DateTimeOffset(2026, 8, 15, 0, 0, 0, TimeSpan.Zero)),
+                TestContext.Current.CancellationToken).ConfigureAwait(true);
+
+            await using LlamaCppProviderRuntime runtime = new(runtimeDirectory);
+            InferenceProviderMaintenanceResult result = await runtime.UninstallAsync(
+                InferenceProviderRemovalMode.RuntimeAndModelCache,
+                cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
+
+            Assert.Equal(InferenceProviderState.Missing, result.Snapshot.State);
+            Assert.Equal(0, result.StorageInfo.RuntimeBytes);
+            Assert.Equal(0, result.StorageInfo.ModelCacheBytes);
+            Assert.False(Directory.Exists(Path.Combine(runtimeDirectory, "releases")));
+            Assert.False(Directory.Exists(Path.Combine(runtimeDirectory, "models")));
+            Assert.True(File.Exists(legacySettingsFile));
+            Assert.True(File.Exists(configurationFile));
+            Assert.True(File.Exists(conversationFile));
+        }
+        finally
+        {
+            if (Directory.Exists(rootDirectory))
+            {
+                Directory.Delete(rootDirectory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task RetainedReleaseCleanupPreservesActiveCacheAndUnknownDirectories()
+    {
+        string runtimeDirectory = Path.Combine(
+            Path.GetTempPath(),
+            $"alicia-maintenance-clean-releases-{Guid.NewGuid():N}");
+        string activeExecutable = Path.Combine(runtimeDirectory, "releases", "b10435", "llama-server");
+        string oldExecutable = Path.Combine(runtimeDirectory, "releases", "b10434", "llama-server");
+        string unknownExecutable = Path.Combine(runtimeDirectory, "releases", "custom-build", "llama-server");
+        string modelFile = Path.Combine(runtimeDirectory, "models", "model.gguf");
+
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(activeExecutable)!);
+            Directory.CreateDirectory(Path.GetDirectoryName(oldExecutable)!);
+            Directory.CreateDirectory(Path.GetDirectoryName(unknownExecutable)!);
+            Directory.CreateDirectory(Path.GetDirectoryName(modelFile)!);
+            await File.WriteAllTextAsync(activeExecutable, "active", TestContext.Current.CancellationToken)
+                .ConfigureAwait(true);
+            await File.WriteAllTextAsync(oldExecutable, "old", TestContext.Current.CancellationToken)
+                .ConfigureAwait(true);
+            await File.WriteAllTextAsync(unknownExecutable, "unknown", TestContext.Current.CancellationToken)
+                .ConfigureAwait(true);
+            await File.WriteAllTextAsync(modelFile, "model", TestContext.Current.CancellationToken)
+                .ConfigureAwait(true);
+            await LlamaCppInstaller.WriteInstallationMetadataAsync(
+                runtimeDirectory,
+                new LlamaCppInstallation(
+                    "b10435",
+                    activeExecutable,
+                    new DateTimeOffset(2026, 8, 15, 0, 0, 0, TimeSpan.Zero)),
+                TestContext.Current.CancellationToken).ConfigureAwait(true);
+
+            await using LlamaCppProviderRuntime runtime = new(runtimeDirectory);
+            InferenceProviderMaintenanceResult result = await runtime.CleanupRetainedReleasesAsync(
+                cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
+
+            Assert.Equal(InferenceProviderState.Ready, result.Snapshot.State);
+            Assert.True(result.StorageInfo.HasManagedRuntime);
+            Assert.Equal("b10435", result.StorageInfo.ManagedVersion);
+            Assert.Equal(0, result.StorageInfo.RetainedReleaseCount);
+            Assert.True(File.Exists(activeExecutable));
+            Assert.False(Directory.Exists(Path.GetDirectoryName(oldExecutable)!));
+            Assert.True(File.Exists(unknownExecutable));
+            Assert.True(File.Exists(modelFile));
+            Assert.True(result.ReclaimedBytes > 0);
+        }
+        finally
+        {
+            if (Directory.Exists(runtimeDirectory))
+            {
+                Directory.Delete(runtimeDirectory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task MaintenanceRejectsMetadataThatPointsOutsideManagedRuntime()
+    {
+        string rootDirectory = Path.Combine(
+            Path.GetTempPath(),
+            $"alicia-maintenance-outside-metadata-{Guid.NewGuid():N}");
+        string runtimeDirectory = Path.Combine(rootDirectory, "providers", "llama.cpp");
+        string externalExecutable = Path.Combine(rootDirectory, "outside", "llama-server");
+        string retainedRelease = Path.Combine(runtimeDirectory, "releases", "b10434", "llama-server");
+
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(externalExecutable)!);
+            Directory.CreateDirectory(Path.GetDirectoryName(retainedRelease)!);
+            await File.WriteAllTextAsync(externalExecutable, "outside", TestContext.Current.CancellationToken)
+                .ConfigureAwait(true);
+            await File.WriteAllTextAsync(retainedRelease, "retained", TestContext.Current.CancellationToken)
+                .ConfigureAwait(true);
+            await LlamaCppInstaller.WriteInstallationMetadataAsync(
+                runtimeDirectory,
+                new LlamaCppInstallation(
+                    "b10435",
+                    externalExecutable,
+                    new DateTimeOffset(2026, 8, 15, 0, 0, 0, TimeSpan.Zero)),
+                TestContext.Current.CancellationToken).ConfigureAwait(true);
+
+            await using LlamaCppProviderRuntime runtime = new(runtimeDirectory);
+            InferenceProviderStorageInfo info = await runtime.InspectStorageAsync(
+                TestContext.Current.CancellationToken).ConfigureAwait(true);
+            InferenceProviderException exception = await Assert.ThrowsAsync<InferenceProviderException>(
+                () => runtime.CleanupRetainedReleasesAsync(
+                    cancellationToken: TestContext.Current.CancellationToken)).ConfigureAwait(true);
+
+            Assert.False(info.HasManagedRuntime);
+            Assert.Equal(InferenceProviderFailureKind.Missing, exception.Kind);
+            Assert.True(File.Exists(externalExecutable));
+            Assert.True(File.Exists(retainedRelease));
+        }
+        finally
+        {
+            if (Directory.Exists(rootDirectory))
+            {
+                Directory.Delete(rootDirectory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task RuntimeUninstallDoesNotFollowDirectorySymlinksOutsideManagedStorage()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            return;
+        }
+
+        string rootDirectory = Path.Combine(
+            Path.GetTempPath(),
+            $"alicia-maintenance-symlink-{Guid.NewGuid():N}");
+        string runtimeDirectory = Path.Combine(rootDirectory, "providers", "llama.cpp");
+        string activeExecutable = Path.Combine(runtimeDirectory, "releases", "b10435", "llama-server");
+        string externalDirectory = Path.Combine(rootDirectory, "outside");
+        string externalSentinel = Path.Combine(externalDirectory, "keep.txt");
+        string logsDirectory = Path.Combine(runtimeDirectory, "logs");
+        string linkedDirectory = Path.Combine(logsDirectory, "external-link");
+
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(activeExecutable)!);
+            Directory.CreateDirectory(externalDirectory);
+            Directory.CreateDirectory(logsDirectory);
+            await File.WriteAllTextAsync(activeExecutable, "runtime", TestContext.Current.CancellationToken)
+                .ConfigureAwait(true);
+            await File.WriteAllTextAsync(externalSentinel, "keep", TestContext.Current.CancellationToken)
+                .ConfigureAwait(true);
+            Directory.CreateSymbolicLink(linkedDirectory, externalDirectory);
+            await LlamaCppInstaller.WriteInstallationMetadataAsync(
+                runtimeDirectory,
+                new LlamaCppInstallation(
+                    "b10435",
+                    activeExecutable,
+                    new DateTimeOffset(2026, 8, 15, 0, 0, 0, TimeSpan.Zero)),
+                TestContext.Current.CancellationToken).ConfigureAwait(true);
+
+            await using LlamaCppProviderRuntime runtime = new(runtimeDirectory);
+            await runtime.UninstallAsync(
+                InferenceProviderRemovalMode.RuntimeOnly,
+                cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true);
+
+            Assert.True(File.Exists(externalSentinel));
+            Assert.False(Directory.Exists(logsDirectory));
+        }
+        finally
+        {
+            DirectoryInfo link = new(linkedDirectory);
+
+            if (link.Exists && (link.Attributes & FileAttributes.ReparsePoint) != 0)
+            {
+                link.Delete();
+            }
+
+            if (Directory.Exists(rootDirectory))
+            {
+                Directory.Delete(rootDirectory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task CancelledMaintenanceDoesNotMutateManagedStorage()
+    {
+        string runtimeDirectory = Path.Combine(
+            Path.GetTempPath(),
+            $"alicia-maintenance-cancel-{Guid.NewGuid():N}");
+        string activeExecutable = Path.Combine(runtimeDirectory, "releases", "b10435", "llama-server");
+
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(activeExecutable)!);
+            await File.WriteAllTextAsync(activeExecutable, "runtime", TestContext.Current.CancellationToken)
+                .ConfigureAwait(true);
+            await LlamaCppInstaller.WriteInstallationMetadataAsync(
+                runtimeDirectory,
+                new LlamaCppInstallation(
+                    "b10435",
+                    activeExecutable,
+                    new DateTimeOffset(2026, 8, 15, 0, 0, 0, TimeSpan.Zero)),
+                TestContext.Current.CancellationToken).ConfigureAwait(true);
+            using CancellationTokenSource cancellationSource = new();
+            cancellationSource.Cancel();
+
+            await using LlamaCppProviderRuntime runtime = new(runtimeDirectory);
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => runtime.UninstallAsync(
+                InferenceProviderRemovalMode.RuntimeOnly,
+                cancellationToken: cancellationSource.Token)).ConfigureAwait(true);
+
+            Assert.True(File.Exists(activeExecutable));
+            Assert.True(File.Exists(Path.Combine(runtimeDirectory, "installation.json")));
+        }
+        finally
+        {
+            if (Directory.Exists(runtimeDirectory))
+            {
+                Directory.Delete(runtimeDirectory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task RuntimeUninstallRejectsUnknownRemovalModeBeforeMutation()
+    {
+        string runtimeDirectory = Path.Combine(
+            Path.GetTempPath(),
+            $"alicia-maintenance-invalid-mode-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(runtimeDirectory);
+        string sentinel = Path.Combine(runtimeDirectory, "sentinel.txt");
+        await File.WriteAllTextAsync(sentinel, "keep", TestContext.Current.CancellationToken)
+            .ConfigureAwait(true);
+
+        try
+        {
+            await using LlamaCppProviderRuntime runtime = new(runtimeDirectory);
+            await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => runtime.UninstallAsync(
+                (InferenceProviderRemovalMode)999,
+                cancellationToken: TestContext.Current.CancellationToken)).ConfigureAwait(true);
+
+            Assert.True(File.Exists(sentinel));
+        }
+        finally
+        {
+            if (Directory.Exists(runtimeDirectory))
+            {
+                Directory.Delete(runtimeDirectory, recursive: true);
+            }
+        }
+    }
+
     private static ConversationResponseRequest CreateRequest()
     {
         DateTimeOffset createdAt = new(2026, 8, 11, 20, 0, 0, TimeSpan.Zero);
