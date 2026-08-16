@@ -383,95 +383,78 @@ La fin du stream ne réactive pas l’auto-scroll.
 
 ## 8. Vue Provider
 
-### 8.1 Structure
+### 8.1 Structure — refinement 10.7A
 
-- aucun historique de conversations ;
-- rail global toujours visible ;
-- titre + navigation contextuelle en haut ;
-- zone gauche divisée :
-  - Édition ;
-  - Informations ;
-- zone droite :
-  - Logs/progression.
+La vue Provider doit rester une surface de contrôle, pas un tableau de bord technique permanent. L'ordre de lecture est :
 
-Sur largeur réduite : Logs passent sous Édition/Informations.
+1. **Runtime** — sélection, état, version, progression et lifecycle ;
+2. **Runtime updates** — comparaison managed/validated/upstream et actions explicites ;
+3. **Maintenance** — repliée par défaut ;
+4. **Danger zone** — uniquement dans Maintenance ;
+5. **Technical details** — repliés par défaut.
 
-### 8.2 Liste des providers
+Le contenu est centré dans une largeur de lecture bornée. Les grandes cartes concurrentes `Édition | Informations` sont supprimées : une surface principale porte la tâche Runtime, les blocs secondaires utilisent une surface plus discrète et l'espace remplace les séparateurs répétitifs.
 
-Liste de cartes compactes, une par provider :
+### 8.2 Hiérarchie des actions
 
-- icône ;
-- nom ;
-- état.
-
-Exemples d’état :
-
-- Non installé ;
-- Prêt ;
-- En cours d’installation ;
-- Running ;
-- Mise à jour disponible ;
-- Erreur.
-
-La carte sélectionnée utilise un accent discret.
+- **Start** conserve la plus forte emphase dans la vue Provider ;
+- Detect, Install, Stop, Check update et Update validated restent immédiatement accessibles mais visuellement secondaires ;
+- les actions destructives ne partagent jamais la même emphase que le lifecycle normal ;
+- aucun bouton, binding, état d'activation ou contrat provider n'est modifié par 10.7A.
 
 ### 8.3 Divulgation progressive
 
-Non installé :
+Le normal path ne doit pas exposer en permanence les actions rares :
 
-- description courte ;
-- `Installer`.
+- Maintenance est repliée au repos ;
+- les tailles runtime/cache, cleanup et désinstallation apparaissent après ouverture de Maintenance ;
+- Technical details est un second disclosure pour les informations supplémentaires ;
+- progression et erreurs restent visibles dans la section où l'action a lieu ;
+- les données indispensables à la décision ne sont pas cachées dans un tooltip.
 
-Installé :
+### 8.4 Progression et statut
 
-- Démarrer ;
-- Arrêter ;
-- Mettre à jour si disponible ;
-- Désinstaller.
+Pendant installation/démarrage/update :
 
-Pas de réglages modèle dans cette vue.
+- une seule progression principale est affichée près du Runtime ;
+- étape, pourcentage et détail restent annoncés par live status ;
+- Reduced Motion conserve le texte même lorsque l'indeterminate animation est supprimée.
 
-### 8.4 Logs/progression
-
-Pendant installation/démarrage/erreur :
-
-- panneau Logs visible automatiquement ;
-- une progression principale :
-  - étape ;
-  - pourcentage ;
-  - détail ;
-- timeline discrète des étapes précédentes.
-
-Au repos : panneau repliable/réduit.
+Au repos, la progression disparaît et le statut textuel demeure dans l'en-tête.
 
 ### 8.5 Désinstallation
 
-Deux actions explicites :
+Deux actions explicites restent inchangées :
 
 1. désinstaller le provider/runtime ;
 2. désinstaller et supprimer modèles/cache associés.
 
-Aucune suppression de données lourdes implicite.
+`Clean old releases` reste une troisième maintenance distincte. Toutes les suppressions restent sous confirmation explicite et la Danger zone est séparée visuellement du lifecycle normal.
 
 ### 8.6 Informations provider
 
 Affichage direct :
 
 - état ;
-- version ;
-- backend ;
-- GPU détecté ;
-- VRAM disponible/totale si disponible.
+- provider ;
+- version détectée ;
+- releases managed/validated/upstream dans Updates ;
+- détail utilisateur sûr.
 
-`Plus de détails` :
+Détails secondaires :
 
-- chemin runtime ;
-- endpoint ;
-- cache ;
-- arguments ;
-- diagnostic/détection.
+- état de configuration ;
+- rappel que modèle/génération appartiennent à Models ;
+- diagnostics techniques bruts restent hors Presentation.
 
-Mise à jour : badge discret, non bloquant pour la version en cours.
+### 8.7 Accessibilité visuelle
+
+- hiérarchie par titres, proximité et espace avant d'ajouter des lignes/bordures ;
+- un état n'est jamais exprimé uniquement par couleur ;
+- focus visible conservé ;
+- libellés textuels conservés sur les actions critiques ;
+- AutomationProperties, HeadingLevel et LiveSetting existants restent présents ;
+- les disclosure controls utilisent le contrôle natif `Expander`.
 
 ---
 
@@ -482,8 +465,10 @@ Mise à jour : badge discret, non bloquant pour la version en cours.
 - aucun historique de conversations ;
 - rail global visible ;
 - titre + navigation contextuelle ;
-- gauche : sélection/édition/informations ;
-- droite : logs.
+- une surface principale centrée pour la configuration ;
+- résumé provider secondaire dans la même surface, sans carte concurrente ;
+- Runtime et Generation conservent leurs disclosures existants ;
+- la grammaire visuelle est alignée avec Provider sans modifier les bindings ni la sauvegarde.
 
 ### 9.2 Ajout Hugging Face
 

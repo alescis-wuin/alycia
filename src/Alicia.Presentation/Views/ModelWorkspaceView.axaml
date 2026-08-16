@@ -9,7 +9,9 @@
   <Grid Margin="28"
         RowDefinitions="Auto,18,*">
 
-    <Grid ColumnDefinitions="*,Auto">
+    <Grid MaxWidth="1120"
+          HorizontalAlignment="Center"
+          ColumnDefinitions="*,Auto">
       <StackPanel Spacing="4">
         <TextBlock Text="Models"
                    FontSize="30"
@@ -22,28 +24,31 @@
       </StackPanel>
 
       <Border Grid.Column="1"
-              Classes="status-chip"
+              Classes="status-chip workspace-status-chip"
               VerticalAlignment="Center">
         <TextBlock Text="{Binding ProviderName}"
-                   FontSize="12"
-                   Foreground="{DynamicResource TextSecondaryBrush}" />
+                   FontSize="13"
+                   FontWeight="SemiBold"
+                   Foreground="{DynamicResource TextPrimaryBrush}" />
       </Border>
     </Grid>
 
     <ScrollViewer Grid.Row="2"
                   VerticalScrollBarVisibility="Auto"
                   HorizontalScrollBarVisibility="Disabled">
-        <Grid Classes="model-panels"
-            ColumnDefinitions="1.25*,16,*">
-        <Border Grid.Column="0"
-                Classes="surface"
-                Padding="22">
-          <StackPanel Spacing="12">
-            <TextBlock Text="Édition"
-                       FontSize="18"
-                       FontWeight="SemiBold"
-                       AutomationProperties.HeadingLevel="2"
-                       Foreground="{DynamicResource TextPrimaryBrush}" />
+      <Border MaxWidth="1120"
+              HorizontalAlignment="Center"
+              Classes="workspace-primary-surface"
+              Padding="22">
+        <StackPanel Spacing="20">
+          <StackPanel Spacing="14">
+            <StackPanel Spacing="4">
+              <TextBlock Classes="workspace-section-title"
+                         Text="Model configuration"
+                         AutomationProperties.HeadingLevel="2" />
+              <TextBlock Classes="workspace-section-description"
+                         Text="Keep the model identity visible and group advanced runtime or generation controls below it." />
+            </StackPanel>
 
             <TextBox Text="{Binding ProviderModelReference, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                      PlaceholderText="owner/model-GGUF[:quant]"
@@ -53,6 +58,7 @@
                      ToolTip.Tip="Model passed directly to llama-server with -hf" />
 
             <Expander Header="Runtime"
+                      Classes="workspace-disclosure"
                       IsExpanded="True"
                       IsEnabled="{Binding IsProviderSettingsEditable}"
                       AutomationProperties.Name="Runtime settings">
@@ -65,6 +71,7 @@
             </Expander>
 
             <Expander Header="Generation"
+                      Classes="workspace-disclosure"
                       IsExpanded="True"
                       IsEnabled="{Binding IsProviderSettingsEditable}"
                       AutomationProperties.Name="Generation settings">
@@ -85,17 +92,16 @@
                          PlaceholderText="Seed • provider random"
                          AutomationProperties.Name="Random seed" />
 
-                <Border Margin="0,6,0,0"
-                        Padding="12"
-                        CornerRadius="12"
-                        Background="{DynamicResource SurfaceRaisedBrush}">
+                <Border Classes="workspace-secondary-surface"
+                        Margin="0,6,0,0"
+                        Padding="14">
                   <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                     <StackPanel Spacing="3">
-                      <TextBlock Text="Raisonnement"
+                      <TextBlock Text="Reasoning"
                                  FontSize="14"
                                  FontWeight="SemiBold"
                                  Foreground="{DynamicResource TextPrimaryBrush}" />
-                      <TextBlock Text="Affiche la réflexion du modèle séparément de la réponse finale."
+                      <TextBlock Text="Show model reasoning separately from the final response."
                                  FontSize="12"
                                  TextWrapping="Wrap"
                                  Foreground="{DynamicResource TextSecondaryBrush}" />
@@ -129,48 +135,43 @@
                     Content="Save settings"
                     AutomationProperties.Name="Save model and generation settings" />
           </StackPanel>
-        </Border>
 
-        <Border Grid.Column="2"
-                Classes="surface"
-                Padding="22">
-          <StackPanel Spacing="10">
-            <TextBlock Text="Informations"
-                       FontSize="18"
-                       FontWeight="SemiBold"
-                       AutomationProperties.HeadingLevel="2"
-                       Foreground="{DynamicResource TextPrimaryBrush}" />
+          <Border Classes="workspace-secondary-surface"
+                  Padding="18"
+                  VerticalAlignment="Top">
+            <StackPanel Spacing="10">
+              <TextBlock Classes="workspace-section-title"
+                         Text="Summary"
+                         AutomationProperties.HeadingLevel="2" />
 
-            <TextBlock Text="Provider"
-                       FontSize="12"
-                       FontWeight="SemiBold"
-                       Foreground="{DynamicResource TextSecondaryBrush}" />
-            <TextBlock Text="{Binding ProviderName}"
-                       FontSize="17"
-                       FontWeight="SemiBold"
-                       Foreground="{DynamicResource TextPrimaryBrush}" />
-            <TextBlock Text="{Binding ProviderStatusText}"
-                       FontSize="13"
-                       Foreground="{DynamicResource TextSecondaryBrush}" />
+              <TextBlock Text="Provider"
+                         FontSize="12"
+                         FontWeight="SemiBold"
+                         Foreground="{DynamicResource TextSecondaryBrush}" />
+              <TextBlock Text="{Binding ProviderName}"
+                         FontSize="17"
+                         FontWeight="SemiBold"
+                         Foreground="{DynamicResource TextPrimaryBrush}" />
+              <TextBlock Text="{Binding ProviderStatusText}"
+                         FontSize="13"
+                         Foreground="{DynamicResource TextSecondaryBrush}" />
 
-            <Border Height="1"
-                    Margin="0,4"
-                    Background="{DynamicResource BorderBrush}" />
-
-            <TextBlock Text="{Binding ProviderConfigurationStatusText}"
-                       FontSize="13"
-                       LineHeight="20"
-                       TextWrapping="Wrap"
-                       AutomationProperties.LiveSetting="Polite"
-                       Foreground="{DynamicResource TextSecondaryBrush}" />
-            <TextBlock Text="Blank sampling fields keep provider/model defaults. Reasoning is explicit: disabled sends no reasoning request; enabled uses the visible token budget."
-                       FontSize="12"
-                       LineHeight="18"
-                       TextWrapping="Wrap"
-                       Foreground="{DynamicResource TextSecondaryBrush}" />
-          </StackPanel>
-        </Border>
-      </Grid>
+              <TextBlock Text="{Binding ProviderConfigurationStatusText}"
+                         Margin="0,8,0,0"
+                         FontSize="13"
+                         LineHeight="20"
+                         TextWrapping="Wrap"
+                         AutomationProperties.LiveSetting="Polite"
+                         Foreground="{DynamicResource TextSecondaryBrush}" />
+              <TextBlock Text="Blank sampling fields keep provider/model defaults. Reasoning is explicit: disabled sends no reasoning request; enabled uses the visible token budget."
+                         FontSize="12"
+                         LineHeight="18"
+                         TextWrapping="Wrap"
+                         Foreground="{DynamicResource TextSecondaryBrush}" />
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </Border>
     </ScrollViewer>
   </Grid>
 </UserControl>

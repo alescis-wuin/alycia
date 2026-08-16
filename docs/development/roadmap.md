@@ -113,6 +113,17 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 - configuration provider, conversations, UI state et legacy settings préservés ;
 - suppression confinée au répertoire géré Alicia, sans suivre les symlinks/reparse points ni faire confiance à un chemin arbitraire issu des metadata.
 
+### 10.7A Visual hierarchy / decluttering — UI refinement — terminé
+
+- aucun changement de contrat, commande, état métier ou persistance ;
+- Provider recentré sur Runtime comme tâche principale ;
+- une seule action fortement accentuée par vue lorsque pertinent ;
+- Updates rendues secondaires et lisibles sans dupliquer leur importance ;
+- Maintenance et détails techniques placés en divulgation progressive ;
+- Danger zone isolée visuellement sans modifier les confirmations 10.6 ;
+- Models aligné sur la même grammaire de surfaces et de titres ;
+- AutomationProperties, focus visible, live status et libellés textuels conservés.
+
 ### 10.7 Observabilité
 
 - provider/model/version ;

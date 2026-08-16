@@ -29,3 +29,7 @@ Tests must prove that the validated llama.cpp tag and source commit are pinned, 
 ### Lot 10.6 managed storage maintenance invariants
 
 Tests must prove that storage inspection keeps runtime and model-cache sizes separate; retained-release cleanup removes only recognized inactive managed releases while preserving the active release, unknown directories and model cache; runtime-only uninstall removes runtime metadata/releases/staging/logs but preserves model cache, provider configuration, conversations and legacy settings; runtime-plus-cache removal is a distinct explicit scope; cancellation before mutation changes nothing; invalid metadata paths cannot make cleanup escape the managed root; symbolic links/reparse points are never followed; Presentation request/Cancel paths perform no deletion; confirmation selects exactly one removal mode; and destructive actions remain unavailable while the provider runs.
+
+### UI refinement 10.7A visual-contract invariants
+
+The Provider/Models cleanup is Presentation-only. Validation must prove that the final Provider and Models XAML preserve the exact baseline binding/command names, that no Application/Infrastructure/ViewModel source changes are part of the lot, and that XAML remains well formed. Manual smoke must verify that lifecycle/update/maintenance enabled states and confirmations behave exactly as before, Maintenance and technical detail disclosure remain keyboard-operable, visible focus remains clear, and narrow windows do not introduce horizontal scrolling or clipped primary controls.

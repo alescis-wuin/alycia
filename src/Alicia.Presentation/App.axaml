@@ -23,6 +23,8 @@
     <SolidColorBrush x:Key="EditSurfaceBrush" Color="#3A2B19" />
     <SolidColorBrush x:Key="DangerBrush" Color="#FF5F74" />
     <SolidColorBrush x:Key="DangerSurfaceBrush" Color="#391D2A" />
+    <SolidColorBrush x:Key="WorkspaceSurfaceBrush" Color="#101727" />
+    <SolidColorBrush x:Key="WorkspaceBorderBrush" Color="#566B94" />
   </Application.Resources>
 
   <Application.Styles>
@@ -79,6 +81,88 @@
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
       <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <!-- UIX 10.7A: workspace-specific hierarchy without changing control semantics. -->
+    <Style Selector="Border.workspace-primary-surface">
+      <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="CornerRadius" Value="18" />
+    </Style>
+
+    <Style Selector="Border.workspace-secondary-surface">
+      <Setter Property="Background" Value="{DynamicResource WorkspaceSurfaceBrush}" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="CornerRadius" Value="14" />
+    </Style>
+
+    <Style Selector="Border.workspace-progress-surface">
+      <Setter Property="Background" Value="{DynamicResource SurfaceRaisedBrush}" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="CornerRadius" Value="12" />
+    </Style>
+
+    <Style Selector="Border.workspace-danger-surface">
+      <Setter Property="Background" Value="{DynamicResource WorkspaceSurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource DangerBrush}" />
+      <Setter Property="BorderThickness" Value="2,0,0,0" />
+      <Setter Property="CornerRadius" Value="12" />
+    </Style>
+
+    <Style Selector="Border.status-chip.workspace-status-chip">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Padding" Value="8,4" />
+    </Style>
+
+    <Style Selector="TextBlock.workspace-section-title">
+      <Setter Property="FontSize" Value="17" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    </Style>
+
+    <Style Selector="TextBlock.workspace-section-description">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="LineHeight" Value="18" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+      <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+    </Style>
+
+    <Style Selector="Button.quiet-action">
+      <Setter Property="MinHeight" Value="42" />
+      <Setter Property="Padding" Value="14,8" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="{DynamicResource WorkspaceBorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <Style Selector="Button.quiet-action:pointerover">
+      <Setter Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
+    </Style>
+
+    <Style Selector="Button.danger-subtle-action">
+      <Setter Property="MinHeight" Value="42" />
+      <Setter Property="Padding" Value="14,8" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="{DynamicResource DangerBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <Style Selector="Button.danger-subtle-action:pointerover">
+      <Setter Property="Background" Value="{DynamicResource DangerSurfaceBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    </Style>
+
+    <Style Selector="Expander.workspace-disclosure">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+      <Setter Property="Padding" Value="2,8" />
     </Style>
 
     <Style Selector="Border.history-row">

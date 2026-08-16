@@ -19,7 +19,7 @@ The **Conversations** workspace owns the conversation history and chat surface.
 
 ## Provider
 
-The **Provider** workspace owns provider lifecycle operations.
+The **Provider** workspace owns provider lifecycle operations. Lot 10.7A presents the same behavior with a calmer hierarchy: **Runtime** stays visible and primary, **Runtime updates** stays secondary, and **Maintenance** plus **Technical details** are disclosed only when requested. The destructive confirmation workflow is unchanged.
 
 For `llama.cpp CUDA`:
 
