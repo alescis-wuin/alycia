@@ -725,6 +725,21 @@ public sealed class LlamaCppProviderContractTests
     }
 
     [Fact]
+    public void RuntimeProbePrefersManagedReleaseTagOverGenericBinaryVersion()
+    {
+        Assert.Equal(
+            "b10435",
+            LlamaCppProviderRuntime.ResolveRuntimeVersion(
+                "version: 0.1.0-dev (build 0, commit unknown)",
+                "b10435"));
+        Assert.Equal(
+            "9637 (`abc`)",
+            LlamaCppProviderRuntime.ResolveRuntimeVersion(
+                "version: 9637 (`abc`)",
+                expectedVersion: null));
+    }
+
+    [Fact]
     public async Task ChatClientStreamsOpenAiCompatibleContentDeltas()
     {
         CapturingHttpMessageHandler handler = new(
@@ -1064,6 +1079,12 @@ public sealed class LlamaCppProviderContractTests
                 CreateRequest(),
                 new InferenceGenerationOptions(),
                 cancellationSource.Token))).ConfigureAwait(true);
+    }
+
+    [Fact]
+    public void ProviderTimeoutDefaultsAllowInitialModelDownload()
+    {
+        Assert.Equal(TimeSpan.FromMinutes(30), LlamaCppProviderTimeouts.Default.Readiness);
     }
 
     [Fact]
@@ -1535,6 +1556,262 @@ public sealed class LlamaCppProviderContractTests
                 cancellationToken: TestContext.Current.CancellationToken)).ConfigureAwait(true);
 
             Assert.True(File.Exists(sentinel));
+        }
+        finally
+        {
+            if (Directory.Exists(runtimeDirectory))
+            {
+                Directory.Delete(runtimeDirectory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task ChatClientRequestsUsageAndCapturesFinalGenerationMetrics()
+    {
+        CapturingHttpMessageHandler handler = new(
+            HttpStatusCode.OK,
+            """
+            data: {"choices":[{"delta":{"content":"Observed"}}]}
+
+            data: {"choices":[{"finish_reason":"stop","index":0,"delta":{}}]}
+
+            data: {"choices":[],"usage":{"completion_tokens":30,"prompt_tokens":120,"total_tokens":150,"prompt_tokens_details":{"cached_tokens":80}},"timings":{"cache_n":80,"prompt_n":40,"prompt_ms":20.5,"prompt_per_second":1951.2,"predicted_n":30,"predicted_ms":600.0,"predicted_per_second":50.0}}
+
+            data: [DONE]
+
+            """);
+        using HttpClient httpClient = new(handler);
+        LlamaCppChatClient client = new(httpClient);
+        LlamaCppGenerationMetrics? observedMetrics = null;
+
+        await ConsumeAsync(client.StreamWithMetricsAsync(
+            new Uri("http://127.0.0.1:8080/"),
+            TestApiKey,
+            CreateRequest(),
+            new InferenceGenerationOptions(),
+            metrics => observedMetrics = metrics,
+            CancellationToken.None)).ConfigureAwait(true);
+
+        string requestBody = Assert.IsType<string>(handler.RequestBody);
+        using JsonDocument document = JsonDocument.Parse(requestBody);
+        Assert.True(
+            document.RootElement
+                .GetProperty("stream_options")
+                .GetProperty("include_usage")
+                .GetBoolean());
+
+        LlamaCppGenerationMetrics metrics = Assert.IsType<LlamaCppGenerationMetrics>(observedMetrics);
+        Assert.Equal(120, metrics.InputTokens);
+        Assert.Equal(30, metrics.OutputTokens);
+        Assert.Equal(150, metrics.TotalTokens);
+        Assert.Equal(80, metrics.CachedInputTokens);
+        Assert.Equal(TimeSpan.FromMilliseconds(20.5), metrics.PromptEvaluationDuration);
+        Assert.Equal(TimeSpan.FromMilliseconds(600), metrics.GenerationDuration);
+        Assert.Equal(1951.2, metrics.PromptTokensPerSecond);
+        Assert.Equal(50, metrics.GenerationTokensPerSecond);
+    }
+
+    [Fact]
+    public void GenerationMetricsDiscardInconsistentProviderTokenCounts()
+    {
+        LlamaCppGenerationMetrics metrics = Assert.IsType<LlamaCppGenerationMetrics>(
+            LlamaCppChatClient.TryParseGenerationMetrics(
+                """
+                {"usage":{"completion_tokens":12,"prompt_tokens":44,"total_tokens":999,"prompt_tokens_details":{"cached_tokens":80}}}
+                """));
+
+        Assert.Equal(44, metrics.InputTokens);
+        Assert.Equal(12, metrics.OutputTokens);
+        Assert.Null(metrics.TotalTokens);
+        Assert.Null(metrics.CachedInputTokens);
+    }
+
+    [Fact]
+    public void GenerationMetricsDiscardOverflowingFallbackTotals()
+    {
+        LlamaCppGenerationMetrics metrics = Assert.IsType<LlamaCppGenerationMetrics>(
+            LlamaCppChatClient.TryParseGenerationMetrics(
+                $$"""
+                {
+                  "timings": {
+                    "prompt_n": {{int.MaxValue}},
+                    "cache_n": 1,
+                    "predicted_n": 1
+                  }
+                }
+                """));
+
+        Assert.Null(metrics.InputTokens);
+        Assert.Equal(1, metrics.OutputTokens);
+        Assert.Null(metrics.TotalTokens);
+        Assert.Equal(1, metrics.CachedInputTokens);
+    }
+
+    [Fact]
+    public void GenerationMetricsFallBackToLlamaCppTimingCounters()
+    {
+        LlamaCppGenerationMetrics metrics = Assert.IsType<LlamaCppGenerationMetrics>(
+            LlamaCppChatClient.TryParseGenerationMetrics(
+                """
+                {"timings":{"cache_n":60,"prompt_n":40,"prompt_ms":25.0,"prompt_per_second":1600.0,"predicted_n":12,"predicted_ms":240.0,"predicted_per_second":50.0}}
+                """));
+
+        Assert.Equal(100, metrics.InputTokens);
+        Assert.Equal(12, metrics.OutputTokens);
+        Assert.Equal(112, metrics.TotalTokens);
+        Assert.Equal(60, metrics.CachedInputTokens);
+        Assert.Equal(TimeSpan.FromMilliseconds(25), metrics.PromptEvaluationDuration);
+        Assert.Equal(TimeSpan.FromMilliseconds(240), metrics.GenerationDuration);
+    }
+
+    [Fact]
+    public async Task RuntimeObservabilityRecordsCompletedGenerationWithoutMessageContent()
+    {
+        string runtimeDirectory = Path.Combine(
+            Path.GetTempPath(),
+            $"alicia-observability-success-{Guid.NewGuid():N}");
+        CapturingHttpMessageHandler handler = new(
+            HttpStatusCode.OK,
+            """
+            data: {"choices":[{"delta":{"content":"private-response"}}]}
+
+            data: {"choices":[],"usage":{"completion_tokens":12,"prompt_tokens":44,"total_tokens":56,"prompt_tokens_details":{"cached_tokens":20}},"timings":{"cache_n":20,"prompt_n":24,"prompt_ms":10.0,"prompt_per_second":2400.0,"predicted_n":12,"predicted_ms":240.0,"predicted_per_second":50.0}}
+
+            data: [DONE]
+
+            """);
+
+        try
+        {
+            await using LlamaCppProviderRuntime runtime = new(
+                runtimeDirectory,
+                TimeProvider.System,
+                LlamaCppProviderTimeouts.Default,
+                handler);
+            List<ConversationResponseChunk> chunks = [];
+
+            await foreach (ConversationResponseChunk chunk in runtime
+                .StreamWithObservabilityAsync(
+                    new Uri("http://127.0.0.1:43123/"),
+                    TestApiKey,
+                    CreateRequest(),
+                    new InferenceGenerationOptions(),
+                    "Qwen/Qwen3-4B-GGUF",
+                    "b10435",
+                    TestContext.Current.CancellationToken)
+                .ConfigureAwait(true))
+            {
+                chunks.Add(chunk);
+            }
+
+            Assert.Equal("private-response", string.Concat(chunks.Select(chunk => chunk.TextDelta)));
+            InferenceProviderGenerationObservation observation =
+                Assert.IsType<InferenceProviderGenerationObservation>(
+                    runtime.LatestGenerationObservation);
+            Assert.Equal(InferenceProviderGenerationOutcome.Completed, observation.Outcome);
+            Assert.Equal("Qwen/Qwen3-4B-GGUF", observation.ModelReference);
+            Assert.Equal("b10435", observation.RuntimeVersion);
+            Assert.Equal(44, observation.InputTokens);
+            Assert.Equal(12, observation.OutputTokens);
+            Assert.Equal(20, observation.CachedInputTokens);
+            Assert.NotNull(observation.TimeToFirstOutput);
+            Assert.Null(observation.FailureKind);
+
+            string observationLog = await File.ReadAllTextAsync(
+                Path.Combine(
+                    runtimeDirectory,
+                    "logs",
+                    LlamaCppObservabilityLog.FileName),
+                TestContext.Current.CancellationToken).ConfigureAwait(true);
+            Assert.DoesNotContain("Be concise.", observationLog, StringComparison.Ordinal);
+            Assert.DoesNotContain("Hello", observationLog, StringComparison.Ordinal);
+            Assert.DoesNotContain("private-response", observationLog, StringComparison.Ordinal);
+            Assert.Contains("Qwen/Qwen3-4B-GGUF", observationLog, StringComparison.Ordinal);
+            Assert.Contains("Completed", observationLog, StringComparison.Ordinal);
+        }
+        finally
+        {
+            if (Directory.Exists(runtimeDirectory))
+            {
+                Directory.Delete(runtimeDirectory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task RuntimeObservabilityRecordsCallerCancellation()
+    {
+        string runtimeDirectory = Path.Combine(
+            Path.GetTempPath(),
+            $"alicia-observability-cancel-{Guid.NewGuid():N}");
+        using CancellationTokenSource cancellationSource = new();
+        cancellationSource.Cancel();
+
+        try
+        {
+            await using LlamaCppProviderRuntime runtime = new(
+                runtimeDirectory,
+                TimeProvider.System,
+                LlamaCppProviderTimeouts.Default,
+                new HangingHttpMessageHandler());
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(
+                () => ConsumeAsync(runtime.StreamWithObservabilityAsync(
+                    new Uri("http://127.0.0.1:43123/"),
+                    TestApiKey,
+                    CreateRequest(),
+                    new InferenceGenerationOptions(),
+                    "Qwen/Qwen3-4B-GGUF",
+                    "b10435",
+                    cancellationSource.Token))).ConfigureAwait(true);
+
+            InferenceProviderGenerationObservation observation =
+                Assert.IsType<InferenceProviderGenerationObservation>(
+                    runtime.LatestGenerationObservation);
+            Assert.Equal(InferenceProviderGenerationOutcome.Cancelled, observation.Outcome);
+            Assert.Null(observation.FailureKind);
+        }
+        finally
+        {
+            if (Directory.Exists(runtimeDirectory))
+            {
+                Directory.Delete(runtimeDirectory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task RuntimeObservabilityRecordsSafeFailureClassification()
+    {
+        string runtimeDirectory = Path.Combine(
+            Path.GetTempPath(),
+            $"alicia-observability-failure-{Guid.NewGuid():N}");
+
+        try
+        {
+            await using LlamaCppProviderRuntime runtime = new(
+                runtimeDirectory,
+                TimeProvider.System,
+                LlamaCppProviderTimeouts.Default,
+                new ScriptedHttpMessageHandler(HttpStatusCode.ServiceUnavailable));
+
+            InferenceProviderException exception = await Assert.ThrowsAsync<InferenceProviderException>(
+                () => ConsumeAsync(runtime.StreamWithObservabilityAsync(
+                    new Uri("http://127.0.0.1:43123/"),
+                    TestApiKey,
+                    CreateRequest(),
+                    new InferenceGenerationOptions(),
+                    "Qwen/Qwen3-4B-GGUF",
+                    "b10435",
+                    TestContext.Current.CancellationToken))).ConfigureAwait(true);
+
+            Assert.Equal(InferenceProviderFailureKind.Network, exception.Kind);
+            InferenceProviderGenerationObservation observation =
+                Assert.IsType<InferenceProviderGenerationObservation>(
+                    runtime.LatestGenerationObservation);
+            Assert.Equal(InferenceProviderGenerationOutcome.Failed, observation.Outcome);
+            Assert.Equal(InferenceProviderFailureKind.Network, observation.FailureKind);
         }
         finally
         {

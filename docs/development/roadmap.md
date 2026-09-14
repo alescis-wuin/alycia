@@ -42,11 +42,12 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 | Lot 08 llama.cpp CUDA | terminé | `427e25c` |
 | Lot 09 Provider/model configuration | terminé | `cf0a5c5` + stabilisations |
 | UIX-01 Stages 1–7 | terminé | `ed4cc29` → `c51f1ef` |
-| Lot 10 Robustesse/sécurité/observabilité | en cours | 10.1–10.6 terminés sur cette branche |
+| Lot 10 Robustesse/sécurité/observabilité | terminé | 10.1–10.7 terminés sur cette branche |
 | Lot 10.1/10.2 sécurité + ownership | terminé | session locale durcie |
 | UIX-01 Stage 8 | terminé | FOLLOWING / DETACHED + UI state |
 | UIX-01 Stage 9 | terminé | décomposition Presentation en six ViewModels |
 | UIX-01 Stage 10 | terminé | 10A–10D terminés; UIX-01 foundation clôturée |
+| UI refinement 10.7A | terminé | Provider/Models visual hierarchy |
 | Lot 10B Profiles/revisions/provenance/context | planifié | à faire |
 | Lot 11 RAG foundation | planifié | à faire |
 | Lot 12 Retrieval/grounded generation | planifié | à faire |
@@ -124,14 +125,17 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 - Models aligné sur la même grammaire de surfaces et de titres ;
 - AutomationProperties, focus visible, live status et libellés textuels conservés.
 
-### 10.7 Observabilité
+### 10.7 Observabilité — P0 — terminé
 
-- provider/model/version ;
-- latence ;
-- prompt/eval timing si accessible ;
-- input/output token usage ;
-- cancellation/failure ;
-- aucun prompt/message brut dans les logs par défaut.
+- contrat optionnel provider-neutral pour la dernière observation de génération ;
+- provider/model/version et outcome `Completed/Cancelled/Failed` ;
+- latence end-to-end et temps jusqu’au premier output mesurés côté Alicia ;
+- `stream_options.include_usage=true` pour récupérer input/output/total/cached tokens depuis llama.cpp ;
+- prompt/eval timing et tok/s capturés uniquement lorsqu’ils sont réellement fournis par le provider ;
+- cancellation distinguée d’un échec et échec réduit à la classification sûre `Missing/Unsupported/Faulted/Network/Model` ;
+- journal JSONL local borné/rotatif contenant uniquement les metadata structurées de l’observation ;
+- aucun prompt, message, raisonnement, réponse, body HTTP, API key, endpoint, log tail ou diagnostic brut dans ce journal ;
+- projection UI volontairement secondaire dans `Provider → Technical details`, pour préserver la hiérarchie visuelle 10.7A.
 
 ## UIX-01 — Stages 8–10 de clôture foundation
 
@@ -258,7 +262,7 @@ Lot 10.5 — terminé
    ↓
 Lot 10.6 — terminé
    ↓
-Lot 10.7 — prochain
+Lot 10.7 — terminé
    ↓
 Lot 10B
    ↓

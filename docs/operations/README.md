@@ -110,6 +110,12 @@ The Provider workspace exposes **Check update** and, only when applicable, **Upd
 
 Alicia never auto-updates llama.cpp. **Update validated** is enabled only for a stopped, healthy managed runtime whose installed release is older than the validated pin. A managed release newer than the pin is not downgraded. Update preparation uses the official release tag only to verify its pinned source commit, then downloads the tarball by immutable commit SHA. Cancellation/failure before metadata activation leaves the previous release selected. Old release directories are intentionally retained after update and can now be reclaimed only through the explicit Lot 10.6 managed-storage cleanup action.
 
+## Generation observability
+
+Lot 10.7 records a privacy-safe, provider-neutral observation after each local generation attempt. For managed llama.cpp this includes provider/model/runtime identity, `Completed`/`Cancelled`/`Failed`, safe failure kind, end-to-end and first-output latency, token usage requested through the streamed OpenAI-compatible usage chunk, and provider prompt/generation timing when llama.cpp emits it.
+
+The latest observation is available in **Provider → Technical details**. Alicia also keeps a best-effort local JSONL history at `providers/llama.cpp/logs/generation-observations.jsonl`, rotating one previous file once the current file reaches approximately 1 MiB. The observation schema intentionally contains no prompt/message/reasoning/response text, raw HTTP body, API key, endpoint, server log tail, local diagnostic path, or exception detail. Provider runtime cleanup already treats `logs/` as runtime-only data, so explicit runtime uninstall removes these observation logs while runtime-only cache preservation still keeps `models/`.
+
 ## Deferred operational work
 
 The following remain later-roadmap work:

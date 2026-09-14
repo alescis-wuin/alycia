@@ -280,7 +280,8 @@ internal sealed class ProviderFailureConversationResponder : IStreamingConversat
 internal sealed class StubInferenceProviderRuntime :
     IInferenceProviderRuntime,
     IInferenceProviderUpdateRuntime,
-    IInferenceProviderMaintenanceRuntime
+    IInferenceProviderMaintenanceRuntime,
+    IInferenceProviderObservabilityRuntime
 {
     private const string ProviderName = "llama.cpp CUDA";
 
@@ -321,6 +322,8 @@ internal sealed class StubInferenceProviderRuntime :
     public InferenceProviderUpdateInfo UpdateInfo { get; set; }
 
     public InferenceProviderStorageInfo StorageInfo { get; set; }
+
+    public InferenceProviderGenerationObservation? LatestGenerationObservation { get; set; }
 
     public int InspectStorageCount { get; private set; }
 

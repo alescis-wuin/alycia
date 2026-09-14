@@ -458,6 +458,12 @@ Détails secondaires :
 
 ---
 
+### 8.7 Observabilité — Lot 10.7
+
+L’observabilité ne doit pas transformer Provider en dashboard permanent. La dernière génération est projetée dans **Technical details**, replié par défaut, avec : outcome, provider/modèle/version, latence end-to-end, temps au premier output, tokens input/output/cache et timings/tok/s uniquement lorsqu’ils sont fournis. L’absence de métrique est affichée comme indisponible et n’est jamais estimée silencieusement.
+
+Le journal structuré local ne contient aucun prompt/message, raisonnement, réponse, body HTTP, secret, endpoint, log tail ou diagnostic brut. L’état `Cancelled` est distinct de `Failed`; l’échec n’expose que la classification provider-neutral sûre.
+
 ## 9. Vue Modèles
 
 ### 9.1 Structure

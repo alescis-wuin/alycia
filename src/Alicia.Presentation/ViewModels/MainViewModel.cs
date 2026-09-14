@@ -659,6 +659,22 @@ public sealed class MainViewModel : ViewModelBase
 
     public string ProviderMaintenanceStatusText => Provider.ProviderMaintenanceStatusText;
 
+    public bool SupportsProviderObservability => Provider.SupportsProviderObservability;
+
+    public bool HasProviderGenerationObservation => Provider.HasProviderGenerationObservation;
+
+    public string ProviderGenerationOutcomeText => Provider.ProviderGenerationOutcomeText;
+
+    public string ProviderGenerationIdentityText => Provider.ProviderGenerationIdentityText;
+
+    public string ProviderGenerationLatencyText => Provider.ProviderGenerationLatencyText;
+
+    public string ProviderGenerationTokenUsageText => Provider.ProviderGenerationTokenUsageText;
+
+    public string ProviderGenerationTimingText => Provider.ProviderGenerationTimingText;
+
+    public string ProviderObservabilityPrivacyText => Provider.ProviderObservabilityPrivacyText;
+
     public bool IsProviderProgressVisible => Provider.IsProviderProgressVisible;
 
     public bool IsProviderProgressIndeterminate => Provider.IsProviderProgressIndeterminate;
@@ -2438,6 +2454,8 @@ public sealed class MainViewModel : ViewModelBase
             }
 
             IsGeneratingResponse = false;
+            Provider.RefreshObservability();
+            RaiseProviderStateChanged();
 
             if (ReferenceEquals(_responseCancellation, cancellationSource))
             {
@@ -3213,6 +3231,14 @@ public sealed class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(ProviderModelCacheStorageText));
         OnPropertyChanged(nameof(ProviderRetainedReleasesText));
         OnPropertyChanged(nameof(ProviderMaintenanceStatusText));
+        OnPropertyChanged(nameof(SupportsProviderObservability));
+        OnPropertyChanged(nameof(HasProviderGenerationObservation));
+        OnPropertyChanged(nameof(ProviderGenerationOutcomeText));
+        OnPropertyChanged(nameof(ProviderGenerationIdentityText));
+        OnPropertyChanged(nameof(ProviderGenerationLatencyText));
+        OnPropertyChanged(nameof(ProviderGenerationTokenUsageText));
+        OnPropertyChanged(nameof(ProviderGenerationTimingText));
+        OnPropertyChanged(nameof(ProviderObservabilityPrivacyText));
         OnPropertyChanged(nameof(CanInspectProviderStorage));
         OnPropertyChanged(nameof(CanRequestProviderMaintenance));
         OnPropertyChanged(nameof(CanCleanupRetainedProviderReleases));

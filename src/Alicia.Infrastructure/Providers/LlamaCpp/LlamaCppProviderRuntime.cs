@@ -10,6 +10,7 @@ public sealed class LlamaCppProviderRuntime :
     IInferenceProviderRuntime,
     IInferenceProviderUpdateRuntime,
     IInferenceProviderMaintenanceRuntime,
+    IInferenceProviderObservabilityRuntime,
     IStreamingConversationResponder,
     IAsyncDisposable
 {
@@ -18,6 +19,9 @@ public sealed class LlamaCppProviderRuntime :
     public const string ProviderName = "llama.cpp CUDA";
 
     public string ValidatedVersion => LlamaCppReleasePolicy.ValidatedReleaseTag;
+
+    public InferenceProviderGenerationObservation? LatestGenerationObservation =>
+        Volatile.Read(ref _latestGenerationObservation);
 
     private static readonly string[] _modelStartupFailureMarkers =
     [
@@ -39,7 +43,9 @@ public sealed class LlamaCppProviderRuntime :
     private readonly HttpClient _httpClient;
     private readonly LlamaCppInstaller _installer;
     private readonly LlamaCppChatClient _chatClient;
+    private readonly LlamaCppObservabilityLog _observabilityLog;
     private readonly LlamaCppProviderTimeouts _timeouts;
+    private readonly TimeProvider _timeProvider;
     private Process? _serverProcess;
     private string? _executablePath;
     private string? _version;
@@ -48,6 +54,7 @@ public sealed class LlamaCppProviderRuntime :
     private string? _serverApiKey;
     private InferenceGenerationOptions _generationOptions = new();
     private InferenceProviderConfiguration? _activeConfiguration;
+    private InferenceProviderGenerationObservation? _latestGenerationObservation;
     private bool _disposed;
 
     public LlamaCppProviderRuntime(
@@ -74,12 +81,14 @@ public sealed class LlamaCppProviderRuntime :
         _logDirectory = Path.Combine(_runtimeDirectory, "logs");
         _modelCacheDirectory = Path.Combine(_runtimeDirectory, "models");
         _timeouts = timeouts;
+        _timeProvider = timeProvider;
         _httpClient = httpMessageHandler is null
             ? new HttpClient()
             : new HttpClient(httpMessageHandler, disposeHandler: true);
         _httpClient.Timeout = Timeout.InfiniteTimeSpan;
         _installer = new LlamaCppInstaller(_httpClient, timeProvider, _timeouts);
         _chatClient = new LlamaCppChatClient(_httpClient, _timeouts);
+        _observabilityLog = new LlamaCppObservabilityLog(_logDirectory);
     }
 
     public async Task<InferenceProviderSnapshot> DetectAsync(
@@ -782,12 +791,112 @@ public sealed class LlamaCppProviderRuntime :
                 "The local AI server is not running. Start the configured model before sending a message.");
         }
 
-        return _chatClient.StreamAsync(
+        return StreamWithObservabilityAsync(
             endpoint,
             apiKey,
             request,
             _generationOptions,
+            _modelReference,
+            _version,
             cancellationToken);
+    }
+
+    internal async IAsyncEnumerable<ConversationResponseChunk> StreamWithObservabilityAsync(
+        Uri endpoint,
+        string apiKey,
+        ConversationResponseRequest request,
+        InferenceGenerationOptions generationOptions,
+        string? modelReference,
+        string? runtimeVersion,
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        long startedTimestamp = _timeProvider.GetTimestamp();
+        DateTimeOffset startedAtUtc = _timeProvider.GetUtcNow();
+        long? firstOutputTimestamp = null;
+        LlamaCppGenerationMetrics? metrics = null;
+        InferenceProviderGenerationOutcome outcome = InferenceProviderGenerationOutcome.Failed;
+        InferenceProviderFailureKind? failureKind = InferenceProviderFailureKind.Faulted;
+
+        await using IAsyncEnumerator<ConversationResponseChunk> enumerator = _chatClient
+            .StreamWithMetricsAsync(
+                endpoint,
+                apiKey,
+                request,
+                generationOptions,
+                observed => metrics = observed,
+                cancellationToken)
+            .GetAsyncEnumerator(cancellationToken);
+
+        try
+        {
+            while (true)
+            {
+                bool hasNext;
+
+                try
+                {
+                    hasNext = await enumerator.MoveNextAsync().ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    outcome = InferenceProviderGenerationOutcome.Cancelled;
+                    failureKind = null;
+                    throw;
+                }
+                catch (InferenceProviderException exception)
+                {
+                    outcome = InferenceProviderGenerationOutcome.Failed;
+                    failureKind = exception.Kind;
+                    throw;
+                }
+                catch
+                {
+                    outcome = InferenceProviderGenerationOutcome.Failed;
+                    failureKind = InferenceProviderFailureKind.Faulted;
+                    throw;
+                }
+
+                if (!hasNext)
+                {
+                    outcome = InferenceProviderGenerationOutcome.Completed;
+                    failureKind = null;
+                    break;
+                }
+
+                ConversationResponseChunk chunk = enumerator.Current;
+                firstOutputTimestamp ??= _timeProvider.GetTimestamp();
+                yield return chunk;
+            }
+        }
+        finally
+        {
+            long completedTimestamp = _timeProvider.GetTimestamp();
+            DateTimeOffset completedAtUtc = _timeProvider.GetUtcNow();
+            InferenceProviderGenerationObservation observation = new(
+                ProviderId,
+                ProviderName,
+                modelReference,
+                runtimeVersion,
+                startedAtUtc,
+                completedAtUtc,
+                outcome,
+                failureKind,
+                _timeProvider.GetElapsedTime(startedTimestamp, completedTimestamp),
+                firstOutputTimestamp is long firstOutput
+                    ? _timeProvider.GetElapsedTime(startedTimestamp, firstOutput)
+                    : null,
+                metrics?.InputTokens,
+                metrics?.OutputTokens,
+                metrics?.TotalTokens,
+                metrics?.CachedInputTokens,
+                metrics?.PromptEvaluationDuration,
+                metrics?.GenerationDuration,
+                metrics?.PromptTokensPerSecond,
+                metrics?.GenerationTokensPerSecond);
+
+            Volatile.Write(ref _latestGenerationObservation, observation);
+            _observabilityLog.TryAppend(observation);
+        }
     }
 
     public async ValueTask DisposeAsync()
@@ -852,6 +961,13 @@ public sealed class LlamaCppProviderRuntime :
         }
 
         return null;
+    }
+
+    internal static string? ResolveRuntimeVersion(string output, string? expectedVersion)
+    {
+        return string.IsNullOrWhiteSpace(expectedVersion)
+            ? ParseVersion(output)
+            : expectedVersion;
     }
 
     private async Task<InferenceProviderStorageInfo> InspectStorageCoreAsync(
@@ -1156,7 +1272,7 @@ public sealed class LlamaCppProviderRuntime :
         }
 
         _executablePath = Path.GetFullPath(executablePath);
-        _version = ParseVersion(versionProbe.CombinedOutput) ?? expectedVersion;
+        _version = ResolveRuntimeVersion(versionProbe.CombinedOutput, expectedVersion);
         _endpoint = null;
         _serverApiKey = null;
 

@@ -29,11 +29,28 @@ internal sealed class LlamaCppChatClient
         _timeouts = timeouts ?? LlamaCppProviderTimeouts.Default;
     }
 
-    public async IAsyncEnumerable<ConversationResponseChunk> StreamAsync(
+    public IAsyncEnumerable<ConversationResponseChunk> StreamAsync(
         Uri endpoint,
         string apiKey,
         ConversationResponseRequest request,
         InferenceGenerationOptions generationOptions,
+        CancellationToken cancellationToken)
+    {
+        return StreamWithMetricsAsync(
+            endpoint,
+            apiKey,
+            request,
+            generationOptions,
+            metricsObserver: null,
+            cancellationToken);
+    }
+
+    internal async IAsyncEnumerable<ConversationResponseChunk> StreamWithMetricsAsync(
+        Uri endpoint,
+        string apiKey,
+        ConversationResponseRequest request,
+        InferenceGenerationOptions generationOptions,
+        Action<LlamaCppGenerationMetrics>? metricsObserver,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(endpoint);
@@ -47,6 +64,7 @@ internal sealed class LlamaCppChatClient
                 LlamaCppServerCommand.ModelAlias,
                 request.Messages.Select(MapMessage).ToArray(),
                 Stream: true,
+                new ChatCompletionStreamOptions(IncludeUsage: true),
                 generationOptions.MaxOutputTokens,
                 generationOptions.Temperature,
                 generationOptions.TopP,
@@ -90,6 +108,7 @@ internal sealed class LlamaCppChatClient
             response,
             cancellationToken).ConfigureAwait(false);
         using StreamReader reader = new(responseStream, Encoding.UTF8);
+        LlamaCppGenerationMetrics? aggregateMetrics = null;
 
         while (true)
         {
@@ -121,6 +140,14 @@ internal sealed class LlamaCppChatClient
             if (string.IsNullOrWhiteSpace(data))
             {
                 continue;
+            }
+
+            if (TryParseGenerationMetrics(data) is LlamaCppGenerationMetrics parsedMetrics)
+            {
+                aggregateMetrics = aggregateMetrics is null
+                    ? parsedMetrics
+                    : aggregateMetrics.Merge(parsedMetrics);
+                metricsObserver?.Invoke(aggregateMetrics);
             }
 
             foreach (ConversationResponseChunk chunk in ParseResponseDeltas(data))
@@ -182,6 +209,169 @@ internal sealed class LlamaCppChatClient
                 chunks);
             return [.. chunks];
         }
+    }
+
+    internal static LlamaCppGenerationMetrics? TryParseGenerationMetrics(string json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return null;
+        }
+
+        JsonDocument document;
+
+        try
+        {
+            document = JsonDocument.Parse(json);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+
+        using (document)
+        {
+            JsonElement root = document.RootElement;
+
+            if (root.ValueKind != JsonValueKind.Object)
+            {
+                return null;
+            }
+
+            int? inputTokens = null;
+            int? outputTokens = null;
+            int? totalTokens = null;
+            int? cachedInputTokens = null;
+            TimeSpan? promptEvaluationDuration = null;
+            TimeSpan? generationDuration = null;
+            double? promptTokensPerSecond = null;
+            double? generationTokensPerSecond = null;
+
+            if (root.TryGetProperty("usage", out JsonElement usage)
+                && usage.ValueKind == JsonValueKind.Object)
+            {
+                inputTokens = GetNonNegativeInt32(usage, "prompt_tokens");
+                outputTokens = GetNonNegativeInt32(usage, "completion_tokens");
+                totalTokens = GetNonNegativeInt32(usage, "total_tokens");
+
+                if (usage.TryGetProperty("prompt_tokens_details", out JsonElement promptDetails)
+                    && promptDetails.ValueKind == JsonValueKind.Object)
+                {
+                    cachedInputTokens = GetNonNegativeInt32(promptDetails, "cached_tokens");
+                }
+            }
+
+            if (root.TryGetProperty("timings", out JsonElement timings)
+                && timings.ValueKind == JsonValueKind.Object)
+            {
+                int? promptTokens = GetNonNegativeInt32(timings, "prompt_n");
+                int? cachedTokens = GetNonNegativeInt32(timings, "cache_n");
+                int? predictedTokens = GetNonNegativeInt32(timings, "predicted_n");
+
+                cachedInputTokens ??= cachedTokens;
+
+                if (inputTokens is null && promptTokens is int prompt)
+                {
+                    inputTokens = AddNonNegativeInt32(prompt, cachedTokens ?? 0);
+                }
+
+                outputTokens ??= predictedTokens;
+
+                if (totalTokens is null
+                    && inputTokens is int input
+                    && outputTokens is int output)
+                {
+                    totalTokens = AddNonNegativeInt32(input, output);
+                }
+
+                promptEvaluationDuration = GetNonNegativeMilliseconds(timings, "prompt_ms");
+                generationDuration = GetNonNegativeMilliseconds(timings, "predicted_ms");
+                promptTokensPerSecond = GetNonNegativeDouble(timings, "prompt_per_second");
+                generationTokensPerSecond = GetNonNegativeDouble(timings, "predicted_per_second");
+            }
+
+            if (inputTokens is int inputCount
+                && outputTokens is int outputCount
+                && totalTokens is int totalCount
+                && totalCount != (long)inputCount + outputCount)
+            {
+                totalTokens = null;
+            }
+
+            if (cachedInputTokens is int cachedCount
+                && inputTokens is int observedInputCount
+                && cachedCount > observedInputCount)
+            {
+                cachedInputTokens = null;
+            }
+
+            if (inputTokens is null
+                && outputTokens is null
+                && totalTokens is null
+                && cachedInputTokens is null
+                && promptEvaluationDuration is null
+                && generationDuration is null
+                && promptTokensPerSecond is null
+                && generationTokensPerSecond is null)
+            {
+                return null;
+            }
+
+            return new LlamaCppGenerationMetrics(
+                inputTokens,
+                outputTokens,
+                totalTokens,
+                cachedInputTokens,
+                promptEvaluationDuration,
+                generationDuration,
+                promptTokensPerSecond,
+                generationTokensPerSecond);
+        }
+    }
+
+    private static int? AddNonNegativeInt32(int left, int right)
+    {
+        long total = (long)left + right;
+        return total <= int.MaxValue ? (int)total : null;
+    }
+
+    private static int? GetNonNegativeInt32(JsonElement parent, string propertyName)
+    {
+        if (!parent.TryGetProperty(propertyName, out JsonElement value)
+            || value.ValueKind != JsonValueKind.Number
+            || !value.TryGetInt32(out int parsed)
+            || parsed < 0)
+        {
+            return null;
+        }
+
+        return parsed;
+    }
+
+    private static double? GetNonNegativeDouble(JsonElement parent, string propertyName)
+    {
+        if (!parent.TryGetProperty(propertyName, out JsonElement value)
+            || value.ValueKind != JsonValueKind.Number
+            || !value.TryGetDouble(out double parsed)
+            || double.IsNaN(parsed)
+            || double.IsInfinity(parsed)
+            || parsed < 0)
+        {
+            return null;
+        }
+
+        return parsed;
+    }
+
+    private static TimeSpan? GetNonNegativeMilliseconds(
+        JsonElement parent,
+        string propertyName)
+    {
+        double? milliseconds = GetNonNegativeDouble(parent, propertyName);
+
+        return milliseconds is double value
+            ? TimeSpan.FromMilliseconds(value)
+            : null;
     }
 
     private static void AddStringDelta(
@@ -372,6 +562,7 @@ internal sealed class LlamaCppChatClient
         string Model,
         IReadOnlyList<ChatCompletionMessage> Messages,
         bool Stream,
+        [property: JsonPropertyName("stream_options")] ChatCompletionStreamOptions StreamOptions,
         [property: JsonPropertyName("max_tokens")] int? MaxTokens,
         double? Temperature,
         [property: JsonPropertyName("top_p")] double? TopP,
@@ -380,6 +571,9 @@ internal sealed class LlamaCppChatClient
         [property: JsonPropertyName("reasoning_effort")] string? ReasoningEffort,
         [property: JsonPropertyName("thinking_budget_tokens")] int? ThinkingBudgetTokens,
         [property: JsonPropertyName("reasoning_format")] string? ReasoningFormat);
+
+    private sealed record ChatCompletionStreamOptions(
+        [property: JsonPropertyName("include_usage")] bool IncludeUsage);
 
     private sealed record ChatCompletionMessage(
         string Role,

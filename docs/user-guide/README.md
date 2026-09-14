@@ -19,7 +19,7 @@ The **Conversations** workspace owns the conversation history and chat surface.
 
 ## Provider
 
-The **Provider** workspace owns provider lifecycle operations. Lot 10.7A presents the same behavior with a calmer hierarchy: **Runtime** stays visible and primary, **Runtime updates** stays secondary, and **Maintenance** plus **Technical details** are disclosed only when requested. The destructive confirmation workflow is unchanged.
+The **Provider** workspace owns provider lifecycle operations. Lot 10.7A presents the same behavior with a calmer hierarchy: **Runtime** stays visible and primary, **Runtime updates** stays secondary, and **Maintenance** plus **Technical details** are disclosed only when requested. The destructive confirmation workflow is unchanged. Lot 10.7 also places the latest privacy-safe generation metrics inside the already-collapsed **Technical details** disclosure, so routine provider controls stay visually quiet.
 
 For `llama.cpp CUDA`:
 
@@ -35,6 +35,12 @@ For `llama.cpp CUDA`:
 Alicia does not silently fall back to another provider when the selected provider is unavailable.
 
 Alicia currently validates managed llama.cpp release `b10435` at source commit `9e40df63ba151d771d8b247ac4011cf203337e99`. If GitHub publishes a newer release, **Check update** may report it as upstream latest, but Alicia will not install it until a later Alicia build validates and pins it. A managed release newer than the current pin is never automatically downgraded. Previous managed releases remain on disk until **Clean old releases** is explicitly confirmed. **Uninstall runtime** preserves the local model cache; **Uninstall runtime + cache** is a separate destructive action. Neither removes saved provider configuration or conversations.
+
+### Generation metrics
+
+After a generation completes, is cancelled, or fails, open **Provider → Technical details** to inspect the latest provider observation. When available it shows provider/model/runtime version, end-to-end latency, time to first output, input/output/cached token usage, and llama.cpp prompt/generation timing/rates. Missing provider timing remains explicitly unavailable rather than inferred.
+
+Alicia writes a small rotating local observation history under `providers/llama.cpp/logs/`, but that structured record does **not** contain prompt/message/reasoning/response text, raw HTTP bodies, API keys, endpoints, log tails, or exception diagnostics. The observation history is runtime log data: **Uninstall runtime** removes it, while the separate model cache remains preserved unless **Uninstall runtime + cache** is explicitly confirmed.
 
 ## Models
 

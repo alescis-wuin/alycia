@@ -15,7 +15,7 @@ internal sealed record LlamaCppProviderTimeouts
         TimeSpan? installerResponseHeaders = null,
         TimeSpan? installerReadIdle = null)
     {
-        Readiness = Validate(readiness ?? TimeSpan.FromMinutes(2), nameof(readiness));
+        Readiness = Validate(readiness ?? TimeSpan.FromMinutes(30), nameof(readiness));
         HealthRequest = Validate(healthRequest ?? TimeSpan.FromSeconds(5), nameof(healthRequest));
         CommandProbe = Validate(commandProbe ?? TimeSpan.FromSeconds(15), nameof(commandProbe));
         ChatResponseHeaders = Validate(

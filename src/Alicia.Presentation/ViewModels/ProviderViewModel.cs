@@ -16,6 +16,7 @@ public sealed class ProviderViewModel : ViewModelBase
     private string? _providerUpdateStatusMessage;
     private InferenceProviderStorageInfo? _providerStorageInfo;
     private string? _providerMaintenanceStatusMessage;
+    private InferenceProviderGenerationObservation? _providerGenerationObservation;
 
     public ProviderViewModel(IInferenceProviderRegistry providerRegistry)
     {
@@ -129,6 +130,50 @@ public sealed class ProviderViewModel : ViewModelBase
                 ? "Inspect storage before destructive maintenance. Runtime and model-cache deletion are always separate, explicit actions."
                 : "Managed storage maintenance is not available for this provider.");
 
+    public bool SupportsProviderObservability =>
+        _selectedProviderRuntime is IInferenceProviderObservabilityRuntime;
+
+    public bool HasProviderGenerationObservation => _providerGenerationObservation is not null;
+
+    public string ProviderGenerationOutcomeText => _providerGenerationObservation is null
+        ? "No generation observed in this application session."
+        : _providerGenerationObservation.Outcome switch
+        {
+            InferenceProviderGenerationOutcome.Completed => "Last generation completed",
+            InferenceProviderGenerationOutcome.Cancelled => "Last generation cancelled",
+            InferenceProviderGenerationOutcome.Failed =>
+                $"Last generation failed • {_providerGenerationObservation.FailureKind}",
+            _ => "Last generation state unavailable",
+        };
+
+    public string ProviderGenerationIdentityText => _providerGenerationObservation is null
+        ? "Provider/model/version metrics unavailable."
+        : string.Join(
+            " • ",
+            _providerGenerationObservation.ProviderName,
+            _providerGenerationObservation.ModelReference ?? "model unavailable",
+            _providerGenerationObservation.RuntimeVersion is string version
+                ? $"version {version}"
+                : "version unavailable");
+
+    public string ProviderGenerationLatencyText => _providerGenerationObservation is null
+        ? "Latency unavailable."
+        : _providerGenerationObservation.TimeToFirstOutput is TimeSpan firstOutput
+            ? $"End-to-end {FormatDuration(_providerGenerationObservation.Duration)} • first output {FormatDuration(firstOutput)}"
+            : $"End-to-end {FormatDuration(_providerGenerationObservation.Duration)} • first output unavailable";
+
+    public string ProviderGenerationTokenUsageText => _providerGenerationObservation is null
+        ? "Token usage unavailable."
+        : FormatTokenUsage(_providerGenerationObservation);
+
+    public string ProviderGenerationTimingText => _providerGenerationObservation is null
+        ? "Provider timing unavailable."
+        : FormatProviderTiming(_providerGenerationObservation);
+
+    public string ProviderObservabilityPrivacyText => SupportsProviderObservability
+        ? "Structured local metrics only. Alicia does not write prompt or message content to the generation-observation log."
+        : string.Empty;
+
     public bool IsProviderProgressVisible => _providerProgress is not null;
 
     public bool IsProviderProgressIndeterminate => IsProviderBusy
@@ -165,6 +210,9 @@ public sealed class ProviderViewModel : ViewModelBase
         _providerUpdateStatusMessage = null;
         _providerStorageInfo = null;
         _providerMaintenanceStatusMessage = null;
+        _providerGenerationObservation =
+            (_selectedProviderRuntime as IInferenceProviderObservabilityRuntime)
+                ?.LatestGenerationObservation;
 
         OnPropertyChanged(nameof(SelectedProvider));
         RaiseProjectionChanged();
@@ -194,6 +242,14 @@ public sealed class ProviderViewModel : ViewModelBase
         return _selectedProviderRuntime as IInferenceProviderMaintenanceRuntime
             ?? throw new InvalidOperationException(
                 "The selected inference provider does not expose managed storage maintenance operations.");
+    }
+
+    internal void RefreshObservability()
+    {
+        _providerGenerationObservation =
+            (_selectedProviderRuntime as IInferenceProviderObservabilityRuntime)
+                ?.LatestGenerationObservation;
+        RaiseProjectionChanged();
     }
 
     internal void ApplyStorageInfo(InferenceProviderStorageInfo storageInfo)
@@ -350,6 +406,60 @@ public sealed class ProviderViewModel : ViewModelBase
         RaiseProjectionChanged();
     }
 
+    private static string FormatDuration(TimeSpan duration)
+    {
+        if (duration < TimeSpan.FromSeconds(1))
+        {
+            return $"{duration.TotalMilliseconds:0} ms";
+        }
+
+        return $"{duration.TotalSeconds:0.00} s";
+    }
+
+    private static string FormatTokenUsage(InferenceProviderGenerationObservation observation)
+    {
+        string input = observation.InputTokens is int inputTokens
+            ? inputTokens.ToString("N0", System.Globalization.CultureInfo.CurrentCulture)
+            : "—";
+        string output = observation.OutputTokens is int outputTokens
+            ? outputTokens.ToString("N0", System.Globalization.CultureInfo.CurrentCulture)
+            : "—";
+        string cached = observation.CachedInputTokens is int cachedTokens
+            ? cachedTokens.ToString("N0", System.Globalization.CultureInfo.CurrentCulture)
+            : "—";
+
+        return $"Tokens • input {input} • output {output} • cached {cached}";
+    }
+
+    private static string FormatProviderTiming(InferenceProviderGenerationObservation observation)
+    {
+        List<string> values = [];
+
+        if (observation.PromptEvaluationDuration is TimeSpan promptDuration)
+        {
+            values.Add($"prompt {FormatDuration(promptDuration)}");
+        }
+
+        if (observation.PromptTokensPerSecond is double promptRate)
+        {
+            values.Add($"prompt {promptRate:0.0} tok/s");
+        }
+
+        if (observation.GenerationDuration is TimeSpan generationDuration)
+        {
+            values.Add($"generation {FormatDuration(generationDuration)}");
+        }
+
+        if (observation.GenerationTokensPerSecond is double generationRate)
+        {
+            values.Add($"generation {generationRate:0.0} tok/s");
+        }
+
+        return values.Count == 0
+            ? "Provider timing unavailable for the last generation."
+            : string.Join(" • ", values);
+    }
+
     private static string FormatBytes(long bytes)
     {
         const double KiB = 1024d;
@@ -388,6 +498,14 @@ public sealed class ProviderViewModel : ViewModelBase
         OnPropertyChanged(nameof(ProviderModelCacheStorageText));
         OnPropertyChanged(nameof(ProviderRetainedReleasesText));
         OnPropertyChanged(nameof(ProviderMaintenanceStatusText));
+        OnPropertyChanged(nameof(SupportsProviderObservability));
+        OnPropertyChanged(nameof(HasProviderGenerationObservation));
+        OnPropertyChanged(nameof(ProviderGenerationOutcomeText));
+        OnPropertyChanged(nameof(ProviderGenerationIdentityText));
+        OnPropertyChanged(nameof(ProviderGenerationLatencyText));
+        OnPropertyChanged(nameof(ProviderGenerationTokenUsageText));
+        OnPropertyChanged(nameof(ProviderGenerationTimingText));
+        OnPropertyChanged(nameof(ProviderObservabilityPrivacyText));
         OnPropertyChanged(nameof(IsProviderProgressVisible));
         OnPropertyChanged(nameof(IsProviderProgressIndeterminate));
         OnPropertyChanged(nameof(ProviderProgressValue));

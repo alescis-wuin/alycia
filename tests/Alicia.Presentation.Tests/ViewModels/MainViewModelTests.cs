@@ -1887,6 +1887,65 @@ public sealed class MainViewModelTests
     }
 
     [Fact]
+    public async Task CompletedGenerationRefreshesProviderObservabilityProjection()
+    {
+        DateTimeOffset createdAt = new(2026, 8, 16, 19, 30, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        repository.Seed(new Conversation(
+            ConversationId.New(),
+            "Observability",
+            createdAt,
+            createdAt));
+        StubInferenceProviderRuntime provider = new(InferenceProviderState.Running);
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(createdAt.AddMinutes(1)),
+            new DeterministicConversationResponder("Observed response"),
+            provider);
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        Assert.True(viewModel.SupportsProviderObservability);
+        Assert.False(viewModel.HasProviderGenerationObservation);
+
+        provider.LatestGenerationObservation = new InferenceProviderGenerationObservation(
+            providerId: "llama.cpp.cuda",
+            providerName: "llama.cpp CUDA",
+            modelReference: "Qwen/Qwen3-4B-GGUF",
+            runtimeVersion: "b10435",
+            startedAtUtc: createdAt.AddSeconds(10),
+            completedAtUtc: createdAt.AddSeconds(12),
+            outcome: InferenceProviderGenerationOutcome.Completed,
+            failureKind: null,
+            duration: TimeSpan.FromSeconds(2),
+            timeToFirstOutput: TimeSpan.FromMilliseconds(250),
+            inputTokens: 120,
+            outputTokens: 30,
+            totalTokens: 150,
+            cachedInputTokens: 80,
+            promptEvaluationDuration: TimeSpan.FromMilliseconds(40),
+            generationDuration: TimeSpan.FromMilliseconds(800),
+            promptTokensPerSecond: 3000,
+            generationTokensPerSecond: 37.5);
+
+        viewModel.MessageDraft = "Observe this";
+        await viewModel.SendMessageCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.True(viewModel.HasProviderGenerationObservation);
+        Assert.Equal("Last generation completed", viewModel.ProviderGenerationOutcomeText);
+        Assert.Contains("Qwen/Qwen3-4B-GGUF", viewModel.ProviderGenerationIdentityText, StringComparison.Ordinal);
+        Assert.Contains("first output", viewModel.ProviderGenerationLatencyText, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("input 120", viewModel.ProviderGenerationTokenUsageText, StringComparison.Ordinal);
+        string expectedGenerationRate = 37.5.ToString(
+            "0.0",
+            System.Globalization.CultureInfo.CurrentCulture);
+        Assert.Contains(
+            $"generation {expectedGenerationRate} tok/s",
+            viewModel.ProviderGenerationTimingText,
+            StringComparison.Ordinal);
+        Assert.Contains("does not write prompt or message content", viewModel.ProviderObservabilityPrivacyText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task SendingAUserMessageReturnsDetachedConversationToFollowing()
     {
         DateTimeOffset createdAt = new(2026, 8, 13, 1, 30, 0, TimeSpan.Zero);
