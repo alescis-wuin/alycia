@@ -48,7 +48,7 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 | UIX-01 Stage 9 | terminé | décomposition Presentation en six ViewModels |
 | UIX-01 Stage 10 | terminé | 10A–10D terminés; UIX-01 foundation clôturée |
 | UI refinement 10.7A | terminé | Provider/Models visual hierarchy |
-| Lot 10B Profiles/revisions/provenance/context | planifié | à faire |
+| Lot 10B Profiles/revisions/provenance/context | en cours | 10B.1 `GenerationSnapshot` immuable |
 | Lot 11 RAG foundation | planifié | à faire |
 | Lot 12 Retrieval/grounded generation | planifié | à faire |
 | Lot 13 Tools/MCP/agents | planifié | à faire |
@@ -204,9 +204,20 @@ GenerationSettingsViewModel
 
 ## Lot 10B — Generation state / revisions / provenance / context
 
-Introduire avant RAG :
+Introduire avant RAG.
 
-- `GenerationSnapshot` immuable ;
+### 10B.1 GenerationSnapshot immuable — terminé
+
+- nouveau contrat Application provider-neutral `GenerationSnapshot` ;
+- corrélation stable par `ConversationId` et `MessageId` du message utilisateur déclencheur ;
+- instant de capture normalisé en UTC ;
+- capture défensive de l'identité provider/modèle, de la taille de contexte configurée et des options de génération Alicia ;
+- les valeurs non configurées restent `null` afin de préserver la sémantique provider/model default sans inventer de valeur effective ;
+- aucun contenu de message, raisonnement, réponse, télémétrie ou diagnostic provider n'est stocké dans ce snapshot ;
+- aucune persistance ni liaison aux révisions dans cette étape atomique.
+
+### Etapes suivantes
+
 - profils de génération ;
 - révisions de messages ;
 - provenance et contexte attachés à la génération ;
