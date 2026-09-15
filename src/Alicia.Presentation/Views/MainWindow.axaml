@@ -2,7 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="using:Alicia.Presentation.Views"
         x:Class="Alicia.Presentation.Views.MainWindow"
-        Title="Alicia"
+        Title="Alycia"
         Width="1280"
         Height="820"
         MinWidth="720"
