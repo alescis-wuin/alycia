@@ -3,9 +3,9 @@
         xmlns:local="using:Alicia.Presentation.Views"
         x:Class="Alicia.Presentation.Views.MainWindow"
         Title="Alicia"
-        Width="1180"
-        Height="760"
-        MinWidth="760"
+        Width="1280"
+        Height="820"
+        MinWidth="720"
         MinHeight="560">
-  <local:MainView />
+  <local:ShellView />
 </Window>

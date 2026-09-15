@@ -1,0 +1,399 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:providers="using:Alicia.Application.Providers"
+             xmlns:vm="using:Alicia.Presentation.ViewModels"
+             x:Class="Alicia.Presentation.Views.ProviderWorkspaceView"
+             x:DataType="vm:MainViewModel"
+             AutomationProperties.Name="Provider workspace"
+             AutomationProperties.LandmarkType="Main"
+             AutomationProperties.AccessibilityView="Control">
+  <Grid Margin="28"
+        RowDefinitions="Auto,18,*">
+
+    <Grid MaxWidth="1120"
+          HorizontalAlignment="Center"
+          ColumnDefinitions="*,Auto">
+      <StackPanel Spacing="4">
+        <TextBlock Text="Provider"
+                   FontSize="30"
+                   FontWeight="Bold"
+                   AutomationProperties.HeadingLevel="1"
+                   Foreground="{DynamicResource TextPrimaryBrush}" />
+        <TextBlock Text="Control the local inference runtime without mixing model settings into this workspace."
+                   FontSize="14"
+                   TextWrapping="Wrap"
+                   Foreground="{DynamicResource TextSecondaryBrush}" />
+      </StackPanel>
+
+      <Border Grid.Column="1"
+              Classes="status-chip workspace-status-chip"
+              VerticalAlignment="Center">
+        <TextBlock Text="{Binding ProviderStatusText}"
+                   FontSize="13"
+                   FontWeight="SemiBold"
+                   AutomationProperties.Name="Provider status"
+                   AutomationProperties.LiveSetting="Polite"
+                   Foreground="{DynamicResource TextPrimaryBrush}" />
+      </Border>
+    </Grid>
+
+    <ScrollViewer Grid.Row="2"
+                  VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled">
+      <StackPanel MaxWidth="1120"
+                  HorizontalAlignment="Center"
+                  Spacing="16">
+
+        <Border Classes="workspace-primary-surface"
+                Padding="22">
+          <StackPanel Spacing="16">
+            <StackPanel Spacing="4">
+              <TextBlock Classes="workspace-section-title"
+                         Text="Runtime"
+                         AutomationProperties.HeadingLevel="2" />
+              <TextBlock Classes="workspace-section-description"
+                         Text="Choose the provider, inspect its state, then run the lifecycle action you need." />
+            </StackPanel>
+
+            <ComboBox ItemsSource="{Binding ProviderOptions}"
+                      SelectedItem="{Binding SelectedProvider, Mode=TwoWay}"
+                      IsEnabled="{Binding IsProviderSelectionEditable}"
+                      AutomationProperties.Name="Inference provider"
+                      AutomationProperties.HelpText="Choose the inference provider explicitly. Alicia does not switch providers automatically.">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="providers:InferenceProviderDescriptor">
+                  <TextBlock Text="{Binding Name}" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+
+            <Grid ColumnDefinitions="*,Auto"
+                  ColumnSpacing="18">
+              <StackPanel Spacing="3">
+                <TextBlock Text="{Binding ProviderName}"
+                           FontSize="17"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimaryBrush}" />
+                <TextBlock Text="{Binding ProviderVersionText}"
+                           FontSize="12"
+                           Foreground="{DynamicResource TextSecondaryBrush}" />
+              </StackPanel>
+              <TextBlock Grid.Column="1"
+                         Text="{Binding ProviderFallbackText}"
+                         MaxWidth="360"
+                         VerticalAlignment="Center"
+                         FontSize="12"
+                         TextAlignment="Right"
+                         TextWrapping="Wrap"
+                         Foreground="{DynamicResource TextSecondaryBrush}" />
+            </Grid>
+
+            <TextBlock Text="{Binding ProviderDetailText}"
+                       FontSize="13"
+                       LineHeight="20"
+                       TextWrapping="Wrap"
+                       AutomationProperties.LiveSetting="Polite"
+                       Foreground="{DynamicResource TextSecondaryBrush}" />
+
+            <Border Classes="workspace-progress-surface"
+                    Padding="14"
+                    IsVisible="{Binding IsProviderProgressVisible}"
+                    AutomationProperties.Name="Provider operation progress">
+              <StackPanel Spacing="6">
+                <TextBlock Text="{Binding ProviderProgressText}"
+                           FontSize="13"
+                           FontWeight="SemiBold"
+                           AutomationProperties.LiveSetting="Polite"
+                           Foreground="{DynamicResource TextPrimaryBrush}" />
+                <ProgressBar Height="6"
+                             Minimum="0"
+                             Maximum="100"
+                             Value="{Binding ProviderProgressValue}"
+                             IsIndeterminate="{Binding IsProviderProgressIndeterminateAnimationEnabled}"
+                             AutomationProperties.Name="Provider operation progress indicator" />
+                <TextBlock Text="{Binding ProviderProgressDetailText}"
+                           FontSize="12"
+                           TextWrapping="Wrap"
+                           AutomationProperties.LiveSetting="Polite"
+                           Foreground="{DynamicResource TextSecondaryBrush}" />
+              </StackPanel>
+            </Border>
+
+            <Grid ColumnDefinitions="*,8,*,8,*,8,*">
+              <Button Grid.Column="0"
+                      Classes="quiet-action"
+                      Command="{Binding DetectProviderCommand}"
+                      IsEnabled="{Binding CanDetectProvider}"
+                      Content="Detect"
+                      AutomationProperties.Name="Detect selected provider" />
+                <Button Grid.Column="2"
+                      Classes="quiet-action"
+                      Command="{Binding InstallProviderCommand}"
+                      IsEnabled="{Binding CanInstallProvider}"
+                      Content="Install"
+                      AutomationProperties.Name="Install selected provider" />
+              <Button Grid.Column="4"
+                      Classes="primary-action"
+                      Command="{Binding StartProviderCommand}"
+                      IsEnabled="{Binding CanStartProvider}"
+                      Content="Start"
+                      AutomationProperties.Name="Start selected provider" />
+              <Button Grid.Column="6"
+                      Classes="secondary-action"
+                      Command="{Binding StopProviderCommand}"
+                      IsEnabled="{Binding CanStopProvider}"
+                      Content="Stop local AI"
+                      AutomationProperties.Name="Stop selected provider" />
+            </Grid>
+          </StackPanel>
+        </Border>
+
+        <Border Classes="workspace-secondary-surface"
+                Padding="18">
+          <StackPanel>
+            <Grid ColumnDefinitions="1.1*,24,*">
+              <StackPanel Spacing="5">
+              <TextBlock Classes="workspace-section-title"
+                         Text="Runtime updates"
+                         AutomationProperties.HeadingLevel="2" />
+              <TextBlock Classes="workspace-section-description"
+                         Text="Alicia installs only its pinned validated release. Upstream latest stays informational until validated." />
+              </StackPanel>
+
+              <StackPanel Grid.Column="2"
+                        Spacing="8">
+              <TextBlock Text="{Binding ProviderInstalledReleaseText}"
+                         FontSize="12"
+                         TextWrapping="Wrap"
+                         Foreground="{DynamicResource TextSecondaryBrush}" />
+              <TextBlock Text="{Binding ProviderValidatedReleaseText}"
+                         FontSize="12"
+                         TextWrapping="Wrap"
+                         Foreground="{DynamicResource TextSecondaryBrush}" />
+              <TextBlock Text="{Binding ProviderLatestReleaseText}"
+                         FontSize="12"
+                         TextWrapping="Wrap"
+                         Foreground="{DynamicResource TextSecondaryBrush}" />
+              </StackPanel>
+            </Grid>
+
+            <StackPanel Margin="0,14,0,0"
+                        Spacing="10">
+              <TextBlock Text="{Binding ProviderUpdateStatusText}"
+                       FontSize="12"
+                       LineHeight="18"
+                       TextWrapping="Wrap"
+                       AutomationProperties.LiveSetting="Polite"
+                       Foreground="{DynamicResource TextSecondaryBrush}" />
+
+              <Grid ColumnDefinitions="*,8,*">
+                <Button Grid.Column="0"
+                      Classes="quiet-action"
+                      Command="{Binding CheckProviderUpdateCommand}"
+                      IsEnabled="{Binding CanCheckProviderUpdate}"
+                      Content="Check update"
+                      AutomationProperties.Name="Check provider update" />
+              <Button Grid.Column="2"
+                      Classes="secondary-action"
+                      Command="{Binding UpdateProviderCommand}"
+                      IsEnabled="{Binding CanUpdateProvider}"
+                      Content="Update validated"
+                        AutomationProperties.Name="Update provider to Alicia validated release" />
+              </Grid>
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+        <Expander Header="Maintenance"
+                  Classes="workspace-disclosure"
+                  IsExpanded="False"
+                  IsVisible="{Binding SupportsProviderMaintenance}"
+                  AutomationProperties.Name="Managed provider maintenance">
+          <StackPanel Margin="0,12,0,0"
+                      Spacing="16">
+            <Border Classes="workspace-secondary-surface"
+                    Padding="18">
+              <StackPanel Spacing="10">
+                <StackPanel Spacing="4">
+                  <TextBlock Classes="workspace-section-title"
+                             Text="Managed storage"
+                             AutomationProperties.HeadingLevel="2" />
+                  <TextBlock Classes="workspace-section-description"
+                             Text="Inspect Alicia-owned runtime and model-cache usage before cleanup. Configuration and conversations are outside this scope." />
+                </StackPanel>
+
+                <Button Classes="quiet-action"
+                        HorizontalAlignment="Left"
+                        Command="{Binding InspectProviderStorageCommand}"
+                        IsEnabled="{Binding CanInspectProviderStorage}"
+                        Content="Inspect storage"
+                        AutomationProperties.Name="Inspect managed provider storage" />
+
+                <StackPanel Spacing="4"
+                            IsVisible="{Binding HasProviderStorageInfo}"
+                            AutomationProperties.Name="Managed provider storage summary">
+                  <TextBlock Text="{Binding ProviderRuntimeStorageText}"
+                             FontSize="12"
+                             TextWrapping="Wrap"
+                             Foreground="{DynamicResource TextSecondaryBrush}" />
+                  <TextBlock Text="{Binding ProviderModelCacheStorageText}"
+                             FontSize="12"
+                             TextWrapping="Wrap"
+                             Foreground="{DynamicResource TextSecondaryBrush}" />
+                  <TextBlock Text="{Binding ProviderRetainedReleasesText}"
+                             FontSize="12"
+                             TextWrapping="Wrap"
+                             Foreground="{DynamicResource TextSecondaryBrush}" />
+                </StackPanel>
+
+                <TextBlock Text="{Binding ProviderMaintenanceStatusText}"
+                           FontSize="12"
+                           LineHeight="18"
+                           TextWrapping="Wrap"
+                           AutomationProperties.LiveSetting="Polite"
+                           Foreground="{DynamicResource TextSecondaryBrush}" />
+              </StackPanel>
+            </Border>
+
+            <Border Classes="workspace-danger-surface"
+                    Padding="18">
+              <StackPanel Spacing="10">
+                <StackPanel Spacing="4">
+                  <TextBlock Text="Danger zone"
+                             FontSize="15"
+                             FontWeight="SemiBold"
+                             AutomationProperties.HeadingLevel="2"
+                             Foreground="{DynamicResource DangerBrush}" />
+                  <TextBlock Text="Nothing is removed until a separate confirmation is accepted. Stop the local AI model first."
+                             FontSize="12"
+                             LineHeight="18"
+                             TextWrapping="Wrap"
+                             Foreground="{DynamicResource TextSecondaryBrush}" />
+                </StackPanel>
+
+                <Button Classes="danger-subtle-action"
+                        HorizontalAlignment="Left"
+                        Command="{Binding RequestCleanupRetainedProviderReleasesCommand}"
+                        IsEnabled="{Binding CanCleanupRetainedProviderReleases}"
+                        Content="Clean old releases"
+                        AutomationProperties.Name="Request cleanup of inactive managed runtime releases"
+                        AutomationProperties.HelpText="Preserves the active runtime and local model cache." />
+
+                <Grid ColumnDefinitions="*,8,*">
+                  <Button Grid.Column="0"
+                          Classes="danger-action"
+                          Command="{Binding RequestUninstallProviderRuntimeCommand}"
+                          IsEnabled="{Binding CanRequestProviderMaintenance}"
+                          Content="Uninstall runtime"
+                          AutomationProperties.Name="Request managed runtime uninstall"
+                          AutomationProperties.HelpText="Preserves the local model cache, provider configuration, and conversations." />
+                  <Button Grid.Column="2"
+                          Classes="danger-action"
+                          Command="{Binding RequestUninstallProviderRuntimeAndCacheCommand}"
+                          IsEnabled="{Binding CanRequestProviderMaintenance}"
+                          Content="Uninstall runtime + cache"
+                          AutomationProperties.Name="Request managed runtime and model cache uninstall"
+                          AutomationProperties.HelpText="Removes managed runtime files and the local model cache, but preserves provider configuration and conversations." />
+                </Grid>
+
+                <Border IsVisible="{Binding IsProviderMaintenanceConfirmationVisible}"
+                        Background="{DynamicResource DangerSurfaceBrush}"
+                        CornerRadius="12"
+                        Padding="14"
+                        AutomationProperties.Name="Provider maintenance confirmation">
+                  <StackPanel Spacing="10">
+                    <TextBlock Text="{Binding ProviderMaintenanceConfirmationTitle}"
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               AutomationProperties.HeadingLevel="3"
+                               Foreground="{DynamicResource TextPrimaryBrush}" />
+                    <TextBlock Text="{Binding ProviderMaintenanceConfirmationDescription}"
+                               FontSize="12"
+                               LineHeight="18"
+                               TextWrapping="Wrap"
+                               Foreground="{DynamicResource TextSecondaryBrush}" />
+                    <Grid ColumnDefinitions="*,8,*">
+                      <Button Grid.Column="0"
+                              Classes="quiet-action"
+                              Command="{Binding CancelProviderMaintenanceCommand}"
+                              Content="Cancel"
+                              AutomationProperties.Name="Cancel provider maintenance" />
+                      <Button Grid.Column="2"
+                              Classes="danger-action"
+                              Command="{Binding ConfirmProviderMaintenanceCommand}"
+                              IsEnabled="{Binding CanConfirmProviderMaintenance}"
+                              Content="{Binding ProviderMaintenanceConfirmLabel}"
+                              AutomationProperties.Name="Confirm provider maintenance" />
+                    </Grid>
+                  </StackPanel>
+                </Border>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </Expander>
+
+        <Expander Header="Technical details"
+                  Classes="workspace-disclosure"
+                  IsExpanded="False"
+                  AutomationProperties.Name="Provider technical details">
+          <StackPanel Margin="0,10,0,0"
+                      Spacing="12">
+            <StackPanel Spacing="7"
+                        IsVisible="{Binding SupportsProviderObservability}">
+              <TextBlock Text="Last generation"
+                         FontSize="14"
+                         FontWeight="SemiBold"
+                         AutomationProperties.HeadingLevel="3"
+                         Foreground="{DynamicResource TextPrimaryBrush}" />
+              <TextBlock Text="{Binding ProviderGenerationOutcomeText}"
+                         FontSize="12"
+                         FontWeight="SemiBold"
+                         AutomationProperties.LiveSetting="Polite"
+                         Foreground="{DynamicResource TextPrimaryBrush}" />
+              <StackPanel Spacing="4"
+                          IsVisible="{Binding HasProviderGenerationObservation}"
+                          AutomationProperties.Name="Last generation metrics">
+                <TextBlock Text="{Binding ProviderGenerationIdentityText}"
+                           FontSize="12"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource TextSecondaryBrush}" />
+                <TextBlock Text="{Binding ProviderGenerationLatencyText}"
+                           FontSize="12"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource TextSecondaryBrush}" />
+                <TextBlock Text="{Binding ProviderGenerationTokenUsageText}"
+                           FontSize="12"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource TextSecondaryBrush}" />
+                <TextBlock Text="{Binding ProviderGenerationTimingText}"
+                           FontSize="12"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource TextSecondaryBrush}" />
+              </StackPanel>
+              <TextBlock Text="{Binding ProviderObservabilityPrivacyText}"
+                         FontSize="11"
+                         LineHeight="17"
+                         TextWrapping="Wrap"
+                         Foreground="{DynamicResource TextSecondaryBrush}" />
+            </StackPanel>
+
+            <Separator Background="{DynamicResource WorkspaceBorderBrush}"
+                       IsVisible="{Binding SupportsProviderObservability}" />
+
+            <TextBlock Text="{Binding ProviderConfigurationStatusText}"
+                       FontSize="12"
+                       LineHeight="18"
+                       TextWrapping="Wrap"
+                       AutomationProperties.LiveSetting="Polite"
+                       Foreground="{DynamicResource TextSecondaryBrush}" />
+            <TextBlock Text="Model and generation settings are managed from the Models workspace. Provider lifecycle remains here."
+                       FontSize="12"
+                       LineHeight="18"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource TextSecondaryBrush}" />
+          </StackPanel>
+        </Expander>
+      </StackPanel>
+    </ScrollViewer>
+  </Grid>
+</UserControl>

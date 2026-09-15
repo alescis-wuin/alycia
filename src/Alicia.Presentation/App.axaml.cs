@@ -7,6 +7,14 @@ namespace Alicia.Presentation;
 
 public partial class App : global::Avalonia.Application
 {
+    private static Func<ShellViewModel>? _shellViewModelFactory;
+
+    public static void ConfigureShellViewModelFactory(Func<ShellViewModel> factory)
+    {
+        ArgumentNullException.ThrowIfNull(factory);
+        _shellViewModelFactory = factory;
+    }
+
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
@@ -14,7 +22,8 @@ public partial class App : global::Avalonia.Application
 
     public override void OnFrameworkInitializationCompleted()
     {
-        MainViewModel viewModel = new();
+        ShellViewModel viewModel = _shellViewModelFactory?.Invoke()
+            ?? throw new InvalidOperationException("The platform host must configure the Alicia presentation runtime before startup.");
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
@@ -25,7 +34,7 @@ public partial class App : global::Avalonia.Application
         }
         else if (ApplicationLifetime is ISingleViewApplicationLifetime singleView)
         {
-            singleView.MainView = new MainView
+            singleView.MainView = new ShellView
             {
                 DataContext = viewModel,
             };

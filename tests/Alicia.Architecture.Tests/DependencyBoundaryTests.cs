@@ -44,13 +44,13 @@ public sealed class DependencyBoundaryTests
     }
 
     [Fact]
-    public void DesktopDoesNotBypassPresentation()
+    public void DesktopActsAsCompositionRootWithoutDirectDomainDependency()
     {
         string[] references = InternalReferences(typeof(DesktopAssembly).Assembly);
 
-        Assert.DoesNotContain("Alicia.Application", references);
+        Assert.Contains("Alicia.Infrastructure", references);
+        Assert.Contains("Alicia.Presentation", references);
         Assert.DoesNotContain("Alicia.Domain", references);
-        Assert.DoesNotContain("Alicia.Infrastructure", references);
     }
 
     private static string[] InternalReferences(Assembly assembly)

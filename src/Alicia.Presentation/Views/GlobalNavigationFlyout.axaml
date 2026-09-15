@@ -1,0 +1,98 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Alicia.Presentation.ViewModels"
+             x:Class="Alicia.Presentation.Views.GlobalNavigationFlyout"
+             x:DataType="vm:ShellViewModel"
+             Width="176"
+             AutomationProperties.Name="Global navigation labels"
+             AutomationProperties.AccessibilityView="Control">
+  <UserControl.Styles>
+    <Style Selector="Button.global-nav-label">
+      <Setter Property="MinHeight" Value="42" />
+      <Setter Property="Padding" Value="12,8" />
+      <Setter Property="CornerRadius" Value="11" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <Style Selector="Button.global-nav-label:pointerover">
+      <Setter Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    </Style>
+
+    <Style Selector="Button.global-nav-label:focus-visible">
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentSecondaryBrush}" />
+      <Setter Property="BorderThickness" Value="2" />
+      <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    </Style>
+
+    <Style Selector="Button.global-nav-label.selected">
+      <Setter Property="Background" Value="{DynamicResource SurfaceRaisedBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    </Style>
+  </UserControl.Styles>
+
+  <Border Background="{DynamicResource SidebarBrush}"
+          BorderBrush="{DynamicResource BorderBrush}"
+          BorderThickness="1"
+          CornerRadius="14"
+          Padding="8"
+          BoxShadow="0 10 28 0 #66000000">
+    <StackPanel Spacing="4">
+      <Button Classes="global-nav-label"
+              Classes.selected="{Binding IsConversationsSelected}"
+              Command="{Binding NavigateToConversationsCommand}"
+              AutomationProperties.Name="Conversations"
+              AutomationProperties.ItemStatus="{Binding ConversationsNavigationStatus}">
+        <Grid ColumnDefinitions="3,10,*">
+          <Border Grid.Column="0"
+                  Width="3"
+                  CornerRadius="2"
+                  Background="{DynamicResource AccentSecondaryBrush}"
+                  IsVisible="{Binding IsConversationsSelected}" />
+          <TextBlock Grid.Column="2"
+                     Text="Conversations"
+                     VerticalAlignment="Center" />
+        </Grid>
+      </Button>
+
+      <Button Classes="global-nav-label"
+              Classes.selected="{Binding IsProvidersSelected}"
+              Command="{Binding NavigateToProvidersCommand}"
+              AutomationProperties.Name="Providers"
+              AutomationProperties.ItemStatus="{Binding ProvidersNavigationStatus}">
+        <Grid ColumnDefinitions="3,10,*">
+          <Border Grid.Column="0"
+                  Width="3"
+                  CornerRadius="2"
+                  Background="{DynamicResource AccentSecondaryBrush}"
+                  IsVisible="{Binding IsProvidersSelected}" />
+          <TextBlock Grid.Column="2"
+                     Text="Providers"
+                     VerticalAlignment="Center" />
+        </Grid>
+      </Button>
+
+      <Button Classes="global-nav-label"
+              Classes.selected="{Binding IsModelsSelected}"
+              Command="{Binding NavigateToModelsCommand}"
+              AutomationProperties.Name="Models"
+              AutomationProperties.ItemStatus="{Binding ModelsNavigationStatus}">
+        <Grid ColumnDefinitions="3,10,*">
+          <Border Grid.Column="0"
+                  Width="3"
+                  CornerRadius="2"
+                  Background="{DynamicResource AccentSecondaryBrush}"
+                  IsVisible="{Binding IsModelsSelected}" />
+          <TextBlock Grid.Column="2"
+                     Text="Models"
+                     VerticalAlignment="Center" />
+        </Grid>
+      </Button>
+    </StackPanel>
+  </Border>
+</UserControl>

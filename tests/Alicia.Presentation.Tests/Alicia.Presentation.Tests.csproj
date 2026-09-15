@@ -7,6 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../../src/Alicia.Application/Alicia.Application.csproj" />
+    <ProjectReference Include="../../src/Alicia.Domain/Alicia.Domain.csproj" />
     <ProjectReference Include="../../src/Alicia.Presentation/Alicia.Presentation.csproj" />
   </ItemGroup>
 

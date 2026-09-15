@@ -1,0 +1,84 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Alicia.Presentation.ViewModels"
+             x:Class="Alicia.Presentation.Views.ConversationDeleteDialogView"
+             x:DataType="vm:MainViewModel"
+             HorizontalAlignment="Stretch"
+             VerticalAlignment="Stretch"
+             KeyDown="OnDialogKeyDown"
+             KeyboardNavigation.TabNavigation="Cycle"
+             AutomationProperties.Name="Delete conversation confirmation"
+             AutomationProperties.AccessibilityView="Control">
+  <Grid Background="#B3090D18">
+    <Border MaxWidth="480"
+            Margin="24"
+            Padding="22"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Background="{DynamicResource SurfaceRaisedBrush}"
+            BorderBrush="{DynamicResource DangerBrush}"
+            BorderThickness="1"
+            CornerRadius="20"
+            AutomationProperties.Name="Confirm permanent conversation deletion"
+            AutomationProperties.LiveSetting="Assertive">
+      <StackPanel Spacing="16">
+        <Grid ColumnDefinitions="48,*"
+              ColumnSpacing="14">
+          <Border Width="48"
+                  Height="48"
+                  CornerRadius="15"
+                  Background="{DynamicResource DangerSurfaceBrush}">
+            <PathIcon Width="24"
+                      Height="24"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Center"
+                      Foreground="{DynamicResource DangerBrush}"
+                      Data="M9,3 H15 L16,5 H21 V7 H3 V5 H8 Z M5,9 H19 L18,21 H6 Z M9,11 V18 H11 V11 Z M13,11 V18 H15 V11 Z" />
+          </Border>
+
+          <StackPanel Grid.Column="1"
+                      Spacing="5"
+                      VerticalAlignment="Center">
+            <TextBlock Text="Delete conversation?"
+                       FontSize="20"
+                       AutomationProperties.HeadingLevel="2"
+                       FontWeight="Bold"
+                       Foreground="{DynamicResource TextPrimaryBrush}" />
+            <TextBlock Text="{Binding DeletePrompt}"
+                       FontSize="15"
+                       FontWeight="SemiBold"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource DangerBrush}" />
+          </StackPanel>
+        </Grid>
+
+        <TextBlock Text="This permanently removes the local conversation and its saved UI state. This action cannot be undone."
+                   FontSize="13"
+                   LineHeight="19"
+                   TextWrapping="Wrap"
+                   Foreground="{DynamicResource TextSecondaryBrush}" />
+
+        <Grid ColumnDefinitions="*,Auto,10,Auto">
+          <Button x:Name="CancelDeleteButton"
+                  Grid.Column="1"
+                  Classes="secondary-action"
+                  Command="{Binding CancelDeleteCommand}"
+                  IsEnabled="{Binding IsInteractionEnabled}"
+                  Content="Cancel"
+                  AutomationProperties.Name="Cancel conversation deletion"
+                  AutomationProperties.HelpText="Close this dialog and keep the conversation."
+                  AutomationProperties.AcceleratorKey="Escape"
+                  ToolTip.Tip="Cancel deletion (Escape)" />
+          <Button Grid.Column="3"
+                  Classes="danger-action"
+                  Command="{Binding ConfirmDeleteCommand}"
+                  IsEnabled="{Binding IsInteractionEnabled}"
+                  Content="Delete"
+                  AutomationProperties.Name="Permanently delete conversation"
+                  AutomationProperties.HelpText="Permanently remove the selected local conversation. This cannot be undone."
+                  ToolTip.Tip="Permanently delete this conversation" />
+        </Grid>
+      </StackPanel>
+    </Border>
+  </Grid>
+</UserControl>

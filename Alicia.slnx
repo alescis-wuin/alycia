@@ -7,7 +7,10 @@
     <Project Path="src/Alicia.Presentation/Alicia.Presentation.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Alicia.Application.Tests/Alicia.Application.Tests.csproj" />
     <Project Path="tests/Alicia.Architecture.Tests/Alicia.Architecture.Tests.csproj" />
+    <Project Path="tests/Alicia.Domain.Tests/Alicia.Domain.Tests.csproj" />
+    <Project Path="tests/Alicia.Infrastructure.Tests/Alicia.Infrastructure.Tests.csproj" />
     <Project Path="tests/Alicia.Presentation.Tests/Alicia.Presentation.Tests.csproj" />
   </Folder>
 </Solution>

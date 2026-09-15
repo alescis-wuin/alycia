@@ -1,0 +1,75 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Alicia.Presentation.ViewModels"
+             x:Class="Alicia.Presentation.Views.ConversationConfigurationGateView"
+             x:DataType="vm:MainViewModel"
+             HorizontalAlignment="Stretch"
+             AutomationProperties.Name="Local AI configuration gate"
+             AutomationProperties.AccessibilityView="Control">
+  <Border Classes="surface"
+          MaxWidth="680"
+          HorizontalAlignment="Center"
+          Padding="20">
+    <StackPanel Spacing="12">
+      <Grid ColumnDefinitions="Auto,*"
+            ColumnSpacing="12">
+        <Border Width="42"
+                Height="42"
+                CornerRadius="13"
+                Background="{DynamicResource SurfaceRaisedBrush}">
+          <PathIcon Width="22"
+                    Height="22"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Foreground="{DynamicResource AccentSecondaryBrush}"
+                    Data="M12,2 A10,10 0 1 0 12,22 A10,10 0 0 0 12,2 M11,7 H13 V13 H11 Z M11,16 H13 V18 H11 Z" />
+        </Border>
+
+        <StackPanel Grid.Column="1"
+                    Spacing="4"
+                    VerticalAlignment="Center">
+          <TextBlock Text="{Binding ConfigurationGate.Title}"
+                     FontSize="18"
+                     FontWeight="SemiBold"
+                     TextWrapping="Wrap"
+                     AutomationProperties.HeadingLevel="2"
+                     Foreground="{DynamicResource TextPrimaryBrush}" />
+          <TextBlock Text="{Binding ConfigurationGate.Description}"
+                     FontSize="13"
+                     LineHeight="19"
+                     TextWrapping="Wrap"
+                     AutomationProperties.LiveSetting="Polite"
+                     Foreground="{DynamicResource TextSecondaryBrush}" />
+        </StackPanel>
+      </Grid>
+
+      <StackPanel Spacing="5"
+                  IsVisible="{Binding IsProviderProgressVisible}"
+                  AutomationProperties.Name="Local AI setup progress">
+        <TextBlock Text="{Binding ProviderProgressText}"
+                   FontSize="12"
+                   FontWeight="SemiBold"
+                   AutomationProperties.LiveSetting="Polite"
+                   Foreground="{DynamicResource TextPrimaryBrush}" />
+        <ProgressBar Height="5"
+                     Minimum="0"
+                     Maximum="100"
+                     Value="{Binding ProviderProgressValue}"
+                     IsIndeterminate="{Binding IsProviderProgressIndeterminateAnimationEnabled}"
+                     AutomationProperties.Name="Local AI setup progress indicator" />
+        <TextBlock Text="{Binding ProviderProgressDetailText}"
+                   FontSize="12"
+                   TextWrapping="Wrap"
+                   Foreground="{DynamicResource TextSecondaryBrush}" />
+      </StackPanel>
+
+      <Button Classes="primary-action"
+              HorizontalAlignment="Left"
+              Command="{Binding ConfigurationGatePrimaryCommand}"
+              IsEnabled="{Binding ConfigurationGate.IsPrimaryActionEnabled}"
+              Content="{Binding ConfigurationGate.PrimaryActionLabel}"
+              AutomationProperties.Name="{Binding ConfigurationGate.PrimaryActionLabel}"
+              AutomationProperties.HelpText="Perform the single recommended action required to make local AI chat available." />
+    </StackPanel>
+  </Border>
+</UserControl>
