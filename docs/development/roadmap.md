@@ -48,7 +48,7 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 | UIX-01 Stage 9 | terminé | décomposition Presentation en six ViewModels |
 | UIX-01 Stage 10 | terminé | 10A–10D terminés; UIX-01 foundation clôturée |
 | UI refinement 10.7A | terminé | Provider/Models visual hierarchy |
-| Lot 10B Profiles/revisions/provenance/context | en cours | 10B.1 snapshot + 10B.2 profile core |
+| Lot 10B Profiles/revisions/provenance/context | en cours | 10B.1 snapshot + 10B.2 profile core + 10B.3 catalog/revisions/drafts |
 | Lot 11 RAG foundation | planifié | à faire |
 | Lot 12 Retrieval/grounded generation | planifié | à faire |
 | Lot 13 Tools/MCP/agents | planifié | à faire |
@@ -225,9 +225,20 @@ Introduire avant RAG.
 - aucune donnée provider spécifique, conversation, télémétrie, provenance ou contexte dans le profil ;
 - l'association à un modèle, l'identité visuelle, le catalogue/persistence, les WorkingDrafts, les révisions et la sélection restent hors de cette étape atomique.
 
+### 10B.3 Catalogue model-scoped, WorkingDrafts et révisions de profils — terminé
+
+- nouveau scope Application `GenerationProfileModelScope` normalisant l'identité provider + modèle sans l'injecter dans le payload `GenerationProfile` ;
+- `GenerationProfileRevisionId` UUID stable et `GenerationProfileRevision` immuable avec parent optionnel, timestamp UTC, payload autosuffisant et hash SHA-256 déterministe ;
+- `GenerationProfileWorkingDraft` séparé de l'historique confirmé, persistant son éventuelle révision de base et autorisant la conservation d'un draft devenu stale ;
+- `GenerationProfileCatalog` immuable : exactement un profil `Default`, chaînes de révisions linéaires par profil custom, noms confirmés courants uniques par modèle, un draft maximum par profil et refus explicite du commit d'un draft stale ;
+- port Application `IGenerationProfileCatalogStore` ;
+- adapter Infrastructure `JsonGenerationProfileCatalogStore` versionné et atomique, multi-scope, avec reconstruction des invariants et vérification des payload hashes à la lecture ;
+- absence de fichier/scope traitée comme absence de catalogue, sans inventer silencieusement de profil custom ;
+- aucune sélection de profil par conversation, aucun changement de génération, aucun wiring Presentation/Desktop dans cette étape atomique.
+
 ### Etapes suivantes
 
-- catalogue de profils par modèle, persistance locale, WorkingDrafts et révisions immuables de profils ;
+- sélection modèle/profil persistée par conversation et liaison explicite de la révision de profil au `GenerationSnapshot` / à la provenance ;
 - révisions de messages ;
 - provenance et contexte attachés à la génération ;
 - branchement de conversation sur révision ;
