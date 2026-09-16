@@ -48,7 +48,7 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 | UIX-01 Stage 9 | terminé | décomposition Presentation en six ViewModels |
 | UIX-01 Stage 10 | terminé | 10A–10D terminés; UIX-01 foundation clôturée |
 | UI refinement 10.7A | terminé | Provider/Models visual hierarchy |
-| Lot 10B Profiles/revisions/provenance/context | en cours | 10B.1 `GenerationSnapshot` immuable |
+| Lot 10B Profiles/revisions/provenance/context | en cours | 10B.1 snapshot + 10B.2 profile core |
 | Lot 11 RAG foundation | planifié | à faire |
 | Lot 12 Retrieval/grounded generation | planifié | à faire |
 | Lot 13 Tools/MCP/agents | planifié | à faire |
@@ -216,9 +216,18 @@ Introduire avant RAG.
 - aucun contenu de message, raisonnement, réponse, télémétrie ou diagnostic provider n'est stocké dans ce snapshot ;
 - aucune persistance ni liaison aux révisions dans cette étape atomique.
 
+### 10B.2 GenerationProfile immuable — terminé
+
+- nouvel identifiant Application stable `GenerationProfileId` basé sur UUID ;
+- nouveau contrat provider-neutral `GenerationProfile` immuable pour le comportement réutilisable d'une génération ;
+- profil custom : nom normalisé, instructions système de base optionnelles, copie défensive des options de génération et suggestions initiales immuables ;
+- profil `Default` explicite et réservé, sans instructions ni override Alicia, afin de conserver le comportement natif provider/modèle ;
+- aucune donnée provider spécifique, conversation, télémétrie, provenance ou contexte dans le profil ;
+- l'association à un modèle, l'identité visuelle, le catalogue/persistence, les WorkingDrafts, les révisions et la sélection restent hors de cette étape atomique.
+
 ### Etapes suivantes
 
-- profils de génération ;
+- catalogue de profils par modèle, persistance locale, WorkingDrafts et révisions immuables de profils ;
 - révisions de messages ;
 - provenance et contexte attachés à la génération ;
 - branchement de conversation sur révision ;
