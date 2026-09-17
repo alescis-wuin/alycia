@@ -78,14 +78,21 @@ public sealed class InferenceProviderRegistry :
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (SelectedProviderId is null)
+        string? requestedProviderId = request.GenerationSnapshot?.ProviderId;
+        string providerId = requestedProviderId
+            ?? SelectedProviderId
+            ?? throw new InvalidOperationException(
+                "No inference provider is selected. Save provider settings before starting a conversation response.");
+
+        if (!_registrations.TryGetValue(
+            providerId,
+            out InferenceProviderRegistration? registration))
         {
             throw new InvalidOperationException(
-                "No inference provider is selected. Save provider settings before starting a conversation response.");
+                $"Generation request references unregistered provider '{providerId}'.");
         }
 
-        return _registrations[SelectedProviderId]
-            .StreamingResponder
+        return registration.StreamingResponder
             .StreamAsync(request, cancellationToken);
     }
 

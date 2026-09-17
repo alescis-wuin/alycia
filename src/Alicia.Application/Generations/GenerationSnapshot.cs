@@ -9,7 +9,9 @@ public sealed record GenerationSnapshot
         ConversationId conversationId,
         MessageId triggeringUserMessageId,
         DateTimeOffset capturedAt,
-        InferenceProviderConfiguration providerConfiguration)
+        InferenceProviderConfiguration providerConfiguration,
+        GenerationProfileId? profileId = null,
+        GenerationProfileRevisionId? profileRevisionId = null)
     {
         if (conversationId.IsEmpty)
         {
@@ -27,6 +29,27 @@ public sealed record GenerationSnapshot
 
         ArgumentNullException.ThrowIfNull(providerConfiguration);
 
+        if (profileId is { IsEmpty: true })
+        {
+            throw new ArgumentException(
+                "Generation-profile identifier cannot be empty when supplied.",
+                nameof(profileId));
+        }
+
+        if (profileRevisionId is { IsEmpty: true })
+        {
+            throw new ArgumentException(
+                "Generation-profile revision identifier cannot be empty when supplied.",
+                nameof(profileRevisionId));
+        }
+
+        if (profileRevisionId is not null && profileId is null)
+        {
+            throw new ArgumentException(
+                "A generation-profile revision requires a generation-profile identifier.",
+                nameof(profileRevisionId));
+        }
+
         ConversationId = conversationId;
         TriggeringUserMessageId = triggeringUserMessageId;
         CapturedAtUtc = capturedAt.ToUniversalTime();
@@ -34,6 +57,8 @@ public sealed record GenerationSnapshot
         ModelReference = providerConfiguration.ModelReference;
         ContextSize = providerConfiguration.ContextSize;
         GenerationOptions = CopyGenerationOptions(providerConfiguration.Generation);
+        ProfileId = profileId;
+        ProfileRevisionId = profileRevisionId;
     }
 
     public ConversationId ConversationId { get; }
@@ -49,6 +74,12 @@ public sealed record GenerationSnapshot
     public int? ContextSize { get; }
 
     public InferenceGenerationOptions GenerationOptions { get; }
+
+    public GenerationProfileId? ProfileId { get; }
+
+    public GenerationProfileRevisionId? ProfileRevisionId { get; }
+
+    public bool HasProfileSelection => ProfileId is not null;
 
     public bool UsesProviderDefaults => ContextSize is null
         && GenerationOptions.UsesOnlyProviderDefaults;

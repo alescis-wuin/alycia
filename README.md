@@ -104,6 +104,7 @@ The provider-neutral Application contracts remain independent of llama.cpp/CUDA/
 - `docs/decisions/0031-immutable-generation-snapshot.md`
 - `docs/decisions/0032-immutable-generation-profile-core.md`
 - `docs/decisions/0033-model-scoped-generation-profile-catalog.md`
+- `docs/decisions/0034-conversation-generation-selection-and-profile-binding.md`
 - `docs/development/roadmap.md`
 - `docs/design/ui-ux-specification.md`
 - `docs/user-guide/README.md`

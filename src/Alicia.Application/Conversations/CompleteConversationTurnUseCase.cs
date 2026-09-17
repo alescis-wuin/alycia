@@ -1,3 +1,4 @@
+using Alicia.Application.Generations;
 using Alicia.Domain.Conversations;
 
 namespace Alicia.Application.Conversations;
@@ -7,11 +8,13 @@ public sealed class CompleteConversationTurnUseCase
     private readonly IConversationRepository _repository;
     private readonly IConversationResponder _responder;
     private readonly TimeProvider _timeProvider;
+    private readonly IConversationGenerationResolver? _generationResolver;
 
     public CompleteConversationTurnUseCase(
         IConversationRepository repository,
         IConversationResponder responder,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider,
+        IConversationGenerationResolver? generationResolver = null)
     {
         ArgumentNullException.ThrowIfNull(repository);
         ArgumentNullException.ThrowIfNull(responder);
@@ -20,6 +23,7 @@ public sealed class CompleteConversationTurnUseCase
         _repository = repository;
         _responder = responder;
         _timeProvider = timeProvider;
+        _generationResolver = generationResolver;
     }
 
     public async Task<ChatMessage> ExecuteAsync(
@@ -54,8 +58,18 @@ public sealed class CompleteConversationTurnUseCase
         ConversationTurnSnapshot snapshot = ConversationTurnSnapshot.Capture(
             conversation,
             triggeringUserMessageId);
+        ResolvedConversationGeneration? resolvedGeneration = _generationResolver is null
+            ? null
+            : await _generationResolver
+                .ResolveAsync(
+                    conversationId,
+                    triggeringUserMessageId,
+                    cancellationToken)
+                .ConfigureAwait(false);
         ConversationResponseRequest request =
-            ConversationResponseRequest.FromConversation(conversation);
+            ConversationResponseRequest.FromConversation(
+                conversation,
+                resolvedGeneration);
 
         ConversationResponse? response = await _responder
             .GenerateAsync(request, cancellationToken)

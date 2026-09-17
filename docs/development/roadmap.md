@@ -48,7 +48,7 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 | UIX-01 Stage 9 | terminé | décomposition Presentation en six ViewModels |
 | UIX-01 Stage 10 | terminé | 10A–10D terminés; UIX-01 foundation clôturée |
 | UI refinement 10.7A | terminé | Provider/Models visual hierarchy |
-| Lot 10B Profiles/revisions/provenance/context | en cours | 10B.1 snapshot + 10B.2 profile core + 10B.3 catalog/revisions/drafts |
+| Lot 10B Profiles/revisions/provenance/context | en cours | 10B.1 snapshot + 10B.2 profile core + 10B.3 catalog/revisions/drafts + 10B.4 conversation selection/binding |
 | Lot 11 RAG foundation | planifié | à faire |
 | Lot 12 Retrieval/grounded generation | planifié | à faire |
 | Lot 13 Tools/MCP/agents | planifié | à faire |
@@ -236,10 +236,20 @@ Introduire avant RAG.
 - absence de fichier/scope traitée comme absence de catalogue, sans inventer silencieusement de profil custom ;
 - aucune sélection de profil par conversation, aucun changement de génération, aucun wiring Presentation/Desktop dans cette étape atomique.
 
+### 10B.4 Sélection conversation modèle/profil et binding de génération — terminé
+
+- nouveau contrat Application `ConversationGenerationSelection` : `ConversationId` + scope provider/modèle + `GenerationProfileId` stable, sans pinner une révision ;
+- port `IConversationGenerationSelectionStore` et adapter JSON Infrastructure versionné/atomique, indépendant du JSON Domain des conversations ;
+- résolution au début du tour : profil custom -> dernière révision confirmée ; profil `Default` -> identifiant réel avec `ProfileRevisionId = null`, sans fausse révision ;
+- `GenerationSnapshot` étendu avec `ProfileId` et `ProfileRevisionId?` afin de figer la révision réellement résolue pour le tour ;
+- options de génération et instructions système du profil résolues avant l'appel provider ; les options `null` conservent leur sémantique provider/modèle default ;
+- routing Infrastructure d'une requête bindée par le provider capturé et garde llama.cpp refusant un modèle/contexte différent de celui réellement chargé ;
+- absence de sélection persistée = chemin legacy inchangé, afin de ne pas migrer silencieusement les réglages globaux existants ;
+- composition Desktop des stores de profils/sélections et du resolver ; aucun dual selector Presentation ajouté dans ce lot backend.
+
 ### Etapes suivantes
 
-- sélection modèle/profil persistée par conversation et liaison explicite de la révision de profil au `GenerationSnapshot` / à la provenance ;
-- révisions de messages ;
+- révisions de messages et attachement durable du `GenerationSnapshot` / de la provenance à la révision Assistant produite ;
 - provenance et contexte attachés à la génération ;
 - branchement de conversation sur révision ;
 - budget de contexte explicite.

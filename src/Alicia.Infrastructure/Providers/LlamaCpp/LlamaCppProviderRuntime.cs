@@ -52,7 +52,6 @@ public sealed class LlamaCppProviderRuntime :
     private string? _modelReference;
     private Uri? _endpoint;
     private string? _serverApiKey;
-    private InferenceGenerationOptions _generationOptions = new();
     private InferenceProviderConfiguration? _activeConfiguration;
     private InferenceProviderGenerationObservation? _latestGenerationObservation;
     private bool _disposed;
@@ -721,7 +720,6 @@ public sealed class LlamaCppProviderRuntime :
                     apiKey,
                     logFilePath,
                     cancellationToken).ConfigureAwait(false);
-                _generationOptions = normalizedConfiguration.Generation;
                 _activeConfiguration = normalizedConfiguration;
 
                 return CreateSnapshot(
@@ -774,6 +772,7 @@ public sealed class LlamaCppProviderRuntime :
 
         Uri? endpoint = _endpoint;
         string? apiKey = _serverApiKey;
+        InferenceProviderConfiguration? activeConfiguration = _activeConfiguration;
 
         if (TryConsumeUnexpectedServerExit())
         {
@@ -784,21 +783,94 @@ public sealed class LlamaCppProviderRuntime :
 
         if (!IsServerAlive()
             || endpoint is null
-            || string.IsNullOrWhiteSpace(apiKey))
+            || string.IsNullOrWhiteSpace(apiKey)
+            || activeConfiguration is null)
         {
             throw new InferenceProviderException(
                 InferenceProviderFailureKind.Faulted,
                 "The local AI server is not running. Start the configured model before sending a message.");
         }
 
+        InferenceGenerationOptions generationOptions = ResolveGenerationOptionsForRequest(
+            request,
+            activeConfiguration);
+
         return StreamWithObservabilityAsync(
             endpoint,
             apiKey,
             request,
-            _generationOptions,
+            generationOptions,
             _modelReference,
             _version,
             cancellationToken);
+    }
+
+    internal static InferenceGenerationOptions ResolveGenerationOptionsForRequest(
+        ConversationResponseRequest request,
+        InferenceProviderConfiguration activeConfiguration)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(activeConfiguration);
+
+        if (request.GenerationSnapshot is not { } snapshot)
+        {
+            return CopyGenerationOptions(activeConfiguration.Generation);
+        }
+
+        if (!string.Equals(snapshot.ProviderId, ProviderId, StringComparison.Ordinal)
+            || !string.Equals(activeConfiguration.ProviderId, ProviderId, StringComparison.Ordinal)
+            || string.IsNullOrWhiteSpace(snapshot.ModelReference)
+            || string.IsNullOrWhiteSpace(activeConfiguration.ModelReference))
+        {
+            throw CreateGenerationBindingMismatch();
+        }
+
+        string snapshotModelReference;
+
+        try
+        {
+            snapshotModelReference = LlamaCppModelReference.Normalize(snapshot.ModelReference);
+        }
+        catch (ArgumentException exception)
+        {
+            throw new InferenceProviderException(
+                InferenceProviderFailureKind.Model,
+                "The conversation-selected model is invalid. Review the conversation model selection before sending a message.",
+                exception);
+        }
+
+        if (!string.Equals(
+            snapshotModelReference,
+            activeConfiguration.ModelReference,
+            StringComparison.Ordinal)
+            || snapshot.ContextSize != activeConfiguration.ContextSize)
+        {
+            throw CreateGenerationBindingMismatch();
+        }
+
+        return CopyGenerationOptions(snapshot.GenerationOptions);
+    }
+
+    private static InferenceProviderException CreateGenerationBindingMismatch()
+    {
+        return new InferenceProviderException(
+            InferenceProviderFailureKind.Model,
+            "The conversation-selected model configuration does not match the loaded model. Load the selected model before sending a message.");
+    }
+
+    private static InferenceGenerationOptions CopyGenerationOptions(
+        InferenceGenerationOptions source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+
+        return new InferenceGenerationOptions(
+            source.MaxOutputTokens,
+            source.Temperature,
+            source.TopP,
+            source.TopK,
+            source.Seed,
+            source.ReasoningEnabled,
+            source.ReasoningBudgetTokens);
     }
 
     internal async IAsyncEnumerable<ConversationResponseChunk> StreamWithObservabilityAsync(
@@ -1063,7 +1135,6 @@ public sealed class LlamaCppProviderRuntime :
         _endpoint = null;
         _serverApiKey = null;
         _activeConfiguration = null;
-        _generationOptions = new InferenceGenerationOptions();
     }
 
     private static long CalculateReclaimedBytes(

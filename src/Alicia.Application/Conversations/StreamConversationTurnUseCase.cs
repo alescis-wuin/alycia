@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Text;
+using Alicia.Application.Generations;
 using Alicia.Domain.Conversations;
 
 namespace Alicia.Application.Conversations;
@@ -9,11 +10,13 @@ public sealed class StreamConversationTurnUseCase
     private readonly IConversationRepository _repository;
     private readonly IStreamingConversationResponder _responder;
     private readonly TimeProvider _timeProvider;
+    private readonly IConversationGenerationResolver? _generationResolver;
 
     public StreamConversationTurnUseCase(
         IConversationRepository repository,
         IStreamingConversationResponder responder,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider,
+        IConversationGenerationResolver? generationResolver = null)
     {
         ArgumentNullException.ThrowIfNull(repository);
         ArgumentNullException.ThrowIfNull(responder);
@@ -22,6 +25,7 @@ public sealed class StreamConversationTurnUseCase
         _repository = repository;
         _responder = responder;
         _timeProvider = timeProvider;
+        _generationResolver = generationResolver;
     }
 
     public async IAsyncEnumerable<ConversationResponseChunk> ExecuteAsync(
@@ -56,8 +60,18 @@ public sealed class StreamConversationTurnUseCase
         ConversationTurnSnapshot snapshot = ConversationTurnSnapshot.Capture(
             conversation,
             triggeringUserMessageId);
+        ResolvedConversationGeneration? resolvedGeneration = _generationResolver is null
+            ? null
+            : await _generationResolver
+                .ResolveAsync(
+                    conversationId,
+                    triggeringUserMessageId,
+                    cancellationToken)
+                .ConfigureAwait(false);
         ConversationResponseRequest request =
-            ConversationResponseRequest.FromConversation(conversation);
+            ConversationResponseRequest.FromConversation(
+                conversation,
+                resolvedGeneration);
         StringBuilder responseContent = new();
 
         await foreach (ConversationResponseChunk chunk in _responder

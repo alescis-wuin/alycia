@@ -1,7 +1,9 @@
 using Alicia.Application.Conversations;
+using Alicia.Application.Generations;
 using Alicia.Application.Providers;
 using Alicia.Desktop.Accessibility;
 using Alicia.Infrastructure.Conversations;
+using Alicia.Infrastructure.Generations;
 using Alicia.Infrastructure.Providers;
 using Alicia.Infrastructure.Providers.LlamaCpp;
 using Alicia.Presentation;
@@ -15,6 +17,8 @@ internal static class Program
 {
     private static LlamaCppProviderRuntime? _llamaCppRuntime;
     private static JsonInferenceProviderConfigurationStore? _providerConfigurationStore;
+    private static JsonGenerationProfileCatalogStore? _generationProfileCatalogStore;
+    private static JsonConversationGenerationSelectionStore? _conversationGenerationSelectionStore;
     private static JsonConversationUiStateStore? _conversationUiStateStore;
     private static MainViewModel? _mainViewModel;
 
@@ -37,6 +41,8 @@ internal static class Program
             }
 
             _providerConfigurationStore?.Dispose();
+            _generationProfileCatalogStore?.Dispose();
+            _conversationGenerationSelectionStore?.Dispose();
             _conversationUiStateStore?.Dispose();
         }
     }
@@ -68,11 +74,18 @@ internal static class Program
         string applicationDirectory = Path.Combine(localApplicationData, "Alicia");
         string storageDirectory = Path.Combine(applicationDirectory, "conversations");
         string providersDirectory = Path.Combine(applicationDirectory, "providers");
+        string generationsDirectory = Path.Combine(applicationDirectory, "generations");
         string uiStatePath = Path.Combine(applicationDirectory, "ui-state.json");
         string llamaCppDirectory = Path.Combine(providersDirectory, "llama.cpp");
         string providerConfigurationPath = Path.Combine(
             providersDirectory,
             "configuration.json");
+        string generationProfileCatalogPath = Path.Combine(
+            generationsDirectory,
+            "profiles.json");
+        string conversationGenerationSelectionPath = Path.Combine(
+            generationsDirectory,
+            "conversation-selections.json");
         string legacyLlamaCppSettingsPath = Path.Combine(
             llamaCppDirectory,
             "settings.json");
@@ -99,10 +112,22 @@ internal static class Program
                 providerConfigurationPath,
                 LlamaCppProviderRuntime.ProviderId,
                 legacyLlamaCppSettingsPath);
+        JsonGenerationProfileCatalogStore generationProfileCatalogStore =
+            _generationProfileCatalogStore ??= new JsonGenerationProfileCatalogStore(
+                generationProfileCatalogPath);
+        JsonConversationGenerationSelectionStore conversationGenerationSelectionStore =
+            _conversationGenerationSelectionStore ??= new JsonConversationGenerationSelectionStore(
+                conversationGenerationSelectionPath);
+        ConversationGenerationResolver generationResolver = new(
+            conversationGenerationSelectionStore,
+            generationProfileCatalogStore,
+            providerConfigurationStore,
+            timeProvider);
         StreamConversationTurnUseCase streamConversationTurn = new(
             runtime.Repository,
             providerRegistry,
-            timeProvider);
+            timeProvider,
+            generationResolver);
         JsonConversationUiStateStore conversationUiStateStore =
             _conversationUiStateStore ??= new JsonConversationUiStateStore(uiStatePath);
 

@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using Alicia.Application.Generations;
 using Alicia.Domain.Conversations;
 
 namespace Alicia.Application.Conversations;
@@ -10,7 +11,9 @@ public sealed class ConversationResponseRequest
     public ConversationResponseRequest(
         ConversationId conversationId,
         string title,
-        IEnumerable<ChatMessage> messages)
+        IEnumerable<ChatMessage> messages,
+        GenerationSnapshot? generationSnapshot = null,
+        string? systemInstructions = null)
     {
         if (conversationId.IsEmpty)
         {
@@ -28,11 +31,23 @@ public sealed class ConversationResponseRequest
 
         ArgumentNullException.ThrowIfNull(messages);
 
+        if (generationSnapshot is not null
+            && generationSnapshot.ConversationId != conversationId)
+        {
+            throw new ArgumentException(
+                "Generation snapshot conversation does not match the response request.",
+                nameof(generationSnapshot));
+        }
+
         ChatMessage[] messageSnapshot = messages.ToArray();
 
         ConversationId = conversationId;
         Title = title;
         _messages = Array.AsReadOnly(messageSnapshot);
+        GenerationSnapshot = generationSnapshot;
+        SystemInstructions = string.IsNullOrWhiteSpace(systemInstructions)
+            ? null
+            : systemInstructions;
     }
 
     public ConversationId ConversationId { get; }
@@ -41,13 +56,21 @@ public sealed class ConversationResponseRequest
 
     public IReadOnlyList<ChatMessage> Messages => _messages;
 
-    public static ConversationResponseRequest FromConversation(Conversation conversation)
+    public GenerationSnapshot? GenerationSnapshot { get; }
+
+    public string? SystemInstructions { get; }
+
+    public static ConversationResponseRequest FromConversation(
+        Conversation conversation,
+        ResolvedConversationGeneration? resolvedGeneration = null)
     {
         ArgumentNullException.ThrowIfNull(conversation);
 
         return new ConversationResponseRequest(
             conversation.Id,
             conversation.Title,
-            conversation.Messages);
+            conversation.Messages,
+            resolvedGeneration?.Snapshot,
+            resolvedGeneration?.SystemInstructions);
     }
 }

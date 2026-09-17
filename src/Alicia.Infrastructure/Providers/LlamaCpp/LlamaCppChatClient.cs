@@ -62,7 +62,7 @@ internal sealed class LlamaCppChatClient
         string payload = JsonSerializer.Serialize(
             new ChatCompletionRequest(
                 LlamaCppServerCommand.ModelAlias,
-                request.Messages.Select(MapMessage).ToArray(),
+                MapMessages(request),
                 Stream: true,
                 new ChatCompletionStreamOptions(IncludeUsage: true),
                 generationOptions.MaxOutputTokens,
@@ -392,6 +392,23 @@ internal sealed class LlamaCppChatClient
         {
             chunks.Add(new ConversationResponseChunk(kind, text));
         }
+    }
+
+    private static ChatCompletionMessage[] MapMessages(
+        ConversationResponseRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        List<ChatCompletionMessage> messages = new(request.Messages.Count + 1);
+
+        if (request.SystemInstructions is not null)
+        {
+            messages.Add(new ChatCompletionMessage(
+                "system",
+                request.SystemInstructions));
+        }
+
+        messages.AddRange(request.Messages.Select(MapMessage));
+        return [.. messages];
     }
 
     private static ChatCompletionMessage MapMessage(ChatMessage message)
