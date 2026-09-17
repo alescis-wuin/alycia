@@ -30,6 +30,8 @@ public sealed class ConversationGenerationResolver : IConversationGenerationReso
     public async Task<ResolvedConversationGeneration?> ResolveAsync(
         ConversationId conversationId,
         MessageId triggeringUserMessageId,
+        MessageRevisionId triggeringUserMessageRevisionId,
+        IReadOnlyList<MessageRevisionId> inputMessageRevisionIds,
         CancellationToken cancellationToken = default)
     {
         if (conversationId.IsEmpty)
@@ -46,12 +48,27 @@ public sealed class ConversationGenerationResolver : IConversationGenerationReso
                 nameof(triggeringUserMessageId));
         }
 
+        if (triggeringUserMessageRevisionId.IsEmpty)
+        {
+            throw new ArgumentException(
+                "Triggering user-message revision identifier cannot be empty.",
+                nameof(triggeringUserMessageRevisionId));
+        }
+
+        ArgumentNullException.ThrowIfNull(inputMessageRevisionIds);
+
         ConversationGenerationSelection? selection = await _selectionStore
             .LoadAsync(conversationId, cancellationToken)
             .ConfigureAwait(false);
         if (selection is null)
         {
-            return null;
+            return await ResolveLegacySelectionAsync(
+                    conversationId,
+                    triggeringUserMessageId,
+                    triggeringUserMessageRevisionId,
+                    inputMessageRevisionIds,
+                    cancellationToken)
+                .ConfigureAwait(false);
         }
 
         GenerationProfileModelScope scope = selection.ModelScope;
@@ -94,10 +111,11 @@ public sealed class ConversationGenerationResolver : IConversationGenerationReso
             scope.ModelReference,
             providerConfiguration.ContextSize,
             profile.GenerationOptions);
-        GenerationSnapshot snapshot = new(
+        GenerationSnapshot snapshot = CreateSnapshot(
             conversationId,
             triggeringUserMessageId,
-            _timeProvider.GetUtcNow(),
+            triggeringUserMessageRevisionId,
+            inputMessageRevisionIds,
             resolvedConfiguration,
             profile.Id,
             revisionId);
@@ -105,5 +123,58 @@ public sealed class ConversationGenerationResolver : IConversationGenerationReso
         return new ResolvedConversationGeneration(
             snapshot,
             profile.BaseSystemInstructions);
+    }
+
+    private async Task<ResolvedConversationGeneration?> ResolveLegacySelectionAsync(
+        ConversationId conversationId,
+        MessageId triggeringUserMessageId,
+        MessageRevisionId triggeringUserMessageRevisionId,
+        IReadOnlyList<MessageRevisionId> inputMessageRevisionIds,
+        CancellationToken cancellationToken)
+    {
+        string? providerId = await _providerConfigurationStore
+            .LoadSelectedProviderIdAsync(cancellationToken)
+            .ConfigureAwait(false);
+        if (providerId is null)
+        {
+            return null;
+        }
+
+        InferenceProviderConfiguration providerConfiguration = await _providerConfigurationStore
+            .LoadAsync(providerId, cancellationToken)
+            .ConfigureAwait(false)
+            ?? throw new InvalidOperationException(
+                $"Selected provider '{providerId}' does not have a saved configuration.");
+        GenerationSnapshot snapshot = CreateSnapshot(
+            conversationId,
+            triggeringUserMessageId,
+            triggeringUserMessageRevisionId,
+            inputMessageRevisionIds,
+            providerConfiguration,
+            profileId: null,
+            profileRevisionId: null);
+
+        return new ResolvedConversationGeneration(snapshot, systemInstructions: null);
+    }
+
+    private GenerationSnapshot CreateSnapshot(
+        ConversationId conversationId,
+        MessageId triggeringUserMessageId,
+        MessageRevisionId triggeringUserMessageRevisionId,
+        IReadOnlyList<MessageRevisionId> inputMessageRevisionIds,
+        InferenceProviderConfiguration providerConfiguration,
+        GenerationProfileId? profileId,
+        GenerationProfileRevisionId? profileRevisionId)
+    {
+        return new GenerationSnapshot(
+            GenerationSnapshotId.New(),
+            conversationId,
+            triggeringUserMessageId,
+            triggeringUserMessageRevisionId,
+            inputMessageRevisionIds,
+            _timeProvider.GetUtcNow(),
+            providerConfiguration,
+            profileId,
+            profileRevisionId);
     }
 }

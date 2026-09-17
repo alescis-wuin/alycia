@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using Alicia.Application.Conversations;
+using Alicia.Application.Generations;
 using Alicia.Domain.Conversations;
 
 namespace Alicia.Application.Tests.Conversations;
@@ -293,5 +294,57 @@ internal sealed class FailingAfterFirstStreamingConversationResponder : IStreami
         yield return _firstChunk;
         await Task.Yield();
         throw _exception;
+    }
+}
+
+
+internal sealed class InMemoryGenerationSnapshotStore : IGenerationSnapshotStore
+{
+    private readonly Dictionary<GenerationSnapshotId, GenerationSnapshot> _snapshots = [];
+
+    public int SaveCount { get; private set; }
+
+    public int DeleteCount { get; private set; }
+
+    public IReadOnlyCollection<GenerationSnapshot> Snapshots => _snapshots.Values;
+
+    public Task<GenerationSnapshot?> FindAsync(
+        GenerationSnapshotId snapshotId,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        _snapshots.TryGetValue(snapshotId, out GenerationSnapshot? snapshot);
+        return Task.FromResult(snapshot);
+    }
+
+    public Task SaveAsync(
+        GenerationSnapshot snapshot,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (!_snapshots.TryAdd(snapshot.Id, snapshot))
+        {
+            throw new InvalidOperationException(
+                $"Generation snapshot '{snapshot.Id}' is already stored.");
+        }
+
+        SaveCount++;
+        return Task.CompletedTask;
+    }
+
+    public Task<bool> DeleteAsync(
+        GenerationSnapshotId snapshotId,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        bool deleted = _snapshots.Remove(snapshotId);
+        if (deleted)
+        {
+            DeleteCount++;
+        }
+
+        return Task.FromResult(deleted);
     }
 }

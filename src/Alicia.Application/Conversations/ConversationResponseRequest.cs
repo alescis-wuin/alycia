@@ -31,15 +31,11 @@ public sealed class ConversationResponseRequest
 
         ArgumentNullException.ThrowIfNull(messages);
 
-        if (generationSnapshot is not null
-            && generationSnapshot.ConversationId != conversationId)
-        {
-            throw new ArgumentException(
-                "Generation snapshot conversation does not match the response request.",
-                nameof(generationSnapshot));
-        }
-
         ChatMessage[] messageSnapshot = messages.ToArray();
+        ValidateGenerationSnapshot(
+            conversationId,
+            messageSnapshot,
+            generationSnapshot);
 
         ConversationId = conversationId;
         Title = title;
@@ -72,5 +68,50 @@ public sealed class ConversationResponseRequest
             conversation.Messages,
             resolvedGeneration?.Snapshot,
             resolvedGeneration?.SystemInstructions);
+    }
+
+    private static void ValidateGenerationSnapshot(
+        ConversationId conversationId,
+        ChatMessage[] messages,
+        GenerationSnapshot? generationSnapshot)
+    {
+        if (generationSnapshot is null)
+        {
+            return;
+        }
+
+        if (generationSnapshot.ConversationId != conversationId)
+        {
+            throw new ArgumentException(
+                "Generation snapshot conversation does not match the response request.",
+                nameof(generationSnapshot));
+        }
+
+        if (generationSnapshot.InputMessageRevisionIds.Count != messages.Length)
+        {
+            throw new ArgumentException(
+                "Generation snapshot input revisions do not match the response-request messages.",
+                nameof(generationSnapshot));
+        }
+
+        for (int index = 0; index < messages.Length; index++)
+        {
+            if (generationSnapshot.InputMessageRevisionIds[index] != messages[index].RevisionId)
+            {
+                throw new ArgumentException(
+                    "Generation snapshot input revisions do not match the response-request messages.",
+                    nameof(generationSnapshot));
+            }
+        }
+
+        ChatMessage triggeringMessage = messages[^1];
+        if (triggeringMessage.Role != MessageRole.User
+            || triggeringMessage.Id != generationSnapshot.TriggeringUserMessageId
+            || triggeringMessage.RevisionId != generationSnapshot.TriggeringUserMessageRevisionId)
+        {
+            throw new ArgumentException(
+                "Generation snapshot trigger does not match the latest user response-request message.",
+                nameof(generationSnapshot));
+        }
     }
 }

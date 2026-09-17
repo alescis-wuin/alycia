@@ -86,6 +86,9 @@ internal static class Program
         string conversationGenerationSelectionPath = Path.Combine(
             generationsDirectory,
             "conversation-selections.json");
+        string generationSnapshotsDirectory = Path.Combine(
+            generationsDirectory,
+            "snapshots");
         string legacyLlamaCppSettingsPath = Path.Combine(
             llamaCppDirectory,
             "settings.json");
@@ -123,11 +126,14 @@ internal static class Program
             generationProfileCatalogStore,
             providerConfigurationStore,
             timeProvider);
+        JsonGenerationSnapshotStore generationSnapshotStore = new(
+            generationSnapshotsDirectory);
         StreamConversationTurnUseCase streamConversationTurn = new(
             runtime.Repository,
             providerRegistry,
             timeProvider,
-            generationResolver);
+            generationResolver,
+            generationSnapshotStore);
         JsonConversationUiStateStore conversationUiStateStore =
             _conversationUiStateStore ??= new JsonConversationUiStateStore(uiStatePath);
 

@@ -48,7 +48,7 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 | UIX-01 Stage 9 | terminé | décomposition Presentation en six ViewModels |
 | UIX-01 Stage 10 | terminé | 10A–10D terminés; UIX-01 foundation clôturée |
 | UI refinement 10.7A | terminé | Provider/Models visual hierarchy |
-| Lot 10B Profiles/revisions/provenance/context | en cours | 10B.1–10B.4 terminés + 10B.5a message revisions/persistence |
+| Lot 10B Profiles/revisions/provenance/context | en cours | 10B.1–10B.5b terminés; 10B.5c branching puis 10B.6 contexte/budget |
 | Lot 11 RAG foundation | planifié | à faire |
 | Lot 12 Retrieval/grounded generation | planifié | à faire |
 | Lot 13 Tools/MCP/agents | planifié | à faire |
@@ -257,9 +257,21 @@ Introduire avant RAG.
 - lecture rétrocompatible des schemas 0/v2 avec `MessageRevisionId` déterministe dérivé de `ConversationId + MessageId`, stable entre lectures et matérialisé au prochain save explicite ;
 - aucune provenance `GenerationSnapshot`, branche, révision de contexte ou UI de timeline n'est introduite ici.
 
+### 10B.5b Registre durable de GenerationSnapshot et provenance Assistant — terminé
+
+- nouveau `GenerationSnapshotId` Domain UUID permettant à une révision Assistant de référencer la provenance sans dépendance Domain -> Application ;
+- `GenerationSnapshot` étendu avec identité, révision du message User déclencheur, liste ordonnée exacte des `MessageRevisionId` d'entrée et hash SHA-256 déterministe ;
+- validation `ConversationResponseRequest` garantissant que les révisions du snapshot correspondent exactement aux messages réellement envoyés au provider ;
+- le chemin sans sélection de profil capture désormais la configuration du provider global persisté, avec `ProfileId = null` et `ProfileRevisionId = null`, sans profil synthétique ;
+- nouveau port `IGenerationSnapshotStore` et adapter Infrastructure `JsonGenerationSnapshotStore` immutable, atomique, un fichier versionné par snapshot, avec vérification du payload hash ;
+- `ChatMessage` Assistant peut référencer un `GenerationSnapshotId`; les rôles non-Assistant ne le peuvent pas ;
+- `JsonConversationRepository` passe au schema v4 pour cette référence tout en relisant v0/v2/v3 ;
+- snapshot persisté seulement après succès provider + validation anti-stale, puis conversation persistée sur une copie détachée ; rollback du snapshot si le save conversation échoue ;
+- annulation, erreur provider, stream partiel ou historique stale ne créent ni Assistant final ni snapshot durable ;
+- aucune branche, révision de contexte, budget explicite, RAG ou UI de provenance n'est introduite dans cette sous-étape.
+
 ### Etapes suivantes
 
-- 10B.5b : `GenerationSnapshotId` / registre durable et attachement exact de la provenance à la révision Assistant produite, avec les `MessageRevisionId` d'entrée ;
 - 10B.5c : graphe de branches, partage du préfixe immutable et édition d'un ancien message sans détruire la branche d'origine ;
 - 10B.6 : révisions/provenance de contexte et budget de contexte explicite.
 

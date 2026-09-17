@@ -31,9 +31,13 @@ public sealed class GenerationProfileExecutionContractTests
         registry.SelectProvider("provider.one");
         ConversationId conversationId = ConversationId.New();
         MessageId messageId = MessageId.New();
+        MessageRevisionId revisionId = MessageRevisionId.New();
         GenerationSnapshot snapshot = new(
+            GenerationSnapshotId.New(),
             conversationId,
             messageId,
+            revisionId,
+            new[] { revisionId },
             DateTimeOffset.UtcNow,
             new InferenceProviderConfiguration(
                 "provider.two",
@@ -100,9 +104,13 @@ public sealed class GenerationProfileExecutionContractTests
             maxOutputTokens: 256,
             temperature: 0.25,
             topP: 0.88);
+        MessageRevisionId revisionId = MessageRevisionId.New();
         GenerationSnapshot snapshot = new(
+            GenerationSnapshotId.New(),
             conversationId,
             messageId,
+            revisionId,
+            new[] { revisionId },
             DateTimeOffset.UtcNow,
             new InferenceProviderConfiguration(
                 LlamaCppProviderRuntime.ProviderId,
@@ -136,9 +144,13 @@ public sealed class GenerationProfileExecutionContractTests
             contextSize: 4096);
         ConversationId conversationId = ConversationId.New();
         MessageId messageId = MessageId.New();
+        MessageRevisionId modelRevisionId = MessageRevisionId.New();
         GenerationSnapshot differentModelSnapshot = new(
+            GenerationSnapshotId.New(),
             conversationId,
             messageId,
+            modelRevisionId,
+            new[] { modelRevisionId },
             DateTimeOffset.UtcNow,
             new InferenceProviderConfiguration(
                 LlamaCppProviderRuntime.ProviderId,
@@ -146,9 +158,13 @@ public sealed class GenerationProfileExecutionContractTests
                 contextSize: 4096),
             GenerationProfileId.New(),
             GenerationProfileRevisionId.New());
+        MessageRevisionId contextRevisionId = MessageRevisionId.New();
         GenerationSnapshot differentContextSnapshot = new(
+            GenerationSnapshotId.New(),
             conversationId,
             messageId,
+            contextRevisionId,
+            new[] { contextRevisionId },
             DateTimeOffset.UtcNow,
             new InferenceProviderConfiguration(
                 LlamaCppProviderRuntime.ProviderId,
@@ -201,10 +217,14 @@ public sealed class GenerationProfileExecutionContractTests
         GenerationSnapshot? generationSnapshot,
         string? systemInstructions = null)
     {
+        MessageRevisionId revisionId = generationSnapshot?.TriggeringUserMessageRevisionId
+            ?? MessageRevisionId.New();
         List<ChatMessage> messages = new()
         {
             new ChatMessage(
                 messageId,
+                revisionId,
+                parentRevisionId: null,
                 MessageRole.User,
                 "Hello",
                 new DateTimeOffset(2026, 9, 16, 12, 0, 0, TimeSpan.Zero)),

@@ -104,6 +104,56 @@ public sealed class ChatMessageTests
                 _timestamp));
     }
 
+
+    [Fact]
+    public void AssistantRevisionCanReferenceGenerationSnapshotWithoutChangingPayloadHash()
+    {
+        MessageId messageId = MessageId.New();
+        MessageRevisionId revisionId = MessageRevisionId.New();
+        GenerationSnapshotId snapshotId = GenerationSnapshotId.New();
+        ChatMessage withoutSnapshot = new(
+            messageId,
+            revisionId,
+            parentRevisionId: null,
+            MessageRole.Assistant,
+            "Generated answer",
+            _timestamp);
+        ChatMessage withSnapshot = new(
+            messageId,
+            revisionId,
+            parentRevisionId: null,
+            MessageRole.Assistant,
+            "Generated answer",
+            _timestamp,
+            snapshotId);
+
+        Assert.Equal(snapshotId, withSnapshot.GenerationSnapshotId);
+        Assert.Equal(withoutSnapshot.PayloadHash, withSnapshot.PayloadHash);
+    }
+
+    [Fact]
+    public void NonAssistantRevisionCannotReferenceGenerationSnapshot()
+    {
+        GenerationSnapshotId snapshotId = GenerationSnapshotId.New();
+
+        Assert.Throws<ArgumentException>(() => new ChatMessage(
+            MessageId.New(),
+            MessageRevisionId.New(),
+            parentRevisionId: null,
+            MessageRole.User,
+            "User input",
+            _timestamp,
+            snapshotId));
+        Assert.Throws<ArgumentException>(() => new ChatMessage(
+            MessageId.New(),
+            MessageRevisionId.New(),
+            parentRevisionId: null,
+            MessageRole.Assistant,
+            "Assistant output",
+            _timestamp,
+            default(GenerationSnapshotId)));
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData("   ")]

@@ -9,12 +9,14 @@ public sealed class CompleteConversationTurnUseCase
     private readonly IConversationResponder _responder;
     private readonly TimeProvider _timeProvider;
     private readonly IConversationGenerationResolver? _generationResolver;
+    private readonly IGenerationSnapshotStore? _generationSnapshotStore;
 
     public CompleteConversationTurnUseCase(
         IConversationRepository repository,
         IConversationResponder responder,
         TimeProvider timeProvider,
-        IConversationGenerationResolver? generationResolver = null)
+        IConversationGenerationResolver? generationResolver = null,
+        IGenerationSnapshotStore? generationSnapshotStore = null)
     {
         ArgumentNullException.ThrowIfNull(repository);
         ArgumentNullException.ThrowIfNull(responder);
@@ -24,6 +26,7 @@ public sealed class CompleteConversationTurnUseCase
         _responder = responder;
         _timeProvider = timeProvider;
         _generationResolver = generationResolver;
+        _generationSnapshotStore = generationSnapshotStore;
     }
 
     public async Task<ChatMessage> ExecuteAsync(
@@ -55,7 +58,7 @@ public sealed class CompleteConversationTurnUseCase
                 $"Conversation '{conversationId}' was not found.");
         }
 
-        ConversationTurnSnapshot snapshot = ConversationTurnSnapshot.Capture(
+        ConversationTurnSnapshot turnSnapshot = ConversationTurnSnapshot.Capture(
             conversation,
             triggeringUserMessageId);
         ResolvedConversationGeneration? resolvedGeneration = _generationResolver is null
@@ -64,8 +67,13 @@ public sealed class CompleteConversationTurnUseCase
                 .ResolveAsync(
                     conversationId,
                     triggeringUserMessageId,
+                    turnSnapshot.TriggeringUserMessageRevisionId,
+                    turnSnapshot.InputMessageRevisionIds,
                     cancellationToken)
                 .ConfigureAwait(false);
+        ConversationTurnCompletion.RequireSnapshotStore(
+            resolvedGeneration,
+            _generationSnapshotStore);
         ConversationResponseRequest request =
             ConversationResponseRequest.FromConversation(
                 conversation,
@@ -86,22 +94,17 @@ public sealed class CompleteConversationTurnUseCase
         Conversation? reloadedConversation = await _repository
             .FindAsync(conversationId, cancellationToken)
             .ConfigureAwait(false);
-        Conversation currentConversation = snapshot.RequireMatching(reloadedConversation);
+        Conversation currentConversation = turnSnapshot.RequireMatching(reloadedConversation);
 
-        ChatMessage assistantMessage = new(
-            MessageId.New(),
-            MessageRevisionId.New(),
-            parentRevisionId: null,
-            MessageRole.Assistant,
-            response.Content,
-            _timeProvider.GetUtcNow());
-
-        currentConversation.AddMessage(assistantMessage);
-
-        await _repository
-            .SaveAsync(currentConversation, cancellationToken)
+        return await ConversationTurnCompletion
+            .PersistAsync(
+                _repository,
+                _generationSnapshotStore,
+                currentConversation,
+                response.Content,
+                _timeProvider.GetUtcNow(),
+                resolvedGeneration,
+                cancellationToken)
             .ConfigureAwait(false);
-
-        return assistantMessage;
     }
 }

@@ -27,9 +27,12 @@ public sealed class JsonConversationRepositoryTests
                 renamedAt.AddSeconds(1)));
             conversation.AddMessage(new ChatMessage(
                 new MessageId(Guid.Parse("40b40e8f-0cf9-437c-85fd-d73f5781bf77")),
+                new MessageRevisionId(Guid.Parse("f20ebead-a0f5-4d1d-988e-72b065280890")),
+                parentRevisionId: null,
                 MessageRole.Assistant,
                 "Hello",
-                renamedAt.AddSeconds(2)));
+                renamedAt.AddSeconds(2),
+                new GenerationSnapshotId(Guid.Parse("17566e2d-43af-4f0b-bdde-50c7e394fa66"))));
 
             await repository.SaveAsync(conversation, CancellationToken.None).ConfigureAwait(true);
             Conversation? loaded = await repository
@@ -237,7 +240,7 @@ public sealed class JsonConversationRepositoryTests
             string upgradedJson = await File.ReadAllTextAsync(
                 filePath,
                 CancellationToken.None).ConfigureAwait(true);
-            Assert.Contains("\"schemaVersion\": 3", upgradedJson, StringComparison.Ordinal);
+            Assert.Contains("\"schemaVersion\": 4", upgradedJson, StringComparison.Ordinal);
             Assert.Contains(
                 migratedMessage.RevisionId.Value.ToString("D"),
                 upgradedJson,
@@ -298,6 +301,67 @@ public sealed class JsonConversationRepositoryTests
             MessageRevisionId secondRevisionId = Assert.Single(second.Messages).RevisionId;
             Assert.False(firstRevisionId.IsEmpty);
             Assert.Equal(firstRevisionId, secondRevisionId);
+        }
+        finally
+        {
+            DeleteTemporaryDirectory(directory);
+        }
+    }
+
+
+    [Fact]
+    public async Task FindAsyncReadsSchemaThreeWithoutGenerationSnapshotReference()
+    {
+        string directory = CreateTemporaryDirectory();
+
+        try
+        {
+            JsonConversationRepository repository = new(directory);
+            ConversationId conversationId = new(Guid.Parse("27b95ea9-f578-49ac-b99e-94fe9f2abbd4"));
+            MessageId messageId = new(Guid.Parse("e56ab8d5-7ad2-4382-bbe6-9702b958f13f"));
+            MessageRevisionId revisionId = new(Guid.Parse("f11c5314-a8e3-48bf-94b9-ad62fb36033d"));
+            DateTimeOffset messageAt = new(2026, 9, 17, 8, 45, 0, TimeSpan.Zero);
+            ChatMessage expected = new(
+                messageId,
+                revisionId,
+                parentRevisionId: null,
+                MessageRole.Assistant,
+                "Schema three",
+                messageAt);
+            string filePath = Path.Combine(directory, conversationId.Value.ToString("N") + ".json");
+            string json = $$"""
+                {
+                  "schemaVersion": 3,
+                  "id": "{{conversationId.Value}}",
+                  "title": "Schema three",
+                  "createdAt": "2026-09-17T08:44:00+00:00",
+                  "updatedAt": "{{messageAt:O}}",
+                  "messages": [
+                    {
+                      "id": "{{messageId.Value}}",
+                      "revisionId": "{{revisionId.Value}}",
+                      "parentRevisionId": null,
+                      "role": 3,
+                      "content": "Schema three",
+                      "createdAt": "{{messageAt:O}}",
+                      "payloadHash": "{{expected.PayloadHash}}"
+                    }
+                  ]
+                }
+                """;
+            await File.WriteAllTextAsync(
+                filePath,
+                json,
+                CancellationToken.None).ConfigureAwait(true);
+
+            Conversation loaded = Assert.IsType<Conversation>(await repository
+                .FindAsync(conversationId, CancellationToken.None)
+                .ConfigureAwait(true));
+
+            ChatMessage message = Assert.Single(loaded.Messages);
+            Assert.Equal(revisionId, message.RevisionId);
+            Assert.Null(message.GenerationSnapshotId);
+            Assert.Equal(expected.PayloadHash, message.PayloadHash);
         }
         finally
         {
@@ -407,6 +471,7 @@ public sealed class JsonConversationRepositoryTests
         Assert.Equal(expected.Role, actual.Role);
         Assert.Equal(expected.Content, actual.Content);
         Assert.Equal(expected.CreatedAt, actual.CreatedAt);
+        Assert.Equal(expected.GenerationSnapshotId, actual.GenerationSnapshotId);
         Assert.Equal(expected.PayloadHash, actual.PayloadHash);
     }
 

@@ -11,6 +11,9 @@ public sealed class ConversationGenerationResolverTests
     {
         ConversationId conversationId = ConversationId.New();
         MessageId messageId = MessageId.New();
+        MessageRevisionId earlierRevisionId = MessageRevisionId.New();
+        MessageRevisionId triggerRevisionId = MessageRevisionId.New();
+        MessageRevisionId[] inputRevisionIds = [earlierRevisionId, triggerRevisionId];
         GenerationProfileModelScope scope = new(
             "provider.alpha",
             "owner/model:Q4_K_M");
@@ -67,12 +70,17 @@ public sealed class ConversationGenerationResolverTests
         ResolvedConversationGeneration? resolved = await resolver.ResolveAsync(
             conversationId,
             messageId,
+            triggerRevisionId,
+            inputRevisionIds,
             TestContext.Current.CancellationToken).ConfigureAwait(true);
 
         ResolvedConversationGeneration generation = Assert.IsType<ResolvedConversationGeneration>(resolved);
         Assert.Equal("Use the latest confirmed profile.", generation.SystemInstructions);
+        Assert.False(generation.Snapshot.Id.IsEmpty);
         Assert.Equal(conversationId, generation.Snapshot.ConversationId);
         Assert.Equal(messageId, generation.Snapshot.TriggeringUserMessageId);
+        Assert.Equal(triggerRevisionId, generation.Snapshot.TriggeringUserMessageRevisionId);
+        Assert.Equal(inputRevisionIds, generation.Snapshot.InputMessageRevisionIds);
         Assert.Equal(resolvedAt.ToUniversalTime(), generation.Snapshot.CapturedAtUtc);
         Assert.Equal(scope.ProviderId, generation.Snapshot.ProviderId);
         Assert.Equal(scope.ModelReference, generation.Snapshot.ModelReference);
@@ -91,6 +99,7 @@ public sealed class ConversationGenerationResolverTests
     {
         ConversationId conversationId = ConversationId.New();
         MessageId messageId = MessageId.New();
+        MessageRevisionId triggerRevisionId = MessageRevisionId.New();
         GenerationProfileModelScope scope = new("provider.alpha", "owner/model");
         GenerationProfileId defaultProfileId = GenerationProfileId.New();
         GenerationProfileCatalog catalog = GenerationProfileCatalog.CreateEmpty(
@@ -116,6 +125,8 @@ public sealed class ConversationGenerationResolverTests
         ResolvedConversationGeneration? resolved = await resolver.ResolveAsync(
             conversationId,
             messageId,
+            triggerRevisionId,
+            new[] { triggerRevisionId },
             TestContext.Current.CancellationToken).ConfigureAwait(true);
 
         ResolvedConversationGeneration generation = Assert.IsType<ResolvedConversationGeneration>(resolved);
@@ -130,7 +141,44 @@ public sealed class ConversationGenerationResolverTests
     }
 
     [Fact]
-    public async Task ResolveAsyncReturnsNullForLegacyConversationWithoutSelection()
+    public async Task ResolveAsyncCapturesLegacySelectedProviderWithoutProfileSelection()
+    {
+        ConversationId conversationId = ConversationId.New();
+        MessageId messageId = MessageId.New();
+        MessageRevisionId triggerRevisionId = MessageRevisionId.New();
+        InferenceProviderConfiguration configuration = new(
+            "provider.alpha",
+            "owner/model",
+            contextSize: 6144,
+            generation: new InferenceGenerationOptions(temperature: 0.45));
+        ConversationGenerationResolver resolver = new(
+            new InMemorySelectionStore(),
+            new InMemoryCatalogStore(),
+            new InMemoryProviderConfigurationStore(
+                configuration.ProviderId,
+                configuration),
+            new FixedTimeProvider(DateTimeOffset.UtcNow));
+
+        ResolvedConversationGeneration? resolved = await resolver.ResolveAsync(
+            conversationId,
+            messageId,
+            triggerRevisionId,
+            new[] { triggerRevisionId },
+            TestContext.Current.CancellationToken).ConfigureAwait(true);
+
+        ResolvedConversationGeneration generation = Assert.IsType<ResolvedConversationGeneration>(resolved);
+        Assert.Null(generation.SystemInstructions);
+        Assert.False(generation.Snapshot.HasProfileSelection);
+        Assert.Null(generation.Snapshot.ProfileId);
+        Assert.Null(generation.Snapshot.ProfileRevisionId);
+        Assert.Equal(configuration.ProviderId, generation.Snapshot.ProviderId);
+        Assert.Equal(configuration.ModelReference, generation.Snapshot.ModelReference);
+        Assert.Equal(configuration.ContextSize, generation.Snapshot.ContextSize);
+        Assert.Equal(0.45, generation.Snapshot.GenerationOptions.Temperature);
+    }
+
+    [Fact]
+    public async Task ResolveAsyncReturnsNullWhenNoConversationOrProviderSelectionExists()
     {
         ConversationGenerationResolver resolver = new(
             new InMemorySelectionStore(),
@@ -138,10 +186,10 @@ public sealed class ConversationGenerationResolverTests
             new InMemoryProviderConfigurationStore(),
             new FixedTimeProvider(DateTimeOffset.UtcNow));
 
-        ResolvedConversationGeneration? resolved = await resolver.ResolveAsync(
+        ResolvedConversationGeneration? resolved = await ResolveSingleRevisionAsync(
+            resolver,
             ConversationId.New(),
-            MessageId.New(),
-            TestContext.Current.CancellationToken).ConfigureAwait(true);
+            MessageId.New()).ConfigureAwait(true);
 
         Assert.Null(resolved);
     }
@@ -167,10 +215,10 @@ public sealed class ConversationGenerationResolverTests
             new FixedTimeProvider(DateTimeOffset.UtcNow));
 
         InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => resolver.ResolveAsync(
+            () => ResolveSingleRevisionAsync(
+                resolver,
                 conversationId,
-                MessageId.New(),
-                TestContext.Current.CancellationToken)).ConfigureAwait(true);
+                MessageId.New())).ConfigureAwait(true);
 
         Assert.Contains("does not match", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -197,10 +245,10 @@ public sealed class ConversationGenerationResolverTests
             new FixedTimeProvider(DateTimeOffset.UtcNow));
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            missingCatalogResolver.ResolveAsync(
+            ResolveSingleRevisionAsync(
+                missingCatalogResolver,
                 conversationId,
-                MessageId.New(),
-                TestContext.Current.CancellationToken)).ConfigureAwait(true);
+                MessageId.New())).ConfigureAwait(true);
 
         GenerationProfileCatalog catalog = GenerationProfileCatalog.CreateEmpty(
             scope,
@@ -212,10 +260,10 @@ public sealed class ConversationGenerationResolverTests
             new FixedTimeProvider(DateTimeOffset.UtcNow));
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            missingProfileResolver.ResolveAsync(
+            ResolveSingleRevisionAsync(
+                missingProfileResolver,
                 conversationId,
-                MessageId.New(),
-                TestContext.Current.CancellationToken)).ConfigureAwait(true);
+                MessageId.New())).ConfigureAwait(true);
     }
 
     [Fact]
@@ -224,14 +272,32 @@ public sealed class ConversationGenerationResolverTests
         InferenceProviderConfiguration configuration = new(
             "provider.alpha",
             "owner/model");
+        MessageRevisionId revisionId = MessageRevisionId.New();
 
         Assert.Throws<ArgumentException>(() => new GenerationSnapshot(
+            GenerationSnapshotId.New(),
             ConversationId.New(),
             MessageId.New(),
+            revisionId,
+            new[] { revisionId },
             DateTimeOffset.UtcNow,
             configuration,
             profileId: null,
             profileRevisionId: GenerationProfileRevisionId.New()));
+    }
+
+    private static Task<ResolvedConversationGeneration?> ResolveSingleRevisionAsync(
+        ConversationGenerationResolver resolver,
+        ConversationId conversationId,
+        MessageId messageId)
+    {
+        MessageRevisionId revisionId = MessageRevisionId.New();
+        return resolver.ResolveAsync(
+            conversationId,
+            messageId,
+            revisionId,
+            new[] { revisionId },
+            TestContext.Current.CancellationToken);
     }
 
     private sealed class InMemorySelectionStore : IConversationGenerationSelectionStore
@@ -308,6 +374,7 @@ public sealed class ConversationGenerationResolverTests
     {
         private readonly Dictionary<string, InferenceProviderConfiguration> _configurations =
             new(StringComparer.Ordinal);
+        private string? _selectedProviderId;
 
         public InMemoryProviderConfigurationStore(
             params InferenceProviderConfiguration[] configurations)
@@ -318,11 +385,19 @@ public sealed class ConversationGenerationResolverTests
             }
         }
 
+        public InMemoryProviderConfigurationStore(
+            string selectedProviderId,
+            params InferenceProviderConfiguration[] configurations)
+            : this(configurations)
+        {
+            _selectedProviderId = selectedProviderId;
+        }
+
         public Task<string?> LoadSelectedProviderIdAsync(
             CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            return Task.FromResult<string?>(null);
+            return Task.FromResult(_selectedProviderId);
         }
 
         public Task<InferenceProviderConfiguration?> LoadAsync(
@@ -341,6 +416,11 @@ public sealed class ConversationGenerationResolverTests
         {
             cancellationToken.ThrowIfCancellationRequested();
             _configurations[configuration.ProviderId] = configuration;
+            if (selectProvider)
+            {
+                _selectedProviderId = configuration.ProviderId;
+            }
+
             return Task.CompletedTask;
         }
     }

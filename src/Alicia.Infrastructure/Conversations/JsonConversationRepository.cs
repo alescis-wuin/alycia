@@ -10,7 +10,8 @@ public sealed class JsonConversationRepository : IConversationRepository
 {
     private const string FileExtension = ".json";
     private const int LegacySchemaVersion = 2;
-    private const int CurrentSchemaVersion = 3;
+    private const int MessageRevisionSchemaVersion = 3;
+    private const int CurrentSchemaVersion = 4;
     private const string LegacyRevisionIdSchema = "alicia-legacy-message-revision-id-v1";
     private static readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web)
     {
@@ -157,6 +158,7 @@ public sealed class JsonConversationRepository : IConversationRepository
                 Content = message.Content,
                 CreatedAt = message.CreatedAt,
                 PayloadHash = message.PayloadHash,
+                GenerationSnapshotId = message.GenerationSnapshotId?.Value,
             })
             .ToList();
 
@@ -246,6 +248,7 @@ public sealed class JsonConversationRepository : IConversationRepository
     {
         if (document.SchemaVersion is not 0
             and not LegacySchemaVersion
+            and not MessageRevisionSchemaVersion
             and not CurrentSchemaVersion)
         {
             throw new InvalidDataException(
@@ -305,13 +308,19 @@ public sealed class JsonConversationRepository : IConversationRepository
                 ? new MessageRevisionId(parentId)
                 : null;
 
+        GenerationSnapshotId? generationSnapshotId = schemaVersion == CurrentSchemaVersion
+            && document.GenerationSnapshotId is Guid snapshotId
+                ? new GenerationSnapshotId(snapshotId)
+                : null;
+
         ChatMessage revision = new(
             messageId,
             revisionId,
             parentRevisionId,
             (MessageRole)document.Role,
             document.Content,
-            document.CreatedAt);
+            document.CreatedAt,
+            generationSnapshotId);
 
         if (!isLegacy)
         {
@@ -409,5 +418,7 @@ public sealed class JsonConversationRepository : IConversationRepository
         public DateTimeOffset CreatedAt { get; init; }
 
         public string? PayloadHash { get; init; }
+
+        public Guid? GenerationSnapshotId { get; init; }
     }
 }

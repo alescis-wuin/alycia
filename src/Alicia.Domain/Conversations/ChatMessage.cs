@@ -19,7 +19,8 @@ public sealed record ChatMessage
             parentRevisionId: null,
             role,
             content,
-            createdAt)
+            createdAt,
+            generationSnapshotId: null)
     {
     }
 
@@ -30,6 +31,25 @@ public sealed record ChatMessage
         MessageRole role,
         string content,
         DateTimeOffset createdAt)
+        : this(
+            id,
+            revisionId,
+            parentRevisionId,
+            role,
+            content,
+            createdAt,
+            generationSnapshotId: null)
+    {
+    }
+
+    public ChatMessage(
+        MessageId id,
+        MessageRevisionId revisionId,
+        MessageRevisionId? parentRevisionId,
+        MessageRole role,
+        string content,
+        DateTimeOffset createdAt,
+        GenerationSnapshotId? generationSnapshotId)
     {
         if (id.IsEmpty)
         {
@@ -72,12 +92,27 @@ public sealed record ChatMessage
             throw new ArgumentOutOfRangeException(nameof(createdAt), createdAt, "Message creation time must be defined.");
         }
 
+        if (generationSnapshotId is { IsEmpty: true })
+        {
+            throw new ArgumentException(
+                "Generation-snapshot identifier cannot be empty when supplied.",
+                nameof(generationSnapshotId));
+        }
+
+        if (generationSnapshotId is not null && role != MessageRole.Assistant)
+        {
+            throw new ArgumentException(
+                "Only an Assistant message revision can reference a generation snapshot.",
+                nameof(generationSnapshotId));
+        }
+
         Id = id;
         RevisionId = revisionId;
         ParentRevisionId = parentRevisionId;
         Role = role;
         Content = content;
         CreatedAt = createdAt;
+        GenerationSnapshotId = generationSnapshotId;
         PayloadHash = ComputePayloadHash(id, role, content, createdAt);
     }
 
@@ -92,6 +127,8 @@ public sealed record ChatMessage
     public string Content { get; }
 
     public DateTimeOffset CreatedAt { get; }
+
+    public GenerationSnapshotId? GenerationSnapshotId { get; }
 
     public string PayloadHash { get; }
 
