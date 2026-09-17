@@ -21,6 +21,8 @@ Alicia.Desktop ───────→ Alicia.Presentation ──────�
 
 The dependency graph is checked automatically. Presentation code must not depend directly on infrastructure implementations; the desktop executable is the platform composition root that selects and injects those implementations. `MainViewModel` is now an orchestration/compatibility facade over dedicated conversation-workspace, history, stream, provider, model, generation-settings, and Conversation configuration-gate ViewModels.
 
+Lot 10B.5c adds a durable immutable-prefix conversation branch graph below Presentation. Editing a confirmed User message creates a child branch and a new revision of the same logical `MessageId`; the original branch and its downstream generation provenance remain intact. `Conversation.Messages` stays the linear compatibility view of the active branch, while visual branch navigation/editing remains a later Presentation concern.
+
 ## Prerequisites
 
 - Linux, macOS, or Windows for the application itself;
@@ -107,6 +109,7 @@ The provider-neutral Application contracts remain independent of llama.cpp/CUDA/
 - `docs/decisions/0034-conversation-generation-selection-and-profile-binding.md`
 - `docs/decisions/0035-immutable-message-revisions-and-legacy-migration.md`
 - `docs/decisions/0036-durable-generation-snapshot-provenance.md`
+- `docs/decisions/0037-conversation-branch-graph.md`
 - `docs/development/roadmap.md`
 - `docs/design/ui-ux-specification.md`
 - `docs/user-guide/README.md`

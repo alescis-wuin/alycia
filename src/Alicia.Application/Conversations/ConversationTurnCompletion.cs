@@ -85,17 +85,14 @@ internal static class ConversationTurnCompletion
         Conversation source,
         ChatMessage assistantMessage)
     {
-        Conversation copy = new(
+        Conversation copy = Conversation.Restore(
             source.Id,
             source.Title,
             source.CreatedAt,
-            source.UpdatedAt);
-
-        foreach (ChatMessage message in source.Messages)
-        {
-            copy.AddMessage(message);
-        }
-
+            source.UpdatedAt,
+            source.MessageRevisions,
+            source.Branches,
+            source.ActiveBranchId);
         copy.AddMessage(assistantMessage);
         return copy;
     }

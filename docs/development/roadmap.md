@@ -48,7 +48,7 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 | UIX-01 Stage 9 | terminé | décomposition Presentation en six ViewModels |
 | UIX-01 Stage 10 | terminé | 10A–10D terminés; UIX-01 foundation clôturée |
 | UI refinement 10.7A | terminé | Provider/Models visual hierarchy |
-| Lot 10B Profiles/revisions/provenance/context | en cours | 10B.1–10B.5b terminés; 10B.5c branching puis 10B.6 contexte/budget |
+| Lot 10B Profiles/revisions/provenance/context | en cours | 10B.1–10B.5c terminés; 10B.6 contexte/budget |
 | Lot 11 RAG foundation | planifié | à faire |
 | Lot 12 Retrieval/grounded generation | planifié | à faire |
 | Lot 13 Tools/MCP/agents | planifié | à faire |
@@ -270,9 +270,19 @@ Introduire avant RAG.
 - annulation, erreur provider, stream partiel ou historique stale ne créent ni Assistant final ni snapshot durable ;
 - aucune branche, révision de contexte, budget explicite, RAG ou UI de provenance n'est introduite dans cette sous-étape.
 
+### 10B.5c Graphe de branches et édition non destructive — terminé
+
+- nouveau `ConversationBranchId` Domain et métadonnées `ConversationBranch` immuables : parent optionnel, dernier `MessageRevisionId` partagé et queue locale ordonnée ;
+- registre global de révisions dans `Conversation` : chaque révision confirmée est stockée une seule fois et possédée par une seule queue de branche ;
+- `Conversation.Messages` reste la vue linéaire compatible de la branche active, avec résolution d'un enfant par préfixe parent tronqué au point de divergence + révisions locales ;
+- édition d'un ancien message User visible : même `MessageId`, nouveau `MessageRevisionId`, parent de révision exact, branche enfant activée et branche source intégralement préservée ;
+- sélection explicite d'une branche sans réécriture des messages ni changement artificiel de `UpdatedAt` ;
+- stale-turn protection renforcée sur registre de révisions + graphe + branche active, afin qu'un changement de branche pendant une génération invalide la finalisation ;
+- `JsonConversationRepository` schema v5 (`messageRevisions`, `branches`, `activeBranchId`) avec migration stable v0/v2/v3/v4 vers une branche racine déterministe ;
+- aucune UI de navigation/édition de branches dans cette sous-étape ; contexte révisionné/budget explicite restent 10B.6.
+
 ### Etapes suivantes
 
-- 10B.5c : graphe de branches, partage du préfixe immutable et édition d'un ancien message sans détruire la branche d'origine ;
 - 10B.6 : révisions/provenance de contexte et budget de contexte explicite.
 
 ## Lots 11 à 15

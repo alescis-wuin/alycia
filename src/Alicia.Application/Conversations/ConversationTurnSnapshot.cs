@@ -5,23 +5,29 @@ namespace Alicia.Application.Conversations;
 
 internal sealed class ConversationTurnSnapshot
 {
-    private readonly ChatMessage[] _messages;
+    private readonly ChatMessage[] _messageRevisions;
+    private readonly ConversationBranchSnapshot[] _branches;
     private readonly ReadOnlyCollection<MessageRevisionId> _inputMessageRevisionIds;
 
     private ConversationTurnSnapshot(
         string title,
         DateTimeOffset createdAt,
         DateTimeOffset updatedAt,
-        ChatMessage[] messages,
+        ConversationBranchId activeBranchId,
+        ChatMessage[] activeMessages,
+        ChatMessage[] messageRevisions,
+        ConversationBranchSnapshot[] branches,
         MessageRevisionId triggeringUserMessageRevisionId)
     {
         Title = title;
         CreatedAt = createdAt;
         UpdatedAt = updatedAt;
-        _messages = messages;
+        ActiveBranchId = activeBranchId;
+        _messageRevisions = messageRevisions;
+        _branches = branches;
         TriggeringUserMessageRevisionId = triggeringUserMessageRevisionId;
         _inputMessageRevisionIds = Array.AsReadOnly(
-            messages.Select(message => message.RevisionId).ToArray());
+            activeMessages.Select(message => message.RevisionId).ToArray());
     }
 
     private string Title { get; }
@@ -29,6 +35,8 @@ internal sealed class ConversationTurnSnapshot
     private DateTimeOffset CreatedAt { get; }
 
     private DateTimeOffset UpdatedAt { get; }
+
+    private ConversationBranchId ActiveBranchId { get; }
 
     public MessageRevisionId TriggeringUserMessageRevisionId { get; }
 
@@ -40,12 +48,16 @@ internal sealed class ConversationTurnSnapshot
     {
         ArgumentNullException.ThrowIfNull(conversation);
         ChatMessage trigger = ValidateTrigger(conversation, triggeringUserMessageId);
+        ChatMessage[] activeMessages = conversation.Messages.ToArray();
 
         return new ConversationTurnSnapshot(
             conversation.Title,
             conversation.CreatedAt,
             conversation.UpdatedAt,
-            conversation.Messages.ToArray(),
+            conversation.ActiveBranchId,
+            activeMessages,
+            conversation.MessageRevisions.ToArray(),
+            conversation.Branches.Select(ConversationBranchSnapshot.Capture).ToArray(),
             trigger.RevisionId);
     }
 
@@ -62,13 +74,28 @@ internal sealed class ConversationTurnSnapshot
 
     private bool Matches(Conversation conversation)
     {
-        return string.Equals(
+        if (!string.Equals(
                 Title,
                 conversation.Title,
                 StringComparison.Ordinal)
-            && CreatedAt == conversation.CreatedAt
-            && UpdatedAt == conversation.UpdatedAt
-            && _messages.SequenceEqual(conversation.Messages);
+            || CreatedAt != conversation.CreatedAt
+            || UpdatedAt != conversation.UpdatedAt
+            || ActiveBranchId != conversation.ActiveBranchId
+            || !_messageRevisions.SequenceEqual(conversation.MessageRevisions)
+            || _branches.Length != conversation.Branches.Count)
+        {
+            return false;
+        }
+
+        for (int index = 0; index < _branches.Length; index++)
+        {
+            if (!_branches[index].Matches(conversation.Branches[index]))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static ChatMessage ValidateTrigger(
@@ -107,5 +134,49 @@ internal sealed class ConversationTurnSnapshot
         }
 
         return trigger;
+    }
+
+    private sealed class ConversationBranchSnapshot
+    {
+        private readonly MessageRevisionId[] _localRevisionIds;
+
+        private ConversationBranchSnapshot(
+            ConversationBranchId id,
+            ConversationBranchId? parentBranchId,
+            MessageRevisionId? forkedAfterRevisionId,
+            MessageRevisionId[] localRevisionIds)
+        {
+            Id = id;
+            ParentBranchId = parentBranchId;
+            ForkedAfterRevisionId = forkedAfterRevisionId;
+            _localRevisionIds = localRevisionIds;
+        }
+
+        private ConversationBranchId Id { get; }
+
+        private ConversationBranchId? ParentBranchId { get; }
+
+        private MessageRevisionId? ForkedAfterRevisionId { get; }
+
+        public static ConversationBranchSnapshot Capture(ConversationBranch branch)
+        {
+            ArgumentNullException.ThrowIfNull(branch);
+
+            return new ConversationBranchSnapshot(
+                branch.Id,
+                branch.ParentBranchId,
+                branch.ForkedAfterRevisionId,
+                branch.LocalRevisionIds.ToArray());
+        }
+
+        public bool Matches(ConversationBranch branch)
+        {
+            ArgumentNullException.ThrowIfNull(branch);
+
+            return Id == branch.Id
+                && ParentBranchId == branch.ParentBranchId
+                && ForkedAfterRevisionId == branch.ForkedAfterRevisionId
+                && _localRevisionIds.SequenceEqual(branch.LocalRevisionIds);
+        }
     }
 }
