@@ -221,7 +221,124 @@ public sealed class JsonConversationRepositoryTests
 
             Assert.Equal(Conversation.DefaultTitle, loaded.Title);
             Assert.Equal(messageAt, loaded.UpdatedAt);
-            Assert.Single(loaded.Messages);
+            ChatMessage migratedMessage = Assert.Single(loaded.Messages);
+            Assert.Equal(
+                new MessageRevisionId(Guid.Parse("08647508-175e-806b-b3d9-c18debe9385d")),
+                migratedMessage.RevisionId);
+            Assert.Null(migratedMessage.ParentRevisionId);
+            Assert.Matches("^[0-9A-F]{64}$", migratedMessage.PayloadHash);
+
+            Conversation reloaded = Assert.IsType<Conversation>(await repository
+                .FindAsync(conversationId, CancellationToken.None)
+                .ConfigureAwait(true));
+            Assert.Equal(migratedMessage.RevisionId, Assert.Single(reloaded.Messages).RevisionId);
+
+            await repository.SaveAsync(loaded, CancellationToken.None).ConfigureAwait(true);
+            string upgradedJson = await File.ReadAllTextAsync(
+                filePath,
+                CancellationToken.None).ConfigureAwait(true);
+            Assert.Contains("\"schemaVersion\": 3", upgradedJson, StringComparison.Ordinal);
+            Assert.Contains(
+                migratedMessage.RevisionId.Value.ToString("D"),
+                upgradedJson,
+                StringComparison.OrdinalIgnoreCase);
+
+            Conversation upgraded = Assert.IsType<Conversation>(await repository
+                .FindAsync(conversationId, CancellationToken.None)
+                .ConfigureAwait(true));
+            Assert.Equal(migratedMessage.RevisionId, Assert.Single(upgraded.Messages).RevisionId);
+        }
+        finally
+        {
+            DeleteTemporaryDirectory(directory);
+        }
+    }
+
+    [Fact]
+    public async Task FindAsyncReadsSchemaTwoWithStableDerivedRevision()
+    {
+        string directory = CreateTemporaryDirectory();
+
+        try
+        {
+            JsonConversationRepository repository = new(directory);
+            ConversationId conversationId = new(Guid.Parse("359d97fc-e122-4c47-a777-f1d306cc2fd8"));
+            MessageId messageId = new(Guid.Parse("7f6fe755-c602-462e-abf9-ab061bdd7bd6"));
+            string filePath = Path.Combine(directory, conversationId.Value.ToString("N") + ".json");
+            string json = $$"""
+                {
+                  "schemaVersion": 2,
+                  "id": "{{conversationId.Value}}",
+                  "title": "Schema two",
+                  "createdAt": "2026-08-08T05:45:00+00:00",
+                  "updatedAt": "2026-08-08T05:46:00+00:00",
+                  "messages": [
+                    {
+                      "id": "{{messageId.Value}}",
+                      "role": 1,
+                      "content": "Legacy v2",
+                      "createdAt": "2026-08-08T05:46:00+00:00"
+                    }
+                  ]
+                }
+                """;
+            await File.WriteAllTextAsync(
+                filePath,
+                json,
+                CancellationToken.None).ConfigureAwait(true);
+
+            Conversation first = Assert.IsType<Conversation>(await repository
+                .FindAsync(conversationId, CancellationToken.None)
+                .ConfigureAwait(true));
+            Conversation second = Assert.IsType<Conversation>(await repository
+                .FindAsync(conversationId, CancellationToken.None)
+                .ConfigureAwait(true));
+
+            MessageRevisionId firstRevisionId = Assert.Single(first.Messages).RevisionId;
+            MessageRevisionId secondRevisionId = Assert.Single(second.Messages).RevisionId;
+            Assert.False(firstRevisionId.IsEmpty);
+            Assert.Equal(firstRevisionId, secondRevisionId);
+        }
+        finally
+        {
+            DeleteTemporaryDirectory(directory);
+        }
+    }
+
+    [Fact]
+    public async Task FindAsyncRejectsTamperedMessageRevisionPayloadHash()
+    {
+        string directory = CreateTemporaryDirectory();
+
+        try
+        {
+            JsonConversationRepository repository = new(directory);
+            DateTimeOffset createdAt = new(2026, 8, 8, 5, 47, 0, TimeSpan.Zero);
+            Conversation conversation = new(ConversationId.New(), createdAt);
+            ChatMessage message = new(
+                MessageId.New(),
+                MessageRevisionId.New(),
+                parentRevisionId: null,
+                MessageRole.User,
+                "Integrity",
+                createdAt);
+            conversation.AddMessage(message);
+            await repository.SaveAsync(conversation, CancellationToken.None).ConfigureAwait(true);
+
+            string filePath = Path.Combine(directory, conversation.Id.Value.ToString("N") + ".json");
+            string json = await File.ReadAllTextAsync(filePath, CancellationToken.None).ConfigureAwait(true);
+            string tampered = json.Replace(
+                message.PayloadHash,
+                new string('0', 64),
+                StringComparison.Ordinal);
+            Assert.NotEqual(json, tampered);
+            await File.WriteAllTextAsync(
+                filePath,
+                tampered,
+                CancellationToken.None).ConfigureAwait(true);
+
+            await Assert.ThrowsAsync<InvalidDataException>(() =>
+                repository.FindAsync(conversation.Id, CancellationToken.None)).ConfigureAwait(true);
         }
         finally
         {
@@ -285,9 +402,12 @@ public sealed class JsonConversationRepositoryTests
     private static void AssertMessage(ChatMessage actual, ChatMessage expected)
     {
         Assert.Equal(expected.Id, actual.Id);
+        Assert.Equal(expected.RevisionId, actual.RevisionId);
+        Assert.Equal(expected.ParentRevisionId, actual.ParentRevisionId);
         Assert.Equal(expected.Role, actual.Role);
         Assert.Equal(expected.Content, actual.Content);
         Assert.Equal(expected.CreatedAt, actual.CreatedAt);
+        Assert.Equal(expected.PayloadHash, actual.PayloadHash);
     }
 
     private static string CreateTemporaryDirectory()

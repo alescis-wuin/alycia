@@ -48,7 +48,7 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 | UIX-01 Stage 9 | terminé | décomposition Presentation en six ViewModels |
 | UIX-01 Stage 10 | terminé | 10A–10D terminés; UIX-01 foundation clôturée |
 | UI refinement 10.7A | terminé | Provider/Models visual hierarchy |
-| Lot 10B Profiles/revisions/provenance/context | en cours | 10B.1 snapshot + 10B.2 profile core + 10B.3 catalog/revisions/drafts + 10B.4 conversation selection/binding |
+| Lot 10B Profiles/revisions/provenance/context | en cours | 10B.1–10B.4 terminés + 10B.5a message revisions/persistence |
 | Lot 11 RAG foundation | planifié | à faire |
 | Lot 12 Retrieval/grounded generation | planifié | à faire |
 | Lot 13 Tools/MCP/agents | planifié | à faire |
@@ -247,12 +247,21 @@ Introduire avant RAG.
 - absence de sélection persistée = chemin legacy inchangé, afin de ne pas migrer silencieusement les réglages globaux existants ;
 - composition Desktop des stores de profils/sélections et du resolver ; aucun dual selector Presentation ajouté dans ce lot backend.
 
+### 10B.5a Révisions immuables de messages et migration de persistence — terminé
+
+- nouveau `MessageRevisionId` Domain UUID ; `MessageId` reste l'identité stable de l'entité logique ;
+- `ChatMessage` représente désormais une révision confirmée avec parent optionnel et hash SHA-256 déterministe du payload autosuffisant ;
+- les nouveaux messages User et les réponses Assistant finalisées créent explicitement une révision racine ; aucun stream partiel ne crée de révision historique ;
+- `Conversation` reste linéaire dans cette sous-étape et rejette les doublons de `MessageId` comme de `MessageRevisionId` ;
+- `JsonConversationRepository` passe au schema v3 et persiste/vérifie revision, parent et payload hash ;
+- lecture rétrocompatible des schemas 0/v2 avec `MessageRevisionId` déterministe dérivé de `ConversationId + MessageId`, stable entre lectures et matérialisé au prochain save explicite ;
+- aucune provenance `GenerationSnapshot`, branche, révision de contexte ou UI de timeline n'est introduite ici.
+
 ### Etapes suivantes
 
-- révisions de messages et attachement durable du `GenerationSnapshot` / de la provenance à la révision Assistant produite ;
-- provenance et contexte attachés à la génération ;
-- branchement de conversation sur révision ;
-- budget de contexte explicite.
+- 10B.5b : `GenerationSnapshotId` / registre durable et attachement exact de la provenance à la révision Assistant produite, avec les `MessageRevisionId` d'entrée ;
+- 10B.5c : graphe de branches, partage du préfixe immutable et édition d'un ancien message sans détruire la branche d'origine ;
+- 10B.6 : révisions/provenance de contexte et budget de contexte explicite.
 
 ## Lots 11 à 15
 

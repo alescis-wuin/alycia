@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using Alicia.Application.Conversations;
 using Alicia.Domain.Conversations;
@@ -7,7 +9,9 @@ namespace Alicia.Infrastructure.Conversations;
 public sealed class JsonConversationRepository : IConversationRepository
 {
     private const string FileExtension = ".json";
-    private const int CurrentSchemaVersion = 2;
+    private const int LegacySchemaVersion = 2;
+    private const int CurrentSchemaVersion = 3;
+    private const string LegacyRevisionIdSchema = "alicia-legacy-message-revision-id-v1";
     private static readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web)
     {
         WriteIndented = true,
@@ -147,9 +151,12 @@ public sealed class JsonConversationRepository : IConversationRepository
             .Select(message => new MessageDocument
             {
                 Id = message.Id.Value,
+                RevisionId = message.RevisionId.Value,
+                ParentRevisionId = message.ParentRevisionId?.Value,
                 Role = (int)message.Role,
                 Content = message.Content,
                 CreatedAt = message.CreatedAt,
+                PayloadHash = message.PayloadHash,
             })
             .ToList();
 
@@ -237,7 +244,9 @@ public sealed class JsonConversationRepository : IConversationRepository
 
     private static Conversation ToDomain(ConversationDocument document)
     {
-        if (document.SchemaVersion is not 0 and not CurrentSchemaVersion)
+        if (document.SchemaVersion is not 0
+            and not LegacySchemaVersion
+            and not CurrentSchemaVersion)
         {
             throw new InvalidDataException(
                 $"Conversation schema version '{document.SchemaVersion}' is not supported.");
@@ -270,14 +279,72 @@ public sealed class JsonConversationRepository : IConversationRepository
 
         foreach (MessageDocument message in document.Messages)
         {
-            conversation.AddMessage(new ChatMessage(
-                new MessageId(message.Id),
-                (MessageRole)message.Role,
-                message.Content,
-                message.CreatedAt));
+            ChatMessage revision = MapToMessageRevision(
+                new ConversationId(document.Id),
+                document.SchemaVersion,
+                message);
+            conversation.AddMessage(revision);
         }
 
         return conversation;
+    }
+
+    private static ChatMessage MapToMessageRevision(
+        ConversationId conversationId,
+        int schemaVersion,
+        MessageDocument document)
+    {
+        MessageId messageId = new(document.Id);
+        bool isLegacy = schemaVersion is 0 or LegacySchemaVersion;
+        MessageRevisionId revisionId = isLegacy
+            ? CreateLegacyRevisionId(conversationId, messageId)
+            : new MessageRevisionId(document.RevisionId);
+        MessageRevisionId? parentRevisionId = isLegacy
+            ? null
+            : document.ParentRevisionId is Guid parentId
+                ? new MessageRevisionId(parentId)
+                : null;
+
+        ChatMessage revision = new(
+            messageId,
+            revisionId,
+            parentRevisionId,
+            (MessageRole)document.Role,
+            document.Content,
+            document.CreatedAt);
+
+        if (!isLegacy)
+        {
+            if (string.IsNullOrWhiteSpace(document.PayloadHash))
+            {
+                throw new InvalidDataException(
+                    $"Stored message revision '{revision.RevisionId}' has no payload hash.");
+            }
+
+            if (!string.Equals(
+                revision.PayloadHash,
+                document.PayloadHash,
+                StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidDataException(
+                    $"Stored message revision '{revision.RevisionId}' has a payload-hash mismatch.");
+            }
+        }
+
+        return revision;
+    }
+
+    private static MessageRevisionId CreateLegacyRevisionId(
+        ConversationId conversationId,
+        MessageId messageId)
+    {
+        string source = $"{LegacyRevisionIdSchema}:{conversationId.Value:D}:{messageId.Value:D}";
+        byte[] digest = SHA256.HashData(Encoding.UTF8.GetBytes(source));
+        byte[] uuidBytes = digest[..16];
+        uuidBytes[6] = (byte)((uuidBytes[6] & 0x0F) | 0x80);
+        uuidBytes[8] = (byte)((uuidBytes[8] & 0x3F) | 0x80);
+        Guid value = Guid.ParseExact(Convert.ToHexString(uuidBytes), "N");
+        return new MessageRevisionId(value);
     }
 
     private static bool TryGetConversationId(
@@ -331,10 +398,16 @@ public sealed class JsonConversationRepository : IConversationRepository
 
         public Guid Id { get; init; }
 
+        public Guid RevisionId { get; init; }
+
+        public Guid? ParentRevisionId { get; init; }
+
         public int Role { get; init; }
 
         public string Content { get; init; } = string.Empty;
 
         public DateTimeOffset CreatedAt { get; init; }
+
+        public string? PayloadHash { get; init; }
     }
 }

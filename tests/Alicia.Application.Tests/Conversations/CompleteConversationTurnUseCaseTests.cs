@@ -45,6 +45,9 @@ public sealed class CompleteConversationTurnUseCaseTests
             cancellationSource.Token).ConfigureAwait(true);
 
         Assert.Equal(MessageRole.Assistant, assistantMessage.Role);
+        Assert.False(assistantMessage.RevisionId.IsEmpty);
+        Assert.Null(assistantMessage.ParentRevisionId);
+        Assert.Matches("^[0-9A-F]{64}$", assistantMessage.PayloadHash);
         Assert.Equal("Deterministic assistant response", assistantMessage.Content);
         Assert.Equal(assistantCreatedAt, assistantMessage.CreatedAt);
         Assert.Equal(2, repository.SaveCount);

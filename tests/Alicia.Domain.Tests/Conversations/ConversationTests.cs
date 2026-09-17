@@ -122,6 +122,30 @@ public sealed class ConversationTests
     }
 
     [Fact]
+    public void AddMessageRejectsDuplicateRevisionIdentifier()
+    {
+        Conversation conversation = new(ConversationId.New(), _createdAt);
+        MessageRevisionId revisionId = MessageRevisionId.New();
+
+        conversation.AddMessage(new ChatMessage(
+            MessageId.New(),
+            revisionId,
+            parentRevisionId: null,
+            MessageRole.User,
+            "First",
+            _createdAt));
+
+        Assert.Throws<InvalidOperationException>(() =>
+            conversation.AddMessage(new ChatMessage(
+                MessageId.New(),
+                revisionId,
+                parentRevisionId: null,
+                MessageRole.Assistant,
+                "Duplicate revision",
+                _createdAt)));
+    }
+
+    [Fact]
     public void AddMessageRejectsMessagePredatingConversation()
     {
         Conversation conversation = new(ConversationId.New(), _createdAt);

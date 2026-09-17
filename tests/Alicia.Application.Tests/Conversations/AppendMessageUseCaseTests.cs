@@ -22,6 +22,9 @@ public sealed class AppendMessageUseCaseTests
             CancellationToken.None).ConfigureAwait(true);
 
         Assert.False(message.Id.IsEmpty);
+        Assert.False(message.RevisionId.IsEmpty);
+        Assert.Null(message.ParentRevisionId);
+        Assert.Matches("^[0-9A-F]{64}$", message.PayloadHash);
         Assert.Equal(MessageRole.User, message.Role);
         Assert.Equal("Hello Alicia", message.Content);
         Assert.Equal(messageTime, message.CreatedAt);

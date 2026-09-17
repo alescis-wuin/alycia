@@ -70,6 +70,9 @@ public sealed class StreamConversationTurnUseCaseTests
             message =>
             {
                 Assert.Equal(MessageRole.Assistant, message.Role);
+                Assert.False(message.RevisionId.IsEmpty);
+                Assert.Null(message.ParentRevisionId);
+                Assert.Matches("^[0-9A-F]{64}$", message.PayloadHash);
                 Assert.Equal("Streamed response", message.Content);
                 Assert.Equal(responseTime, message.CreatedAt);
             });

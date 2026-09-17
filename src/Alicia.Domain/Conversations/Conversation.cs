@@ -91,6 +91,12 @@ public sealed class Conversation
             throw new InvalidOperationException($"Message '{message.Id}' already belongs to the conversation.");
         }
 
+        if (_messages.Any(existing => existing.RevisionId == message.RevisionId))
+        {
+            throw new InvalidOperationException(
+                $"Message revision '{message.RevisionId}' already belongs to the conversation.");
+        }
+
         _messages.Add(message);
 
         if (message.CreatedAt > UpdatedAt)

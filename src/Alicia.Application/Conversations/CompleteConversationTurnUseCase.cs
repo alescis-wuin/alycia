@@ -90,6 +90,8 @@ public sealed class CompleteConversationTurnUseCase
 
         ChatMessage assistantMessage = new(
             MessageId.New(),
+            MessageRevisionId.New(),
+            parentRevisionId: null,
             MessageRole.Assistant,
             response.Content,
             _timeProvider.GetUtcNow());

@@ -40,6 +40,8 @@ public sealed class AppendMessageUseCase
 
         ChatMessage message = new(
             MessageId.New(),
+            MessageRevisionId.New(),
+            parentRevisionId: null,
             role,
             content,
             _timeProvider.GetUtcNow());
