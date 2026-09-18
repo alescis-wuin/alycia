@@ -10,6 +10,7 @@ public sealed class ModelViewModel : ViewModelBase
     private readonly IInferenceProviderConfigurationStore _providerConfigurationStore;
     private readonly IGenerationProfileCatalogStore? _generationProfileCatalogStore;
     private readonly IConversationBranchGenerationSelectionStore? _conversationGenerationSelectionStore;
+    private readonly TimeProvider _timeProvider;
     private readonly Dictionary<string, InferenceProviderConfiguration?> _providerConfigurations =
         new(StringComparer.Ordinal);
     private readonly ObservableCollection<GenerationProfile> _generationProfiles = [];
@@ -30,7 +31,8 @@ public sealed class ModelViewModel : ViewModelBase
         IInferenceProviderConfigurationStore providerConfigurationStore,
         GenerationSettingsViewModel generationSettings,
         IGenerationProfileCatalogStore? generationProfileCatalogStore = null,
-        IConversationBranchGenerationSelectionStore? conversationGenerationSelectionStore = null)
+        IConversationBranchGenerationSelectionStore? conversationGenerationSelectionStore = null,
+        TimeProvider? timeProvider = null)
     {
         ArgumentNullException.ThrowIfNull(providerConfigurationStore);
         ArgumentNullException.ThrowIfNull(generationSettings);
@@ -38,10 +40,14 @@ public sealed class ModelViewModel : ViewModelBase
         _providerConfigurationStore = providerConfigurationStore;
         _generationProfileCatalogStore = generationProfileCatalogStore;
         _conversationGenerationSelectionStore = conversationGenerationSelectionStore;
+        _timeProvider = timeProvider ?? TimeProvider.System;
         GenerationSettings = generationSettings;
+        ProfileEditor = new GenerationProfileEditorViewModel();
     }
 
     public GenerationSettingsViewModel GenerationSettings { get; }
+
+    public GenerationProfileEditorViewModel ProfileEditor { get; }
 
     public ObservableCollection<GenerationProfile> GenerationProfiles => _generationProfiles;
 
@@ -69,8 +75,11 @@ public sealed class ModelViewModel : ViewModelBase
 
     internal InferenceProviderConfiguration? SavedProviderConfiguration => _savedProviderConfiguration;
 
+    internal bool SupportsGenerationProfileEditing =>
+        _generationProfileCatalogStore is not null;
+
     internal bool SupportsGenerationProfileSelection =>
-        _generationProfileCatalogStore is not null
+        SupportsGenerationProfileEditing
         && _conversationGenerationSelectionStore is not null;
 
     internal GenerationProfileModelScope? GenerationProfileScope => _generationProfileScope;
@@ -231,10 +240,10 @@ public sealed class ModelViewModel : ViewModelBase
     {
         ResetGenerationProfileProjection();
 
-        if (!SupportsGenerationProfileSelection)
+        if (!SupportsGenerationProfileEditing)
         {
             _generationProfileSelectionStatusText =
-                "Generation-profile selection is not available in this host.";
+                "Generation-profile editing and selection are not available in this host.";
             return;
         }
 
@@ -259,6 +268,13 @@ public sealed class ModelViewModel : ViewModelBase
             ?? GenerationProfileCatalog.CreateEmpty(scope, GenerationProfileId.New());
         _isGenerationProfileCatalogPersisted = persistedCatalog is not null;
         ReplaceGenerationProfiles(_generationProfileCatalog.Profiles);
+
+        if (_conversationGenerationSelectionStore is null)
+        {
+            _generationProfileSelectionStatusText =
+                "Generation profiles can be edited for this model, but branch profile selection is not available in this host.";
+            return;
+        }
 
         if (conversationId is null || branchId is null)
         {
@@ -381,8 +397,190 @@ public sealed class ModelViewModel : ViewModelBase
             $"Current branch uses profile '{SelectedGenerationProfile.Name}'.";
     }
 
+    internal void BeginCreateGenerationProfile()
+    {
+        if (_generationProfileCatalog is null || _generationProfileScope is null)
+        {
+            throw new InvalidOperationException(
+                "A saved model scope is required before creating a generation profile.");
+        }
+
+        ProfileEditor.LoadNew(GenerationProfileId.New());
+    }
+
+    internal void BeginEditSelectedGenerationProfile()
+    {
+        if (_generationProfileCatalog is null
+            || SelectedGenerationProfile is null
+            || SelectedGenerationProfile.IsDefault)
+        {
+            throw new InvalidOperationException(
+                "Select a confirmed custom generation profile before editing it.");
+        }
+
+        GenerationProfileRevision latestRevision = _generationProfileCatalog
+            .FindLatestRevision(SelectedGenerationProfile.Id)
+            ?? throw new InvalidOperationException(
+                "The selected custom generation profile has no confirmed revision.");
+        GenerationProfileWorkingDraft? draft = _generationProfileCatalog
+            .FindWorkingDraft(SelectedGenerationProfile.Id);
+
+        ProfileEditor.LoadExisting(
+            latestRevision.Profile,
+            latestRevision.Id,
+            draft);
+    }
+
+    internal void CancelGenerationProfileEdit()
+    {
+        ProfileEditor.Close();
+    }
+
+    internal async Task SaveGenerationProfileWorkingDraftAsync(
+        CancellationToken cancellationToken = default)
+    {
+        GenerationProfile profile = BuildEditorProfile();
+        GenerationProfileCatalog catalog = RequireGenerationProfileCatalog();
+        EnsureUniqueConfirmedProfileName(catalog, profile);
+
+        GenerationProfileWorkingDraft draft = new(
+            profile,
+            ProfileEditor.BaseRevisionId,
+            _timeProvider.GetUtcNow());
+        GenerationProfileCatalog updatedCatalog = catalog.WithWorkingDraft(draft);
+
+        await _generationProfileCatalogStore!
+            .SaveAsync(updatedCatalog, cancellationToken)
+            .ConfigureAwait(true);
+
+        _generationProfileCatalog = updatedCatalog;
+        _isGenerationProfileCatalogPersisted = true;
+        ProfileEditor.MarkWorkingDraftSaved(draft);
+    }
+
+    internal async Task CommitGenerationProfileAsync(
+        CancellationToken cancellationToken = default)
+    {
+        if (ProfileEditor.IsDraftStale)
+        {
+            throw new InvalidOperationException(
+                "The working draft is stale relative to the latest confirmed profile revision. Discard it before committing.");
+        }
+
+        GenerationProfile profile = BuildEditorProfile();
+        GenerationProfileCatalog catalog = RequireGenerationProfileCatalog();
+        EnsureUniqueConfirmedProfileName(catalog, profile);
+
+        GenerationProfileWorkingDraft draft = new(
+            profile,
+            ProfileEditor.BaseRevisionId,
+            _timeProvider.GetUtcNow());
+        DateTimeOffset committedAt = _timeProvider.GetUtcNow();
+        GenerationProfileCatalog updatedCatalog = catalog
+            .WithWorkingDraft(draft)
+            .CommitWorkingDraft(
+                profile.Id,
+                GenerationProfileRevisionId.New(),
+                committedAt);
+
+        await _generationProfileCatalogStore!
+            .SaveAsync(updatedCatalog, cancellationToken)
+            .ConfigureAwait(true);
+
+        _generationProfileCatalog = updatedCatalog;
+        _isGenerationProfileCatalogPersisted = true;
+        ReplaceGenerationProfiles(updatedCatalog.Profiles);
+
+        GenerationProfileRevision committedRevision = updatedCatalog
+            .FindLatestRevision(profile.Id)
+            ?? throw new InvalidOperationException(
+                "The committed generation-profile revision could not be reloaded.");
+        SelectedGenerationProfile = committedRevision.Profile;
+        ProfileEditor.MarkCommitted(committedRevision);
+    }
+
+    internal async Task DiscardGenerationProfileWorkingDraftAsync(
+        CancellationToken cancellationToken = default)
+    {
+        if (ProfileEditor.ProfileId is not GenerationProfileId profileId)
+        {
+            throw new InvalidOperationException(
+                "No generation profile is currently open for editing.");
+        }
+
+        GenerationProfileCatalog catalog = RequireGenerationProfileCatalog();
+        GenerationProfileWorkingDraft? draft = catalog.FindWorkingDraft(profileId);
+        if (draft is not null)
+        {
+            GenerationProfileCatalog updatedCatalog = catalog.WithoutWorkingDraft(profileId);
+            await _generationProfileCatalogStore!
+                .SaveAsync(updatedCatalog, cancellationToken)
+                .ConfigureAwait(true);
+            _generationProfileCatalog = updatedCatalog;
+            _isGenerationProfileCatalogPersisted = true;
+            catalog = updatedCatalog;
+        }
+
+        GenerationProfileRevision? latestRevision = catalog.FindLatestRevision(profileId);
+        if (latestRevision is null)
+        {
+            ProfileEditor.Close();
+            return;
+        }
+
+        SelectedGenerationProfile = latestRevision.Profile;
+        ProfileEditor.RestoreConfirmed(
+            latestRevision.Profile,
+            latestRevision.Id);
+    }
+
+    private GenerationProfile BuildEditorProfile()
+    {
+        if (!ProfileEditor.TryBuildProfile(
+            out GenerationProfile? profile,
+            out string? validationError)
+            || profile is null)
+        {
+            throw new InvalidOperationException(
+                validationError ?? "Generation-profile editor values are invalid.");
+        }
+
+        return profile;
+    }
+
+    private GenerationProfileCatalog RequireGenerationProfileCatalog()
+    {
+        if (_generationProfileCatalogStore is null
+            || _generationProfileCatalog is null
+            || _generationProfileScope is null)
+        {
+            throw new InvalidOperationException(
+                "A saved model scope and generation-profile catalog are required.");
+        }
+
+        return _generationProfileCatalog;
+    }
+
+    private static void EnsureUniqueConfirmedProfileName(
+        GenerationProfileCatalog catalog,
+        GenerationProfile candidate)
+    {
+        bool duplicate = catalog.Profiles.Any(profile =>
+            profile.Id != candidate.Id
+            && string.Equals(
+                profile.Name,
+                candidate.Name,
+                StringComparison.OrdinalIgnoreCase));
+        if (duplicate)
+        {
+            throw new InvalidOperationException(
+                $"A confirmed generation profile named '{candidate.Name}' already exists for this model.");
+        }
+    }
+
     private void ResetGenerationProfileProjection()
     {
+        ProfileEditor.Close();
         _generationProfiles.Clear();
         _generationProfileCatalog = null;
         _generationProfileScope = null;

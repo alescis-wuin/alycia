@@ -50,6 +50,7 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 | UI refinement 10.7A | terminé | Provider/Models visual hierarchy |
 | Lot 10B Profiles/revisions/provenance/context | terminé | 10B.1–10B.6 terminés; contexte révisionné + provenance + budget explicite |
 | UIX-02 Stage 1 active-branch profile selection | terminé | profils du modèle sauvegardé + binding explicite de la branche active |
+| UIX-02 Stage 2 profile editor / WorkingDraft | terminé | création/édition custom + draft persistant explicite + révision immuable |
 | Lot 11 RAG foundation | planifié | à faire |
 | Lot 12 Retrieval/grounded generation | planifié | à faire |
 | Lot 13 Tools/MCP/agents | planifié | à faire |
@@ -318,9 +319,22 @@ Introduire avant RAG.
 - Desktop injecte les ports Application existants dans Presentation, sans dépendance Presentation -> Infrastructure ;
 - aucun éditeur de profil, aucune création de profil custom, aucune timeline/restauration de révision, aucune bibliothèque de modèles, aucun load/unload automatique et aucune UI de branches dans cette étape.
 
+### UIX-02 Stage 2 - éditeur de profils et WorkingDraft explicite - terminé
+
+- un `GenerationProfileEditorViewModel` dédié porte le formulaire d'édition sans remettre cette responsabilité dans le facade `MainViewModel` ;
+- `New profile` crée une identité stable mais ne confirme rien tant que l'utilisateur n'enregistre ni draft ni révision ;
+- `Save draft locally` persiste un `GenerationProfileWorkingDraft` via le store Application existant ; un nouveau profil uniquement drafté reste absent de la projection des profils confirmés ;
+- `Save revision` commit le draft via `GenerationProfileCatalog.CommitWorkingDraft` et crée une nouvelle révision immuable ;
+- les champs optionnels conservent `null` pour les defaults provider/modèle, y compris un mode reasoning explicitement tri-state `default/off/on` ;
+- un WorkingDraft existant est restauré à l'ouverture de l'éditeur ; un draft stale reste visible mais ne peut pas être commit ni rebasé silencieusement ;
+- `Discard draft` retire le draft persistant et recharge la dernière révision confirmée ;
+- le profil `Default` reste non éditable ; la mutation de profil est désactivée pendant une génération active ;
+- la sélection de branche continue de viser le `GenerationProfileId` stable et reste une action distincte de la sauvegarde du profil ;
+- autosave des drafts, gate pré-envoi version précédente/modifiée, timeline/restauration des révisions, suppression de profils et dual selector complet restent hors de cette étape.
+
 ### Etapes suivantes
 
-- UIX-02 : édition de profils/WorkingDrafts et progression vers le dual selector modèle/profil sur de vrais contrats ;
+- UIX-02 : autosave WorkingDraft + gate pré-envoi, puis progression vers l'historique de révisions et le dual selector complet ;
 - UIX-03 : contexte, provenance/révisions et navigation de branches progressivement exposés ;
 - Lot 11 : RAG foundation après le track UIX recommandé.
 

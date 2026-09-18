@@ -9,6 +9,8 @@ namespace Alicia.Presentation.Tests.ViewModels;
 
 public sealed class MainViewModelTests
 {
+    private static readonly string[] _expectedDraftInitialSuggestions = ["Explain", "Refactor"];
+
     [Fact]
     public void MainViewModelComposesDedicatedPresentationSlices()
     {
@@ -235,6 +237,233 @@ public sealed class MainViewModelTests
         Assert.Equal(
             "Save the model/provider settings before changing the profile bound to this branch.",
             viewModel.GenerationProfileSelectionStatusText);
+    }
+
+    [Fact]
+    public async Task SavingNewGenerationProfileDraftPersistsWorkingDraftWithoutConfirmedRevision()
+    {
+        DateTimeOffset now = new(2026, 9, 18, 10, 40, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        repository.Seed(new Conversation(ConversationId.New(), "Profile draft", now, now));
+        InMemoryGenerationProfileCatalogStore profileStore = new();
+        InMemoryConversationGenerationSelectionStore selectionStore = new();
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(now),
+            generationProfileCatalogStore: profileStore,
+            conversationGenerationSelectionStore: selectionStore);
+
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        Assert.True(viewModel.CanCreateGenerationProfile);
+        viewModel.BeginCreateGenerationProfileCommand.Execute(null);
+        Assert.True(viewModel.IsGenerationProfileEditorVisible);
+        Assert.True(viewModel.GenerationProfileEditor.IsNewProfile);
+
+        viewModel.GenerationProfileEditor.Name = "Code";
+        viewModel.GenerationProfileEditor.BaseSystemInstructions = "Prefer precise code examples.";
+        viewModel.GenerationProfileEditor.TemperatureText = "0.25";
+        viewModel.GenerationProfileEditor.ReasoningModeIndex = 2;
+        viewModel.GenerationProfileEditor.ReasoningBudgetText = "256";
+        viewModel.GenerationProfileEditor.InitialSuggestionsText = "Explain\nRefactor";
+
+        await viewModel.SaveGenerationProfileDraftCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        GenerationProfileCatalog saved = Assert.IsType<GenerationProfileCatalog>(profileStore.LastSavedCatalog);
+        Assert.Single(saved.Profiles);
+        Assert.Empty(saved.Revisions);
+        GenerationProfileWorkingDraft draft = Assert.Single(saved.WorkingDrafts);
+        Assert.Equal("Code", draft.Profile.Name);
+        Assert.Equal("Prefer precise code examples.", draft.Profile.BaseSystemInstructions);
+        Assert.Equal(0.25, draft.Profile.GenerationOptions.Temperature);
+        Assert.Equal(true, draft.Profile.GenerationOptions.ReasoningEnabled);
+        Assert.Equal(256, draft.Profile.GenerationOptions.ReasoningBudgetTokens);
+        Assert.Equal(_expectedDraftInitialSuggestions, draft.Profile.InitialSuggestions);
+        Assert.True(viewModel.GenerationProfileEditor.HasPersistedWorkingDraft);
+        Assert.Contains("saved locally", viewModel.GenerationProfileEditor.StatusText);
+    }
+
+    [Fact]
+    public async Task CommittingNewGenerationProfileCreatesConfirmedRevisionAndSelectsIt()
+    {
+        DateTimeOffset now = new(2026, 9, 18, 10, 50, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        Conversation conversation = new(ConversationId.New(), "Profile commit", now, now);
+        repository.Seed(conversation);
+        InMemoryGenerationProfileCatalogStore profileStore = new();
+        InMemoryConversationGenerationSelectionStore selectionStore = new();
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(now),
+            generationProfileCatalogStore: profileStore,
+            conversationGenerationSelectionStore: selectionStore);
+
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+        viewModel.BeginCreateGenerationProfileCommand.Execute(null);
+        viewModel.GenerationProfileEditor.Name = "Concise";
+        viewModel.GenerationProfileEditor.MaxOutputTokensText = "384";
+        viewModel.GenerationProfileEditor.ReasoningModeIndex = 1;
+
+        await viewModel.CommitGenerationProfileCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        GenerationProfileCatalog saved = Assert.IsType<GenerationProfileCatalog>(profileStore.LastSavedCatalog);
+        Assert.Empty(saved.WorkingDrafts);
+        GenerationProfileRevision revision = Assert.Single(saved.Revisions);
+        Assert.Equal("Concise", revision.Profile.Name);
+        Assert.Equal(384, revision.Profile.GenerationOptions.MaxOutputTokens);
+        Assert.Equal(false, revision.Profile.GenerationOptions.ReasoningEnabled);
+        Assert.Equal(2, saved.Profiles.Count);
+        Assert.Equal(revision.ProfileId, viewModel.SelectedGenerationProfile?.Id);
+        Assert.False(viewModel.GenerationProfileEditor.HasPersistedWorkingDraft);
+        Assert.False(viewModel.GenerationProfileEditor.IsNewProfile);
+        Assert.False(viewModel.IsGenerationProfileSelectionEditable);
+        Assert.True(viewModel.CanSaveGenerationProfileSelection);
+        Assert.Contains("new confirmed revision", viewModel.GenerationProfileEditor.StatusText);
+    }
+
+    [Fact]
+    public async Task EditingCustomProfileRestoresPersistedWorkingDraft()
+    {
+        DateTimeOffset now = new(2026, 9, 18, 11, 0, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        Conversation conversation = new(ConversationId.New(), "Draft restore", now, now);
+        repository.Seed(conversation);
+        GenerationProfileModelScope scope = new("llama.cpp.cuda", "owner/model-GGUF:Q4_K_M");
+        GenerationProfile defaultProfile = GenerationProfile.CreateDefault(GenerationProfileId.New());
+        GenerationProfileId profileId = GenerationProfileId.New();
+        GenerationProfile confirmed = new(profileId, "Code", "Confirmed instructions");
+        GenerationProfileRevisionId revisionId = GenerationProfileRevisionId.New();
+        GenerationProfile draftProfile = new(profileId, "Code draft", "Draft instructions");
+        GenerationProfileWorkingDraft draft = new(draftProfile, revisionId, now.AddMinutes(1));
+        GenerationProfileCatalog catalog = new(
+            scope,
+            defaultProfile,
+            [new GenerationProfileRevision(revisionId, null, now, confirmed)],
+            [draft]);
+        InMemoryGenerationProfileCatalogStore profileStore = new();
+        profileStore.Seed(catalog);
+        InMemoryConversationGenerationSelectionStore selectionStore = new();
+        selectionStore.Seed(new ConversationGenerationSelection(
+            conversation.Id,
+            conversation.ActiveBranchId,
+            scope,
+            profileId));
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(now.AddMinutes(2)),
+            generationProfileCatalogStore: profileStore,
+            conversationGenerationSelectionStore: selectionStore);
+
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+        Assert.True(viewModel.CanEditSelectedGenerationProfile);
+        viewModel.BeginEditGenerationProfileCommand.Execute(null);
+
+        Assert.True(viewModel.GenerationProfileEditor.HasPersistedWorkingDraft);
+        Assert.False(viewModel.GenerationProfileEditor.IsDraftStale);
+        Assert.Equal("Code draft", viewModel.GenerationProfileEditor.Name);
+        Assert.Equal("Draft instructions", viewModel.GenerationProfileEditor.BaseSystemInstructions);
+        Assert.Contains("restored", viewModel.GenerationProfileEditor.StatusText);
+    }
+
+    [Fact]
+    public async Task DiscardingPersistedProfileDraftRestoresConfirmedRevision()
+    {
+        DateTimeOffset now = new(2026, 9, 18, 11, 10, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        Conversation conversation = new(ConversationId.New(), "Draft discard", now, now);
+        repository.Seed(conversation);
+        GenerationProfileModelScope scope = new("llama.cpp.cuda", "owner/model-GGUF:Q4_K_M");
+        GenerationProfile defaultProfile = GenerationProfile.CreateDefault(GenerationProfileId.New());
+        GenerationProfileId profileId = GenerationProfileId.New();
+        GenerationProfile confirmed = new(profileId, "Code", "Confirmed instructions");
+        GenerationProfileRevisionId revisionId = GenerationProfileRevisionId.New();
+        GenerationProfileWorkingDraft draft = new(
+            new GenerationProfile(profileId, "Code draft", "Draft instructions"),
+            revisionId,
+            now.AddMinutes(1));
+        InMemoryGenerationProfileCatalogStore profileStore = new();
+        profileStore.Seed(new GenerationProfileCatalog(
+            scope,
+            defaultProfile,
+            [new GenerationProfileRevision(revisionId, null, now, confirmed)],
+            [draft]));
+        InMemoryConversationGenerationSelectionStore selectionStore = new();
+        selectionStore.Seed(new ConversationGenerationSelection(
+            conversation.Id,
+            conversation.ActiveBranchId,
+            scope,
+            profileId));
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(now.AddMinutes(2)),
+            generationProfileCatalogStore: profileStore,
+            conversationGenerationSelectionStore: selectionStore);
+
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+        viewModel.BeginEditGenerationProfileCommand.Execute(null);
+        Assert.True(viewModel.CanDiscardGenerationProfileDraft);
+
+        await viewModel.DiscardGenerationProfileDraftCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        GenerationProfileCatalog saved = Assert.IsType<GenerationProfileCatalog>(profileStore.LastSavedCatalog);
+        Assert.Empty(saved.WorkingDrafts);
+        Assert.Equal("Code", viewModel.GenerationProfileEditor.Name);
+        Assert.Equal("Confirmed instructions", viewModel.GenerationProfileEditor.BaseSystemInstructions);
+        Assert.False(viewModel.GenerationProfileEditor.HasPersistedWorkingDraft);
+        Assert.Contains("discarded", viewModel.GenerationProfileEditor.StatusText);
+    }
+
+    [Fact]
+    public async Task StaleGenerationProfileDraftCannotBeCommittedButCanBeDiscarded()
+    {
+        DateTimeOffset now = new(2026, 9, 18, 11, 20, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        Conversation conversation = new(ConversationId.New(), "Stale draft", now, now);
+        repository.Seed(conversation);
+        GenerationProfileModelScope scope = new("llama.cpp.cuda", "owner/model-GGUF:Q4_K_M");
+        GenerationProfile defaultProfile = GenerationProfile.CreateDefault(GenerationProfileId.New());
+        GenerationProfileId profileId = GenerationProfileId.New();
+        GenerationProfileRevisionId firstRevisionId = GenerationProfileRevisionId.New();
+        GenerationProfileRevisionId secondRevisionId = GenerationProfileRevisionId.New();
+        GenerationProfileRevision firstRevision = new(
+            firstRevisionId,
+            null,
+            now,
+            new GenerationProfile(profileId, "Code v1"));
+        GenerationProfileRevision secondRevision = new(
+            secondRevisionId,
+            firstRevisionId,
+            now.AddMinutes(1),
+            new GenerationProfile(profileId, "Code v2"));
+        GenerationProfileWorkingDraft staleDraft = new(
+            new GenerationProfile(profileId, "Code local"),
+            firstRevisionId,
+            now.AddMinutes(2));
+        InMemoryGenerationProfileCatalogStore profileStore = new();
+        profileStore.Seed(new GenerationProfileCatalog(
+            scope,
+            defaultProfile,
+            [firstRevision, secondRevision],
+            [staleDraft]));
+        InMemoryConversationGenerationSelectionStore selectionStore = new();
+        selectionStore.Seed(new ConversationGenerationSelection(
+            conversation.Id,
+            conversation.ActiveBranchId,
+            scope,
+            profileId));
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(now.AddMinutes(3)),
+            generationProfileCatalogStore: profileStore,
+            conversationGenerationSelectionStore: selectionStore);
+
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+        viewModel.BeginEditGenerationProfileCommand.Execute(null);
+
+        Assert.True(viewModel.GenerationProfileEditor.IsDraftStale);
+        Assert.False(viewModel.CanCommitGenerationProfile);
+        Assert.True(viewModel.CanDiscardGenerationProfileDraft);
+        Assert.Contains("stale", viewModel.GenerationProfileEditor.StatusText);
     }
 
     [Fact]
@@ -2370,6 +2599,7 @@ public sealed class MainViewModelTests
             conversationUiStateStore,
             isReducedMotionEnabled,
             generationProfileCatalogStore,
-            conversationGenerationSelectionStore);
+            conversationGenerationSelectionStore,
+            timeProvider);
     }
 }

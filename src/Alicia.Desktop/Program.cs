@@ -151,7 +151,8 @@ internal static class Program
             conversationUiStateStore: conversationUiStateStore,
             isReducedMotionEnabled: ReducedMotionPreference.IsEnabled(),
             generationProfileCatalogStore: generationProfileCatalogStore,
-            conversationGenerationSelectionStore: conversationGenerationSelectionStore);
+            conversationGenerationSelectionStore: conversationGenerationSelectionStore,
+            generationProfileTimeProvider: timeProvider);
         return _mainViewModel;
     }
 }

@@ -1107,6 +1107,7 @@ Ces durées sont UX, pas des invariants métier ; elles doivent rester testables
 - history responsive en overlay + modale de suppression ;
 - accessibilité clavier/focus/Automation et Reduced Motion foundation ;
 - UIX-02 Stage 1 : profils confirmés du modèle sauvegardé projetés dans Models et sélection explicite du profil pour la branche active, sans édition de profil ni bibliothèque de modèles.
+- UIX-02 Stage 2 : création/édition des profils custom dans Models, WorkingDraft persistant explicite, commit en révision immuable, restauration/discard et blocage des drafts stale ; le profil `Default` reste non éditable.
 
 ### Encore requis par cette spécification
 
@@ -1114,7 +1115,7 @@ Ces durées sont UX, pas des invariants métier ; elles doivent rester testables
 - assistant avatar ;
 - hover/focus timestamp/provenance/copy ;
 - model/profile dual selector complet avec bibliothèque de modèles ;
-- création/édition des profiles, WorkingDrafts et historique de révisions ;
+- autosave des WorkingDrafts, gate pré-envoi version précédente/modifiée et historique/restauration des révisions de profils ;
 - context button/panel ;
 - one-shot features ;
 - timeline Message/Event ;

@@ -29,6 +29,8 @@ The first UIX-02/03 backend bridge adds an explicit branch-aware generation-sele
 
 UIX-02 Stage 1 exposes that foundation in the Models workspace without adding profile mutation. Confirmed profiles for the saved provider/model scope can be inspected and explicitly pinned to the active conversation branch. A missing catalog projects a transient `Default` option but is persisted only when the user explicitly saves the branch selection; legacy conversation-scoped selections remain visible as fallbacks until explicitly pinned. Full model-library dual selection, profile editing/revision history, branch navigation, and context UI remain later stages.
 
+UIX-02 Stage 2 adds the first custom profile editor on top of the existing model-scoped catalog. New or existing custom profiles can be persisted as explicit local `WorkingDraft`s, committed as immutable revisions, restored after reload, or discarded back to the latest confirmed revision; stale drafts are never silently rebased. The built-in `Default` profile remains read-only and provider/model defaults remain nullable. Draft autosave, the pre-send previous/modified-profile gate, full revision-history UI, model-library dual selection, branch navigation, and context UI remain later stages.
+
 ## Prerequisites
 
 - Linux, macOS, or Windows for the application itself;
@@ -119,6 +121,7 @@ The provider-neutral Application contracts remain independent of llama.cpp/CUDA/
 - `docs/decisions/0038-revisioned-conversation-context-and-budget.md`
 - `docs/decisions/0039-branch-scoped-generation-selection.md`
 - `docs/decisions/0040-active-branch-generation-profile-selection-ui.md`
+- `docs/decisions/0041-generation-profile-editor-working-draft.md`
 - `docs/development/roadmap.md`
 - `docs/design/ui-ux-specification.md`
 - `docs/user-guide/README.md`

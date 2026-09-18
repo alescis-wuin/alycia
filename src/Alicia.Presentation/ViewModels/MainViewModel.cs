@@ -65,7 +65,8 @@ public sealed class MainViewModel : ViewModelBase
         IConversationUiStateStore? conversationUiStateStore = null,
         bool isReducedMotionEnabled = false,
         IGenerationProfileCatalogStore? generationProfileCatalogStore = null,
-        IConversationBranchGenerationSelectionStore? conversationGenerationSelectionStore = null)
+        IConversationBranchGenerationSelectionStore? conversationGenerationSelectionStore = null,
+        TimeProvider? generationProfileTimeProvider = null)
     {
         ArgumentNullException.ThrowIfNull(createConversation);
         ArgumentNullException.ThrowIfNull(appendMessage);
@@ -112,7 +113,10 @@ public sealed class MainViewModel : ViewModelBase
             providerConfigurationStore,
             GenerationSettings,
             generationProfileCatalogStore,
-            conversationGenerationSelectionStore);
+            conversationGenerationSelectionStore,
+            generationProfileTimeProvider);
+        Model.ProfileEditor.PropertyChanged += (_, _) =>
+            RaiseGenerationProfileEditorStateChanged();
         ConfigurationGate = new ConversationConfigurationGateViewModel();
         _conversationUiStateStore = conversationUiStateStore
             ?? new TransientConversationUiStateStore();
@@ -171,6 +175,24 @@ public sealed class MainViewModel : ViewModelBase
         SaveGenerationProfileSelectionCommand = new AsyncRelayCommand(
             SaveGenerationProfileSelectionAsync,
             () => CanSaveGenerationProfileSelection);
+        BeginCreateGenerationProfileCommand = new RelayCommand(
+            BeginCreateGenerationProfile,
+            () => CanCreateGenerationProfile);
+        BeginEditGenerationProfileCommand = new RelayCommand(
+            BeginEditGenerationProfile,
+            () => CanEditSelectedGenerationProfile);
+        SaveGenerationProfileDraftCommand = new AsyncRelayCommand(
+            SaveGenerationProfileDraftAsync,
+            () => CanSaveGenerationProfileDraft);
+        CommitGenerationProfileCommand = new AsyncRelayCommand(
+            CommitGenerationProfileAsync,
+            () => CanCommitGenerationProfile);
+        DiscardGenerationProfileDraftCommand = new AsyncRelayCommand(
+            DiscardGenerationProfileDraftAsync,
+            () => CanDiscardGenerationProfileDraft);
+        CancelGenerationProfileEditCommand = new RelayCommand(
+            CancelGenerationProfileEdit,
+            () => IsGenerationProfileEditorVisible && !IsBusy && !IsGeneratingResponse);
         ConfigurationGatePrimaryCommand = new AsyncRelayCommand(
             ExecuteConfigurationGatePrimaryActionAsync,
             () => ConfigurationGate.IsPrimaryActionEnabled);
@@ -252,6 +274,18 @@ public sealed class MainViewModel : ViewModelBase
     public IAsyncRelayCommand SaveProviderConfigurationCommand { get; }
 
     public IAsyncRelayCommand SaveGenerationProfileSelectionCommand { get; }
+
+    public IRelayCommand BeginCreateGenerationProfileCommand { get; }
+
+    public IRelayCommand BeginEditGenerationProfileCommand { get; }
+
+    public IAsyncRelayCommand SaveGenerationProfileDraftCommand { get; }
+
+    public IAsyncRelayCommand CommitGenerationProfileCommand { get; }
+
+    public IAsyncRelayCommand DiscardGenerationProfileDraftCommand { get; }
+
+    public IRelayCommand CancelGenerationProfileEditCommand { get; }
 
     public IAsyncRelayCommand ConfigurationGatePrimaryCommand { get; }
 
@@ -374,6 +408,41 @@ public sealed class MainViewModel : ViewModelBase
         }
     }
 
+    public GenerationProfileEditorViewModel GenerationProfileEditor => Model.ProfileEditor;
+
+    public bool IsGenerationProfileEditorVisible => GenerationProfileEditor.IsVisible;
+
+    public bool CanManageGenerationProfiles =>
+        Model.SupportsGenerationProfileEditing
+        && !IsBusy
+        && !IsGeneratingResponse
+        && !HasProviderConfigurationChanges
+        && Model.SavedProviderConfiguration?.HasModelReference == true
+        && Model.GenerationProfileScope is not null;
+
+    public bool CanCreateGenerationProfile =>
+        CanManageGenerationProfiles
+        && !IsGenerationProfileEditorVisible;
+
+    public bool CanEditSelectedGenerationProfile =>
+        CanManageGenerationProfiles
+        && !IsGenerationProfileEditorVisible
+        && SelectedGenerationProfile is { IsDefault: false };
+
+    public bool CanSaveGenerationProfileDraft =>
+        CanManageGenerationProfiles
+        && IsGenerationProfileEditorVisible;
+
+    public bool CanCommitGenerationProfile =>
+        CanManageGenerationProfiles
+        && IsGenerationProfileEditorVisible
+        && !GenerationProfileEditor.IsDraftStale;
+
+    public bool CanDiscardGenerationProfileDraft =>
+        CanManageGenerationProfiles
+        && IsGenerationProfileEditorVisible
+        && GenerationProfileEditor.HasPersistedWorkingDraft;
+
     public string GenerationProfileScopeText => HasProviderConfigurationChanges
         ? "Unsaved model settings"
         : Model.GenerationProfileScope is GenerationProfileModelScope scope
@@ -388,12 +457,18 @@ public sealed class MainViewModel : ViewModelBase
         && !IsGeneratingResponse
         && !HasProviderConfigurationChanges
         && Model.SavedProviderConfiguration?.HasModelReference == true
-        && GenerationProfiles.Count > 0;
+        && GenerationProfiles.Count > 0
+        && !IsGenerationProfileEditorVisible;
 
     public bool CanSaveGenerationProfileSelection =>
-        IsGenerationProfileSelectionEditable
+        Model.SupportsGenerationProfileSelection
         && SelectedConversation is not null
         && _selectedConversationBranchId is ConversationBranchId branchId
+        && !IsBusy
+        && !IsGeneratingResponse
+        && !HasProviderConfigurationChanges
+        && Model.SavedProviderConfiguration?.HasModelReference == true
+        && GenerationProfiles.Count > 0
         && SelectedGenerationProfile is not null
         && Model.HasGenerationProfileSelectionChanges(SelectedConversation.Id, branchId);
 
@@ -539,6 +614,7 @@ public sealed class MainViewModel : ViewModelBase
             OnPropertyChanged(nameof(IsGenerationProfileSelectionEditable));
             OnPropertyChanged(nameof(CanSaveGenerationProfileSelection));
             OnPropertyChanged(nameof(GenerationProfileSelectionStatusText));
+            RaiseGenerationProfileEditorStateChanged();
             SendMessageCommand.NotifyCanExecuteChanged();
             RetryResponseCommand.NotifyCanExecuteChanged();
             SaveProviderConfigurationCommand.NotifyCanExecuteChanged();
@@ -1328,6 +1404,87 @@ public sealed class MainViewModel : ViewModelBase
         }).ConfigureAwait(true);
     }
 
+    private void BeginCreateGenerationProfile()
+    {
+        if (!CanCreateGenerationProfile)
+        {
+            return;
+        }
+
+        Model.BeginCreateGenerationProfile();
+        RaiseGenerationProfileEditorStateChanged();
+        RaiseGenerationProfileSelectionStateChanged();
+    }
+
+    private void BeginEditGenerationProfile()
+    {
+        if (!CanEditSelectedGenerationProfile)
+        {
+            return;
+        }
+
+        Model.BeginEditSelectedGenerationProfile();
+        RaiseGenerationProfileEditorStateChanged();
+        RaiseGenerationProfileSelectionStateChanged();
+    }
+
+    private void CancelGenerationProfileEdit()
+    {
+        Model.CancelGenerationProfileEdit();
+        RaiseGenerationProfileEditorStateChanged();
+        RaiseGenerationProfileSelectionStateChanged();
+    }
+
+    private async Task SaveGenerationProfileDraftAsync()
+    {
+        if (!CanSaveGenerationProfileDraft)
+        {
+            return;
+        }
+
+        await ExecuteOperationAsync(async () =>
+        {
+            await Model
+                .SaveGenerationProfileWorkingDraftAsync()
+                .ConfigureAwait(true);
+            RaiseGenerationProfileEditorStateChanged();
+        }).ConfigureAwait(true);
+    }
+
+    private async Task CommitGenerationProfileAsync()
+    {
+        if (!CanCommitGenerationProfile)
+        {
+            return;
+        }
+
+        await ExecuteOperationAsync(async () =>
+        {
+            await Model
+                .CommitGenerationProfileAsync()
+                .ConfigureAwait(true);
+            RaiseGenerationProfileSelectionStateChanged();
+            RaiseGenerationProfileEditorStateChanged();
+        }).ConfigureAwait(true);
+    }
+
+    private async Task DiscardGenerationProfileDraftAsync()
+    {
+        if (!CanDiscardGenerationProfileDraft)
+        {
+            return;
+        }
+
+        await ExecuteOperationAsync(async () =>
+        {
+            await Model
+                .DiscardGenerationProfileWorkingDraftAsync()
+                .ConfigureAwait(true);
+            RaiseGenerationProfileSelectionStateChanged();
+            RaiseGenerationProfileEditorStateChanged();
+        }).ConfigureAwait(true);
+    }
+
     private async Task RefreshGenerationProfilesAsync()
     {
         await Model
@@ -1346,6 +1503,28 @@ public sealed class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsGenerationProfileSelectionEditable));
         OnPropertyChanged(nameof(CanSaveGenerationProfileSelection));
         OnPropertyChanged(nameof(GenerationProfileSelectionStatusText));
+        SaveGenerationProfileSelectionCommand.NotifyCanExecuteChanged();
+        RaiseGenerationProfileEditorStateChanged();
+    }
+
+    private void RaiseGenerationProfileEditorStateChanged()
+    {
+        OnPropertyChanged(nameof(GenerationProfileEditor));
+        OnPropertyChanged(nameof(IsGenerationProfileEditorVisible));
+        OnPropertyChanged(nameof(CanManageGenerationProfiles));
+        OnPropertyChanged(nameof(CanCreateGenerationProfile));
+        OnPropertyChanged(nameof(CanEditSelectedGenerationProfile));
+        OnPropertyChanged(nameof(CanSaveGenerationProfileDraft));
+        OnPropertyChanged(nameof(CanCommitGenerationProfile));
+        OnPropertyChanged(nameof(CanDiscardGenerationProfileDraft));
+        OnPropertyChanged(nameof(IsGenerationProfileSelectionEditable));
+        OnPropertyChanged(nameof(CanSaveGenerationProfileSelection));
+        BeginCreateGenerationProfileCommand.NotifyCanExecuteChanged();
+        BeginEditGenerationProfileCommand.NotifyCanExecuteChanged();
+        SaveGenerationProfileDraftCommand.NotifyCanExecuteChanged();
+        CommitGenerationProfileCommand.NotifyCanExecuteChanged();
+        DiscardGenerationProfileDraftCommand.NotifyCanExecuteChanged();
+        CancelGenerationProfileEditCommand.NotifyCanExecuteChanged();
         SaveGenerationProfileSelectionCommand.NotifyCanExecuteChanged();
     }
 
