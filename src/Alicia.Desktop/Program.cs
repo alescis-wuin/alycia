@@ -149,7 +149,9 @@ internal static class Program
             providerRegistry,
             providerConfigurationStore,
             conversationUiStateStore: conversationUiStateStore,
-            isReducedMotionEnabled: ReducedMotionPreference.IsEnabled());
+            isReducedMotionEnabled: ReducedMotionPreference.IsEnabled(),
+            generationProfileCatalogStore: generationProfileCatalogStore,
+            conversationGenerationSelectionStore: conversationGenerationSelectionStore);
         return _mainViewModel;
     }
 }

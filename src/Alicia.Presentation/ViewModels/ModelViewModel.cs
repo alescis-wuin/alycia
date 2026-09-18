@@ -1,30 +1,55 @@
+using System.Collections.ObjectModel;
+using Alicia.Application.Generations;
 using Alicia.Application.Providers;
+using Alicia.Domain.Conversations;
 
 namespace Alicia.Presentation.ViewModels;
 
 public sealed class ModelViewModel : ViewModelBase
 {
     private readonly IInferenceProviderConfigurationStore _providerConfigurationStore;
+    private readonly IGenerationProfileCatalogStore? _generationProfileCatalogStore;
+    private readonly IConversationBranchGenerationSelectionStore? _conversationGenerationSelectionStore;
     private readonly Dictionary<string, InferenceProviderConfiguration?> _providerConfigurations =
         new(StringComparer.Ordinal);
+    private readonly ObservableCollection<GenerationProfile> _generationProfiles = [];
     private string _providerContextSizeText = string.Empty;
     private string _providerModelReference = string.Empty;
     private string? _persistedSelectedProviderId;
     private string? _providerSelectionNotice;
     private InferenceProviderConfiguration? _savedProviderConfiguration;
+    private GenerationProfileCatalog? _generationProfileCatalog;
+    private GenerationProfileModelScope? _generationProfileScope;
+    private ConversationGenerationSelection? _resolvedGenerationSelection;
+    private GenerationProfile? _selectedGenerationProfile;
+    private bool _isGenerationProfileCatalogPersisted;
+    private string _generationProfileSelectionStatusText =
+        "Save a model reference to load generation profiles.";
 
     public ModelViewModel(
         IInferenceProviderConfigurationStore providerConfigurationStore,
-        GenerationSettingsViewModel generationSettings)
+        GenerationSettingsViewModel generationSettings,
+        IGenerationProfileCatalogStore? generationProfileCatalogStore = null,
+        IConversationBranchGenerationSelectionStore? conversationGenerationSelectionStore = null)
     {
         ArgumentNullException.ThrowIfNull(providerConfigurationStore);
         ArgumentNullException.ThrowIfNull(generationSettings);
 
         _providerConfigurationStore = providerConfigurationStore;
+        _generationProfileCatalogStore = generationProfileCatalogStore;
+        _conversationGenerationSelectionStore = conversationGenerationSelectionStore;
         GenerationSettings = generationSettings;
     }
 
     public GenerationSettingsViewModel GenerationSettings { get; }
+
+    public ObservableCollection<GenerationProfile> GenerationProfiles => _generationProfiles;
+
+    public GenerationProfile? SelectedGenerationProfile
+    {
+        get => _selectedGenerationProfile;
+        internal set => SetProperty(ref _selectedGenerationProfile, value);
+    }
 
     public string ProviderModelReference
     {
@@ -43,6 +68,18 @@ public sealed class ModelViewModel : ViewModelBase
     internal string? ProviderSelectionNotice => _providerSelectionNotice;
 
     internal InferenceProviderConfiguration? SavedProviderConfiguration => _savedProviderConfiguration;
+
+    internal bool SupportsGenerationProfileSelection =>
+        _generationProfileCatalogStore is not null
+        && _conversationGenerationSelectionStore is not null;
+
+    internal GenerationProfileModelScope? GenerationProfileScope => _generationProfileScope;
+
+    internal ConversationGenerationSelection? ResolvedGenerationSelection =>
+        _resolvedGenerationSelection;
+
+    internal string GenerationProfileSelectionStatusText =>
+        _generationProfileSelectionStatusText;
 
     internal async Task LoadAsync(IReadOnlyList<InferenceProviderDescriptor> providerOptions)
     {
@@ -185,6 +222,182 @@ public sealed class ModelViewModel : ViewModelBase
                     : _savedProviderConfiguration.UsesProviderDefaults
                         ? "Saved • Optional runtime and generation values use provider defaults."
                         : "Saved • Explicit runtime or generation overrides are active.");
+    }
+
+    internal async Task LoadGenerationProfilesAsync(
+        ConversationId? conversationId,
+        ConversationBranchId? branchId,
+        CancellationToken cancellationToken = default)
+    {
+        ResetGenerationProfileProjection();
+
+        if (!SupportsGenerationProfileSelection)
+        {
+            _generationProfileSelectionStatusText =
+                "Generation-profile selection is not available in this host.";
+            return;
+        }
+
+        if (_savedProviderConfiguration is null
+            || !_savedProviderConfiguration.HasModelReference
+            || _savedProviderConfiguration.ModelReference is null)
+        {
+            _generationProfileSelectionStatusText =
+                "Save a model reference to load generation profiles.";
+            return;
+        }
+
+        GenerationProfileModelScope scope = new(
+            _savedProviderConfiguration.ProviderId,
+            _savedProviderConfiguration.ModelReference);
+        _generationProfileScope = scope;
+
+        GenerationProfileCatalog? persistedCatalog = await _generationProfileCatalogStore!
+            .LoadAsync(scope, cancellationToken)
+            .ConfigureAwait(true);
+        _generationProfileCatalog = persistedCatalog
+            ?? GenerationProfileCatalog.CreateEmpty(scope, GenerationProfileId.New());
+        _isGenerationProfileCatalogPersisted = persistedCatalog is not null;
+        ReplaceGenerationProfiles(_generationProfileCatalog.Profiles);
+
+        if (conversationId is null || branchId is null)
+        {
+            _generationProfileSelectionStatusText =
+                _isGenerationProfileCatalogPersisted
+                    ? "Select a conversation to bind one of these profiles to its active branch."
+                    : "No profile catalog is stored for this model yet. Select a conversation, choose Default, then save to create it explicitly.";
+            return;
+        }
+
+        ConversationGenerationSelection? selection = await _conversationGenerationSelectionStore!
+            .LoadAsync(conversationId.Value, branchId.Value, cancellationToken)
+            .ConfigureAwait(true);
+        _resolvedGenerationSelection = selection;
+
+        if (selection is null)
+        {
+            _generationProfileSelectionStatusText = _isGenerationProfileCatalogPersisted
+                ? "No explicit profile is pinned to this branch. Generation still uses the legacy provider configuration until you save a profile selection."
+                : "No explicit profile is pinned to this branch and no profile catalog is stored for this model. Choose Default and save to create both explicitly.";
+            return;
+        }
+
+        if (selection.ModelScope != scope)
+        {
+            _generationProfileSelectionStatusText =
+                $"This branch is pinned to model '{selection.ModelScope.ModelReference}'. Choose a profile below and save to rebind it to '{scope.ModelReference}'.";
+            return;
+        }
+
+        GenerationProfile? selectedProfile = _generationProfileCatalog.FindProfile(selection.ProfileId);
+        if (selectedProfile is null)
+        {
+            _generationProfileSelectionStatusText =
+                $"This branch references profile '{selection.ProfileId}', but that profile is unavailable for the saved model.";
+            return;
+        }
+
+        SelectedGenerationProfile = selectedProfile;
+        _generationProfileSelectionStatusText = selection.IsBranchScoped
+            ? $"Current branch uses profile '{selectedProfile.Name}'."
+            : $"Conversation fallback uses profile '{selectedProfile.Name}'. Save to pin it explicitly to the current branch.";
+    }
+
+    internal void ClearConversationGenerationSelection()
+    {
+        _resolvedGenerationSelection = null;
+        SelectedGenerationProfile = null;
+
+        if (_generationProfileScope is null)
+        {
+            return;
+        }
+
+        _generationProfileSelectionStatusText = _isGenerationProfileCatalogPersisted
+            ? "Select a conversation to bind one of these profiles to its active branch."
+            : "No profile catalog is stored for this model yet. Select a conversation, choose Default, then save to create it explicitly.";
+    }
+
+    internal bool HasGenerationProfileSelectionChanges(
+        ConversationId conversationId,
+        ConversationBranchId branchId)
+    {
+        if (!SupportsGenerationProfileSelection
+            || _generationProfileScope is null
+            || _generationProfileCatalog is null
+            || SelectedGenerationProfile is null)
+        {
+            return false;
+        }
+
+        ConversationGenerationSelection? resolved = _resolvedGenerationSelection;
+        return !_isGenerationProfileCatalogPersisted
+            || resolved is null
+            || resolved.BranchId != branchId
+            || resolved.ConversationId != conversationId
+            || resolved.ModelScope != _generationProfileScope.Value
+            || resolved.ProfileId != SelectedGenerationProfile.Id;
+    }
+
+    internal async Task SaveGenerationProfileSelectionAsync(
+        ConversationId conversationId,
+        ConversationBranchId branchId,
+        CancellationToken cancellationToken = default)
+    {
+        if (!SupportsGenerationProfileSelection
+            || _generationProfileScope is null
+            || _generationProfileCatalog is null
+            || SelectedGenerationProfile is null)
+        {
+            throw new InvalidOperationException(
+                "A saved model scope and selected generation profile are required before saving a branch selection.");
+        }
+
+        if (!_generationProfileCatalog.Profiles.Any(profile => profile.Id == SelectedGenerationProfile.Id))
+        {
+            throw new InvalidOperationException(
+                "The selected generation profile does not belong to the loaded model scope.");
+        }
+
+        if (!_isGenerationProfileCatalogPersisted)
+        {
+            await _generationProfileCatalogStore!
+                .SaveAsync(_generationProfileCatalog, cancellationToken)
+                .ConfigureAwait(true);
+            _isGenerationProfileCatalogPersisted = true;
+        }
+
+        ConversationGenerationSelection selection = new(
+            conversationId,
+            branchId,
+            _generationProfileScope.Value,
+            SelectedGenerationProfile.Id);
+        await _conversationGenerationSelectionStore!
+            .SaveAsync(selection, cancellationToken)
+            .ConfigureAwait(true);
+
+        _resolvedGenerationSelection = selection;
+        _generationProfileSelectionStatusText =
+            $"Current branch uses profile '{SelectedGenerationProfile.Name}'.";
+    }
+
+    private void ResetGenerationProfileProjection()
+    {
+        _generationProfiles.Clear();
+        _generationProfileCatalog = null;
+        _generationProfileScope = null;
+        _resolvedGenerationSelection = null;
+        _isGenerationProfileCatalogPersisted = false;
+        SelectedGenerationProfile = null;
+    }
+
+    private void ReplaceGenerationProfiles(IEnumerable<GenerationProfile> profiles)
+    {
+        _generationProfiles.Clear();
+        foreach (GenerationProfile profile in profiles)
+        {
+            _generationProfiles.Add(profile);
+        }
     }
 
     private void LoadProviderConfigurationDraft(InferenceProviderConfiguration? configuration)

@@ -27,6 +27,8 @@ Lot 10B.6 adds immutable conversation-context revisions and branch-timeline bind
 
 The first UIX-02/03 backend bridge adds an explicit branch-aware generation-selection capability without breaking the Lot 10B.4 conversation-scoped contract. A fork pins the model/profile selection resolved from its parent at fork creation time into the new child branch, branch-aware generation resolves against the active branch when the store supports that capability, and schema-v1 selections remain a backward-compatible fallback. Exact reconstruction of a model/profile selection that was active at an older historical divergence boundary remains a separate revision/timeline concern.
 
+UIX-02 Stage 1 exposes that foundation in the Models workspace without adding profile mutation. Confirmed profiles for the saved provider/model scope can be inspected and explicitly pinned to the active conversation branch. A missing catalog projects a transient `Default` option but is persisted only when the user explicitly saves the branch selection; legacy conversation-scoped selections remain visible as fallbacks until explicitly pinned. Full model-library dual selection, profile editing/revision history, branch navigation, and context UI remain later stages.
+
 ## Prerequisites
 
 - Linux, macOS, or Windows for the application itself;
@@ -116,6 +118,7 @@ The provider-neutral Application contracts remain independent of llama.cpp/CUDA/
 - `docs/decisions/0037-conversation-branch-graph.md`
 - `docs/decisions/0038-revisioned-conversation-context-and-budget.md`
 - `docs/decisions/0039-branch-scoped-generation-selection.md`
+- `docs/decisions/0040-active-branch-generation-profile-selection-ui.md`
 - `docs/development/roadmap.md`
 - `docs/design/ui-ux-specification.md`
 - `docs/user-guide/README.md`

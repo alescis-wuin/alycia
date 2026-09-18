@@ -1,4 +1,5 @@
 using Alicia.Application.Conversations;
+using Alicia.Application.Generations;
 using Alicia.Application.Providers;
 using Alicia.Domain.Conversations;
 using Alicia.Presentation.State;
@@ -71,6 +72,169 @@ public sealed class MainViewModelTests
         Assert.Equal("Alicia", message.RoleLabel);
         Assert.Equal("Latest message", message.Content);
         Assert.True(viewModel.HasMessages);
+    }
+
+    [Fact]
+    public async Task InitializeAsyncProjectsProfilesAndBranchScopedSelection()
+    {
+        DateTimeOffset now = new(2026, 9, 18, 10, 0, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        Conversation conversation = new(ConversationId.New(), "Profile branch", now, now);
+        repository.Seed(conversation);
+
+        GenerationProfileModelScope scope = new(
+            "llama.cpp.cuda",
+            "owner/model-GGUF:Q4_K_M");
+        GenerationProfile defaultProfile = GenerationProfile.CreateDefault(GenerationProfileId.New());
+        GenerationProfile codeProfile = new(GenerationProfileId.New(), "Code");
+        GenerationProfileCatalog catalog = new(
+            scope,
+            defaultProfile,
+            [new GenerationProfileRevision(
+                GenerationProfileRevisionId.New(),
+                null,
+                now,
+                codeProfile)]);
+        InMemoryGenerationProfileCatalogStore profileStore = new();
+        profileStore.Seed(catalog);
+        InMemoryConversationGenerationSelectionStore selectionStore = new();
+        selectionStore.Seed(new ConversationGenerationSelection(
+            conversation.Id,
+            conversation.ActiveBranchId,
+            scope,
+            codeProfile.Id));
+
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(now),
+            generationProfileCatalogStore: profileStore,
+            conversationGenerationSelectionStore: selectionStore);
+
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        Assert.Equal(2, viewModel.GenerationProfiles.Count);
+        Assert.Equal(codeProfile.Id, viewModel.SelectedGenerationProfile?.Id);
+        Assert.Equal(
+            "llama.cpp.cuda • owner/model-GGUF:Q4_K_M",
+            viewModel.GenerationProfileScopeText);
+        Assert.Equal(
+            "Current branch uses profile 'Code'.",
+            viewModel.GenerationProfileSelectionStatusText);
+        Assert.False(viewModel.CanSaveGenerationProfileSelection);
+
+        viewModel.SelectedGenerationProfile = defaultProfile;
+
+        Assert.True(viewModel.CanSaveGenerationProfileSelection);
+        Assert.Equal(
+            "Profile selection has unsaved changes for the active branch.",
+            viewModel.GenerationProfileSelectionStatusText);
+    }
+
+    [Fact]
+    public async Task SavingDefaultProfileCreatesCatalogAndPinsActiveBranchExplicitly()
+    {
+        DateTimeOffset now = new(2026, 9, 18, 10, 10, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        Conversation conversation = new(ConversationId.New(), "Explicit default", now, now);
+        repository.Seed(conversation);
+        InMemoryGenerationProfileCatalogStore profileStore = new();
+        InMemoryConversationGenerationSelectionStore selectionStore = new();
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(now),
+            generationProfileCatalogStore: profileStore,
+            conversationGenerationSelectionStore: selectionStore);
+
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        GenerationProfile defaultProfile = Assert.Single(viewModel.GenerationProfiles);
+        Assert.True(defaultProfile.IsDefault);
+        Assert.Null(viewModel.SelectedGenerationProfile);
+
+        viewModel.SelectedGenerationProfile = defaultProfile;
+        Assert.True(viewModel.CanSaveGenerationProfileSelection);
+        await viewModel.SaveGenerationProfileSelectionCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.Equal(1, profileStore.SaveCount);
+        Assert.Equal(1, selectionStore.SaveCount);
+        Assert.Equal(defaultProfile.Id, profileStore.LastSavedCatalog?.DefaultProfile.Id);
+        ConversationGenerationSelection saved = Assert.IsType<ConversationGenerationSelection>(
+            selectionStore.LastSavedSelection);
+        Assert.Equal(conversation.Id, saved.ConversationId);
+        Assert.Equal(conversation.ActiveBranchId, saved.BranchId);
+        Assert.Equal(defaultProfile.Id, saved.ProfileId);
+        Assert.Equal(
+            "Current branch uses profile 'Default'.",
+            viewModel.GenerationProfileSelectionStatusText);
+        Assert.False(viewModel.CanSaveGenerationProfileSelection);
+    }
+
+    [Fact]
+    public async Task LegacyProfileFallbackCanBePinnedToCurrentBranchWithoutChangingProfile()
+    {
+        DateTimeOffset now = new(2026, 9, 18, 10, 20, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        Conversation conversation = new(ConversationId.New(), "Legacy profile", now, now);
+        repository.Seed(conversation);
+        GenerationProfileModelScope scope = new(
+            "llama.cpp.cuda",
+            "owner/model-GGUF:Q4_K_M");
+        GenerationProfile defaultProfile = GenerationProfile.CreateDefault(GenerationProfileId.New());
+        InMemoryGenerationProfileCatalogStore profileStore = new();
+        profileStore.Seed(new GenerationProfileCatalog(scope, defaultProfile));
+        InMemoryConversationGenerationSelectionStore selectionStore = new();
+        selectionStore.Seed(new ConversationGenerationSelection(
+            conversation.Id,
+            scope,
+            defaultProfile.Id));
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(now),
+            generationProfileCatalogStore: profileStore,
+            conversationGenerationSelectionStore: selectionStore);
+
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        Assert.Equal(defaultProfile.Id, viewModel.SelectedGenerationProfile?.Id);
+        Assert.Contains("Conversation fallback", viewModel.GenerationProfileSelectionStatusText);
+        Assert.True(viewModel.CanSaveGenerationProfileSelection);
+
+        await viewModel.SaveGenerationProfileSelectionCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        ConversationGenerationSelection saved = Assert.IsType<ConversationGenerationSelection>(
+            selectionStore.LastSavedSelection);
+        Assert.Equal(conversation.ActiveBranchId, saved.BranchId);
+        Assert.Equal(defaultProfile.Id, saved.ProfileId);
+        Assert.False(viewModel.CanSaveGenerationProfileSelection);
+    }
+
+    [Fact]
+    public async Task UnsavedModelDraftDisablesBranchProfileSelection()
+    {
+        DateTimeOffset now = new(2026, 9, 18, 10, 30, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        Conversation conversation = new(ConversationId.New(), "Draft model", now, now);
+        repository.Seed(conversation);
+        GenerationProfileModelScope scope = new(
+            "llama.cpp.cuda",
+            "owner/model-GGUF:Q4_K_M");
+        InMemoryGenerationProfileCatalogStore profileStore = new();
+        profileStore.Seed(GenerationProfileCatalog.CreateEmpty(scope, GenerationProfileId.New()));
+        InMemoryConversationGenerationSelectionStore selectionStore = new();
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(now),
+            generationProfileCatalogStore: profileStore,
+            conversationGenerationSelectionStore: selectionStore);
+
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+        viewModel.ProviderModelReference = "owner/other-model-GGUF:Q8_0";
+
+        Assert.False(viewModel.IsGenerationProfileSelectionEditable);
+        Assert.False(viewModel.CanSaveGenerationProfileSelection);
+        Assert.Equal(
+            "Save the model/provider settings before changing the profile bound to this branch.",
+            viewModel.GenerationProfileSelectionStatusText);
     }
 
     [Fact]
@@ -2170,7 +2334,9 @@ public sealed class MainViewModelTests
         TimeSpan? responseStopLockDuration = null,
         TimeSpan? retryResponseLockDuration = null,
         IConversationUiStateStore? conversationUiStateStore = null,
-        bool isReducedMotionEnabled = false)
+        bool isReducedMotionEnabled = false,
+        IGenerationProfileCatalogStore? generationProfileCatalogStore = null,
+        IConversationBranchGenerationSelectionStore? conversationGenerationSelectionStore = null)
     {
         IStreamingConversationResponder resolvedResponder =
             responder ?? new DeterministicConversationResponder("Development response");
@@ -2202,6 +2368,8 @@ public sealed class MainViewModelTests
             responseStopLockDuration ?? TimeSpan.Zero,
             retryResponseLockDuration ?? TimeSpan.Zero,
             conversationUiStateStore,
-            isReducedMotionEnabled);
+            isReducedMotionEnabled,
+            generationProfileCatalogStore,
+            conversationGenerationSelectionStore);
     }
 }

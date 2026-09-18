@@ -49,6 +49,7 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 | UIX-01 Stage 10 | terminé | 10A–10D terminés; UIX-01 foundation clôturée |
 | UI refinement 10.7A | terminé | Provider/Models visual hierarchy |
 | Lot 10B Profiles/revisions/provenance/context | terminé | 10B.1–10B.6 terminés; contexte révisionné + provenance + budget explicite |
+| UIX-02 Stage 1 active-branch profile selection | terminé | profils du modèle sauvegardé + binding explicite de la branche active |
 | Lot 11 RAG foundation | planifié | à faire |
 | Lot 12 Retrieval/grounded generation | planifié | à faire |
 | Lot 13 Tools/MCP/agents | planifié | à faire |
@@ -305,9 +306,22 @@ Introduire avant RAG.
 - limite assumée : le contrat 10B.4 n'ayant pas de timeline de sélection, cette phase ne reconstruit pas encore la sélection historique exacte qui était active au point ancien de divergence ;
 - aucune surface Presentation, aucun changement de `GenerationSnapshot`, aucun RAG, tool ou multimodal dans cette phase.
 
+### UIX-02 Stage 1 - sélection de profil pour la branche active - terminé
+
+- Models charge les profils confirmés du scope provider/modèle actuellement sauvegardé via `IGenerationProfileCatalogStore` ;
+- un catalogue absent reste absent tant que l'utilisateur n'agit pas : Presentation projette seulement un `Default` transitoire, puis persiste explicitement le catalogue au premier enregistrement de sélection ;
+- la sélection effective de la branche active est chargée via `IConversationBranchGenerationSelectionStore`, avec le fallback conversation-scoped 10B.4/ADR 0039 clairement signalé ;
+- `Use profile for this branch` persiste une sélection `(ConversationId, ConversationBranchId, ModelScope, ProfileId)` explicite ;
+- un fallback legacy sélectionné peut ainsi être épinglé sur la branche sans modifier le profil ;
+- une branche déjà liée à un autre modèle n'est jamais réécrite silencieusement : la différence de scope est affichée et la reconfiguration exige l'action explicite ;
+- les drafts provider/modèle non sauvegardés, un stream actif ou l'absence de conversation désactivent la sélection ;
+- Desktop injecte les ports Application existants dans Presentation, sans dépendance Presentation -> Infrastructure ;
+- aucun éditeur de profil, aucune création de profil custom, aucune timeline/restauration de révision, aucune bibliothèque de modèles, aucun load/unload automatique et aucune UI de branches dans cette étape.
+
 ### Etapes suivantes
 
-- UIX-02 / UIX-03 : exposer progressivement les fondations profiles/context/revisions/branches ;
+- UIX-02 : édition de profils/WorkingDrafts et progression vers le dual selector modèle/profil sur de vrais contrats ;
+- UIX-03 : contexte, provenance/révisions et navigation de branches progressivement exposés ;
 - Lot 11 : RAG foundation après le track UIX recommandé.
 
 ## Lots 11 à 15

@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Alicia.Presentation.ViewModels"
+             xmlns:generations="using:Alicia.Application.Generations"
              x:Class="Alicia.Presentation.Views.ModelWorkspaceView"
              x:DataType="vm:MainViewModel"
              AutomationProperties.Name="Models workspace"
@@ -135,6 +136,51 @@
                     Content="Save settings"
                     AutomationProperties.Name="Save model and generation settings" />
           </StackPanel>
+
+          <Border Classes="workspace-secondary-surface"
+                  Padding="18">
+            <StackPanel Spacing="10">
+              <StackPanel Spacing="4">
+                <TextBlock Classes="workspace-section-title"
+                           Text="Generation profile"
+                           AutomationProperties.HeadingLevel="2" />
+                <TextBlock Classes="workspace-section-description"
+                           Text="Choose the confirmed profile used by the active conversation branch. Profile editing and revision history remain separate stages." />
+              </StackPanel>
+
+              <TextBlock Text="{Binding GenerationProfileScopeText}"
+                         FontSize="12"
+                         TextWrapping="Wrap"
+                         Foreground="{DynamicResource TextSecondaryBrush}"
+                         AutomationProperties.Name="Generation profile model scope" />
+
+              <ComboBox ItemsSource="{Binding GenerationProfiles}"
+                        SelectedItem="{Binding SelectedGenerationProfile, Mode=TwoWay}"
+                        IsEnabled="{Binding IsGenerationProfileSelectionEditable}"
+                        AutomationProperties.Name="Generation profile"
+                        AutomationProperties.HelpText="Select the generation profile to bind explicitly to the active conversation branch.">
+                <ComboBox.ItemTemplate>
+                  <DataTemplate x:DataType="generations:GenerationProfile">
+                    <TextBlock Text="{Binding Name}" />
+                  </DataTemplate>
+                </ComboBox.ItemTemplate>
+              </ComboBox>
+
+              <TextBlock Text="{Binding GenerationProfileSelectionStatusText}"
+                         FontSize="12"
+                         LineHeight="18"
+                         TextWrapping="Wrap"
+                         AutomationProperties.LiveSetting="Polite"
+                         Foreground="{DynamicResource TextSecondaryBrush}" />
+
+              <Button Classes="secondary-action"
+                      Command="{Binding SaveGenerationProfileSelectionCommand}"
+                      IsEnabled="{Binding CanSaveGenerationProfileSelection}"
+                      HorizontalAlignment="Left"
+                      Content="Use profile for this branch"
+                      AutomationProperties.Name="Use selected generation profile for active branch" />
+            </StackPanel>
+          </Border>
 
           <Border Classes="workspace-secondary-surface"
                   Padding="18"

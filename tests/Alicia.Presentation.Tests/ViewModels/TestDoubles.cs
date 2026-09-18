@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using Alicia.Application.Conversations;
+using Alicia.Application.Generations;
 using Alicia.Application.Providers;
 using Alicia.Domain.Conversations;
 using Alicia.Presentation.State;
@@ -765,6 +766,135 @@ internal sealed class StubConversationUiStateStore : IConversationUiStateStore
         Snapshot = snapshot;
         SaveCount++;
         return Task.CompletedTask;
+    }
+}
+
+internal sealed class InMemoryGenerationProfileCatalogStore : IGenerationProfileCatalogStore
+{
+    private readonly Dictionary<GenerationProfileModelScope, GenerationProfileCatalog> _catalogs = [];
+
+    public int SaveCount { get; private set; }
+
+    public GenerationProfileCatalog? LastSavedCatalog { get; private set; }
+
+    public Task<GenerationProfileCatalog?> LoadAsync(
+        GenerationProfileModelScope scope,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        _catalogs.TryGetValue(scope, out GenerationProfileCatalog? catalog);
+        return Task.FromResult(catalog);
+    }
+
+    public Task SaveAsync(
+        GenerationProfileCatalog catalog,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(catalog);
+        cancellationToken.ThrowIfCancellationRequested();
+        _catalogs[catalog.Scope] = catalog;
+        LastSavedCatalog = catalog;
+        SaveCount++;
+        return Task.CompletedTask;
+    }
+
+    public void Seed(GenerationProfileCatalog catalog)
+    {
+        ArgumentNullException.ThrowIfNull(catalog);
+        _catalogs[catalog.Scope] = catalog;
+    }
+}
+
+internal sealed class InMemoryConversationGenerationSelectionStore :
+    IConversationBranchGenerationSelectionStore
+{
+    private readonly Dictionary<ConversationId, ConversationGenerationSelection> _legacySelections = [];
+    private readonly Dictionary<(ConversationId ConversationId, ConversationBranchId BranchId), ConversationGenerationSelection> _branchSelections = [];
+
+    public int SaveCount { get; private set; }
+
+    public ConversationGenerationSelection? LastSavedSelection { get; private set; }
+
+    public Task<ConversationGenerationSelection?> LoadAsync(
+        ConversationId conversationId,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        _legacySelections.TryGetValue(conversationId, out ConversationGenerationSelection? selection);
+        return Task.FromResult(selection);
+    }
+
+    public Task<ConversationGenerationSelection?> LoadAsync(
+        ConversationId conversationId,
+        ConversationBranchId branchId,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (_branchSelections.TryGetValue((conversationId, branchId), out ConversationGenerationSelection? scoped))
+        {
+            return Task.FromResult<ConversationGenerationSelection?>(scoped);
+        }
+
+        _legacySelections.TryGetValue(conversationId, out ConversationGenerationSelection? legacy);
+        return Task.FromResult(legacy);
+    }
+
+    public Task SaveAsync(
+        ConversationGenerationSelection selection,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(selection);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (selection.BranchId is ConversationBranchId branchId)
+        {
+            _branchSelections[(selection.ConversationId, branchId)] = selection;
+        }
+        else
+        {
+            _legacySelections[selection.ConversationId] = selection;
+        }
+
+        LastSavedSelection = selection;
+        SaveCount++;
+        return Task.CompletedTask;
+    }
+
+    public Task<bool> DeleteAsync(
+        ConversationId conversationId,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        bool removed = _legacySelections.Remove(conversationId);
+        foreach ((ConversationId ConversationId, ConversationBranchId BranchId) key in
+                 _branchSelections.Keys.Where(key => key.ConversationId == conversationId).ToArray())
+        {
+            removed |= _branchSelections.Remove(key);
+        }
+
+        return Task.FromResult(removed);
+    }
+
+    public Task<bool> DeleteAsync(
+        ConversationId conversationId,
+        ConversationBranchId branchId,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult(_branchSelections.Remove((conversationId, branchId)));
+    }
+
+    public void Seed(ConversationGenerationSelection selection)
+    {
+        ArgumentNullException.ThrowIfNull(selection);
+        if (selection.BranchId is ConversationBranchId branchId)
+        {
+            _branchSelections[(selection.ConversationId, branchId)] = selection;
+        }
+        else
+        {
+            _legacySelections[selection.ConversationId] = selection;
+        }
     }
 }
 

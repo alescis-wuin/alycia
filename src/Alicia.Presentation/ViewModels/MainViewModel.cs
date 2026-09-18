@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using Alicia.Application.Conversations;
+using Alicia.Application.Generations;
 using Alicia.Application.Providers;
 using Alicia.Domain.Conversations;
 using Alicia.Presentation.State;
@@ -46,6 +47,7 @@ public sealed class MainViewModel : ViewModelBase
     private CancellationTokenSource? _providerOperationCancellation;
     private ProviderMaintenanceConfirmation _providerMaintenanceConfirmation;
     private ConversationUiStateSnapshot _conversationUiState = ConversationUiStateSnapshot.Default;
+    private ConversationBranchId? _selectedConversationBranchId;
     private int _conversationScrollRestoreRevision;
 
     public MainViewModel(
@@ -61,7 +63,9 @@ public sealed class MainViewModel : ViewModelBase
         TimeSpan? responseStopLockDuration = null,
         TimeSpan? retryResponseLockDuration = null,
         IConversationUiStateStore? conversationUiStateStore = null,
-        bool isReducedMotionEnabled = false)
+        bool isReducedMotionEnabled = false,
+        IGenerationProfileCatalogStore? generationProfileCatalogStore = null,
+        IConversationBranchGenerationSelectionStore? conversationGenerationSelectionStore = null)
     {
         ArgumentNullException.ThrowIfNull(createConversation);
         ArgumentNullException.ThrowIfNull(appendMessage);
@@ -104,7 +108,11 @@ public sealed class MainViewModel : ViewModelBase
         ConversationStream = new ConversationStreamViewModel(isReducedMotionEnabled);
         Provider = new ProviderViewModel(providerRegistry);
         GenerationSettings = new GenerationSettingsViewModel();
-        Model = new ModelViewModel(providerConfigurationStore, GenerationSettings);
+        Model = new ModelViewModel(
+            providerConfigurationStore,
+            GenerationSettings,
+            generationProfileCatalogStore,
+            conversationGenerationSelectionStore);
         ConfigurationGate = new ConversationConfigurationGateViewModel();
         _conversationUiStateStore = conversationUiStateStore
             ?? new TransientConversationUiStateStore();
@@ -160,6 +168,9 @@ public sealed class MainViewModel : ViewModelBase
         SaveProviderConfigurationCommand = new AsyncRelayCommand(
             SaveProviderConfigurationAsync,
             () => CanSaveProviderConfiguration);
+        SaveGenerationProfileSelectionCommand = new AsyncRelayCommand(
+            SaveGenerationProfileSelectionAsync,
+            () => CanSaveGenerationProfileSelection);
         ConfigurationGatePrimaryCommand = new AsyncRelayCommand(
             ExecuteConfigurationGatePrimaryActionAsync,
             () => ConfigurationGate.IsPrimaryActionEnabled);
@@ -239,6 +250,8 @@ public sealed class MainViewModel : ViewModelBase
     public IAsyncRelayCommand StopProviderCommand { get; }
 
     public IAsyncRelayCommand SaveProviderConfigurationCommand { get; }
+
+    public IAsyncRelayCommand SaveGenerationProfileSelectionCommand { get; }
 
     public IAsyncRelayCommand ConfigurationGatePrimaryCommand { get; }
 
@@ -341,6 +354,68 @@ public sealed class MainViewModel : ViewModelBase
             RaiseProviderConfigurationStateChanged();
         }
     }
+
+    public ObservableCollection<GenerationProfile> GenerationProfiles =>
+        Model.GenerationProfiles;
+
+    public GenerationProfile? SelectedGenerationProfile
+    {
+        get => Model.SelectedGenerationProfile;
+        set
+        {
+            if (ReferenceEquals(Model.SelectedGenerationProfile, value))
+            {
+                return;
+            }
+
+            Model.SelectedGenerationProfile = value;
+            OnPropertyChanged();
+            RaiseGenerationProfileSelectionStateChanged();
+        }
+    }
+
+    public string GenerationProfileScopeText => HasProviderConfigurationChanges
+        ? "Unsaved model settings"
+        : Model.GenerationProfileScope is GenerationProfileModelScope scope
+            ? $"{scope.ProviderId} • {scope.ModelReference}"
+            : "No saved model scope";
+
+    public bool IsGenerationProfileSelectionEditable =>
+        Model.SupportsGenerationProfileSelection
+        && SelectedConversation is not null
+        && _selectedConversationBranchId is not null
+        && !IsBusy
+        && !IsGeneratingResponse
+        && !HasProviderConfigurationChanges
+        && Model.SavedProviderConfiguration?.HasModelReference == true
+        && GenerationProfiles.Count > 0;
+
+    public bool CanSaveGenerationProfileSelection =>
+        IsGenerationProfileSelectionEditable
+        && SelectedConversation is not null
+        && _selectedConversationBranchId is ConversationBranchId branchId
+        && SelectedGenerationProfile is not null
+        && Model.HasGenerationProfileSelectionChanges(SelectedConversation.Id, branchId);
+
+    public string GenerationProfileSelectionStatusText => HasProviderConfigurationChanges
+        ? "Save the model/provider settings before changing the profile bound to this branch."
+        : IsLegacyGenerationProfileFallbackPendingPin
+            ? Model.GenerationProfileSelectionStatusText
+            : CanSaveGenerationProfileSelection
+                ? "Profile selection has unsaved changes for the active branch."
+                : Model.GenerationProfileSelectionStatusText;
+
+    private bool IsLegacyGenerationProfileFallbackPendingPin =>
+        SelectedConversation is not null
+        && SelectedGenerationProfile is not null
+        && Model.GenerationProfileScope is GenerationProfileModelScope scope
+        && Model.ResolvedGenerationSelection is
+        {
+            IsBranchScoped: false
+        } resolved
+        && resolved.ConversationId == SelectedConversation.Id
+        && resolved.ModelScope == scope
+        && resolved.ProfileId == SelectedGenerationProfile.Id;
 
     public string ProviderContextSizeText
     {
@@ -461,9 +536,13 @@ public sealed class MainViewModel : ViewModelBase
             OnPropertyChanged(nameof(IsProviderSettingsEditable));
             OnPropertyChanged(nameof(IsProviderSelectionEditable));
             OnPropertyChanged(nameof(IsProviderReasoningBudgetEditable));
+            OnPropertyChanged(nameof(IsGenerationProfileSelectionEditable));
+            OnPropertyChanged(nameof(CanSaveGenerationProfileSelection));
+            OnPropertyChanged(nameof(GenerationProfileSelectionStatusText));
             SendMessageCommand.NotifyCanExecuteChanged();
             RetryResponseCommand.NotifyCanExecuteChanged();
             SaveProviderConfigurationCommand.NotifyCanExecuteChanged();
+            SaveGenerationProfileSelectionCommand.NotifyCanExecuteChanged();
             ConversationHistory.NotifyInteractionStateChanged();
         }
     }
@@ -722,6 +801,7 @@ public sealed class MainViewModel : ViewModelBase
             StopResponseCommand.NotifyCanExecuteChanged();
             RetryResponseCommand.NotifyCanExecuteChanged();
             RaiseProviderStateChanged();
+            RaiseGenerationProfileSelectionStateChanged();
         }
     }
 
@@ -1174,6 +1254,7 @@ public sealed class MainViewModel : ViewModelBase
         }
 
         SelectedProvider = selected ?? (ProviderOptions.Count == 0 ? null : ProviderOptions[0]);
+        await RefreshGenerationProfilesAsync().ConfigureAwait(true);
     }
 
     private void RaiseProviderDraftChanged()
@@ -1221,9 +1302,51 @@ public sealed class MainViewModel : ViewModelBase
                 .ConfigureAwait(true);
             Provider.PersistSelection(configuration.ProviderId);
             Provider.ClearFailure();
+            await RefreshGenerationProfilesAsync().ConfigureAwait(true);
             RaiseProviderStateChanged();
             RaiseProviderConfigurationStateChanged();
         }).ConfigureAwait(true);
+    }
+
+    private async Task SaveGenerationProfileSelectionAsync()
+    {
+        if (!CanSaveGenerationProfileSelection
+            || SelectedConversation is null
+            || _selectedConversationBranchId is not ConversationBranchId branchId)
+        {
+            return;
+        }
+
+        await ExecuteOperationAsync(async () =>
+        {
+            await Model
+                .SaveGenerationProfileSelectionAsync(
+                    SelectedConversation.Id,
+                    branchId)
+                .ConfigureAwait(true);
+            RaiseGenerationProfileSelectionStateChanged();
+        }).ConfigureAwait(true);
+    }
+
+    private async Task RefreshGenerationProfilesAsync()
+    {
+        await Model
+            .LoadGenerationProfilesAsync(
+                SelectedConversation?.Id,
+                _selectedConversationBranchId)
+            .ConfigureAwait(true);
+        RaiseGenerationProfileSelectionStateChanged();
+    }
+
+    private void RaiseGenerationProfileSelectionStateChanged()
+    {
+        OnPropertyChanged(nameof(GenerationProfiles));
+        OnPropertyChanged(nameof(SelectedGenerationProfile));
+        OnPropertyChanged(nameof(GenerationProfileScopeText));
+        OnPropertyChanged(nameof(IsGenerationProfileSelectionEditable));
+        OnPropertyChanged(nameof(CanSaveGenerationProfileSelection));
+        OnPropertyChanged(nameof(GenerationProfileSelectionStatusText));
+        SaveGenerationProfileSelectionCommand.NotifyCanExecuteChanged();
     }
 
     private IInferenceProviderRuntime GetSelectedProviderRuntime()
@@ -1263,6 +1386,7 @@ public sealed class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(ComposerStatusText));
         SaveProviderConfigurationCommand.NotifyCanExecuteChanged();
         StartProviderCommand.NotifyCanExecuteChanged();
+        RaiseGenerationProfileSelectionStateChanged();
         UpdateConfigurationGate();
     }
 
@@ -2873,7 +2997,9 @@ public sealed class MainViewModel : ViewModelBase
 
         CancelAllRenames();
         SelectedConversation = item;
+        _selectedConversationBranchId = conversation.ActiveBranchId;
         ConversationStream.LoadMessages(conversation.Messages);
+        await RefreshGenerationProfilesAsync().ConfigureAwait(true);
 
         IsDeleteConfirmationVisible = false;
         RaiseMessageStateChanged();
@@ -2884,8 +3010,11 @@ public sealed class MainViewModel : ViewModelBase
     {
         CancelAllRenames();
         SelectedConversation = null;
+        _selectedConversationBranchId = null;
+        Model.ClearConversationGenerationSelection();
         ConversationStream.ClearMessages();
         IsDeleteConfirmationVisible = false;
+        RaiseGenerationProfileSelectionStateChanged();
         RaiseMessageStateChanged();
     }
 
