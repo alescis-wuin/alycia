@@ -41,7 +41,7 @@ internal sealed class ConversationTurnSnapshot
 
     private DateTimeOffset UpdatedAt { get; }
 
-    private ConversationBranchId ActiveBranchId { get; }
+    public ConversationBranchId ActiveBranchId { get; }
 
     public MessageRevisionId TriggeringUserMessageRevisionId { get; }
 

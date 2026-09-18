@@ -25,6 +25,8 @@ Lot 10B.5c adds a durable immutable-prefix conversation branch graph below Prese
 
 Lot 10B.6 adds immutable conversation-context revisions and branch-timeline bindings. A fork pins the exact context effective at its divergence point, later parent context changes cannot rewrite child state, and generation snapshots capture the exact context revision plus an explicit context-window/output-reservation budget when those limits are configured. Unknown provider/model defaults remain unknown; RAG, assets, tools, multimodal input, visual context editing, and tokenizer-specific accounting remain later concerns.
 
+The first UIX-02/03 backend bridge adds an explicit branch-aware generation-selection capability without breaking the Lot 10B.4 conversation-scoped contract. A fork pins the model/profile selection resolved from its parent at fork creation time into the new child branch, branch-aware generation resolves against the active branch when the store supports that capability, and schema-v1 selections remain a backward-compatible fallback. Exact reconstruction of a model/profile selection that was active at an older historical divergence boundary remains a separate revision/timeline concern.
+
 ## Prerequisites
 
 - Linux, macOS, or Windows for the application itself;
@@ -113,6 +115,7 @@ The provider-neutral Application contracts remain independent of llama.cpp/CUDA/
 - `docs/decisions/0036-durable-generation-snapshot-provenance.md`
 - `docs/decisions/0037-conversation-branch-graph.md`
 - `docs/decisions/0038-revisioned-conversation-context-and-budget.md`
+- `docs/decisions/0039-branch-scoped-generation-selection.md`
 - `docs/development/roadmap.md`
 - `docs/design/ui-ux-specification.md`
 - `docs/user-guide/README.md`

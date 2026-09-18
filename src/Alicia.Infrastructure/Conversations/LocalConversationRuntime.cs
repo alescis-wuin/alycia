@@ -1,4 +1,5 @@
 using Alicia.Application.Conversations;
+using Alicia.Application.Generations;
 
 namespace Alicia.Infrastructure.Conversations;
 
@@ -50,7 +51,8 @@ public sealed class LocalConversationRuntime
 
     public static LocalConversationRuntime Create(
         string storageDirectory,
-        TimeProvider? timeProvider = null)
+        TimeProvider? timeProvider = null,
+        IConversationBranchGenerationSelectionStore? generationSelectionStore = null)
     {
         TimeProvider resolvedTimeProvider = timeProvider ?? TimeProvider.System;
         JsonConversationRepository repository = new(storageDirectory);
@@ -59,7 +61,10 @@ public sealed class LocalConversationRuntime
             repository,
             new CreateConversationUseCase(repository, resolvedTimeProvider),
             new AppendMessageUseCase(repository, resolvedTimeProvider),
-            new EditMessageUseCase(repository, resolvedTimeProvider),
+            new EditMessageUseCase(
+                repository,
+                resolvedTimeProvider,
+                generationSelectionStore),
             new UpdateConversationContextUseCase(repository, resolvedTimeProvider),
             new ActivateConversationBranchUseCase(repository),
             new LoadConversationUseCase(repository),

@@ -122,6 +122,49 @@ public sealed class ConversationGenerationBindingTests
     }
 
     [Fact]
+    public async Task CompleteTurnPassesActiveBranchToBranchAwareResolver()
+    {
+        DateTimeOffset createdAt = new(2026, 9, 18, 11, 0, 0, TimeSpan.Zero);
+        Conversation conversation = new(ConversationId.New(), createdAt);
+        ChatMessage original = new(
+            MessageId.New(),
+            MessageRole.User,
+            "Original",
+            createdAt.AddMinutes(1));
+        conversation.AddMessage(original);
+        ChatMessage edited = conversation.EditUserMessage(
+            original.RevisionId,
+            "Edited",
+            createdAt.AddMinutes(2));
+        ConversationBranchId activeBranchId = conversation.ActiveBranchId;
+        InMemoryConversationRepository repository = new();
+        await repository.SaveAsync(
+            conversation,
+            TestContext.Current.CancellationToken).ConfigureAwait(true);
+        GenerationSnapshot snapshot = CreateSnapshot(
+            conversation.Id,
+            edited,
+            createdAt.AddMinutes(2));
+        CapturingBranchGenerationResolver resolver = new(
+            new ResolvedConversationGeneration(snapshot, systemInstructions: null));
+        InMemoryGenerationSnapshotStore snapshotStore = new();
+        CompleteConversationTurnUseCase useCase = new(
+            repository,
+            new DeterministicConversationResponder("Done"),
+            new FixedTimeProvider(createdAt.AddMinutes(3)),
+            resolver,
+            snapshotStore);
+
+        await useCase.ExecuteAsync(
+            conversation.Id,
+            edited.Id,
+            TestContext.Current.CancellationToken).ConfigureAwait(true);
+
+        Assert.Equal(activeBranchId, resolver.LastBranchId);
+        Assert.Equal(edited.RevisionId, resolver.LastTriggeringUserMessageRevisionId);
+    }
+
+    [Fact]
     public async Task CompleteTurnFailureDoesNotPersistGenerationSnapshot()
     {
         DateTimeOffset createdAt = new(2026, 9, 17, 9, 30, 0, TimeSpan.Zero);
@@ -411,6 +454,57 @@ public sealed class ConversationGenerationBindingTests
         {
             cancellationToken.ThrowIfCancellationRequested();
             return Task.FromResult(false);
+        }
+    }
+
+
+    private sealed class CapturingBranchGenerationResolver : IConversationBranchContextGenerationResolver
+    {
+        private readonly ResolvedConversationGeneration _resolved;
+
+        public CapturingBranchGenerationResolver(ResolvedConversationGeneration resolved)
+        {
+            _resolved = resolved;
+        }
+
+        public ConversationBranchId? LastBranchId { get; private set; }
+
+        public MessageRevisionId? LastTriggeringUserMessageRevisionId { get; private set; }
+
+        public Task<ResolvedConversationGeneration?> ResolveAsync(
+            ConversationId conversationId,
+            MessageId triggeringUserMessageId,
+            MessageRevisionId triggeringUserMessageRevisionId,
+            IReadOnlyList<MessageRevisionId> inputMessageRevisionIds,
+            CancellationToken cancellationToken = default)
+        {
+            throw new InvalidOperationException("Legacy resolver overload must not be used.");
+        }
+
+        public Task<ResolvedConversationGeneration?> ResolveAsync(
+            ConversationId conversationId,
+            MessageId triggeringUserMessageId,
+            MessageRevisionId triggeringUserMessageRevisionId,
+            IReadOnlyList<MessageRevisionId> inputMessageRevisionIds,
+            ConversationContextRevision? contextRevision,
+            CancellationToken cancellationToken = default)
+        {
+            throw new InvalidOperationException("Conversation-scoped resolver overload must not be used.");
+        }
+
+        public Task<ResolvedConversationGeneration?> ResolveAsync(
+            ConversationId conversationId,
+            ConversationBranchId branchId,
+            MessageId triggeringUserMessageId,
+            MessageRevisionId triggeringUserMessageRevisionId,
+            IReadOnlyList<MessageRevisionId> inputMessageRevisionIds,
+            ConversationContextRevision? contextRevision,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            LastBranchId = branchId;
+            LastTriggeringUserMessageRevisionId = triggeringUserMessageRevisionId;
+            return Task.FromResult<ResolvedConversationGeneration?>(_resolved);
         }
     }
 

@@ -294,9 +294,21 @@ Introduire avant RAG.
 - `JsonConversationRepository` schema v6 et `JsonGenerationSnapshotStore` schema v2, avec lectures rétrocompatibles v0/v2/v3/v4/v5 et snapshot v1 ;
 - aucune UI Presentation ajoutée dans cette sous-étape.
 
+### Précondition UIX-02 / UIX-03 - sélection génération branch-scoped - phase 1 terminée
+
+- `ConversationGenerationSelection` accepte une portée `ConversationBranchId` explicite tout en conservant la sélection conversation-scoped historique comme fallback de migration ;
+- un port `IConversationBranchGenerationSelectionStore` expose explicitement la capacité branch-aware sans donner de fausse sémantique aux adapters historiques ;
+- `JsonConversationGenerationSelectionStore` passe au schema v2 et relit le schema v1 sans inventer de branche ;
+- la résolution de génération utilise la branche active lorsque resolver et store branch-aware sont disponibles ;
+- un fork par édition copie vers l'enfant la sélection effective du parent observée au moment de créer le fork, avec compensation si la sauvegarde de conversation échoue ;
+- les changements ultérieurs modèle/profil sur le parent ne modifient pas la sélection déjà épinglée sur l'enfant ;
+- limite assumée : le contrat 10B.4 n'ayant pas de timeline de sélection, cette phase ne reconstruit pas encore la sélection historique exacte qui était active au point ancien de divergence ;
+- aucune surface Presentation, aucun changement de `GenerationSnapshot`, aucun RAG, tool ou multimodal dans cette phase.
+
 ### Etapes suivantes
 
-- Lot 11 : RAG foundation.
+- UIX-02 / UIX-03 : exposer progressivement les fondations profiles/context/revisions/branches ;
+- Lot 11 : RAG foundation après le track UIX recommandé.
 
 ## Lots 11 à 15
 

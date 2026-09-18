@@ -8,12 +8,45 @@ public sealed record ConversationGenerationSelection
         ConversationId conversationId,
         GenerationProfileModelScope modelScope,
         GenerationProfileId profileId)
+        : this(
+            conversationId,
+            (ConversationBranchId?)null,
+            modelScope,
+            profileId)
+    {
+    }
+
+    public ConversationGenerationSelection(
+        ConversationId conversationId,
+        ConversationBranchId branchId,
+        GenerationProfileModelScope modelScope,
+        GenerationProfileId profileId)
+        : this(
+            conversationId,
+            (ConversationBranchId?)branchId,
+            modelScope,
+            profileId)
+    {
+    }
+
+    private ConversationGenerationSelection(
+        ConversationId conversationId,
+        ConversationBranchId? branchId,
+        GenerationProfileModelScope modelScope,
+        GenerationProfileId profileId)
     {
         if (conversationId.IsEmpty)
         {
             throw new ArgumentException(
                 "Conversation identifier cannot be empty.",
                 nameof(conversationId));
+        }
+
+        if (branchId is ConversationBranchId scopedBranchId && scopedBranchId.IsEmpty)
+        {
+            throw new ArgumentException(
+                "Conversation branch identifier cannot be empty.",
+                nameof(branchId));
         }
 
         if (modelScope.IsEmpty)
@@ -31,13 +64,27 @@ public sealed record ConversationGenerationSelection
         }
 
         ConversationId = conversationId;
+        BranchId = branchId;
         ModelScope = modelScope;
         ProfileId = profileId;
     }
 
     public ConversationId ConversationId { get; }
 
+    public ConversationBranchId? BranchId { get; }
+
+    public bool IsBranchScoped => BranchId.HasValue;
+
     public GenerationProfileModelScope ModelScope { get; }
 
     public GenerationProfileId ProfileId { get; }
+
+    public ConversationGenerationSelection ForBranch(ConversationBranchId branchId)
+    {
+        return new ConversationGenerationSelection(
+            ConversationId,
+            branchId,
+            ModelScope,
+            ProfileId);
+    }
 }

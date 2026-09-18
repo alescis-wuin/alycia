@@ -93,9 +93,6 @@ internal static class Program
             llamaCppDirectory,
             "settings.json");
         TimeProvider timeProvider = TimeProvider.System;
-        LocalConversationRuntime runtime = LocalConversationRuntime.Create(
-            storageDirectory,
-            timeProvider);
         _llamaCppRuntime ??= new LlamaCppProviderRuntime(
             llamaCppDirectory,
             timeProvider);
@@ -121,6 +118,10 @@ internal static class Program
         JsonConversationGenerationSelectionStore conversationGenerationSelectionStore =
             _conversationGenerationSelectionStore ??= new JsonConversationGenerationSelectionStore(
                 conversationGenerationSelectionPath);
+        LocalConversationRuntime runtime = LocalConversationRuntime.Create(
+            storageDirectory,
+            timeProvider,
+            conversationGenerationSelectionStore);
         ConversationGenerationResolver generationResolver = new(
             conversationGenerationSelectionStore,
             generationProfileCatalogStore,

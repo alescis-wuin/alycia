@@ -3,7 +3,7 @@ using Alicia.Domain.Conversations;
 
 namespace Alicia.Application.Generations;
 
-public sealed class ConversationGenerationResolver : IConversationContextGenerationResolver
+public sealed class ConversationGenerationResolver : IConversationBranchContextGenerationResolver
 {
     private readonly IConversationGenerationSelectionStore _selectionStore;
     private readonly IGenerationProfileCatalogStore _profileCatalogStore;
@@ -43,13 +43,58 @@ public sealed class ConversationGenerationResolver : IConversationContextGenerat
             cancellationToken: cancellationToken);
     }
 
-    public async Task<ResolvedConversationGeneration?> ResolveAsync(
+    public Task<ResolvedConversationGeneration?> ResolveAsync(
         ConversationId conversationId,
         MessageId triggeringUserMessageId,
         MessageRevisionId triggeringUserMessageRevisionId,
         IReadOnlyList<MessageRevisionId> inputMessageRevisionIds,
         ConversationContextRevision? contextRevision,
         CancellationToken cancellationToken = default)
+    {
+        return ResolveCoreAsync(
+            conversationId,
+            null,
+            triggeringUserMessageId,
+            triggeringUserMessageRevisionId,
+            inputMessageRevisionIds,
+            contextRevision,
+            cancellationToken);
+    }
+
+    public Task<ResolvedConversationGeneration?> ResolveAsync(
+        ConversationId conversationId,
+        ConversationBranchId branchId,
+        MessageId triggeringUserMessageId,
+        MessageRevisionId triggeringUserMessageRevisionId,
+        IReadOnlyList<MessageRevisionId> inputMessageRevisionIds,
+        ConversationContextRevision? contextRevision,
+        CancellationToken cancellationToken = default)
+    {
+        if (branchId.IsEmpty)
+        {
+            throw new ArgumentException(
+                "Conversation branch identifier cannot be empty.",
+                nameof(branchId));
+        }
+
+        return ResolveCoreAsync(
+            conversationId,
+            branchId,
+            triggeringUserMessageId,
+            triggeringUserMessageRevisionId,
+            inputMessageRevisionIds,
+            contextRevision,
+            cancellationToken);
+    }
+
+    private async Task<ResolvedConversationGeneration?> ResolveCoreAsync(
+        ConversationId conversationId,
+        ConversationBranchId? branchId,
+        MessageId triggeringUserMessageId,
+        MessageRevisionId triggeringUserMessageRevisionId,
+        IReadOnlyList<MessageRevisionId> inputMessageRevisionIds,
+        ConversationContextRevision? contextRevision,
+        CancellationToken cancellationToken)
     {
         if (conversationId.IsEmpty)
         {
@@ -75,9 +120,15 @@ public sealed class ConversationGenerationResolver : IConversationContextGenerat
         ArgumentNullException.ThrowIfNull(inputMessageRevisionIds);
         ValidateContextRevision(conversationId, contextRevision);
 
-        ConversationGenerationSelection? selection = await _selectionStore
-            .LoadAsync(conversationId, cancellationToken)
-            .ConfigureAwait(false);
+        ConversationGenerationSelection? selection =
+            branchId is ConversationBranchId scopedBranchId
+            && _selectionStore is IConversationBranchGenerationSelectionStore branchSelectionStore
+                ? await branchSelectionStore
+                    .LoadAsync(conversationId, scopedBranchId, cancellationToken)
+                    .ConfigureAwait(false)
+                : await _selectionStore
+                    .LoadAsync(conversationId, cancellationToken)
+                    .ConfigureAwait(false);
         if (selection is null)
         {
             return await ResolveLegacySelectionAsync(

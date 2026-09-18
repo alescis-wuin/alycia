@@ -1,4 +1,5 @@
 using Alicia.Application.Conversations;
+using Alicia.Application.Generations;
 using Alicia.Domain.Conversations;
 
 namespace Alicia.Application.Tests.Conversations;
@@ -30,13 +31,86 @@ public sealed class ConversationBranchUseCaseTests
             "Edited",
             CancellationToken.None).ConfigureAwait(true);
 
+        Conversation persisted = Assert.IsType<Conversation>(await repository.FindAsync(
+            conversation.Id,
+            CancellationToken.None).ConfigureAwait(true));
+
         Assert.Equal(original.Id, edited.Id);
         Assert.Equal(original.RevisionId, edited.ParentRevisionId);
         Assert.Equal("Edited", edited.Content);
-        Assert.NotEqual(originalBranchId, conversation.ActiveBranchId);
-        Assert.Same(edited, Assert.Single(conversation.Messages));
-        Assert.Same(original, Assert.Single(conversation.GetMessages(originalBranchId)));
+        Assert.Equal(originalBranchId, conversation.ActiveBranchId);
+        Assert.NotEqual(originalBranchId, persisted.ActiveBranchId);
+        Assert.Same(edited, Assert.Single(persisted.Messages));
+        Assert.Same(original, Assert.Single(persisted.GetMessages(originalBranchId)));
         Assert.Equal(2, repository.SaveCount);
+    }
+
+    [Fact]
+    public async Task EditMessagePinsEffectiveGenerationSelectionOnChildBranch()
+    {
+        InMemoryConversationRepository repository = new();
+        Conversation conversation = new(ConversationId.New(), _createdAt);
+        ChatMessage original = new(
+            MessageId.New(),
+            MessageRole.User,
+            "Original",
+            _createdAt.AddMinutes(1));
+        conversation.AddMessage(original);
+        await repository.SaveAsync(conversation, CancellationToken.None).ConfigureAwait(true);
+        ConversationBranchId parentBranchId = conversation.ActiveBranchId;
+        GenerationProfileModelScope scope = new("provider.alpha", "owner/model-a");
+        GenerationProfileId profileId = GenerationProfileId.New();
+        InMemoryGenerationSelectionStore selectionStore = new();
+        await selectionStore.SaveAsync(
+            new ConversationGenerationSelection(
+                conversation.Id,
+                parentBranchId,
+                scope,
+                profileId),
+            CancellationToken.None).ConfigureAwait(true);
+        EditMessageUseCase useCase = new(
+            repository,
+            new FixedTimeProvider(_createdAt.AddMinutes(2)),
+            selectionStore);
+
+        await useCase.ExecuteAsync(
+            conversation.Id,
+            original.RevisionId,
+            "Edited",
+            CancellationToken.None).ConfigureAwait(true);
+
+        Conversation persisted = Assert.IsType<Conversation>(await repository.FindAsync(
+            conversation.Id,
+            CancellationToken.None).ConfigureAwait(true));
+        ConversationBranchId childBranchId = persisted.ActiveBranchId;
+        ConversationGenerationSelection childSelection =
+            Assert.IsType<ConversationGenerationSelection>(await selectionStore.LoadAsync(
+                conversation.Id,
+                childBranchId,
+                CancellationToken.None).ConfigureAwait(true));
+
+        Assert.Equal(childBranchId, childSelection.BranchId);
+        Assert.Equal(scope, childSelection.ModelScope);
+        Assert.Equal(profileId, childSelection.ProfileId);
+
+        GenerationProfileModelScope replacementScope = new(
+            "provider.alpha",
+            "owner/model-b");
+        await selectionStore.SaveAsync(
+            new ConversationGenerationSelection(
+                conversation.Id,
+                parentBranchId,
+                replacementScope,
+                GenerationProfileId.New()),
+            CancellationToken.None).ConfigureAwait(true);
+
+        ConversationGenerationSelection unchangedChildSelection =
+            Assert.IsType<ConversationGenerationSelection>(await selectionStore.LoadAsync(
+                conversation.Id,
+                childBranchId,
+                CancellationToken.None).ConfigureAwait(true));
+        Assert.Equal(scope, unchangedChildSelection.ModelScope);
+        Assert.Equal(profileId, unchangedChildSelection.ProfileId);
     }
 
     [Fact]
@@ -188,5 +262,70 @@ public sealed class ConversationBranchUseCaseTests
             message => Assert.Same(firstUser, message),
             message => Assert.Same(firstAssistant, message),
             message => Assert.Same(secondUser, message));
+    }
+    private sealed class InMemoryGenerationSelectionStore : IConversationBranchGenerationSelectionStore
+    {
+        private readonly Dictionary<
+            (ConversationId ConversationId, ConversationBranchId? BranchId),
+            ConversationGenerationSelection> _selections = [];
+
+        public Task<ConversationGenerationSelection?> LoadAsync(
+            ConversationId conversationId,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            _selections.TryGetValue((conversationId, null), out ConversationGenerationSelection? selection);
+            return Task.FromResult(selection);
+        }
+
+        public Task<ConversationGenerationSelection?> LoadAsync(
+            ConversationId conversationId,
+            ConversationBranchId branchId,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (_selections.TryGetValue(
+                (conversationId, branchId),
+                out ConversationGenerationSelection? selection))
+            {
+                return Task.FromResult<ConversationGenerationSelection?>(selection);
+            }
+
+            _selections.TryGetValue((conversationId, null), out selection);
+            return Task.FromResult(selection);
+        }
+
+        public Task SaveAsync(
+            ConversationGenerationSelection selection,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            _selections[(selection.ConversationId, selection.BranchId)] = selection;
+            return Task.CompletedTask;
+        }
+
+        public Task<bool> DeleteAsync(
+            ConversationId conversationId,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            bool removed = false;
+            foreach ((ConversationId ConversationId, ConversationBranchId? BranchId) key in
+                _selections.Keys.Where(key => key.ConversationId == conversationId).ToArray())
+            {
+                removed |= _selections.Remove(key);
+            }
+
+            return Task.FromResult(removed);
+        }
+
+        public Task<bool> DeleteAsync(
+            ConversationId conversationId,
+            ConversationBranchId branchId,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(_selections.Remove((conversationId, branchId)));
+        }
     }
 }

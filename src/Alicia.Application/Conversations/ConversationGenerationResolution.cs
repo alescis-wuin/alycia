@@ -26,7 +26,19 @@ internal static class ConversationGenerationResolution
         }
 
         ResolvedConversationGeneration? resolved;
-        if (resolver is IConversationContextGenerationResolver contextResolver)
+        if (resolver is IConversationBranchContextGenerationResolver branchContextResolver)
+        {
+            resolved = await branchContextResolver.ResolveAsync(
+                    conversationId,
+                    turnSnapshot.ActiveBranchId,
+                    triggeringUserMessageId,
+                    turnSnapshot.TriggeringUserMessageRevisionId,
+                    turnSnapshot.InputMessageRevisionIds,
+                    turnSnapshot.ActiveContextRevision,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+        else if (resolver is IConversationContextGenerationResolver contextResolver)
         {
             resolved = await contextResolver.ResolveAsync(
                     conversationId,

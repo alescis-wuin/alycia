@@ -141,6 +141,72 @@ public sealed class ConversationGenerationResolverTests
     }
 
     [Fact]
+    public async Task ResolveAsyncUsesBranchSelectionBeforeLegacyConversationFallback()
+    {
+        ConversationId conversationId = ConversationId.New();
+        ConversationBranchId legacyFallbackBranchId = ConversationBranchId.New();
+        ConversationBranchId scopedBranchId = ConversationBranchId.New();
+        MessageId messageId = MessageId.New();
+        MessageRevisionId revisionId = MessageRevisionId.New();
+        GenerationProfileModelScope legacyScope = new(
+            "provider.legacy",
+            "owner/model-legacy");
+        GenerationProfileModelScope scopedScope = new(
+            "provider.branch",
+            "owner/model-branch");
+        GenerationProfileId legacyProfileId = GenerationProfileId.New();
+        GenerationProfileId scopedProfileId = GenerationProfileId.New();
+        ConversationGenerationResolver resolver = new(
+            new InMemorySelectionStore(
+                new ConversationGenerationSelection(
+                    conversationId,
+                    legacyScope,
+                    legacyProfileId),
+                new ConversationGenerationSelection(
+                    conversationId,
+                    scopedBranchId,
+                    scopedScope,
+                    scopedProfileId)),
+            new InMemoryCatalogStore(
+                GenerationProfileCatalog.CreateEmpty(legacyScope, legacyProfileId),
+                GenerationProfileCatalog.CreateEmpty(scopedScope, scopedProfileId)),
+            new InMemoryProviderConfigurationStore(
+                new InferenceProviderConfiguration(
+                    legacyScope.ProviderId,
+                    legacyScope.ModelReference),
+                new InferenceProviderConfiguration(
+                    scopedScope.ProviderId,
+                    scopedScope.ModelReference)),
+            new FixedTimeProvider(DateTimeOffset.UtcNow));
+
+        ResolvedConversationGeneration scoped = Assert.IsType<ResolvedConversationGeneration>(
+            await resolver.ResolveAsync(
+                conversationId,
+                scopedBranchId,
+                messageId,
+                revisionId,
+                new[] { revisionId },
+                contextRevision: null,
+                cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true));
+        ResolvedConversationGeneration fallback = Assert.IsType<ResolvedConversationGeneration>(
+            await resolver.ResolveAsync(
+                conversationId,
+                legacyFallbackBranchId,
+                messageId,
+                revisionId,
+                new[] { revisionId },
+                contextRevision: null,
+                cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(true));
+
+        Assert.Equal(scopedScope.ProviderId, scoped.Snapshot.ProviderId);
+        Assert.Equal(scopedScope.ModelReference, scoped.Snapshot.ModelReference);
+        Assert.Equal(scopedProfileId, scoped.Snapshot.ProfileId);
+        Assert.Equal(legacyScope.ProviderId, fallback.Snapshot.ProviderId);
+        Assert.Equal(legacyScope.ModelReference, fallback.Snapshot.ModelReference);
+        Assert.Equal(legacyProfileId, fallback.Snapshot.ProfileId);
+    }
+
+    [Fact]
     public async Task ResolveAsyncCapturesLegacySelectedProviderWithoutProfileSelection()
     {
         ConversationId conversationId = ConversationId.New();
@@ -300,15 +366,17 @@ public sealed class ConversationGenerationResolverTests
             TestContext.Current.CancellationToken);
     }
 
-    private sealed class InMemorySelectionStore : IConversationGenerationSelectionStore
+    private sealed class InMemorySelectionStore : IConversationBranchGenerationSelectionStore
     {
-        private readonly Dictionary<ConversationId, ConversationGenerationSelection> _selections = new();
+        private readonly Dictionary<
+            (ConversationId ConversationId, ConversationBranchId? BranchId),
+            ConversationGenerationSelection> _selections = [];
 
         public InMemorySelectionStore(params ConversationGenerationSelection[] selections)
         {
             foreach (ConversationGenerationSelection selection in selections)
             {
-                _selections[selection.ConversationId] = selection;
+                _selections[(selection.ConversationId, selection.BranchId)] = selection;
             }
         }
 
@@ -317,7 +385,24 @@ public sealed class ConversationGenerationResolverTests
             CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            _selections.TryGetValue(conversationId, out ConversationGenerationSelection? selection);
+            _selections.TryGetValue((conversationId, null), out ConversationGenerationSelection? selection);
+            return Task.FromResult(selection);
+        }
+
+        public Task<ConversationGenerationSelection?> LoadAsync(
+            ConversationId conversationId,
+            ConversationBranchId branchId,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (_selections.TryGetValue(
+                (conversationId, branchId),
+                out ConversationGenerationSelection? selection))
+            {
+                return Task.FromResult<ConversationGenerationSelection?>(selection);
+            }
+
+            _selections.TryGetValue((conversationId, null), out selection);
             return Task.FromResult(selection);
         }
 
@@ -326,7 +411,7 @@ public sealed class ConversationGenerationResolverTests
             CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            _selections[selection.ConversationId] = selection;
+            _selections[(selection.ConversationId, selection.BranchId)] = selection;
             return Task.CompletedTask;
         }
 
@@ -335,7 +420,23 @@ public sealed class ConversationGenerationResolverTests
             CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            return Task.FromResult(_selections.Remove(conversationId));
+            bool removed = false;
+            foreach ((ConversationId ConversationId, ConversationBranchId? BranchId) key in
+                _selections.Keys.Where(key => key.ConversationId == conversationId).ToArray())
+            {
+                removed |= _selections.Remove(key);
+            }
+
+            return Task.FromResult(removed);
+        }
+
+        public Task<bool> DeleteAsync(
+            ConversationId conversationId,
+            ConversationBranchId branchId,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(_selections.Remove((conversationId, branchId)));
         }
     }
 

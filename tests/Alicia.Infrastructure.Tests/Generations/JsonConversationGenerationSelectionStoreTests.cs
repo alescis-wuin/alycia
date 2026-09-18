@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Alicia.Application.Generations;
 using Alicia.Domain.Conversations;
 using Alicia.Infrastructure.Generations;
@@ -81,6 +82,129 @@ public sealed class JsonConversationGenerationSelectionStoreTests
                 second,
                 await store.LoadAsync(
                     secondConversationId,
+                    TestContext.Current.CancellationToken).ConfigureAwait(true));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task BranchScopedSelectionOverridesLegacyFallbackWithoutChangingSiblingBranch()
+    {
+        string directory = CreateTemporaryDirectory();
+        string path = Path.Combine(directory, "conversation-selections.json");
+        ConversationId conversationId = ConversationId.New();
+        ConversationBranchId firstBranchId = ConversationBranchId.New();
+        ConversationBranchId secondBranchId = ConversationBranchId.New();
+        ConversationGenerationSelection legacy = CreateSelection(
+            conversationId,
+            "provider.legacy",
+            "owner/model-legacy",
+            GenerationProfileId.New());
+        ConversationGenerationSelection firstBranch = CreateSelection(
+            conversationId,
+            firstBranchId,
+            "provider.branch",
+            "owner/model-branch",
+            GenerationProfileId.New());
+
+        try
+        {
+            using JsonConversationGenerationSelectionStore store = new(path);
+            await store.SaveAsync(legacy, TestContext.Current.CancellationToken).ConfigureAwait(true);
+
+            Assert.Equal(
+                legacy,
+                await store.LoadAsync(
+                    conversationId,
+                    firstBranchId,
+                    TestContext.Current.CancellationToken).ConfigureAwait(true));
+
+            await store.SaveAsync(firstBranch, TestContext.Current.CancellationToken).ConfigureAwait(true);
+
+            Assert.Equal(
+                firstBranch,
+                await store.LoadAsync(
+                    conversationId,
+                    firstBranchId,
+                    TestContext.Current.CancellationToken).ConfigureAwait(true));
+            Assert.Equal(
+                legacy,
+                await store.LoadAsync(
+                    conversationId,
+                    secondBranchId,
+                    TestContext.Current.CancellationToken).ConfigureAwait(true));
+            Assert.True(await store.DeleteAsync(
+                conversationId,
+                firstBranchId,
+                TestContext.Current.CancellationToken).ConfigureAwait(true));
+            Assert.Equal(
+                legacy,
+                await store.LoadAsync(
+                    conversationId,
+                    firstBranchId,
+                    TestContext.Current.CancellationToken).ConfigureAwait(true));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task SchemaV1SelectionRemainsFallbackAndWritesSchemaV2WhenBranchIsPinned()
+    {
+        string directory = CreateTemporaryDirectory();
+        string path = Path.Combine(directory, "conversation-selections.json");
+        ConversationId conversationId = ConversationId.New();
+        ConversationBranchId branchId = ConversationBranchId.New();
+        GenerationProfileId legacyProfileId = GenerationProfileId.New();
+        string json = $$"""
+        {
+          "schemaVersion": 1,
+          "selections": [
+            {
+              "conversationId": "{{conversationId.Value:D}}",
+              "providerId": "provider.legacy",
+              "modelReference": "owner/model-legacy",
+              "profileId": "{{legacyProfileId.Value:D}}"
+            }
+          ]
+        }
+        """;
+
+        try
+        {
+            await File.WriteAllTextAsync(
+                path,
+                json,
+                TestContext.Current.CancellationToken).ConfigureAwait(true);
+            using JsonConversationGenerationSelectionStore store = new(path);
+            ConversationGenerationSelection inherited =
+                Assert.IsType<ConversationGenerationSelection>(await store.LoadAsync(
+                    conversationId,
+                    branchId,
+                    TestContext.Current.CancellationToken).ConfigureAwait(true));
+
+            Assert.False(inherited.IsBranchScoped);
+            Assert.Equal(legacyProfileId, inherited.ProfileId);
+
+            ConversationGenerationSelection pinned = inherited.ForBranch(branchId);
+            await store.SaveAsync(
+                pinned,
+                TestContext.Current.CancellationToken).ConfigureAwait(true);
+
+            using JsonDocument document = JsonDocument.Parse(await File.ReadAllTextAsync(
+                path,
+                TestContext.Current.CancellationToken).ConfigureAwait(true));
+            Assert.Equal(2, document.RootElement.GetProperty("schemaVersion").GetInt32());
+            Assert.Equal(
+                pinned,
+                await store.LoadAsync(
+                    conversationId,
+                    branchId,
                     TestContext.Current.CancellationToken).ConfigureAwait(true));
         }
         finally
@@ -236,6 +360,20 @@ public sealed class JsonConversationGenerationSelectionStoreTests
     {
         return new ConversationGenerationSelection(
             conversationId,
+            new GenerationProfileModelScope(providerId, modelReference),
+            profileId);
+    }
+
+    private static ConversationGenerationSelection CreateSelection(
+        ConversationId conversationId,
+        ConversationBranchId branchId,
+        string providerId,
+        string modelReference,
+        GenerationProfileId profileId)
+    {
+        return new ConversationGenerationSelection(
+            conversationId,
+            branchId,
             new GenerationProfileModelScope(providerId, modelReference),
             profileId);
     }
