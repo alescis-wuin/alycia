@@ -48,7 +48,7 @@ public sealed class JsonConversationRepositoryBranchingTests
             string json = await File.ReadAllTextAsync(
                 filePath,
                 CancellationToken.None).ConfigureAwait(true);
-            Assert.Contains("\"schemaVersion\": 5", json, StringComparison.Ordinal);
+            Assert.Contains("\"schemaVersion\": 6", json, StringComparison.Ordinal);
             Assert.Contains("\"messageRevisions\"", json, StringComparison.Ordinal);
             Assert.Contains("\"branches\"", json, StringComparison.Ordinal);
             Assert.Contains("\"activeBranchId\"", json, StringComparison.Ordinal);
@@ -128,7 +128,7 @@ public sealed class JsonConversationRepositoryBranchingTests
             string upgradedJson = await File.ReadAllTextAsync(
                 filePath,
                 CancellationToken.None).ConfigureAwait(true);
-            Assert.Contains("\"schemaVersion\": 5", upgradedJson, StringComparison.Ordinal);
+            Assert.Contains("\"schemaVersion\": 6", upgradedJson, StringComparison.Ordinal);
             Assert.Contains(first.ActiveBranchId.Value.ToString("D"), upgradedJson, StringComparison.OrdinalIgnoreCase);
         }
         finally

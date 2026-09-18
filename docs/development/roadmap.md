@@ -48,7 +48,7 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 | UIX-01 Stage 9 | terminé | décomposition Presentation en six ViewModels |
 | UIX-01 Stage 10 | terminé | 10A–10D terminés; UIX-01 foundation clôturée |
 | UI refinement 10.7A | terminé | Provider/Models visual hierarchy |
-| Lot 10B Profiles/revisions/provenance/context | en cours | 10B.1–10B.5c terminés; 10B.6 contexte/budget |
+| Lot 10B Profiles/revisions/provenance/context | terminé | 10B.1–10B.6 terminés; contexte révisionné + provenance + budget explicite |
 | Lot 11 RAG foundation | planifié | à faire |
 | Lot 12 Retrieval/grounded generation | planifié | à faire |
 | Lot 13 Tools/MCP/agents | planifié | à faire |
@@ -281,9 +281,22 @@ Introduire avant RAG.
 - `JsonConversationRepository` schema v5 (`messageRevisions`, `branches`, `activeBranchId`) avec migration stable v0/v2/v3/v4 vers une branche racine déterministe ;
 - aucune UI de navigation/édition de branches dans cette sous-étape ; contexte révisionné/budget explicite restent 10B.6.
 
+### 10B.6 Révisions/provenance de contexte et budget explicite — terminé
+
+- nouveau `ConversationContextId` stable et `ConversationContextRevisionId` UUID pour des états de contexte confirmés, autosuffisants et hashés SHA-256 ;
+- payload atomique 10B.6 limité aux instructions persistantes et au mode explicite `extend`/`replace` des instructions de profil ; RAG, fichiers/assets, tools et multimodal restent hors périmètre ;
+- bindings de contexte ordonnés par branche, ancrés après une révision de message ; une branche enfant épingle la révision de contexte réellement effective à son point exact de divergence ;
+- contexte parent/enfant modifiable indépendamment sans mutation rétroactive et restauration stricte des invariants d'héritage/ownership ;
+- `ConversationTurnSnapshot` capture aussi registre/bindings de contexte afin qu'une modification pendant génération rende le tour stale ;
+- resolver context-aware compatible avec l'interface historique, refus explicite de toute génération qui ignorerait silencieusement un contexte actif ;
+- `GenerationSnapshot` v2 capture `ContextRevisionId` et `GenerationContextBudget` ; v1 reste lisible avec son hash historique inchangé ;
+- budget provider-neutral : fenêtre configurée, réservation de sortie configurée et maximum d'entrée uniquement si les deux valeurs sont connues ; aucune consommation/tokenisation effective inventée ;
+- `JsonConversationRepository` schema v6 et `JsonGenerationSnapshotStore` schema v2, avec lectures rétrocompatibles v0/v2/v3/v4/v5 et snapshot v1 ;
+- aucune UI Presentation ajoutée dans cette sous-étape.
+
 ### Etapes suivantes
 
-- 10B.6 : révisions/provenance de contexte et budget de contexte explicite.
+- Lot 11 : RAG foundation.
 
 ## Lots 11 à 15
 

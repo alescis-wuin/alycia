@@ -7,7 +7,8 @@ namespace Alicia.Infrastructure.Generations;
 
 public sealed class JsonGenerationSnapshotStore : IGenerationSnapshotStore
 {
-    private const int CurrentSchemaVersion = 1;
+    private const int LegacySchemaVersion = 1;
+    private const int CurrentSchemaVersion = 2;
     private const string FileExtension = ".json";
 
     private static readonly JsonSerializerOptions _jsonOptions = new()
@@ -157,7 +158,7 @@ public sealed class JsonGenerationSnapshotStore : IGenerationSnapshotStore
                     $"Generation snapshot file '{filePath}' does not contain a document.");
             }
 
-            if (document.SchemaVersion != CurrentSchemaVersion)
+            if (document.SchemaVersion is not LegacySchemaVersion and not CurrentSchemaVersion)
             {
                 throw new InvalidDataException(
                     $"Unsupported generation snapshot schema version '{document.SchemaVersion}'.");
@@ -175,6 +176,13 @@ public sealed class JsonGenerationSnapshotStore : IGenerationSnapshotStore
                     "Generation snapshot document does not contain input message revisions.");
             }
 
+            if (document.SchemaVersion == CurrentSchemaVersion
+                && document.ContextBudget is null)
+            {
+                throw new InvalidDataException(
+                    "Version-two generation snapshot does not contain an explicit context budget.");
+            }
+
             return document;
         }
         catch (JsonException exception)
@@ -187,9 +195,11 @@ public sealed class JsonGenerationSnapshotStore : IGenerationSnapshotStore
 
     private static SnapshotDocument MapFromSnapshot(GenerationSnapshot snapshot)
     {
+        GenerationContextBudget? budget = snapshot.ContextBudget;
+
         return new SnapshotDocument
         {
-            SchemaVersion = CurrentSchemaVersion,
+            SchemaVersion = budget is null ? LegacySchemaVersion : CurrentSchemaVersion,
             Id = snapshot.Id.Value,
             ConversationId = snapshot.ConversationId.Value,
             TriggeringUserMessageId = snapshot.TriggeringUserMessageId.Value,
@@ -213,6 +223,15 @@ public sealed class JsonGenerationSnapshotStore : IGenerationSnapshotStore
             },
             ProfileId = snapshot.ProfileId?.Value,
             ProfileRevisionId = snapshot.ProfileRevisionId?.Value,
+            ContextRevisionId = snapshot.ContextRevisionId?.Value,
+            ContextBudget = budget is null
+                ? null
+                : new ContextBudgetDocument
+                {
+                    ContextWindowTokens = budget.ContextWindowTokens,
+                    ReservedOutputTokens = budget.ReservedOutputTokens,
+                    MaximumInputTokens = budget.MaximumInputTokens,
+                },
             PayloadHash = snapshot.PayloadHash,
         };
     }
@@ -240,20 +259,59 @@ public sealed class JsonGenerationSnapshotStore : IGenerationSnapshotStore
                 document.ModelReference,
                 document.ContextSize,
                 options);
-            GenerationSnapshot snapshot = new(
-                new GenerationSnapshotId(document.Id),
-                new ConversationId(document.ConversationId),
-                new MessageId(document.TriggeringUserMessageId),
-                new MessageRevisionId(document.TriggeringUserMessageRevisionId),
-                inputRevisionIds.Select(value => new MessageRevisionId(value)),
-                document.CapturedAtUtc,
-                providerConfiguration,
-                document.ProfileId is Guid profileId
-                    ? new GenerationProfileId(profileId)
-                    : null,
-                document.ProfileRevisionId is Guid profileRevisionId
-                    ? new GenerationProfileRevisionId(profileRevisionId)
-                    : null);
+
+            GenerationSnapshot snapshot;
+            if (document.SchemaVersion == LegacySchemaVersion)
+            {
+                snapshot = new GenerationSnapshot(
+                    new GenerationSnapshotId(document.Id),
+                    new ConversationId(document.ConversationId),
+                    new MessageId(document.TriggeringUserMessageId),
+                    new MessageRevisionId(document.TriggeringUserMessageRevisionId),
+                    inputRevisionIds.Select(value => new MessageRevisionId(value)),
+                    document.CapturedAtUtc,
+                    providerConfiguration,
+                    document.ProfileId is Guid profileId
+                        ? new GenerationProfileId(profileId)
+                        : null,
+                    document.ProfileRevisionId is Guid profileRevisionId
+                        ? new GenerationProfileRevisionId(profileRevisionId)
+                        : null);
+            }
+            else
+            {
+                ContextBudgetDocument persistedBudget = document.ContextBudget
+                    ?? throw new InvalidDataException(
+                        "Version-two generation snapshot does not contain an explicit context budget.");
+                GenerationContextBudget budget = new(
+                    persistedBudget.ContextWindowTokens,
+                    persistedBudget.ReservedOutputTokens);
+
+                if (budget.MaximumInputTokens != persistedBudget.MaximumInputTokens)
+                {
+                    throw new InvalidDataException(
+                        "Stored generation snapshot context budget has an inconsistent maximum-input value.");
+                }
+
+                snapshot = new GenerationSnapshot(
+                    new GenerationSnapshotId(document.Id),
+                    new ConversationId(document.ConversationId),
+                    new MessageId(document.TriggeringUserMessageId),
+                    new MessageRevisionId(document.TriggeringUserMessageRevisionId),
+                    inputRevisionIds.Select(value => new MessageRevisionId(value)),
+                    document.CapturedAtUtc,
+                    providerConfiguration,
+                    document.ProfileId is Guid profileId
+                        ? new GenerationProfileId(profileId)
+                        : null,
+                    document.ProfileRevisionId is Guid profileRevisionId
+                        ? new GenerationProfileRevisionId(profileRevisionId)
+                        : null,
+                    document.ContextRevisionId is Guid contextRevisionId
+                        ? new ConversationContextRevisionId(contextRevisionId)
+                        : null,
+                    budget);
+            }
 
             if (string.IsNullOrWhiteSpace(document.PayloadHash))
             {
@@ -308,7 +366,20 @@ public sealed class JsonGenerationSnapshotStore : IGenerationSnapshotStore
 
         public Guid? ProfileRevisionId { get; init; }
 
+        public Guid? ContextRevisionId { get; init; }
+
+        public ContextBudgetDocument? ContextBudget { get; init; }
+
         public string? PayloadHash { get; init; }
+    }
+
+    private sealed class ContextBudgetDocument
+    {
+        public int? ContextWindowTokens { get; init; }
+
+        public int? ReservedOutputTokens { get; init; }
+
+        public int? MaximumInputTokens { get; init; }
     }
 
     private sealed class GenerationOptionsDocument

@@ -10,10 +10,15 @@ public sealed class Conversation
     private readonly List<ChatMessage> _messageRevisions = [];
     private readonly ReadOnlyCollection<ChatMessage> _readOnlyMessageRevisions;
     private readonly Dictionary<MessageRevisionId, ChatMessage> _messageRevisionsById = [];
+    private readonly List<ConversationContextRevision> _contextRevisions = [];
+    private readonly ReadOnlyCollection<ConversationContextRevision> _readOnlyContextRevisions;
+    private readonly Dictionary<ConversationContextRevisionId, ConversationContextRevision>
+        _contextRevisionsById = [];
     private readonly List<ConversationBranch> _branches = [];
     private readonly ReadOnlyCollection<ConversationBranch> _readOnlyBranches;
     private readonly Dictionary<ConversationBranchId, int> _branchIndexes = [];
     private readonly HashSet<MessageRevisionId> _ownedRevisionIds = [];
+    private readonly HashSet<ConversationContextRevisionId> _ownedContextRevisionIds = [];
     private readonly List<ChatMessage> _messages = [];
     private readonly ReadOnlyCollection<ChatMessage> _readOnlyMessages;
 
@@ -66,6 +71,7 @@ public sealed class Conversation
         CreatedAt = createdAt;
         UpdatedAt = updatedAt;
         _readOnlyMessageRevisions = _messageRevisions.AsReadOnly();
+        _readOnlyContextRevisions = _contextRevisions.AsReadOnly();
         _readOnlyBranches = _branches.AsReadOnly();
         _readOnlyMessages = _messages.AsReadOnly();
 
@@ -83,6 +89,8 @@ public sealed class Conversation
 
     public ConversationId Id { get; }
 
+    public ConversationContextId ContextId => new(Id.Value);
+
     public string Title { get; private set; }
 
     public DateTimeOffset CreatedAt { get; }
@@ -95,7 +103,12 @@ public sealed class Conversation
 
     public IReadOnlyList<ChatMessage> MessageRevisions => _readOnlyMessageRevisions;
 
+    public IReadOnlyList<ConversationContextRevision> ContextRevisions => _readOnlyContextRevisions;
+
     public IReadOnlyList<ConversationBranch> Branches => _readOnlyBranches;
+
+    public ConversationContextRevision? ActiveContextRevision =>
+        ResolveBranchContextRevision(ActiveBranchId);
 
     public static Conversation Restore(
         ConversationId id,
@@ -106,7 +119,29 @@ public sealed class Conversation
         IEnumerable<ConversationBranch> branches,
         ConversationBranchId activeBranchId)
     {
+        return Restore(
+            id,
+            title,
+            createdAt,
+            updatedAt,
+            messageRevisions,
+            Array.Empty<ConversationContextRevision>(),
+            branches,
+            activeBranchId);
+    }
+
+    public static Conversation Restore(
+        ConversationId id,
+        string title,
+        DateTimeOffset createdAt,
+        DateTimeOffset updatedAt,
+        IEnumerable<ChatMessage> messageRevisions,
+        IEnumerable<ConversationContextRevision> contextRevisions,
+        IEnumerable<ConversationBranch> branches,
+        ConversationBranchId activeBranchId)
+    {
         ArgumentNullException.ThrowIfNull(messageRevisions);
+        ArgumentNullException.ThrowIfNull(contextRevisions);
         ArgumentNullException.ThrowIfNull(branches);
 
         Conversation conversation = new(
@@ -119,6 +154,11 @@ public sealed class Conversation
         foreach (ChatMessage revision in messageRevisions)
         {
             conversation.RegisterRevision(revision);
+        }
+
+        foreach (ConversationContextRevision revision in contextRevisions)
+        {
+            conversation.RegisterContextRevision(revision);
         }
 
         foreach (ConversationBranch branch in branches)
@@ -171,6 +211,48 @@ public sealed class Conversation
         }
     }
 
+    public ConversationContextRevision UpdateContext(
+        string? instructions,
+        bool replaceProfileInstructions,
+        DateTimeOffset updatedAt)
+    {
+        if (updatedAt == default)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(updatedAt),
+                updatedAt,
+                "Conversation-context update time must be defined.");
+        }
+
+        if (updatedAt < UpdatedAt)
+        {
+            throw new InvalidOperationException("Conversation context cannot be updated in the past.");
+        }
+
+        ConversationContextRevision? current = ActiveContextRevision;
+        ConversationContextRevision revision = new(
+            ContextId,
+            ConversationContextRevisionId.New(),
+            current?.RevisionId,
+            instructions,
+            replaceProfileInstructions,
+            updatedAt);
+        RegisterContextRevision(revision);
+
+        MessageRevisionId? appliedAfterRevisionId = _messages.Count == 0
+            ? null
+            : _messages[^1].RevisionId;
+        ConversationContextBinding binding = new(
+            revision.RevisionId,
+            appliedAfterRevisionId);
+        ConversationBranch activeBranch = GetBranch(ActiveBranchId);
+        ConversationBranch updatedBranch = activeBranch.AppendContext(binding);
+        ReplaceBranch(updatedBranch);
+        _ownedContextRevisionIds.Add(revision.RevisionId);
+        UpdatedAt = updatedAt;
+        return revision;
+    }
+
     public ChatMessage EditUserMessage(
         MessageRevisionId messageRevisionId,
         string content,
@@ -218,11 +300,15 @@ public sealed class Conversation
         MessageRevisionId? forkedAfterRevisionId = targetIndex == 0
             ? null
             : _messages[targetIndex - 1].RevisionId;
+        ConversationContextRevision? inheritedContext =
+            ResolveBranchContextBeforeMessageIndex(ActiveBranchId, targetIndex);
         ConversationBranch childBranch = new(
             ConversationBranchId.New(),
             ActiveBranchId,
             forkedAfterRevisionId,
-            [editedRevision.RevisionId]);
+            [editedRevision.RevisionId],
+            inheritedContext?.RevisionId,
+            contextBindings: null);
 
         RegisterRevisionUnchecked(editedRevision);
         AddBranchUnchecked(childBranch);
@@ -262,6 +348,18 @@ public sealed class Conversation
         }
 
         return Array.AsReadOnly(ResolveBranchMessages(branchId));
+    }
+
+    public ConversationContextRevision? GetContextRevision(ConversationBranchId branchId)
+    {
+        if (branchId.IsEmpty)
+        {
+            throw new ArgumentException(
+                "Conversation branch identifier cannot be empty.",
+                nameof(branchId));
+        }
+
+        return ResolveBranchContextRevision(branchId);
     }
 
     private void RegisterRevision(ChatMessage revision)
@@ -329,6 +427,55 @@ public sealed class Conversation
         _messageRevisionsById.Add(revision.RevisionId, revision);
     }
 
+    private void RegisterContextRevision(ConversationContextRevision revision)
+    {
+        ArgumentNullException.ThrowIfNull(revision);
+
+        if (revision.ContextId != ContextId)
+        {
+            throw new InvalidOperationException(
+                $"Conversation-context revision '{revision.RevisionId}' belongs to a different conversation context.");
+        }
+
+        if (revision.CreatedAt < CreatedAt)
+        {
+            throw new InvalidOperationException(
+                "A conversation-context revision cannot predate its conversation.");
+        }
+
+        if (_contextRevisionsById.ContainsKey(revision.RevisionId))
+        {
+            throw new InvalidOperationException(
+                $"Conversation-context revision '{revision.RevisionId}' already belongs to the conversation.");
+        }
+
+        if (revision.ParentRevisionId is ConversationContextRevisionId parentRevisionId)
+        {
+            if (!_contextRevisionsById.TryGetValue(
+                    parentRevisionId,
+                    out ConversationContextRevision? parentRevision))
+            {
+                throw new InvalidOperationException(
+                    $"Parent conversation-context revision '{parentRevisionId}' does not belong to the conversation.");
+            }
+
+            if (parentRevision.ContextId != revision.ContextId)
+            {
+                throw new InvalidOperationException(
+                    "A conversation-context revision parent must belong to the same logical context.");
+            }
+
+            if (revision.CreatedAt < parentRevision.CreatedAt)
+            {
+                throw new InvalidOperationException(
+                    "A conversation-context revision cannot predate its parent revision.");
+            }
+        }
+
+        _contextRevisions.Add(revision);
+        _contextRevisionsById.Add(revision.RevisionId, revision);
+    }
+
     private void RegisterBranch(ConversationBranch branch)
     {
         ArgumentNullException.ThrowIfNull(branch);
@@ -339,11 +486,19 @@ public sealed class Conversation
                 $"Conversation branch '{branch.Id}' already belongs to the conversation.");
         }
 
+        int sharedPrefixLength = 0;
+
         if (branch.ParentBranchId is null)
         {
             if (_branches.Any(existing => existing.ParentBranchId is null))
             {
                 throw new InvalidOperationException("A conversation can contain only one root branch.");
+            }
+
+            if (branch.InheritedContextRevisionId is not null)
+            {
+                throw new InvalidOperationException(
+                    "A root conversation branch cannot inherit a conversation-context revision.");
             }
         }
         else
@@ -361,7 +516,6 @@ public sealed class Conversation
             }
 
             ChatMessage[] parentMessages = ResolveBranchMessages(branch.ParentBranchId.Value);
-            int sharedPrefixLength = 0;
 
             if (branch.ForkedAfterRevisionId is MessageRevisionId forkRevisionId)
             {
@@ -398,6 +552,16 @@ public sealed class Conversation
                 throw new InvalidOperationException(
                     "A child conversation branch must begin with a revision of the first parent message omitted by its fork point.");
             }
+
+            ConversationContextRevision? expectedInheritedContext =
+                ResolveBranchContextBeforeMessageIndex(
+                    branch.ParentBranchId.Value,
+                    sharedPrefixLength);
+            if (branch.InheritedContextRevisionId != expectedInheritedContext?.RevisionId)
+            {
+                throw new InvalidOperationException(
+                    "A child conversation branch must inherit the context revision effective at its exact divergence point.");
+            }
         }
 
         foreach (MessageRevisionId revisionId in branch.LocalRevisionIds)
@@ -415,12 +579,77 @@ public sealed class Conversation
             }
         }
 
+        ValidateContextBindings(branch);
         ValidateResolvedBranchPath(branch);
         AddBranchUnchecked(branch);
 
         foreach (MessageRevisionId revisionId in branch.LocalRevisionIds)
         {
             _ownedRevisionIds.Add(revisionId);
+        }
+
+        foreach (ConversationContextBinding binding in branch.ContextBindings)
+        {
+            _ownedContextRevisionIds.Add(binding.RevisionId);
+        }
+    }
+
+    private void ValidateContextBindings(ConversationBranch branch)
+    {
+        ConversationContextRevision? previousContext = branch.InheritedContextRevisionId
+            is ConversationContextRevisionId inheritedRevisionId
+                ? GetRequiredContextRevision(inheritedRevisionId)
+                : null;
+        int previousAnchorIndex = -1;
+
+        for (int index = 0; index < branch.ContextBindings.Count; index++)
+        {
+            ConversationContextBinding binding = branch.ContextBindings[index];
+            ConversationContextRevision revision = GetRequiredContextRevision(binding.RevisionId);
+
+            if (_ownedContextRevisionIds.Contains(binding.RevisionId))
+            {
+                throw new InvalidOperationException(
+                    $"Conversation-context revision '{binding.RevisionId}' is owned by more than one branch binding.");
+            }
+
+            if (revision.ParentRevisionId != previousContext?.RevisionId)
+            {
+                throw new InvalidOperationException(
+                    "Conversation-context revision parent does not match the context effective immediately before its branch binding.");
+            }
+
+            int anchorIndex;
+            if (binding.AppliedAfterRevisionId is null)
+            {
+                if (branch.ParentBranchId is not null)
+                {
+                    throw new InvalidOperationException(
+                        "A child conversation branch cannot bind local context before its first local message; inherited context owns the divergence boundary.");
+                }
+
+                anchorIndex = -1;
+            }
+            else
+            {
+                anchorIndex = IndexOfLocalRevision(
+                    branch,
+                    binding.AppliedAfterRevisionId.Value);
+                if (anchorIndex < 0)
+                {
+                    throw new InvalidOperationException(
+                        $"Conversation branch '{branch.Id}' context binding references a message revision that is not local to the branch.");
+                }
+            }
+
+            if (anchorIndex < previousAnchorIndex)
+            {
+                throw new InvalidOperationException(
+                    "Conversation branch context bindings must follow branch timeline order.");
+            }
+
+            previousAnchorIndex = anchorIndex;
+            previousContext = revision;
         }
     }
 
@@ -477,10 +706,22 @@ public sealed class Conversation
                 "Every persisted message revision must be owned by exactly one conversation branch.");
         }
 
+        if (_ownedContextRevisionIds.Count != _contextRevisions.Count)
+        {
+            throw new InvalidOperationException(
+                "Every persisted conversation-context revision must be owned by exactly one branch binding.");
+        }
+
         if (_messageRevisions.Any(revision => revision.CreatedAt > UpdatedAt))
         {
             throw new InvalidOperationException(
                 "Conversation update time predates a persisted message revision.");
+        }
+
+        if (_contextRevisions.Any(revision => revision.CreatedAt > UpdatedAt))
+        {
+            throw new InvalidOperationException(
+                "Conversation update time predates a persisted context revision.");
         }
     }
 
@@ -505,6 +746,20 @@ public sealed class Conversation
         }
 
         return _branches[index];
+    }
+
+    private ConversationContextRevision GetRequiredContextRevision(
+        ConversationContextRevisionId revisionId)
+    {
+        if (!_contextRevisionsById.TryGetValue(
+                revisionId,
+                out ConversationContextRevision? revision))
+        {
+            throw new InvalidOperationException(
+                $"Conversation branch references unknown context revision '{revisionId}'.");
+        }
+
+        return revision;
     }
 
     private ChatMessage[] ResolveBranchMessages(ConversationBranchId branchId)
@@ -537,6 +792,105 @@ public sealed class Conversation
         }
 
         return resolved.ToArray();
+    }
+
+    private ConversationContextRevision? ResolveBranchContextRevision(
+        ConversationBranchId branchId)
+    {
+        ChatMessage[] messages = ResolveBranchMessages(branchId);
+        return ResolveBranchContextBeforeMessageIndex(branchId, messages.Length);
+    }
+
+    private ConversationContextRevision? ResolveBranchContextBeforeMessageIndex(
+        ConversationBranchId branchId,
+        int targetIndex)
+    {
+        ConversationBranch branch = GetBranch(branchId);
+        ChatMessage[] resolvedMessages = ResolveBranchMessages(branchId);
+
+        if (targetIndex < 0 || targetIndex > resolvedMessages.Length)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(targetIndex),
+                targetIndex,
+                "Context resolution index must belong to the resolved branch timeline.");
+        }
+
+        int sharedPrefixLength = GetSharedPrefixLength(branch);
+        if (branch.ParentBranchId is ConversationBranchId parentBranchId
+            && targetIndex <= sharedPrefixLength)
+        {
+            return ResolveBranchContextBeforeMessageIndex(parentBranchId, targetIndex);
+        }
+
+        ConversationContextRevision? current = branch.InheritedContextRevisionId
+            is ConversationContextRevisionId inheritedRevisionId
+                ? GetRequiredContextRevision(inheritedRevisionId)
+                : null;
+
+        foreach (ConversationContextBinding binding in branch.ContextBindings)
+        {
+            int anchorIndex = binding.AppliedAfterRevisionId is null
+                ? -1
+                : Array.FindIndex(
+                    resolvedMessages,
+                    message => message.RevisionId == binding.AppliedAfterRevisionId.Value);
+
+            if (anchorIndex < 0 && binding.AppliedAfterRevisionId is not null)
+            {
+                throw new InvalidOperationException(
+                    $"Conversation branch '{branch.Id}' contains an invalid context binding anchor.");
+            }
+
+            if (anchorIndex >= targetIndex)
+            {
+                break;
+            }
+
+            current = GetRequiredContextRevision(binding.RevisionId);
+        }
+
+        return current;
+    }
+
+    private int GetSharedPrefixLength(ConversationBranch branch)
+    {
+        if (branch.ParentBranchId is not ConversationBranchId parentBranchId)
+        {
+            return 0;
+        }
+
+        if (branch.ForkedAfterRevisionId is null)
+        {
+            return 0;
+        }
+
+        ChatMessage[] parentMessages = ResolveBranchMessages(parentBranchId);
+        int forkIndex = Array.FindIndex(
+            parentMessages,
+            message => message.RevisionId == branch.ForkedAfterRevisionId.Value);
+        if (forkIndex < 0)
+        {
+            throw new InvalidOperationException(
+                $"Fork message revision '{branch.ForkedAfterRevisionId}' is not visible on the parent conversation branch.");
+        }
+
+        return forkIndex + 1;
+    }
+
+    private static int IndexOfLocalRevision(
+        ConversationBranch branch,
+        MessageRevisionId revisionId)
+    {
+        for (int index = 0; index < branch.LocalRevisionIds.Count; index++)
+        {
+            if (branch.LocalRevisionIds[index] == revisionId)
+            {
+                return index;
+            }
+        }
+
+        return -1;
     }
 
     private void RebuildActiveMessages()

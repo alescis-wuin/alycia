@@ -91,6 +91,7 @@ internal static class ConversationTurnCompletion
             source.CreatedAt,
             source.UpdatedAt,
             source.MessageRevisions,
+            source.ContextRevisions,
             source.Branches,
             source.ActiveBranchId);
         copy.AddMessage(assistantMessage);

@@ -23,6 +23,8 @@ The dependency graph is checked automatically. Presentation code must not depend
 
 Lot 10B.5c adds a durable immutable-prefix conversation branch graph below Presentation. Editing a confirmed User message creates a child branch and a new revision of the same logical `MessageId`; the original branch and its downstream generation provenance remain intact. `Conversation.Messages` stays the linear compatibility view of the active branch, while visual branch navigation/editing remains a later Presentation concern.
 
+Lot 10B.6 adds immutable conversation-context revisions and branch-timeline bindings. A fork pins the exact context effective at its divergence point, later parent context changes cannot rewrite child state, and generation snapshots capture the exact context revision plus an explicit context-window/output-reservation budget when those limits are configured. Unknown provider/model defaults remain unknown; RAG, assets, tools, multimodal input, visual context editing, and tokenizer-specific accounting remain later concerns.
+
 ## Prerequisites
 
 - Linux, macOS, or Windows for the application itself;
@@ -110,6 +112,7 @@ The provider-neutral Application contracts remain independent of llama.cpp/CUDA/
 - `docs/decisions/0035-immutable-message-revisions-and-legacy-migration.md`
 - `docs/decisions/0036-durable-generation-snapshot-provenance.md`
 - `docs/decisions/0037-conversation-branch-graph.md`
+- `docs/decisions/0038-revisioned-conversation-context-and-budget.md`
 - `docs/development/roadmap.md`
 - `docs/design/ui-ux-specification.md`
 - `docs/user-guide/README.md`

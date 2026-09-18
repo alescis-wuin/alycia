@@ -62,11 +62,27 @@ public sealed class ConversationResponseRequest
     {
         ArgumentNullException.ThrowIfNull(conversation);
 
+        ConversationContextRevision? activeContext = conversation.ActiveContextRevision;
+        GenerationSnapshot? snapshot = resolvedGeneration?.Snapshot;
+
+        if (activeContext is not null && snapshot is null)
+        {
+            throw new InvalidOperationException(
+                "Revisioned conversation context requires a generation snapshot before provider dispatch.");
+        }
+
+        if (snapshot is not null
+            && snapshot.ContextRevisionId != activeContext?.RevisionId)
+        {
+            throw new InvalidOperationException(
+                "Generation snapshot context revision does not match the active conversation branch context.");
+        }
+
         return new ConversationResponseRequest(
             conversation.Id,
             conversation.Title,
             conversation.Messages,
-            resolvedGeneration?.Snapshot,
+            snapshot,
             resolvedGeneration?.SystemInstructions);
     }
 

@@ -13,7 +13,8 @@ public sealed class JsonConversationRepository : IConversationRepository
     private const int LegacySchemaVersion = 2;
     private const int MessageRevisionSchemaVersion = 3;
     private const int GenerationSnapshotSchemaVersion = 4;
-    private const int CurrentSchemaVersion = 5;
+    private const int BranchGraphSchemaVersion = 5;
+    private const int CurrentSchemaVersion = 6;
     private const string LegacyRevisionIdSchema = "alicia-legacy-message-revision-id-v1";
     private const string LegacyBranchIdSchema = "alicia-legacy-conversation-root-branch-id-v1";
     private static readonly JsonSerializerOptions _serializerOptions = new(JsonSerializerDefaults.Web)
@@ -154,6 +155,18 @@ public sealed class JsonConversationRepository : IConversationRepository
         List<MessageDocument> messageRevisions = conversation.MessageRevisions
             .Select(MapFromDomain)
             .ToList();
+        List<ContextRevisionDocument> contextRevisions = conversation.ContextRevisions
+            .Select(revision => new ContextRevisionDocument
+            {
+                ContextId = revision.ContextId.Value,
+                RevisionId = revision.RevisionId.Value,
+                ParentRevisionId = revision.ParentRevisionId?.Value,
+                Instructions = revision.Instructions,
+                ReplaceProfileInstructions = revision.ReplaceProfileInstructions,
+                CreatedAt = revision.CreatedAt,
+                PayloadHash = revision.PayloadHash,
+            })
+            .ToList();
         List<BranchDocument> branches = conversation.Branches
             .Select(branch => new BranchDocument
             {
@@ -162,6 +175,14 @@ public sealed class JsonConversationRepository : IConversationRepository
                 ForkedAfterRevisionId = branch.ForkedAfterRevisionId?.Value,
                 LocalRevisionIds = branch.LocalRevisionIds
                     .Select(revisionId => revisionId.Value)
+                    .ToList(),
+                InheritedContextRevisionId = branch.InheritedContextRevisionId?.Value,
+                ContextBindings = branch.ContextBindings
+                    .Select(binding => new ContextBindingDocument
+                    {
+                        RevisionId = binding.RevisionId.Value,
+                        AppliedAfterRevisionId = binding.AppliedAfterRevisionId?.Value,
+                    })
                     .ToList(),
             })
             .ToList();
@@ -174,6 +195,7 @@ public sealed class JsonConversationRepository : IConversationRepository
             CreatedAt = conversation.CreatedAt,
             UpdatedAt = conversation.UpdatedAt,
             MessageRevisions = messageRevisions,
+            ContextRevisions = contextRevisions,
             Branches = branches,
             ActiveBranchId = conversation.ActiveBranchId.Value,
         };
@@ -197,20 +219,31 @@ public sealed class JsonConversationRepository : IConversationRepository
     private static DateTimeOffset GetPersistedUpdatedAt(ConversationDocument document)
     {
         DateTimeOffset updatedAt = document.CreatedAt;
-        List<MessageDocument>? messageRevisions = document.SchemaVersion == CurrentSchemaVersion
-            ? document.MessageRevisions
-            : document.Messages;
+        List<MessageDocument>? messageRevisions = document.SchemaVersion
+            is BranchGraphSchemaVersion or CurrentSchemaVersion
+                ? document.MessageRevisions
+                : document.Messages;
 
-        if (messageRevisions is null)
+        if (messageRevisions is not null)
         {
-            return updatedAt;
+            foreach (MessageDocument message in messageRevisions)
+            {
+                if (message.CreatedAt > updatedAt)
+                {
+                    updatedAt = message.CreatedAt;
+                }
+            }
         }
 
-        foreach (MessageDocument message in messageRevisions)
+        if (document.SchemaVersion == CurrentSchemaVersion
+            && document.ContextRevisions is not null)
         {
-            if (message.CreatedAt > updatedAt)
+            foreach (ContextRevisionDocument revision in document.ContextRevisions)
             {
-                updatedAt = message.CreatedAt;
+                if (revision.CreatedAt > updatedAt)
+                {
+                    updatedAt = revision.CreatedAt;
+                }
             }
         }
 
@@ -274,13 +307,16 @@ public sealed class JsonConversationRepository : IConversationRepository
             and not LegacySchemaVersion
             and not MessageRevisionSchemaVersion
             and not GenerationSnapshotSchemaVersion
+            and not BranchGraphSchemaVersion
             and not CurrentSchemaVersion)
         {
             throw new InvalidDataException(
                 $"Conversation schema version '{document.SchemaVersion}' is not supported.");
         }
 
-        List<MessageDocument>? persistedMessages = document.SchemaVersion == CurrentSchemaVersion
+        bool hasBranchGraph = document.SchemaVersion
+            is BranchGraphSchemaVersion or CurrentSchemaVersion;
+        List<MessageDocument>? persistedMessages = hasBranchGraph
             ? document.MessageRevisions
             : document.Messages;
         if (persistedMessages is null)
@@ -310,10 +346,28 @@ public sealed class JsonConversationRepository : IConversationRepository
                 message))
             .ToArray();
 
+        ConversationContextRevision[] contextRevisions;
+        if (document.SchemaVersion == CurrentSchemaVersion)
+        {
+            if (document.ContextRevisions is null)
+            {
+                throw new InvalidDataException(
+                    "Conversation document does not contain a context-revision collection.");
+            }
+
+            contextRevisions = document.ContextRevisions
+                .Select(MapToContextRevision)
+                .ToArray();
+        }
+        else
+        {
+            contextRevisions = Array.Empty<ConversationContextRevision>();
+        }
+
         ConversationBranch[] branches;
         ConversationBranchId activeBranchId;
 
-        if (document.SchemaVersion == CurrentSchemaVersion)
+        if (hasBranchGraph)
         {
             if (document.Branches is null)
             {
@@ -325,7 +379,9 @@ public sealed class JsonConversationRepository : IConversationRepository
                 throw new InvalidDataException("Conversation document does not define an active branch.");
             }
 
-            branches = document.Branches.Select(MapToBranch).ToArray();
+            branches = document.Branches
+                .Select(branch => MapToBranch(branch, document.SchemaVersion))
+                .ToArray();
             activeBranchId = new ConversationBranchId(activeBranchValue);
         }
         else
@@ -348,11 +404,14 @@ public sealed class JsonConversationRepository : IConversationRepository
             document.CreatedAt,
             updatedAt,
             revisions,
+            contextRevisions,
             branches,
             activeBranchId);
     }
 
-    private static ConversationBranch MapToBranch(BranchDocument document)
+    private static ConversationBranch MapToBranch(
+        BranchDocument document,
+        int schemaVersion)
     {
         if (document.LocalRevisionIds is null)
         {
@@ -360,15 +419,73 @@ public sealed class JsonConversationRepository : IConversationRepository
                 $"Stored conversation branch '{document.Id}' does not contain local revisions.");
         }
 
+        if (schemaVersion == BranchGraphSchemaVersion)
+        {
+            return new ConversationBranch(
+                new ConversationBranchId(document.Id),
+                document.ParentBranchId is Guid parentBranchId
+                    ? new ConversationBranchId(parentBranchId)
+                    : null,
+                document.ForkedAfterRevisionId is Guid forkedAfterRevisionId
+                    ? new MessageRevisionId(forkedAfterRevisionId)
+                    : null,
+                document.LocalRevisionIds.Select(revisionId => new MessageRevisionId(revisionId)));
+        }
+
+        if (document.ContextBindings is null)
+        {
+            throw new InvalidDataException(
+                $"Stored conversation branch '{document.Id}' does not contain context bindings.");
+        }
+
         return new ConversationBranch(
             new ConversationBranchId(document.Id),
-            document.ParentBranchId is Guid parentBranchId
-                ? new ConversationBranchId(parentBranchId)
+            document.ParentBranchId is Guid parentBranchValue
+                ? new ConversationBranchId(parentBranchValue)
                 : null,
-            document.ForkedAfterRevisionId is Guid forkedAfterRevisionId
-                ? new MessageRevisionId(forkedAfterRevisionId)
+            document.ForkedAfterRevisionId is Guid forkRevisionValue
+                ? new MessageRevisionId(forkRevisionValue)
                 : null,
-            document.LocalRevisionIds.Select(revisionId => new MessageRevisionId(revisionId)));
+            document.LocalRevisionIds.Select(revisionId => new MessageRevisionId(revisionId)),
+            document.InheritedContextRevisionId is Guid inheritedContextRevisionId
+                ? new ConversationContextRevisionId(inheritedContextRevisionId)
+                : null,
+            document.ContextBindings.Select(binding => new ConversationContextBinding(
+                new ConversationContextRevisionId(binding.RevisionId),
+                binding.AppliedAfterRevisionId is Guid appliedAfterRevisionId
+                    ? new MessageRevisionId(appliedAfterRevisionId)
+                    : null)));
+    }
+
+    private static ConversationContextRevision MapToContextRevision(
+        ContextRevisionDocument document)
+    {
+        ConversationContextRevision revision = new(
+            new ConversationContextId(document.ContextId),
+            new ConversationContextRevisionId(document.RevisionId),
+            document.ParentRevisionId is Guid parentRevisionId
+                ? new ConversationContextRevisionId(parentRevisionId)
+                : null,
+            document.Instructions,
+            document.ReplaceProfileInstructions,
+            document.CreatedAt);
+
+        if (string.IsNullOrWhiteSpace(document.PayloadHash))
+        {
+            throw new InvalidDataException(
+                $"Stored conversation-context revision '{revision.RevisionId}' has no payload hash.");
+        }
+
+        if (!string.Equals(
+            revision.PayloadHash,
+            document.PayloadHash,
+            StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidDataException(
+                $"Stored conversation-context revision '{revision.RevisionId}' has a payload-hash mismatch.");
+        }
+
+        return revision;
     }
 
     private static ChatMessage MapToMessageRevision(
@@ -387,7 +504,9 @@ public sealed class JsonConversationRepository : IConversationRepository
                 ? new MessageRevisionId(parentId)
                 : null;
 
-        GenerationSnapshotId? generationSnapshotId = (schemaVersion is GenerationSnapshotSchemaVersion or CurrentSchemaVersion)
+        bool supportsGenerationSnapshot = schemaVersion
+            is GenerationSnapshotSchemaVersion or BranchGraphSchemaVersion or CurrentSchemaVersion;
+        GenerationSnapshotId? generationSnapshotId = supportsGenerationSnapshot
             && document.GenerationSnapshotId is Guid snapshotId
                 ? new GenerationSnapshotId(snapshotId)
                 : null;
@@ -492,6 +611,9 @@ public sealed class JsonConversationRepository : IConversationRepository
         public List<MessageDocument>? MessageRevisions { get; init; }
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public List<ContextRevisionDocument>? ContextRevisions { get; init; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public List<BranchDocument>? Branches { get; init; }
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -521,6 +643,23 @@ public sealed class JsonConversationRepository : IConversationRepository
         public Guid? GenerationSnapshotId { get; init; }
     }
 
+    private sealed class ContextRevisionDocument
+    {
+        public Guid ContextId { get; init; }
+
+        public Guid RevisionId { get; init; }
+
+        public Guid? ParentRevisionId { get; init; }
+
+        public string? Instructions { get; init; }
+
+        public bool ReplaceProfileInstructions { get; init; }
+
+        public DateTimeOffset CreatedAt { get; init; }
+
+        public string? PayloadHash { get; init; }
+    }
+
     private sealed class BranchDocument
     {
         public BranchDocument()
@@ -534,5 +673,16 @@ public sealed class JsonConversationRepository : IConversationRepository
         public Guid? ForkedAfterRevisionId { get; init; }
 
         public List<Guid>? LocalRevisionIds { get; init; }
+
+        public Guid? InheritedContextRevisionId { get; init; }
+
+        public List<ContextBindingDocument>? ContextBindings { get; init; }
+    }
+
+    private sealed class ContextBindingDocument
+    {
+        public Guid RevisionId { get; init; }
+
+        public Guid? AppliedAfterRevisionId { get; init; }
     }
 }

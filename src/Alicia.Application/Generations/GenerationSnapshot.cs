@@ -9,8 +9,10 @@ namespace Alicia.Application.Generations;
 
 public sealed record GenerationSnapshot
 {
-    private const string PayloadHashSchema = "alicia-generation-snapshot-payload-v1";
+    private const string PayloadHashSchemaV1 = "alicia-generation-snapshot-payload-v1";
+    private const string PayloadHashSchemaV2 = "alicia-generation-snapshot-payload-v2";
     private readonly ReadOnlyCollection<MessageRevisionId> _inputMessageRevisionIds;
+    private readonly int _payloadSchemaVersion;
 
     public GenerationSnapshot(
         GenerationSnapshotId id,
@@ -22,6 +24,63 @@ public sealed record GenerationSnapshot
         InferenceProviderConfiguration providerConfiguration,
         GenerationProfileId? profileId = null,
         GenerationProfileRevisionId? profileRevisionId = null)
+        : this(
+            id,
+            conversationId,
+            triggeringUserMessageId,
+            triggeringUserMessageRevisionId,
+            inputMessageRevisionIds,
+            capturedAt,
+            providerConfiguration,
+            profileId,
+            profileRevisionId,
+            contextRevisionId: null,
+            contextBudget: null,
+            payloadSchemaVersion: 1)
+    {
+    }
+
+    public GenerationSnapshot(
+        GenerationSnapshotId id,
+        ConversationId conversationId,
+        MessageId triggeringUserMessageId,
+        MessageRevisionId triggeringUserMessageRevisionId,
+        IEnumerable<MessageRevisionId> inputMessageRevisionIds,
+        DateTimeOffset capturedAt,
+        InferenceProviderConfiguration providerConfiguration,
+        GenerationProfileId? profileId,
+        GenerationProfileRevisionId? profileRevisionId,
+        ConversationContextRevisionId? contextRevisionId,
+        GenerationContextBudget contextBudget)
+        : this(
+            id,
+            conversationId,
+            triggeringUserMessageId,
+            triggeringUserMessageRevisionId,
+            inputMessageRevisionIds,
+            capturedAt,
+            providerConfiguration,
+            profileId,
+            profileRevisionId,
+            contextRevisionId,
+            contextBudget,
+            payloadSchemaVersion: 2)
+    {
+    }
+
+    private GenerationSnapshot(
+        GenerationSnapshotId id,
+        ConversationId conversationId,
+        MessageId triggeringUserMessageId,
+        MessageRevisionId triggeringUserMessageRevisionId,
+        IEnumerable<MessageRevisionId> inputMessageRevisionIds,
+        DateTimeOffset capturedAt,
+        InferenceProviderConfiguration providerConfiguration,
+        GenerationProfileId? profileId,
+        GenerationProfileRevisionId? profileRevisionId,
+        ConversationContextRevisionId? contextRevisionId,
+        GenerationContextBudget? contextBudget,
+        int payloadSchemaVersion)
     {
         if (id.IsEmpty)
         {
@@ -117,6 +176,34 @@ public sealed record GenerationSnapshot
                 nameof(profileRevisionId));
         }
 
+        if (contextRevisionId is { IsEmpty: true })
+        {
+            throw new ArgumentException(
+                "Conversation-context revision identifier cannot be empty when supplied.",
+                nameof(contextRevisionId));
+        }
+
+        if (payloadSchemaVersion == 2)
+        {
+            ArgumentNullException.ThrowIfNull(contextBudget);
+
+            if (contextBudget.ContextWindowTokens != providerConfiguration.ContextSize
+                || contextBudget.ReservedOutputTokens
+                    != providerConfiguration.Generation.MaxOutputTokens)
+            {
+                throw new ArgumentException(
+                    "Generation context budget must match the captured provider context window and output-token reservation.",
+                    nameof(contextBudget));
+            }
+        }
+        else if (payloadSchemaVersion != 1)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(payloadSchemaVersion),
+                payloadSchemaVersion,
+                "Generation-snapshot payload schema is not supported.");
+        }
+
         Id = id;
         ConversationId = conversationId;
         TriggeringUserMessageId = triggeringUserMessageId;
@@ -129,6 +216,9 @@ public sealed record GenerationSnapshot
         GenerationOptions = CopyGenerationOptions(providerConfiguration.Generation);
         ProfileId = profileId;
         ProfileRevisionId = profileRevisionId;
+        ContextRevisionId = contextRevisionId;
+        ContextBudget = contextBudget;
+        _payloadSchemaVersion = payloadSchemaVersion;
         PayloadHash = ComputePayloadHash();
     }
 
@@ -156,12 +246,20 @@ public sealed record GenerationSnapshot
 
     public GenerationProfileRevisionId? ProfileRevisionId { get; }
 
+    public ConversationContextRevisionId? ContextRevisionId { get; }
+
+    public GenerationContextBudget? ContextBudget { get; }
+
     public string PayloadHash { get; }
 
     public bool HasProfileSelection => ProfileId is not null;
 
+    public bool HasExplicitContextBudget => ContextBudget is not null;
+
     public bool UsesProviderDefaults => ContextSize is null
         && GenerationOptions.UsesOnlyProviderDefaults;
+
+    internal int PayloadSchemaVersion => _payloadSchemaVersion;
 
     private static InferenceGenerationOptions CopyGenerationOptions(
         InferenceGenerationOptions source)
@@ -181,7 +279,9 @@ public sealed record GenerationSnapshot
     private string ComputePayloadHash()
     {
         StringBuilder canonical = new();
-        AppendCanonical(canonical, PayloadHashSchema);
+        AppendCanonical(
+            canonical,
+            _payloadSchemaVersion == 1 ? PayloadHashSchemaV1 : PayloadHashSchemaV2);
         AppendCanonical(canonical, ConversationId.ToString());
         AppendCanonical(canonical, TriggeringUserMessageId.ToString());
         AppendCanonical(canonical, TriggeringUserMessageRevisionId.ToString());
@@ -198,6 +298,18 @@ public sealed record GenerationSnapshot
         AppendCanonical(canonical, FormatNullable(GenerationOptions.ReasoningBudgetTokens));
         AppendCanonical(canonical, ProfileId?.ToString());
         AppendCanonical(canonical, ProfileRevisionId?.ToString());
+
+        if (_payloadSchemaVersion == 2)
+        {
+            GenerationContextBudget budget = ContextBudget
+                ?? throw new InvalidOperationException(
+                    "A version-two generation snapshot requires an explicit context budget.");
+            AppendCanonical(canonical, ContextRevisionId?.ToString());
+            AppendCanonical(canonical, FormatNullable(budget.ContextWindowTokens));
+            AppendCanonical(canonical, FormatNullable(budget.ReservedOutputTokens));
+            AppendCanonical(canonical, FormatNullable(budget.MaximumInputTokens));
+        }
+
         AppendCanonical(
             canonical,
             InputMessageRevisionIds.Count.ToString(CultureInfo.InvariantCulture));

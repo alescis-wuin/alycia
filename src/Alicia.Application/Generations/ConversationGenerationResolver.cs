@@ -3,7 +3,7 @@ using Alicia.Domain.Conversations;
 
 namespace Alicia.Application.Generations;
 
-public sealed class ConversationGenerationResolver : IConversationGenerationResolver
+public sealed class ConversationGenerationResolver : IConversationContextGenerationResolver
 {
     private readonly IConversationGenerationSelectionStore _selectionStore;
     private readonly IGenerationProfileCatalogStore _profileCatalogStore;
@@ -27,11 +27,28 @@ public sealed class ConversationGenerationResolver : IConversationGenerationReso
         _timeProvider = timeProvider;
     }
 
+    public Task<ResolvedConversationGeneration?> ResolveAsync(
+        ConversationId conversationId,
+        MessageId triggeringUserMessageId,
+        MessageRevisionId triggeringUserMessageRevisionId,
+        IReadOnlyList<MessageRevisionId> inputMessageRevisionIds,
+        CancellationToken cancellationToken = default)
+    {
+        return ResolveAsync(
+            conversationId,
+            triggeringUserMessageId,
+            triggeringUserMessageRevisionId,
+            inputMessageRevisionIds,
+            contextRevision: null,
+            cancellationToken: cancellationToken);
+    }
+
     public async Task<ResolvedConversationGeneration?> ResolveAsync(
         ConversationId conversationId,
         MessageId triggeringUserMessageId,
         MessageRevisionId triggeringUserMessageRevisionId,
         IReadOnlyList<MessageRevisionId> inputMessageRevisionIds,
+        ConversationContextRevision? contextRevision,
         CancellationToken cancellationToken = default)
     {
         if (conversationId.IsEmpty)
@@ -56,6 +73,7 @@ public sealed class ConversationGenerationResolver : IConversationGenerationReso
         }
 
         ArgumentNullException.ThrowIfNull(inputMessageRevisionIds);
+        ValidateContextRevision(conversationId, contextRevision);
 
         ConversationGenerationSelection? selection = await _selectionStore
             .LoadAsync(conversationId, cancellationToken)
@@ -67,6 +85,7 @@ public sealed class ConversationGenerationResolver : IConversationGenerationReso
                     triggeringUserMessageId,
                     triggeringUserMessageRevisionId,
                     inputMessageRevisionIds,
+                    contextRevision,
                     cancellationToken)
                 .ConfigureAwait(false);
         }
@@ -118,11 +137,14 @@ public sealed class ConversationGenerationResolver : IConversationGenerationReso
             inputMessageRevisionIds,
             resolvedConfiguration,
             profile.Id,
-            revisionId);
+            revisionId,
+            contextRevision);
 
         return new ResolvedConversationGeneration(
             snapshot,
-            profile.BaseSystemInstructions);
+            ComposeSystemInstructions(
+                profile.BaseSystemInstructions,
+                contextRevision));
     }
 
     private async Task<ResolvedConversationGeneration?> ResolveLegacySelectionAsync(
@@ -130,6 +152,7 @@ public sealed class ConversationGenerationResolver : IConversationGenerationReso
         MessageId triggeringUserMessageId,
         MessageRevisionId triggeringUserMessageRevisionId,
         IReadOnlyList<MessageRevisionId> inputMessageRevisionIds,
+        ConversationContextRevision? contextRevision,
         CancellationToken cancellationToken)
     {
         string? providerId = await _providerConfigurationStore
@@ -152,9 +175,12 @@ public sealed class ConversationGenerationResolver : IConversationGenerationReso
             inputMessageRevisionIds,
             providerConfiguration,
             profileId: null,
-            profileRevisionId: null);
+            profileRevisionId: null,
+            contextRevision);
 
-        return new ResolvedConversationGeneration(snapshot, systemInstructions: null);
+        return new ResolvedConversationGeneration(
+            snapshot,
+            ComposeSystemInstructions(profileInstructions: null, contextRevision));
     }
 
     private GenerationSnapshot CreateSnapshot(
@@ -164,8 +190,12 @@ public sealed class ConversationGenerationResolver : IConversationGenerationReso
         IReadOnlyList<MessageRevisionId> inputMessageRevisionIds,
         InferenceProviderConfiguration providerConfiguration,
         GenerationProfileId? profileId,
-        GenerationProfileRevisionId? profileRevisionId)
+        GenerationProfileRevisionId? profileRevisionId,
+        ConversationContextRevision? contextRevision)
     {
+        GenerationContextBudget budget =
+            GenerationContextBudget.FromConfiguration(providerConfiguration);
+
         return new GenerationSnapshot(
             GenerationSnapshotId.New(),
             conversationId,
@@ -175,6 +205,61 @@ public sealed class ConversationGenerationResolver : IConversationGenerationReso
             _timeProvider.GetUtcNow(),
             providerConfiguration,
             profileId,
-            profileRevisionId);
+            profileRevisionId,
+            contextRevision?.RevisionId,
+            budget);
+    }
+
+    private static void ValidateContextRevision(
+        ConversationId conversationId,
+        ConversationContextRevision? contextRevision)
+    {
+        if (contextRevision is null)
+        {
+            return;
+        }
+
+        ConversationContextId expectedContextId = new(conversationId.Value);
+        if (contextRevision.ContextId != expectedContextId)
+        {
+            throw new ArgumentException(
+                "Conversation-context revision does not belong to the generation conversation.",
+                nameof(contextRevision));
+        }
+    }
+
+    private static string? ComposeSystemInstructions(
+        string? profileInstructions,
+        ConversationContextRevision? contextRevision)
+    {
+        if (contextRevision is null)
+        {
+            return NormalizeOptionalInstructions(profileInstructions);
+        }
+
+        string? contextInstructions =
+            NormalizeOptionalInstructions(contextRevision.Instructions);
+        if (contextRevision.ReplaceProfileInstructions)
+        {
+            return contextInstructions;
+        }
+
+        string? normalizedProfile = NormalizeOptionalInstructions(profileInstructions);
+        if (normalizedProfile is null)
+        {
+            return contextInstructions;
+        }
+
+        if (contextInstructions is null)
+        {
+            return normalizedProfile;
+        }
+
+        return normalizedProfile + "\n\n" + contextInstructions;
+    }
+
+    private static string? NormalizeOptionalInstructions(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? null : value;
     }
 }

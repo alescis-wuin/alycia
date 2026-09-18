@@ -6,6 +6,7 @@ namespace Alicia.Application.Conversations;
 internal sealed class ConversationTurnSnapshot
 {
     private readonly ChatMessage[] _messageRevisions;
+    private readonly ConversationContextRevision[] _contextRevisions;
     private readonly ConversationBranchSnapshot[] _branches;
     private readonly ReadOnlyCollection<MessageRevisionId> _inputMessageRevisionIds;
 
@@ -16,16 +17,20 @@ internal sealed class ConversationTurnSnapshot
         ConversationBranchId activeBranchId,
         ChatMessage[] activeMessages,
         ChatMessage[] messageRevisions,
+        ConversationContextRevision[] contextRevisions,
         ConversationBranchSnapshot[] branches,
-        MessageRevisionId triggeringUserMessageRevisionId)
+        MessageRevisionId triggeringUserMessageRevisionId,
+        ConversationContextRevision? activeContextRevision)
     {
         Title = title;
         CreatedAt = createdAt;
         UpdatedAt = updatedAt;
         ActiveBranchId = activeBranchId;
         _messageRevisions = messageRevisions;
+        _contextRevisions = contextRevisions;
         _branches = branches;
         TriggeringUserMessageRevisionId = triggeringUserMessageRevisionId;
+        ActiveContextRevision = activeContextRevision;
         _inputMessageRevisionIds = Array.AsReadOnly(
             activeMessages.Select(message => message.RevisionId).ToArray());
     }
@@ -42,6 +47,8 @@ internal sealed class ConversationTurnSnapshot
 
     public IReadOnlyList<MessageRevisionId> InputMessageRevisionIds => _inputMessageRevisionIds;
 
+    public ConversationContextRevision? ActiveContextRevision { get; }
+
     public static ConversationTurnSnapshot Capture(
         Conversation conversation,
         MessageId triggeringUserMessageId)
@@ -57,8 +64,10 @@ internal sealed class ConversationTurnSnapshot
             conversation.ActiveBranchId,
             activeMessages,
             conversation.MessageRevisions.ToArray(),
+            conversation.ContextRevisions.ToArray(),
             conversation.Branches.Select(ConversationBranchSnapshot.Capture).ToArray(),
-            trigger.RevisionId);
+            trigger.RevisionId,
+            conversation.ActiveContextRevision);
     }
 
     public Conversation RequireMatching(Conversation? conversation)
@@ -82,6 +91,7 @@ internal sealed class ConversationTurnSnapshot
             || UpdatedAt != conversation.UpdatedAt
             || ActiveBranchId != conversation.ActiveBranchId
             || !_messageRevisions.SequenceEqual(conversation.MessageRevisions)
+            || !_contextRevisions.SequenceEqual(conversation.ContextRevisions)
             || _branches.Length != conversation.Branches.Count)
         {
             return false;
@@ -139,17 +149,22 @@ internal sealed class ConversationTurnSnapshot
     private sealed class ConversationBranchSnapshot
     {
         private readonly MessageRevisionId[] _localRevisionIds;
+        private readonly ConversationContextBinding[] _contextBindings;
 
         private ConversationBranchSnapshot(
             ConversationBranchId id,
             ConversationBranchId? parentBranchId,
             MessageRevisionId? forkedAfterRevisionId,
-            MessageRevisionId[] localRevisionIds)
+            ConversationContextRevisionId? inheritedContextRevisionId,
+            MessageRevisionId[] localRevisionIds,
+            ConversationContextBinding[] contextBindings)
         {
             Id = id;
             ParentBranchId = parentBranchId;
             ForkedAfterRevisionId = forkedAfterRevisionId;
+            InheritedContextRevisionId = inheritedContextRevisionId;
             _localRevisionIds = localRevisionIds;
+            _contextBindings = contextBindings;
         }
 
         private ConversationBranchId Id { get; }
@@ -157,6 +172,8 @@ internal sealed class ConversationTurnSnapshot
         private ConversationBranchId? ParentBranchId { get; }
 
         private MessageRevisionId? ForkedAfterRevisionId { get; }
+
+        private ConversationContextRevisionId? InheritedContextRevisionId { get; }
 
         public static ConversationBranchSnapshot Capture(ConversationBranch branch)
         {
@@ -166,7 +183,9 @@ internal sealed class ConversationTurnSnapshot
                 branch.Id,
                 branch.ParentBranchId,
                 branch.ForkedAfterRevisionId,
-                branch.LocalRevisionIds.ToArray());
+                branch.InheritedContextRevisionId,
+                branch.LocalRevisionIds.ToArray(),
+                branch.ContextBindings.ToArray());
         }
 
         public bool Matches(ConversationBranch branch)
@@ -176,7 +195,9 @@ internal sealed class ConversationTurnSnapshot
             return Id == branch.Id
                 && ParentBranchId == branch.ParentBranchId
                 && ForkedAfterRevisionId == branch.ForkedAfterRevisionId
-                && _localRevisionIds.SequenceEqual(branch.LocalRevisionIds);
+                && InheritedContextRevisionId == branch.InheritedContextRevisionId
+                && _localRevisionIds.SequenceEqual(branch.LocalRevisionIds)
+                && _contextBindings.SequenceEqual(branch.ContextBindings);
         }
     }
 }

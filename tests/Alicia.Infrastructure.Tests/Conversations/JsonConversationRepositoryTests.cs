@@ -240,7 +240,7 @@ public sealed class JsonConversationRepositoryTests
             string upgradedJson = await File.ReadAllTextAsync(
                 filePath,
                 CancellationToken.None).ConfigureAwait(true);
-            Assert.Contains("\"schemaVersion\": 5", upgradedJson, StringComparison.Ordinal);
+            Assert.Contains("\"schemaVersion\": 6", upgradedJson, StringComparison.Ordinal);
             Assert.Contains(
                 migratedMessage.RevisionId.Value.ToString("D"),
                 upgradedJson,

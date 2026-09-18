@@ -63,14 +63,12 @@ public sealed class StreamConversationTurnUseCase
         ConversationTurnSnapshot turnSnapshot = ConversationTurnSnapshot.Capture(
             conversation,
             triggeringUserMessageId);
-        ResolvedConversationGeneration? resolvedGeneration = _generationResolver is null
-            ? null
-            : await _generationResolver
-                .ResolveAsync(
+        ResolvedConversationGeneration? resolvedGeneration =
+            await ConversationGenerationResolution.ResolveAsync(
+                    _generationResolver,
                     conversationId,
                     triggeringUserMessageId,
-                    turnSnapshot.TriggeringUserMessageRevisionId,
-                    turnSnapshot.InputMessageRevisionIds,
+                    turnSnapshot,
                     cancellationToken)
                 .ConfigureAwait(false);
         ConversationTurnCompletion.RequireSnapshotStore(

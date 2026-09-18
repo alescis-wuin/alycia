@@ -9,6 +9,7 @@ public sealed class LocalConversationRuntime
         CreateConversationUseCase createConversation,
         AppendMessageUseCase appendMessage,
         EditMessageUseCase editMessage,
+        UpdateConversationContextUseCase updateConversationContext,
         ActivateConversationBranchUseCase activateConversationBranch,
         LoadConversationUseCase loadConversation,
         ListConversationsUseCase listConversations,
@@ -19,6 +20,7 @@ public sealed class LocalConversationRuntime
         CreateConversation = createConversation;
         AppendMessage = appendMessage;
         EditMessage = editMessage;
+        UpdateConversationContext = updateConversationContext;
         ActivateConversationBranch = activateConversationBranch;
         LoadConversation = loadConversation;
         ListConversations = listConversations;
@@ -33,6 +35,8 @@ public sealed class LocalConversationRuntime
     public AppendMessageUseCase AppendMessage { get; }
 
     public EditMessageUseCase EditMessage { get; }
+
+    public UpdateConversationContextUseCase UpdateConversationContext { get; }
 
     public ActivateConversationBranchUseCase ActivateConversationBranch { get; }
 
@@ -56,6 +60,7 @@ public sealed class LocalConversationRuntime
             new CreateConversationUseCase(repository, resolvedTimeProvider),
             new AppendMessageUseCase(repository, resolvedTimeProvider),
             new EditMessageUseCase(repository, resolvedTimeProvider),
+            new UpdateConversationContextUseCase(repository, resolvedTimeProvider),
             new ActivateConversationBranchUseCase(repository),
             new LoadConversationUseCase(repository),
             new ListConversationsUseCase(repository),
