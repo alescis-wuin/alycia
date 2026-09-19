@@ -1108,6 +1108,7 @@ Ces durées sont UX, pas des invariants métier ; elles doivent rester testables
 - accessibilité clavier/focus/Automation et Reduced Motion foundation ;
 - UIX-02 Stage 1 : profils confirmés du modèle sauvegardé projetés dans Models et sélection explicite du profil pour la branche active, sans édition de profil ni bibliothèque de modèles.
 - UIX-02 Stage 2 : création/édition des profils custom dans Models, WorkingDraft persistant explicite, commit en révision immuable, restauration/discard et blocage des drafts stale ; le profil `Default` reste non éditable.
+- UIX-02 Stage 3 : autosave local debounced des WorkingDrafts, continuité d’édition/autosave pendant un stream sans commit concurrent, et gate avant nouvel envoi `Use previous version` / `Use modified version` fondé sur le profil réellement résolu par la branche ; un draft stale ne peut pas être confirmé.
 
 ### Encore requis par cette spécification
 
@@ -1115,7 +1116,7 @@ Ces durées sont UX, pas des invariants métier ; elles doivent rester testables
 - assistant avatar ;
 - hover/focus timestamp/provenance/copy ;
 - model/profile dual selector complet avec bibliothèque de modèles ;
-- autosave des WorkingDrafts, gate pré-envoi version précédente/modifiée et historique/restauration des révisions de profils ;
+- historique/restauration visuelle des révisions de profils ;
 - context button/panel ;
 - one-shot features ;
 - timeline Message/Event ;

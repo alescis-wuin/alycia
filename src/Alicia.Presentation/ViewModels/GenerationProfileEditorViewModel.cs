@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using Alicia.Application.Generations;
 using Alicia.Application.Providers;
 
@@ -25,47 +26,49 @@ public sealed class GenerationProfileEditorViewModel : ViewModelBase
     private string _statusText = string.Empty;
     private bool _isVisible;
     private bool _hasPersistedWorkingDraft;
+    private bool _hasUnpersistedChanges;
+    private int _editVersion;
 
     public string Name
     {
         get => _name;
-        set => SetProperty(ref _name, value);
+        set => SetEditableProperty(ref _name, value);
     }
 
     public string BaseSystemInstructions
     {
         get => _baseSystemInstructions;
-        set => SetProperty(ref _baseSystemInstructions, value);
+        set => SetEditableProperty(ref _baseSystemInstructions, value);
     }
 
     public string MaxOutputTokensText
     {
         get => _maxOutputTokensText;
-        set => SetProperty(ref _maxOutputTokensText, value);
+        set => SetEditableProperty(ref _maxOutputTokensText, value);
     }
 
     public string TemperatureText
     {
         get => _temperatureText;
-        set => SetProperty(ref _temperatureText, value);
+        set => SetEditableProperty(ref _temperatureText, value);
     }
 
     public string TopPText
     {
         get => _topPText;
-        set => SetProperty(ref _topPText, value);
+        set => SetEditableProperty(ref _topPText, value);
     }
 
     public string TopKText
     {
         get => _topKText;
-        set => SetProperty(ref _topKText, value);
+        set => SetEditableProperty(ref _topKText, value);
     }
 
     public string SeedText
     {
         get => _seedText;
-        set => SetProperty(ref _seedText, value);
+        set => SetEditableProperty(ref _seedText, value);
     }
 
     public int ReasoningModeIndex
@@ -80,7 +83,7 @@ public sealed class GenerationProfileEditorViewModel : ViewModelBase
                     "Reasoning mode index must identify provider default, disabled, or enabled.");
             }
 
-            if (SetProperty(ref _reasoningModeIndex, value))
+            if (SetEditableProperty(ref _reasoningModeIndex, value))
             {
                 OnPropertyChanged(nameof(IsReasoningBudgetEditable));
             }
@@ -90,13 +93,13 @@ public sealed class GenerationProfileEditorViewModel : ViewModelBase
     public string ReasoningBudgetText
     {
         get => _reasoningBudgetText;
-        set => SetProperty(ref _reasoningBudgetText, value);
+        set => SetEditableProperty(ref _reasoningBudgetText, value);
     }
 
     public string InitialSuggestionsText
     {
         get => _initialSuggestionsText;
-        set => SetProperty(ref _initialSuggestionsText, value);
+        set => SetEditableProperty(ref _initialSuggestionsText, value);
     }
 
     public string StatusText
@@ -117,6 +120,12 @@ public sealed class GenerationProfileEditorViewModel : ViewModelBase
         private set => SetProperty(ref _hasPersistedWorkingDraft, value);
     }
 
+    public bool HasUnpersistedChanges
+    {
+        get => _hasUnpersistedChanges;
+        private set => SetProperty(ref _hasUnpersistedChanges, value);
+    }
+
     public bool IsReasoningBudgetEditable => ReasoningModeIndex == 2;
 
     public bool IsNewProfile => IsVisible
@@ -132,6 +141,8 @@ public sealed class GenerationProfileEditorViewModel : ViewModelBase
 
     internal GenerationProfileRevisionId? BaseRevisionId => _baseRevisionId;
 
+    internal int EditVersion => _editVersion;
+
     internal void LoadNew(GenerationProfileId profileId)
     {
         if (profileId.IsEmpty)
@@ -145,8 +156,9 @@ public sealed class GenerationProfileEditorViewModel : ViewModelBase
         _baseRevisionId = null;
         _latestRevisionId = null;
         LoadProfileFields(null);
+        ResetEditTracking();
         HasPersistedWorkingDraft = false;
-        StatusText = "New profile draft. Save it locally or commit it as the first confirmed revision.";
+        StatusText = "New profile draft. Changes autosave locally; save a revision to confirm it.";
         IsVisible = true;
         RaiseModeStateChanged();
     }
@@ -176,17 +188,20 @@ public sealed class GenerationProfileEditorViewModel : ViewModelBase
         _latestRevisionId = latestRevisionId;
         _baseRevisionId = workingDraft?.BaseRevisionId ?? latestRevisionId;
         LoadProfileFields(workingDraft?.Profile ?? confirmedProfile);
+        ResetEditTracking();
         HasPersistedWorkingDraft = workingDraft is not null;
         IsVisible = true;
         StatusText = workingDraft is null
-            ? $"Editing confirmed profile '{confirmedProfile.Name}'."
+            ? $"Editing confirmed profile '{confirmedProfile.Name}'. Changes autosave locally."
             : IsDraftStale
                 ? "A local draft was restored, but it is stale relative to the latest confirmed revision. Discard it before committing a new revision."
                 : "Local working draft restored.";
         RaiseModeStateChanged();
     }
 
-    internal void MarkWorkingDraftSaved(GenerationProfileWorkingDraft draft)
+    internal void MarkWorkingDraftSaved(
+        GenerationProfileWorkingDraft draft,
+        int savedEditVersion)
     {
         ArgumentNullException.ThrowIfNull(draft);
 
@@ -197,11 +212,21 @@ public sealed class GenerationProfileEditorViewModel : ViewModelBase
         }
 
         _baseRevisionId = draft.BaseRevisionId;
-        LoadProfileFields(draft.Profile);
         HasPersistedWorkingDraft = true;
-        StatusText = IsDraftStale
-            ? "Working draft saved locally, but its base revision is stale. Discard it before committing."
-            : "Working draft saved locally.";
+
+        if (_editVersion == savedEditVersion)
+        {
+            LoadProfileFields(draft.Profile);
+            HasUnpersistedChanges = false;
+            StatusText = IsDraftStale
+                ? "Working draft autosaved locally, but its base revision is stale. Discard it before committing."
+                : "Working draft autosaved locally.";
+        }
+        else
+        {
+            StatusText = "Working draft saved locally. Newer edits are waiting for autosave.";
+        }
+
         RaiseModeStateChanged();
     }
 
@@ -218,6 +243,7 @@ public sealed class GenerationProfileEditorViewModel : ViewModelBase
         _baseRevisionId = revision.Id;
         _latestRevisionId = revision.Id;
         LoadProfileFields(revision.Profile);
+        ResetEditTracking();
         HasPersistedWorkingDraft = false;
         StatusText = $"Profile '{revision.Profile.Name}' saved as a new confirmed revision.";
         RaiseModeStateChanged();
@@ -236,6 +262,7 @@ public sealed class GenerationProfileEditorViewModel : ViewModelBase
         _profileId = null;
         _baseRevisionId = null;
         _latestRevisionId = null;
+        ResetEditTracking();
         HasPersistedWorkingDraft = false;
         StatusText = string.Empty;
         IsVisible = false;
@@ -363,6 +390,31 @@ public sealed class GenerationProfileEditorViewModel : ViewModelBase
             validationError = exception.Message;
             return false;
         }
+    }
+
+    private bool SetEditableProperty<T>(
+        ref T storage,
+        T value,
+        [CallerMemberName] string? propertyName = null)
+    {
+        if (EqualityComparer<T>.Default.Equals(storage, value))
+        {
+            return false;
+        }
+
+        OnPropertyChanging(propertyName);
+        storage = value;
+        _editVersion++;
+        HasUnpersistedChanges = true;
+        StatusText = "Draft changes are waiting for local autosave.";
+        OnPropertyChanged(propertyName);
+        return true;
+    }
+
+    private void ResetEditTracking()
+    {
+        _editVersion = 0;
+        HasUnpersistedChanges = false;
     }
 
     private void LoadProfileFields(GenerationProfile? profile)

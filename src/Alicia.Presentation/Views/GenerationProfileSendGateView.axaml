@@ -1,0 +1,73 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Alicia.Presentation.ViewModels"
+             x:Class="Alicia.Presentation.Views.GenerationProfileSendGateView"
+             x:DataType="vm:MainViewModel"
+             HorizontalAlignment="Stretch"
+             VerticalAlignment="Stretch"
+             KeyDown="OnDialogKeyDown"
+             KeyboardNavigation.TabNavigation="Cycle"
+             AutomationProperties.Name="Generation profile version choice"
+             AutomationProperties.AccessibilityView="Control">
+  <Grid Background="#B3090D18">
+    <Border MaxWidth="620"
+            Margin="24"
+            Padding="22"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Background="{DynamicResource SurfaceRaisedBrush}"
+            BorderBrush="{DynamicResource AccentBrush}"
+            BorderThickness="1"
+            CornerRadius="20"
+            AutomationProperties.Name="Choose generation profile version before sending"
+            AutomationProperties.LiveSetting="Assertive">
+      <StackPanel Spacing="16">
+        <StackPanel Spacing="5">
+          <TextBlock Text="{Binding GenerationProfileSendGateTitle}"
+                     FontSize="20"
+                     FontWeight="Bold"
+                     AutomationProperties.HeadingLevel="2"
+                     Foreground="{DynamicResource TextPrimaryBrush}" />
+          <TextBlock Text="{Binding GenerationProfileSendGateDescription}"
+                     FontSize="13"
+                     LineHeight="19"
+                     TextWrapping="Wrap"
+                     Foreground="{DynamicResource TextSecondaryBrush}" />
+        </StackPanel>
+
+        <TextBlock Text="Your local draft remains stored either way. The previous-version choice does not discard it."
+                   FontSize="12"
+                   LineHeight="18"
+                   TextWrapping="Wrap"
+                   Foreground="{DynamicResource TextSecondaryBrush}" />
+
+        <Grid ColumnDefinitions="Auto,*,Auto,10,Auto">
+          <Button x:Name="CancelProfileSendGateButton"
+                  Grid.Column="0"
+                  Classes="secondary-action"
+                  Command="{Binding CancelGenerationProfileSendGateCommand}"
+                  Content="Cancel"
+                  AutomationProperties.Name="Cancel profile version choice"
+                  AutomationProperties.HelpText="Return to the composer without sending or confirming the draft."
+                  AutomationProperties.AcceleratorKey="Escape" />
+
+          <Button Grid.Column="2"
+                  Classes="secondary-action"
+                  Command="{Binding UsePreviousGenerationProfileForSendCommand}"
+                  IsEnabled="{Binding CanUsePreviousGenerationProfileForSend}"
+                  Content="Use previous version"
+                  AutomationProperties.Name="Send with previous confirmed profile version"
+                  AutomationProperties.HelpText="Keep the local working draft and send using the latest confirmed profile revision." />
+
+          <Button Grid.Column="4"
+                  Classes="primary-action"
+                  Command="{Binding UseModifiedGenerationProfileForSendCommand}"
+                  IsEnabled="{Binding CanUseModifiedGenerationProfileForSend}"
+                  Content="Use modified version"
+                  AutomationProperties.Name="Confirm modified profile and send"
+                  AutomationProperties.HelpText="Create a new immutable profile revision from the local working draft, then send the message." />
+        </Grid>
+      </StackPanel>
+    </Border>
+  </Grid>
+</UserControl>

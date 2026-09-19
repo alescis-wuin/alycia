@@ -197,7 +197,7 @@
               <Border Classes="workspace-primary-surface"
                       Padding="16"
                       IsVisible="{Binding IsGenerationProfileEditorVisible}"
-                      IsEnabled="{Binding CanManageGenerationProfiles}">
+                      IsEnabled="{Binding CanEditGenerationProfileDraft}">
                 <StackPanel Spacing="10">
                   <StackPanel Spacing="3">
                     <TextBlock Text="Profile editor"
@@ -267,7 +267,7 @@
                            PlaceholderText="Initial suggestions • one per line"
                            AutomationProperties.Name="Generation profile initial suggestions" />
 
-                  <TextBlock Text="Draft persistence is explicit in this stage. Saving a revision confirms an immutable profile revision; the Default profile remains read-only."
+                  <TextBlock Text="WorkingDraft changes are autosaved locally after a short pause. Saving a revision confirms an immutable profile revision; during an active response, editing and autosave remain available but revision commits stay disabled."
                              FontSize="12"
                              LineHeight="18"
                              TextWrapping="Wrap"
@@ -278,8 +278,8 @@
                             Margin="0,0,8,8"
                             Command="{Binding SaveGenerationProfileDraftCommand}"
                             IsEnabled="{Binding CanSaveGenerationProfileDraft}"
-                            Content="Save draft locally"
-                            AutomationProperties.Name="Save generation profile working draft locally" />
+                            Content="Save draft now"
+                            AutomationProperties.Name="Save generation profile working draft now" />
                     <Button Classes="primary-action"
                             Margin="0,0,8,8"
                             Command="{Binding CommitGenerationProfileCommand}"

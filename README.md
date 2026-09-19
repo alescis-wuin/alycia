@@ -31,6 +31,8 @@ UIX-02 Stage 1 exposes that foundation in the Models workspace without adding pr
 
 UIX-02 Stage 2 adds the first custom profile editor on top of the existing model-scoped catalog. New or existing custom profiles can be persisted as explicit local `WorkingDraft`s, committed as immutable revisions, restored after reload, or discarded back to the latest confirmed revision; stale drafts are never silently rebased. The built-in `Default` profile remains read-only and provider/model defaults remain nullable. Draft autosave, the pre-send previous/modified-profile gate, full revision-history UI, model-library dual selection, branch navigation, and context UI remain later stages.
 
+UIX-02 Stage 3 turns those WorkingDrafts into debounced local autosaves and adds a pre-send revision gate for the profile actually resolved by the active conversation branch. `Use previous version` keeps the draft untouched and generates from the latest confirmed revision; `Use modified version` commits the persisted draft as a new immutable revision before the user message is appended. Stale drafts cannot be confirmed through the gate, and draft editing/autosave can continue during a stream without changing the revision already captured by that response. Revision-history UI, profile deletion, the full model/profile dual selector, branch navigation, and context UI remain later stages.
+
 ## Prerequisites
 
 - Linux, macOS, or Windows for the application itself;

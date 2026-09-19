@@ -51,6 +51,7 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 | Lot 10B Profiles/revisions/provenance/context | terminé | 10B.1–10B.6 terminés; contexte révisionné + provenance + budget explicite |
 | UIX-02 Stage 1 active-branch profile selection | terminé | profils du modèle sauvegardé + binding explicite de la branche active |
 | UIX-02 Stage 2 profile editor / WorkingDraft | terminé | création/édition custom + draft persistant explicite + révision immuable |
+| UIX-02 Stage 3 WorkingDraft autosave / pre-send gate | terminé | autosave local + choix version précédente/modifiée avant nouvel envoi |
 | Lot 11 RAG foundation | planifié | à faire |
 | Lot 12 Retrieval/grounded generation | planifié | à faire |
 | Lot 13 Tools/MCP/agents | planifié | à faire |
@@ -332,9 +333,22 @@ Introduire avant RAG.
 - la sélection de branche continue de viser le `GenerationProfileId` stable et reste une action distincte de la sauvegarde du profil ;
 - autosave des drafts, gate pré-envoi version précédente/modifiée, timeline/restauration des révisions, suppression de profils et dual selector complet restent hors de cette étape.
 
+### UIX-02 Stage 3 - autosave WorkingDraft et gate pré-envoi - terminé
+
+- les champs éditables d'un profil custom déclenchent un autosave local debounced via le `IGenerationProfileCatalogStore` existant ;
+- l'éditeur versionne ses changements locaux afin qu'un save asynchrone plus ancien ne puisse jamais réécrire une saisie plus récente ;
+- les valeurs intermédiaires invalides restent locales et non persistées jusqu'à redevenir valides ;
+- l'éditeur d'un profil custom confirmé est restauré à travers le refresh conversation qui précède le stream ; pendant une réponse active, édition + autosave restent possibles mais `Save revision` reste désactivé ;
+- avant un nouvel envoi, Presentation flush le draft puis inspecte le profil réellement résolu pour la branche active, jamais un choix de ComboBox non sauvegardé ;
+- si ce profil possède un WorkingDraft, aucun message User n'est persisté et aucun provider n'est appelé avant le choix explicite `Use previous version` / `Use modified version` ;
+- la version précédente conserve le WorkingDraft et utilise la dernière révision confirmée ; la version modifiée commit d'abord le draft en nouvelle révision immuable puis envoie ;
+- un draft stale désactive la version modifiée sans rebase silencieux ; Cancel/Escape conserve message et draft ;
+- Retry d'un message User déjà persisté reste hors de ce gate de nouvel envoi ;
+- aucune timeline/restauration visuelle de révisions, suppression de profil, bibliothèque de modèles, dual selector complet, UI branches/context, RAG, tool ou multimodal dans cette étape.
+
 ### Etapes suivantes
 
-- UIX-02 : autosave WorkingDraft + gate pré-envoi, puis progression vers l'historique de révisions et le dual selector complet ;
+- UIX-02 : historique/restauration des révisions de profils, puis progression vers le dual selector complet ;
 - UIX-03 : contexte, provenance/révisions et navigation de branches progressivement exposés ;
 - Lot 11 : RAG foundation après le track UIX recommandé.
 

@@ -238,85 +238,95 @@ public sealed class ModelViewModel : ViewModelBase
         ConversationBranchId? branchId,
         CancellationToken cancellationToken = default)
     {
+        GenerationProfileId? profileEditorId = ProfileEditor.IsVisible
+            ? ProfileEditor.ProfileId
+            : null;
         ResetGenerationProfileProjection();
 
-        if (!SupportsGenerationProfileEditing)
+        try
         {
-            _generationProfileSelectionStatusText =
-                "Generation-profile editing and selection are not available in this host.";
-            return;
-        }
+            if (!SupportsGenerationProfileEditing)
+            {
+                _generationProfileSelectionStatusText =
+                    "Generation-profile editing and selection are not available in this host.";
+                return;
+            }
 
-        if (_savedProviderConfiguration is null
-            || !_savedProviderConfiguration.HasModelReference
-            || _savedProviderConfiguration.ModelReference is null)
+            if (_savedProviderConfiguration is null
+                || !_savedProviderConfiguration.HasModelReference
+                || _savedProviderConfiguration.ModelReference is null)
+            {
+                _generationProfileSelectionStatusText =
+                    "Save a model reference to load generation profiles.";
+                return;
+            }
+
+            GenerationProfileModelScope scope = new(
+                _savedProviderConfiguration.ProviderId,
+                _savedProviderConfiguration.ModelReference);
+            _generationProfileScope = scope;
+
+            GenerationProfileCatalog? persistedCatalog = await _generationProfileCatalogStore!
+                .LoadAsync(scope, cancellationToken)
+                .ConfigureAwait(true);
+            _generationProfileCatalog = persistedCatalog
+                ?? GenerationProfileCatalog.CreateEmpty(scope, GenerationProfileId.New());
+            _isGenerationProfileCatalogPersisted = persistedCatalog is not null;
+            ReplaceGenerationProfiles(_generationProfileCatalog.Profiles);
+
+            if (_conversationGenerationSelectionStore is null)
+            {
+                _generationProfileSelectionStatusText =
+                    "Generation profiles can be edited for this model, but branch profile selection is not available in this host.";
+                return;
+            }
+
+            if (conversationId is null || branchId is null)
+            {
+                _generationProfileSelectionStatusText =
+                    _isGenerationProfileCatalogPersisted
+                        ? "Select a conversation to bind one of these profiles to its active branch."
+                        : "No profile catalog is stored for this model yet. Select a conversation, choose Default, then save to create it explicitly.";
+                return;
+            }
+
+            ConversationGenerationSelection? selection = await _conversationGenerationSelectionStore!
+                .LoadAsync(conversationId.Value, branchId.Value, cancellationToken)
+                .ConfigureAwait(true);
+            _resolvedGenerationSelection = selection;
+
+            if (selection is null)
+            {
+                _generationProfileSelectionStatusText = _isGenerationProfileCatalogPersisted
+                    ? "No explicit profile is pinned to this branch. Generation still uses the legacy provider configuration until you save a profile selection."
+                    : "No explicit profile is pinned to this branch and no profile catalog is stored for this model. Choose Default and save to create both explicitly.";
+                return;
+            }
+
+            if (selection.ModelScope != scope)
+            {
+                _generationProfileSelectionStatusText =
+                    $"This branch is pinned to model '{selection.ModelScope.ModelReference}'. Choose a profile below and save to rebind it to '{scope.ModelReference}'.";
+                return;
+            }
+
+            GenerationProfile? selectedProfile = _generationProfileCatalog.FindProfile(selection.ProfileId);
+            if (selectedProfile is null)
+            {
+                _generationProfileSelectionStatusText =
+                    $"This branch references profile '{selection.ProfileId}', but that profile is unavailable for the saved model.";
+                return;
+            }
+
+            SelectedGenerationProfile = selectedProfile;
+            _generationProfileSelectionStatusText = selection.IsBranchScoped
+                ? $"Current branch uses profile '{selectedProfile.Name}'."
+                : $"Conversation fallback uses profile '{selectedProfile.Name}'. Save to pin it explicitly to the current branch.";
+        }
+        finally
         {
-            _generationProfileSelectionStatusText =
-                "Save a model reference to load generation profiles.";
-            return;
+            RestoreGenerationProfileEditorAfterReload(profileEditorId);
         }
-
-        GenerationProfileModelScope scope = new(
-            _savedProviderConfiguration.ProviderId,
-            _savedProviderConfiguration.ModelReference);
-        _generationProfileScope = scope;
-
-        GenerationProfileCatalog? persistedCatalog = await _generationProfileCatalogStore!
-            .LoadAsync(scope, cancellationToken)
-            .ConfigureAwait(true);
-        _generationProfileCatalog = persistedCatalog
-            ?? GenerationProfileCatalog.CreateEmpty(scope, GenerationProfileId.New());
-        _isGenerationProfileCatalogPersisted = persistedCatalog is not null;
-        ReplaceGenerationProfiles(_generationProfileCatalog.Profiles);
-
-        if (_conversationGenerationSelectionStore is null)
-        {
-            _generationProfileSelectionStatusText =
-                "Generation profiles can be edited for this model, but branch profile selection is not available in this host.";
-            return;
-        }
-
-        if (conversationId is null || branchId is null)
-        {
-            _generationProfileSelectionStatusText =
-                _isGenerationProfileCatalogPersisted
-                    ? "Select a conversation to bind one of these profiles to its active branch."
-                    : "No profile catalog is stored for this model yet. Select a conversation, choose Default, then save to create it explicitly.";
-            return;
-        }
-
-        ConversationGenerationSelection? selection = await _conversationGenerationSelectionStore!
-            .LoadAsync(conversationId.Value, branchId.Value, cancellationToken)
-            .ConfigureAwait(true);
-        _resolvedGenerationSelection = selection;
-
-        if (selection is null)
-        {
-            _generationProfileSelectionStatusText = _isGenerationProfileCatalogPersisted
-                ? "No explicit profile is pinned to this branch. Generation still uses the legacy provider configuration until you save a profile selection."
-                : "No explicit profile is pinned to this branch and no profile catalog is stored for this model. Choose Default and save to create both explicitly.";
-            return;
-        }
-
-        if (selection.ModelScope != scope)
-        {
-            _generationProfileSelectionStatusText =
-                $"This branch is pinned to model '{selection.ModelScope.ModelReference}'. Choose a profile below and save to rebind it to '{scope.ModelReference}'.";
-            return;
-        }
-
-        GenerationProfile? selectedProfile = _generationProfileCatalog.FindProfile(selection.ProfileId);
-        if (selectedProfile is null)
-        {
-            _generationProfileSelectionStatusText =
-                $"This branch references profile '{selection.ProfileId}', but that profile is unavailable for the saved model.";
-            return;
-        }
-
-        SelectedGenerationProfile = selectedProfile;
-        _generationProfileSelectionStatusText = selection.IsBranchScoped
-            ? $"Current branch uses profile '{selectedProfile.Name}'."
-            : $"Conversation fallback uses profile '{selectedProfile.Name}'. Save to pin it explicitly to the current branch.";
     }
 
     internal void ClearConversationGenerationSelection()
@@ -397,6 +407,92 @@ public sealed class ModelViewModel : ViewModelBase
             $"Current branch uses profile '{SelectedGenerationProfile.Name}'.";
     }
 
+    internal bool TryGetResolvedGenerationProfileWorkingDraft(
+        ConversationId conversationId,
+        ConversationBranchId branchId,
+        out GenerationProfileWorkingDraft? workingDraft,
+        out GenerationProfileRevision? latestRevision)
+    {
+        workingDraft = null;
+        latestRevision = null;
+
+        if (_generationProfileCatalog is null
+            || _generationProfileScope is null
+            || _resolvedGenerationSelection is not ConversationGenerationSelection selection
+            || selection.ConversationId != conversationId
+            || selection.ModelScope != _generationProfileScope.Value
+            || selection.BranchId is ConversationBranchId selectedBranchId
+                && selectedBranchId != branchId)
+        {
+            return false;
+        }
+
+        workingDraft = _generationProfileCatalog.FindWorkingDraft(selection.ProfileId);
+        if (workingDraft is null)
+        {
+            return false;
+        }
+
+        latestRevision = _generationProfileCatalog.FindLatestRevision(selection.ProfileId);
+        return latestRevision is not null;
+    }
+
+    internal async Task<GenerationProfileRevision> CommitResolvedGenerationProfileWorkingDraftAsync(
+        ConversationId conversationId,
+        ConversationBranchId branchId,
+        CancellationToken cancellationToken = default)
+    {
+        if (!TryGetResolvedGenerationProfileWorkingDraft(
+            conversationId,
+            branchId,
+            out GenerationProfileWorkingDraft? workingDraft,
+            out GenerationProfileRevision? latestRevision)
+            || workingDraft is null
+            || latestRevision is null)
+        {
+            throw new InvalidOperationException(
+                "The active branch does not have a persisted custom generation-profile draft to commit.");
+        }
+
+        if (workingDraft.BaseRevisionId != latestRevision.Id)
+        {
+            throw new InvalidOperationException(
+                "The persisted generation-profile draft is stale relative to the latest confirmed revision.");
+        }
+
+        GenerationProfileCatalog catalog = RequireGenerationProfileCatalog();
+        EnsureUniqueConfirmedProfileName(catalog, workingDraft.Profile);
+        GenerationProfileCatalog updatedCatalog = catalog.CommitWorkingDraft(
+            workingDraft.ProfileId,
+            GenerationProfileRevisionId.New(),
+            _timeProvider.GetUtcNow());
+
+        await _generationProfileCatalogStore!
+            .SaveAsync(updatedCatalog, cancellationToken)
+            .ConfigureAwait(true);
+
+        GenerationProfileId selectedProfileId = SelectedGenerationProfile?.Id
+            ?? workingDraft.ProfileId;
+        _generationProfileCatalog = updatedCatalog;
+        _isGenerationProfileCatalogPersisted = true;
+        ReplaceGenerationProfiles(updatedCatalog.Profiles);
+
+        GenerationProfileRevision committedRevision = updatedCatalog
+            .FindLatestRevision(workingDraft.ProfileId)
+            ?? throw new InvalidOperationException(
+                "The committed generation-profile revision could not be reloaded.");
+        SelectedGenerationProfile = updatedCatalog.FindProfile(selectedProfileId)
+            ?? committedRevision.Profile;
+
+        if (ProfileEditor.IsVisible
+            && ProfileEditor.ProfileId == committedRevision.ProfileId)
+        {
+            ProfileEditor.MarkCommitted(committedRevision);
+        }
+
+        return committedRevision;
+    }
+
     internal void BeginCreateGenerationProfile()
     {
         if (_generationProfileCatalog is null || _generationProfileScope is null)
@@ -439,6 +535,7 @@ public sealed class ModelViewModel : ViewModelBase
     internal async Task SaveGenerationProfileWorkingDraftAsync(
         CancellationToken cancellationToken = default)
     {
+        int editVersion = ProfileEditor.EditVersion;
         GenerationProfile profile = BuildEditorProfile();
         GenerationProfileCatalog catalog = RequireGenerationProfileCatalog();
         EnsureUniqueConfirmedProfileName(catalog, profile);
@@ -455,7 +552,7 @@ public sealed class ModelViewModel : ViewModelBase
 
         _generationProfileCatalog = updatedCatalog;
         _isGenerationProfileCatalogPersisted = true;
-        ProfileEditor.MarkWorkingDraftSaved(draft);
+        ProfileEditor.MarkWorkingDraftSaved(draft, editVersion);
     }
 
     internal async Task CommitGenerationProfileAsync(
@@ -576,6 +673,29 @@ public sealed class ModelViewModel : ViewModelBase
             throw new InvalidOperationException(
                 $"A confirmed generation profile named '{candidate.Name}' already exists for this model.");
         }
+    }
+
+    private void RestoreGenerationProfileEditorAfterReload(GenerationProfileId? profileId)
+    {
+        if (profileId is not GenerationProfileId editorProfileId
+            || _generationProfileCatalog is null)
+        {
+            return;
+        }
+
+        GenerationProfileRevision? latestRevision = _generationProfileCatalog
+            .FindLatestRevision(editorProfileId);
+        if (latestRevision is null)
+        {
+            return;
+        }
+
+        GenerationProfileWorkingDraft? workingDraft = _generationProfileCatalog
+            .FindWorkingDraft(editorProfileId);
+        ProfileEditor.LoadExisting(
+            latestRevision.Profile,
+            latestRevision.Id,
+            workingDraft);
     }
 
     private void ResetGenerationProfileProjection()

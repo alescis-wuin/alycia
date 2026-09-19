@@ -397,5 +397,9 @@
     <views:ConversationDeleteDialogView
         IsVisible="{Binding IsDeleteConfirmationVisible}"
         ZIndex="100" />
+
+    <views:GenerationProfileSendGateView
+        IsVisible="{Binding IsGenerationProfileSendGateVisible}"
+        ZIndex="110" />
   </Grid>
 </UserControl>
