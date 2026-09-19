@@ -617,7 +617,16 @@ Avant un nouvel envoi avec un profil modifié non confirmé, le composer est blo
 ### 10.4 Historique des profils
 
 Le modèle de données et les API de révision sont prévus dès maintenant.
-L’UI complète de timeline/restauration de versions est différée.
+
+UIX-02 Stage 4 expose une première timeline sûre des révisions confirmées :
+
+- révisions immuables affichées de la plus récente à la plus ancienne ;
+- tête courante explicitement identifiée ;
+- restauration d'une ancienne révision comme **WorkingDraft** basé sur la tête courante ;
+- confirmation ultérieure = nouvelle révision immuable, jamais déplacement/réécriture de la tête historique ;
+- un WorkingDraft existant doit d'abord être confirmé ou supprimé afin de ne jamais écraser un autosave local.
+
+La comparaison visuelle détaillée entre révisions reste différée.
 
 ---
 
@@ -1109,6 +1118,7 @@ Ces durées sont UX, pas des invariants métier ; elles doivent rester testables
 - UIX-02 Stage 1 : profils confirmés du modèle sauvegardé projetés dans Models et sélection explicite du profil pour la branche active, sans édition de profil ni bibliothèque de modèles.
 - UIX-02 Stage 2 : création/édition des profils custom dans Models, WorkingDraft persistant explicite, commit en révision immuable, restauration/discard et blocage des drafts stale ; le profil `Default` reste non éditable.
 - UIX-02 Stage 3 : autosave local debounced des WorkingDrafts, continuité d’édition/autosave pendant un stream sans commit concurrent, et gate avant nouvel envoi `Use previous version` / `Use modified version` fondé sur le profil réellement résolu par la branche ; un draft stale ne peut pas être confirmé.
+- UIX-02 Stage 4 : timeline des révisions confirmées d'un profil custom et restauration non destructive d'une ancienne révision comme WorkingDraft basé sur la tête courante ; confirmer la restauration ajoute une nouvelle révision immuable.
 
 ### Encore requis par cette spécification
 
@@ -1116,7 +1126,7 @@ Ces durées sont UX, pas des invariants métier ; elles doivent rester testables
 - assistant avatar ;
 - hover/focus timestamp/provenance/copy ;
 - model/profile dual selector complet avec bibliothèque de modèles ;
-- historique/restauration visuelle des révisions de profils ;
+- comparaison visuelle avancée entre révisions de profils ;
 - context button/panel ;
 - one-shot features ;
 - timeline Message/Event ;

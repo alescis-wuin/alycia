@@ -270,6 +270,89 @@ public sealed class GenerationProfileCatalogTests
     }
 
     [Fact]
+    public void CatalogRestoresHistoricalRevisionAsDraftBasedOnCurrentHead()
+    {
+        GenerationProfileModelScope scope = new("provider.alpha", "owner/model");
+        GenerationProfile defaultProfile = GenerationProfile.CreateDefault(GenerationProfileId.New());
+        GenerationProfileId profileId = GenerationProfileId.New();
+        GenerationProfileRevision first = new(
+            GenerationProfileRevisionId.New(),
+            parentRevisionId: null,
+            DateTimeOffset.UtcNow,
+            new GenerationProfile(profileId, "Code", "First instructions"));
+        GenerationProfileRevision second = new(
+            GenerationProfileRevisionId.New(),
+            first.Id,
+            DateTimeOffset.UtcNow.AddMinutes(1),
+            new GenerationProfile(profileId, "Code", "Current instructions"));
+        GenerationProfileCatalog catalog = new(
+            scope,
+            defaultProfile,
+            [first, second]);
+
+        GenerationProfileCatalog restored = catalog.RestoreRevisionAsWorkingDraft(
+            profileId,
+            first.Id,
+            DateTimeOffset.UtcNow.AddMinutes(2));
+
+        Assert.Equal(2, restored.Revisions.Count);
+        GenerationProfileWorkingDraft draft = Assert.Single(restored.WorkingDrafts);
+        Assert.Equal(second.Id, draft.BaseRevisionId);
+        Assert.Equal("First instructions", draft.Profile.BaseSystemInstructions);
+        Assert.False(draft.IsNewProfile);
+
+        GenerationProfileRevisionId thirdId = GenerationProfileRevisionId.New();
+        GenerationProfileCatalog committed = restored.CommitWorkingDraft(
+            profileId,
+            thirdId,
+            DateTimeOffset.UtcNow.AddMinutes(3));
+        GenerationProfileRevision third = Assert.IsType<GenerationProfileRevision>(
+            committed.FindLatestRevision(profileId));
+        Assert.Equal(thirdId, third.Id);
+        Assert.Equal(second.Id, third.ParentRevisionId);
+        Assert.Equal("First instructions", third.Profile.BaseSystemInstructions);
+        Assert.Equal(3, committed.Revisions.Count);
+    }
+
+    [Fact]
+    public void CatalogRefusesHistoricalRestoreThatWouldOverwriteDraftOrRestoreCurrentRevision()
+    {
+        GenerationProfileModelScope scope = new("provider.alpha", "owner/model");
+        GenerationProfile defaultProfile = GenerationProfile.CreateDefault(GenerationProfileId.New());
+        GenerationProfileId profileId = GenerationProfileId.New();
+        GenerationProfileRevision first = new(
+            GenerationProfileRevisionId.New(),
+            parentRevisionId: null,
+            DateTimeOffset.UtcNow,
+            new GenerationProfile(profileId, "Code v1"));
+        GenerationProfileRevision second = new(
+            GenerationProfileRevisionId.New(),
+            first.Id,
+            DateTimeOffset.UtcNow.AddMinutes(1),
+            new GenerationProfile(profileId, "Code v2"));
+        GenerationProfileCatalog catalog = new(scope, defaultProfile, [first, second]);
+
+        Assert.Throws<InvalidOperationException>(() =>
+            catalog.RestoreRevisionAsWorkingDraft(
+                profileId,
+                second.Id,
+                DateTimeOffset.UtcNow));
+
+        GenerationProfileCatalog withDraft = catalog.WithWorkingDraft(
+            new GenerationProfileWorkingDraft(
+                new GenerationProfile(profileId, "Local draft"),
+                second.Id,
+                DateTimeOffset.UtcNow));
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            withDraft.RestoreRevisionAsWorkingDraft(
+                profileId,
+                first.Id,
+                DateTimeOffset.UtcNow));
+
+        Assert.Contains("working draft", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void CatalogAndRevisionContractsExposeNoPubliclyWritableState()
     {
         Type[] immutableTypes =

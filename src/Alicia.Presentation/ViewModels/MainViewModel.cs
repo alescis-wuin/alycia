@@ -141,6 +141,7 @@ public sealed class MainViewModel : ViewModelBase
             conversationGenerationSelectionStore,
             generationProfileTimeProvider);
         Model.ProfileEditor.PropertyChanged += OnGenerationProfileEditorPropertyChanged;
+        Model.ProfileHistory.PropertyChanged += OnGenerationProfileHistoryPropertyChanged;
         ConfigurationGate = new ConversationConfigurationGateViewModel();
         _conversationUiStateStore = conversationUiStateStore
             ?? new TransientConversationUiStateStore();
@@ -218,6 +219,9 @@ public sealed class MainViewModel : ViewModelBase
         CancelGenerationProfileEditCommand = new AsyncRelayCommand(
             CancelGenerationProfileEditAsync,
             () => IsGenerationProfileEditorVisible && !IsBusy && !IsGeneratingResponse);
+        RestoreGenerationProfileRevisionCommand = new AsyncRelayCommand(
+            RestoreGenerationProfileRevisionAsync,
+            () => CanRestoreGenerationProfileRevision);
         UsePreviousGenerationProfileForSendCommand = new AsyncRelayCommand(
             UsePreviousGenerationProfileForSendAsync,
             () => CanUsePreviousGenerationProfileForSend);
@@ -320,6 +324,8 @@ public sealed class MainViewModel : ViewModelBase
     public IAsyncRelayCommand DiscardGenerationProfileDraftCommand { get; }
 
     public IAsyncRelayCommand CancelGenerationProfileEditCommand { get; }
+
+    public IAsyncRelayCommand RestoreGenerationProfileRevisionCommand { get; }
 
     public IAsyncRelayCommand UsePreviousGenerationProfileForSendCommand { get; }
 
@@ -485,6 +491,12 @@ public sealed class MainViewModel : ViewModelBase
         CanManageGenerationProfiles
         && IsGenerationProfileEditorVisible
         && GenerationProfileEditor.HasPersistedWorkingDraft;
+
+    public bool CanRestoreGenerationProfileRevision =>
+        CanManageGenerationProfiles
+        && !IsGenerationProfileEditorVisible
+        && Model.ProfileHistory.SelectedRevision is { IsCurrent: false }
+        && !Model.ProfileHistory.HasWorkingDraft;
 
     public string GenerationProfileScopeText => HasProviderConfigurationChanges
         ? "Unsaved model settings"
@@ -1572,6 +1584,35 @@ public sealed class MainViewModel : ViewModelBase
         }).ConfigureAwait(true);
     }
 
+    private async Task RestoreGenerationProfileRevisionAsync()
+    {
+        if (!CanRestoreGenerationProfileRevision
+            || Model.ProfileHistory.SelectedRevision is not
+                GenerationProfileRevisionItemViewModel selectedRevision)
+        {
+            return;
+        }
+
+        await ExecuteOperationAsync(async () =>
+        {
+            await ExecuteWithGenerationProfileAutosaveSuppressedAsync(
+                () => Model.RestoreSelectedGenerationProfileRevisionAsync(selectedRevision.Id))
+                .ConfigureAwait(true);
+            RaiseGenerationProfileSelectionStateChanged();
+            RaiseGenerationProfileEditorStateChanged();
+            RaiseGenerationProfileHistoryStateChanged();
+        }).ConfigureAwait(true);
+    }
+
+    private void OnGenerationProfileHistoryPropertyChanged(
+        object? sender,
+        PropertyChangedEventArgs eventArgs)
+    {
+        _ = sender;
+        _ = eventArgs;
+        RaiseGenerationProfileHistoryStateChanged();
+    }
+
     private void OnGenerationProfileEditorPropertyChanged(
         object? sender,
         PropertyChangedEventArgs eventArgs)
@@ -1831,7 +1872,14 @@ public sealed class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(CanSaveGenerationProfileSelection));
         OnPropertyChanged(nameof(GenerationProfileSelectionStatusText));
         SaveGenerationProfileSelectionCommand.NotifyCanExecuteChanged();
+        RaiseGenerationProfileHistoryStateChanged();
         RaiseGenerationProfileEditorStateChanged();
+    }
+
+    private void RaiseGenerationProfileHistoryStateChanged()
+    {
+        OnPropertyChanged(nameof(CanRestoreGenerationProfileRevision));
+        RestoreGenerationProfileRevisionCommand.NotifyCanExecuteChanged();
     }
 
     private void RaiseGenerationProfileEditorStateChanged()
@@ -1853,6 +1901,7 @@ public sealed class MainViewModel : ViewModelBase
         CommitGenerationProfileCommand.NotifyCanExecuteChanged();
         DiscardGenerationProfileDraftCommand.NotifyCanExecuteChanged();
         CancelGenerationProfileEditCommand.NotifyCanExecuteChanged();
+        RestoreGenerationProfileRevisionCommand.NotifyCanExecuteChanged();
         SaveGenerationProfileSelectionCommand.NotifyCanExecuteChanged();
     }
 

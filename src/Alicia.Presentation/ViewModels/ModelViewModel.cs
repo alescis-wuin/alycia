@@ -43,18 +43,27 @@ public sealed class ModelViewModel : ViewModelBase
         _timeProvider = timeProvider ?? TimeProvider.System;
         GenerationSettings = generationSettings;
         ProfileEditor = new GenerationProfileEditorViewModel();
+        ProfileHistory = new GenerationProfileHistoryViewModel();
     }
 
     public GenerationSettingsViewModel GenerationSettings { get; }
 
     public GenerationProfileEditorViewModel ProfileEditor { get; }
 
+    public GenerationProfileHistoryViewModel ProfileHistory { get; }
+
     public ObservableCollection<GenerationProfile> GenerationProfiles => _generationProfiles;
 
     public GenerationProfile? SelectedGenerationProfile
     {
         get => _selectedGenerationProfile;
-        internal set => SetProperty(ref _selectedGenerationProfile, value);
+        internal set
+        {
+            if (SetProperty(ref _selectedGenerationProfile, value))
+            {
+                RefreshSelectedGenerationProfileHistory();
+            }
+        }
     }
 
     public string ProviderModelReference
@@ -490,6 +499,7 @@ public sealed class ModelViewModel : ViewModelBase
             ProfileEditor.MarkCommitted(committedRevision);
         }
 
+        ProfileHistory.SelectCurrentRevision();
         return committedRevision;
     }
 
@@ -553,6 +563,7 @@ public sealed class ModelViewModel : ViewModelBase
         _generationProfileCatalog = updatedCatalog;
         _isGenerationProfileCatalogPersisted = true;
         ProfileEditor.MarkWorkingDraftSaved(draft, editVersion);
+        RefreshSelectedGenerationProfileHistory();
     }
 
     internal async Task CommitGenerationProfileAsync(
@@ -594,6 +605,7 @@ public sealed class ModelViewModel : ViewModelBase
                 "The committed generation-profile revision could not be reloaded.");
         SelectedGenerationProfile = committedRevision.Profile;
         ProfileEditor.MarkCommitted(committedRevision);
+        ProfileHistory.SelectCurrentRevision();
     }
 
     internal async Task DiscardGenerationProfileWorkingDraftAsync(
@@ -629,6 +641,54 @@ public sealed class ModelViewModel : ViewModelBase
         ProfileEditor.RestoreConfirmed(
             latestRevision.Profile,
             latestRevision.Id);
+        RefreshSelectedGenerationProfileHistory();
+    }
+
+    internal async Task RestoreSelectedGenerationProfileRevisionAsync(
+        GenerationProfileRevisionId revisionId,
+        CancellationToken cancellationToken = default)
+    {
+        GenerationProfileCatalog catalog = RequireGenerationProfileCatalog();
+        GenerationProfile selectedProfile = SelectedGenerationProfile
+            ?? throw new InvalidOperationException(
+                "Select a confirmed custom generation profile before restoring history.");
+        if (selectedProfile.IsDefault)
+        {
+            throw new InvalidOperationException(
+                "The built-in Default generation profile has no restorable revision history.");
+        }
+
+        GenerationProfileRevision latestRevision = catalog
+            .FindLatestRevision(selectedProfile.Id)
+            ?? throw new InvalidOperationException(
+                "The selected custom generation profile has no confirmed revision.");
+        GenerationProfileCatalog updatedCatalog = catalog.RestoreRevisionAsWorkingDraft(
+            selectedProfile.Id,
+            revisionId,
+            _timeProvider.GetUtcNow());
+
+        await _generationProfileCatalogStore!
+            .SaveAsync(updatedCatalog, cancellationToken)
+            .ConfigureAwait(true);
+
+        _generationProfileCatalog = updatedCatalog;
+        _isGenerationProfileCatalogPersisted = true;
+        GenerationProfileWorkingDraft restoredDraft = updatedCatalog
+            .FindWorkingDraft(selectedProfile.Id)
+            ?? throw new InvalidOperationException(
+                "The restored historical revision did not produce a WorkingDraft.");
+
+        ProfileEditor.LoadRestoredRevision(
+            latestRevision.Profile,
+            latestRevision.Id,
+            restoredDraft);
+        RefreshSelectedGenerationProfileHistory();
+        ProfileHistory.MarkHistoricalRevisionRestored();
+    }
+
+    internal void RefreshSelectedGenerationProfileHistory()
+    {
+        ProfileHistory.Load(_generationProfileCatalog, SelectedGenerationProfile);
     }
 
     private GenerationProfile BuildEditorProfile()
@@ -707,6 +767,7 @@ public sealed class ModelViewModel : ViewModelBase
         _resolvedGenerationSelection = null;
         _isGenerationProfileCatalogPersisted = false;
         SelectedGenerationProfile = null;
+        ProfileHistory.Load(catalog: null, selectedProfile: null);
     }
 
     private void ReplaceGenerationProfiles(IEnumerable<GenerationProfile> profiles)

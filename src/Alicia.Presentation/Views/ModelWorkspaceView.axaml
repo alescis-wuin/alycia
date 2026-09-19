@@ -300,6 +300,67 @@
                   </WrapPanel>
                 </StackPanel>
               </Border>
+
+              <Border Classes="workspace-primary-surface"
+                      Padding="16"
+                      IsVisible="{Binding Model.ProfileHistory.IsVisible}">
+                <StackPanel Spacing="10">
+                  <StackPanel Spacing="3">
+                    <TextBlock Text="Revision history"
+                               FontSize="16"
+                               FontWeight="SemiBold"
+                               AutomationProperties.HeadingLevel="3"
+                               Foreground="{DynamicResource TextPrimaryBrush}" />
+                    <TextBlock Text="{Binding Model.ProfileHistory.StatusText}"
+                               FontSize="12"
+                               LineHeight="18"
+                               TextWrapping="Wrap"
+                               AutomationProperties.LiveSetting="Polite"
+                               Foreground="{DynamicResource TextSecondaryBrush}" />
+                  </StackPanel>
+
+                  <ListBox ItemsSource="{Binding Model.ProfileHistory.Revisions}"
+                           SelectedItem="{Binding Model.ProfileHistory.SelectedRevision, Mode=TwoWay}"
+                           MaxHeight="220"
+                           AutomationProperties.Name="Generation profile revision history">
+                    <ListBox.ItemTemplate>
+                      <DataTemplate x:DataType="vm:GenerationProfileRevisionItemViewModel">
+                        <Grid ColumnDefinitions="*,Auto" Margin="4,6">
+                          <StackPanel Spacing="2">
+                            <TextBlock Text="{Binding RevisionLabel}"
+                                       FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding CreatedAtText}"
+                                       FontSize="12"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" />
+                            <TextBlock Text="{Binding PayloadHashText}"
+                                       FontSize="11"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" />
+                          </StackPanel>
+                          <TextBlock Grid.Column="1"
+                                     Text="{Binding ProfileName}"
+                                     Margin="12,0,0,0"
+                                     VerticalAlignment="Center"
+                                     FontSize="12"
+                                     Foreground="{DynamicResource TextSecondaryBrush}" />
+                        </Grid>
+                      </DataTemplate>
+                    </ListBox.ItemTemplate>
+                  </ListBox>
+
+                  <Button Classes="secondary-action"
+                          Command="{Binding RestoreGenerationProfileRevisionCommand}"
+                          IsEnabled="{Binding CanRestoreGenerationProfileRevision}"
+                          Content="Restore selected as draft"
+                          AutomationProperties.Name="Restore selected generation profile revision as working draft"
+                          AutomationProperties.HelpText="Copies the selected historical revision into a new WorkingDraft based on the current confirmed revision. Existing history is never rewritten." />
+
+                  <TextBlock Text="Restoring never moves or rewrites history. The selected historical contents become a WorkingDraft based on the current revision; Save revision creates a new immutable head."
+                             FontSize="12"
+                             LineHeight="18"
+                             TextWrapping="Wrap"
+                             Foreground="{DynamicResource TextSecondaryBrush}" />
+                </StackPanel>
+              </Border>
             </StackPanel>
           </Border>
 

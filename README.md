@@ -33,6 +33,8 @@ UIX-02 Stage 2 adds the first custom profile editor on top of the existing model
 
 UIX-02 Stage 3 turns those WorkingDrafts into debounced local autosaves and adds a pre-send revision gate for the profile actually resolved by the active conversation branch. `Use previous version` keeps the draft untouched and generates from the latest confirmed revision; `Use modified version` commits the persisted draft as a new immutable revision before the user message is appended. Stale drafts cannot be confirmed through the gate, and draft editing/autosave can continue during a stream without changing the revision already captured by that response. Revision-history UI, profile deletion, the full model/profile dual selector, branch navigation, and context UI remain later stages.
 
+UIX-02 Stage 4 exposes the immutable confirmed revision chain for the selected custom profile in Models. Older revisions can be restored only as a new WorkingDraft based on the current confirmed head; confirming that draft appends a new immutable revision rather than rewinding history. Existing WorkingDrafts block historical restore so autosaved local work is never overwritten silently. Profile deletion, visual revision comparison, the full model/profile dual selector, branch navigation, and context UI remain later stages.
+
 ## Prerequisites
 
 - Linux, macOS, or Windows for the application itself;

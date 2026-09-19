@@ -52,6 +52,7 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 | UIX-02 Stage 1 active-branch profile selection | terminé | profils du modèle sauvegardé + binding explicite de la branche active |
 | UIX-02 Stage 2 profile editor / WorkingDraft | terminé | création/édition custom + draft persistant explicite + révision immuable |
 | UIX-02 Stage 3 WorkingDraft autosave / pre-send gate | terminé | autosave local + choix version précédente/modifiée avant nouvel envoi |
+| UIX-02 Stage 4 profile revision history / restore | terminé | timeline immuable + restauration d'une ancienne révision comme WorkingDraft basé sur la tête courante |
 | Lot 11 RAG foundation | planifié | à faire |
 | Lot 12 Retrieval/grounded generation | planifié | à faire |
 | Lot 13 Tools/MCP/agents | planifié | à faire |
@@ -346,9 +347,20 @@ Introduire avant RAG.
 - Retry d'un message User déjà persisté reste hors de ce gate de nouvel envoi ;
 - aucune timeline/restauration visuelle de révisions, suppression de profil, bibliothèque de modèles, dual selector complet, UI branches/context, RAG, tool ou multimodal dans cette étape.
 
+### UIX-02 Stage 4 - historique et restauration des révisions de profils - terminé
+
+- Models projette la chaîne de révisions confirmées du profil custom sélectionné, de la plus récente à la plus ancienne ;
+- la révision courante reste explicitement identifiée et la timeline expose date UTC + hash de payload sans rendre les révisions mutables ;
+- `Restore selected as draft` copie le payload d'une ancienne révision dans un nouveau WorkingDraft dont la base est la tête confirmée courante ;
+- la restauration ne rembobine jamais la chaîne : confirmer ensuite le draft ajoute une nouvelle révision enfant de l'ancienne tête ;
+- un WorkingDraft existant bloque la restauration historique afin de ne jamais écraser silencieusement un autosave local ;
+- restaurer la tête courante est refusé comme opération redondante ;
+- aucun changement de schema JSON, de binding de branche ou de `GenerationSnapshot` ;
+- suppression de profil, comparaison visuelle avancée, bibliothèque de modèles et dual selector complet restent hors de cette étape.
+
 ### Etapes suivantes
 
-- UIX-02 : historique/restauration des révisions de profils, puis progression vers le dual selector complet ;
+- UIX-02 : progression vers le dual selector modèle/profil complet ;
 - UIX-03 : contexte, provenance/révisions et navigation de branches progressivement exposés ;
 - Lot 11 : RAG foundation après le track UIX recommandé.
 

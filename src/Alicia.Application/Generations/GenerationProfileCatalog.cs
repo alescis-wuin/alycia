@@ -97,6 +97,24 @@ public sealed class GenerationProfileCatalog
         return null;
     }
 
+    public GenerationProfileRevision? FindRevision(GenerationProfileRevisionId revisionId)
+    {
+        if (revisionId.IsEmpty)
+        {
+            return null;
+        }
+
+        foreach (GenerationProfileRevision revision in _revisions)
+        {
+            if (revision.Id == revisionId)
+            {
+                return revision;
+            }
+        }
+
+        return null;
+    }
+
     public GenerationProfileWorkingDraft? FindWorkingDraft(GenerationProfileId profileId)
     {
         if (profileId.IsEmpty)
@@ -164,6 +182,56 @@ public sealed class GenerationProfileCatalog
             DefaultProfile,
             _revisions,
             updatedDrafts);
+    }
+
+    public GenerationProfileCatalog RestoreRevisionAsWorkingDraft(
+        GenerationProfileId profileId,
+        GenerationProfileRevisionId revisionId,
+        DateTimeOffset updatedAt)
+    {
+        if (profileId.IsEmpty)
+        {
+            throw new ArgumentException(
+                "Generation-profile identifier cannot be empty.",
+                nameof(profileId));
+        }
+
+        if (revisionId.IsEmpty)
+        {
+            throw new ArgumentException(
+                "Generation-profile revision identifier cannot be empty.",
+                nameof(revisionId));
+        }
+
+        GenerationProfileRevision sourceRevision = FindRevision(revisionId)
+            ?? throw new InvalidOperationException(
+                "The generation-profile revision to restore does not exist.");
+        if (sourceRevision.ProfileId != profileId)
+        {
+            throw new InvalidOperationException(
+                "The generation-profile revision to restore belongs to another profile.");
+        }
+
+        GenerationProfileRevision latestRevision = FindLatestRevision(profileId)
+            ?? throw new InvalidOperationException(
+                "The generation profile has no confirmed revision history to restore.");
+        if (sourceRevision.Id == latestRevision.Id)
+        {
+            throw new InvalidOperationException(
+                "The current generation-profile revision does not need to be restored.");
+        }
+
+        if (FindWorkingDraft(profileId) is not null)
+        {
+            throw new InvalidOperationException(
+                "Discard or confirm the existing generation-profile working draft before restoring history.");
+        }
+
+        GenerationProfileWorkingDraft restoredDraft = new(
+            sourceRevision.Profile,
+            latestRevision.Id,
+            updatedAt);
+        return WithWorkingDraft(restoredDraft);
     }
 
     public GenerationProfileCatalog CommitWorkingDraft(

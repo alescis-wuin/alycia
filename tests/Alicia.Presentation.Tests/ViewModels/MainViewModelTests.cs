@@ -751,6 +751,161 @@ public sealed class MainViewModelTests
     }
 
     [Fact]
+    public async Task GenerationProfileHistoryProjectsNewestFirstAndRestoresOlderRevisionAsWorkingDraft()
+    {
+        DateTimeOffset now = new(2026, 9, 19, 6, 0, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        Conversation conversation = new(ConversationId.New(), "Profile history", now, now);
+        repository.Seed(conversation);
+        GenerationProfileModelScope scope = new("llama.cpp.cuda", "owner/model-GGUF:Q4_K_M");
+        GenerationProfile defaultProfile = GenerationProfile.CreateDefault(GenerationProfileId.New());
+        GenerationProfileId profileId = GenerationProfileId.New();
+        GenerationProfileRevision first = new(
+            GenerationProfileRevisionId.New(),
+            parentRevisionId: null,
+            now.AddMinutes(-2),
+            new GenerationProfile(profileId, "Code", "Historical instructions"));
+        GenerationProfileRevision second = new(
+            GenerationProfileRevisionId.New(),
+            first.Id,
+            now.AddMinutes(-1),
+            new GenerationProfile(profileId, "Code", "Current instructions"));
+        InMemoryGenerationProfileCatalogStore profileStore = new();
+        profileStore.Seed(new GenerationProfileCatalog(scope, defaultProfile, [first, second]));
+        InMemoryConversationGenerationSelectionStore selectionStore = new();
+        selectionStore.Seed(new ConversationGenerationSelection(
+            conversation.Id,
+            conversation.ActiveBranchId,
+            scope,
+            profileId));
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(now),
+            generationProfileCatalogStore: profileStore,
+            conversationGenerationSelectionStore: selectionStore);
+
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        Assert.True(viewModel.Model.ProfileHistory.IsVisible);
+        Assert.Equal(2, viewModel.Model.ProfileHistory.Revisions.Count);
+        Assert.Equal(second.Id, viewModel.Model.ProfileHistory.Revisions[0].Id);
+        Assert.True(viewModel.Model.ProfileHistory.Revisions[0].IsCurrent);
+        Assert.Equal(first.Id, viewModel.Model.ProfileHistory.Revisions[1].Id);
+        viewModel.Model.ProfileHistory.SelectedRevision = viewModel.Model.ProfileHistory.Revisions[1];
+        Assert.True(viewModel.CanRestoreGenerationProfileRevision);
+
+        await viewModel.RestoreGenerationProfileRevisionCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        GenerationProfileCatalog saved = Assert.IsType<GenerationProfileCatalog>(profileStore.LastSavedCatalog);
+        Assert.Equal(2, saved.Revisions.Count);
+        GenerationProfileWorkingDraft restoredDraft = Assert.Single(saved.WorkingDrafts);
+        Assert.Equal(second.Id, restoredDraft.BaseRevisionId);
+        Assert.Equal("Historical instructions", restoredDraft.Profile.BaseSystemInstructions);
+        Assert.True(viewModel.IsGenerationProfileEditorVisible);
+        Assert.Equal("Historical instructions", viewModel.GenerationProfileEditor.BaseSystemInstructions);
+        Assert.True(viewModel.CanCommitGenerationProfile);
+        Assert.False(viewModel.CanRestoreGenerationProfileRevision);
+        Assert.Contains("Historical", viewModel.Model.ProfileHistory.StatusText);
+    }
+
+    [Fact]
+    public async Task CommittingRestoredGenerationProfileRevisionCreatesNewHeadWithoutRewritingHistory()
+    {
+        DateTimeOffset now = new(2026, 9, 19, 6, 15, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        Conversation conversation = new(ConversationId.New(), "Profile restore commit", now, now);
+        repository.Seed(conversation);
+        GenerationProfileModelScope scope = new("llama.cpp.cuda", "owner/model-GGUF:Q4_K_M");
+        GenerationProfile defaultProfile = GenerationProfile.CreateDefault(GenerationProfileId.New());
+        GenerationProfileId profileId = GenerationProfileId.New();
+        GenerationProfileRevision first = new(
+            GenerationProfileRevisionId.New(),
+            parentRevisionId: null,
+            now.AddMinutes(-2),
+            new GenerationProfile(profileId, "Code", "v1"));
+        GenerationProfileRevision second = new(
+            GenerationProfileRevisionId.New(),
+            first.Id,
+            now.AddMinutes(-1),
+            new GenerationProfile(profileId, "Code", "v2"));
+        InMemoryGenerationProfileCatalogStore profileStore = new();
+        profileStore.Seed(new GenerationProfileCatalog(scope, defaultProfile, [first, second]));
+        InMemoryConversationGenerationSelectionStore selectionStore = new();
+        selectionStore.Seed(new ConversationGenerationSelection(
+            conversation.Id,
+            conversation.ActiveBranchId,
+            scope,
+            profileId));
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(now),
+            generationProfileCatalogStore: profileStore,
+            conversationGenerationSelectionStore: selectionStore);
+
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+        viewModel.Model.ProfileHistory.SelectedRevision = viewModel.Model.ProfileHistory.Revisions[1];
+        await viewModel.RestoreGenerationProfileRevisionCommand.ExecuteAsync(null).ConfigureAwait(true);
+        await viewModel.CommitGenerationProfileCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        GenerationProfileCatalog saved = Assert.IsType<GenerationProfileCatalog>(profileStore.LastSavedCatalog);
+        Assert.Equal(3, saved.Revisions.Count);
+        GenerationProfileRevision restoredHead = saved.Revisions[2];
+        Assert.Equal(second.Id, restoredHead.ParentRevisionId);
+        Assert.Equal("v1", restoredHead.Profile.BaseSystemInstructions);
+        Assert.Empty(saved.WorkingDrafts);
+        Assert.Equal(3, viewModel.Model.ProfileHistory.Revisions.Count);
+        Assert.Equal(restoredHead.Id, viewModel.Model.ProfileHistory.Revisions[0].Id);
+        Assert.True(viewModel.Model.ProfileHistory.Revisions[0].IsCurrent);
+        Assert.Equal(restoredHead.Id, viewModel.Model.ProfileHistory.SelectedRevision?.Id);
+    }
+
+    [Fact]
+    public async Task ExistingGenerationProfileWorkingDraftBlocksHistoricalRestore()
+    {
+        DateTimeOffset now = new(2026, 9, 19, 6, 30, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        Conversation conversation = new(ConversationId.New(), "Profile restore guard", now, now);
+        repository.Seed(conversation);
+        GenerationProfileModelScope scope = new("llama.cpp.cuda", "owner/model-GGUF:Q4_K_M");
+        GenerationProfile defaultProfile = GenerationProfile.CreateDefault(GenerationProfileId.New());
+        GenerationProfileId profileId = GenerationProfileId.New();
+        GenerationProfileRevision first = new(
+            GenerationProfileRevisionId.New(),
+            parentRevisionId: null,
+            now.AddMinutes(-2),
+            new GenerationProfile(profileId, "Code", "v1"));
+        GenerationProfileRevision second = new(
+            GenerationProfileRevisionId.New(),
+            first.Id,
+            now.AddMinutes(-1),
+            new GenerationProfile(profileId, "Code", "v2"));
+        GenerationProfileWorkingDraft draft = new(
+            new GenerationProfile(profileId, "Code", "local"),
+            second.Id,
+            now);
+        InMemoryGenerationProfileCatalogStore profileStore = new();
+        profileStore.Seed(new GenerationProfileCatalog(scope, defaultProfile, [first, second], [draft]));
+        InMemoryConversationGenerationSelectionStore selectionStore = new();
+        selectionStore.Seed(new ConversationGenerationSelection(
+            conversation.Id,
+            conversation.ActiveBranchId,
+            scope,
+            profileId));
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(now),
+            generationProfileCatalogStore: profileStore,
+            conversationGenerationSelectionStore: selectionStore);
+
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+        viewModel.Model.ProfileHistory.SelectedRevision = viewModel.Model.ProfileHistory.Revisions[1];
+
+        Assert.True(viewModel.Model.ProfileHistory.HasWorkingDraft);
+        Assert.False(viewModel.CanRestoreGenerationProfileRevision);
+        Assert.Contains("WorkingDraft", viewModel.Model.ProfileHistory.StatusText);
+    }
+
+    [Fact]
     public async Task CreateConversationCommandCreatesSelectsAndShowsEmptyConversation()
     {
         DateTimeOffset now = new(2026, 8, 8, 8, 0, 0, TimeSpan.Zero);

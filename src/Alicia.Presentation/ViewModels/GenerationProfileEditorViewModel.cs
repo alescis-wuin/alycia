@@ -257,6 +257,17 @@ public sealed class GenerationProfileEditorViewModel : ViewModelBase
         StatusText = "Working draft discarded. Confirmed profile restored.";
     }
 
+    internal void LoadRestoredRevision(
+        GenerationProfile confirmedProfile,
+        GenerationProfileRevisionId latestRevisionId,
+        GenerationProfileWorkingDraft restoredDraft)
+    {
+        ArgumentNullException.ThrowIfNull(restoredDraft);
+        LoadExisting(confirmedProfile, latestRevisionId, restoredDraft);
+        StatusText =
+            "Historical revision restored as a local WorkingDraft. Save a revision to confirm it as a new immutable revision.";
+    }
+
     internal void Close()
     {
         _profileId = null;
