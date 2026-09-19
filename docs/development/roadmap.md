@@ -54,6 +54,7 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 | UIX-02 Stage 3 WorkingDraft autosave / pre-send gate | terminé | autosave local + choix version précédente/modifiée avant nouvel envoi |
 | UIX-02 Stage 4 profile revision history / restore | terminé | timeline immuable + restauration d'une ancienne révision comme WorkingDraft basé sur la tête courante |
 | UIX-02 Stage 5 persistent model library foundation | terminé | catalogue multi-modèles provider-neutral + projection Models explicite, sans chargement implicite |
+| UIX-02 Stage 6 branch model/profile dual selector | terminé | dual-box composer branch-scoped + garde pré-envoi sur modèle sauvegardé/chargé, sans switch implicite |
 | Lot 11 RAG foundation | planifié | à faire |
 | Lot 12 Retrieval/grounded generation | planifié | à faire |
 | Lot 13 Tools/MCP/agents | planifié | à faire |
@@ -372,10 +373,24 @@ Introduire avant RAG.
 - aucun changement de `ConversationGenerationSelection`, resolver, `GenerationSnapshot`, profile catalog ou lifecycle provider dans cette étape ;
 - suppression de modèles, suppression du cache local, chargement/switch automatique et dual selector composer modèle/profil restent hors de cette étape.
 
+### UIX-02 Stage 6 - dual selector modèle/profil branch-scoped - terminé
+
+- le composer expose un contrôle compact `Modèle | Profil` ouvrant une dual-box : modèles à gauche, profils confirmés du modèle sélectionné à droite ;
+- la colonne modèles consomme la bibliothèque persistante Stage 5 au lieu d'une liste synthétique Presentation ;
+- le modèle actuellement sauvegardé et le modèle déjà lié à la branche restent projetables comme entrées de compatibilité s'ils ne sont pas encore dans la bibliothèque, sans import silencieux ;
+- chaque modèle charge son `GenerationProfileCatalog` existant ; un catalogue absent projette seulement `Default` et n'est persisté qu'au moment d'un `Use for this branch` explicite ;
+- la sélection effective de la branche est restaurée, y compris le fallback conversation-scoped historique ; appliquer ce fallback l'épingle explicitement à la branche active ;
+- `Use for this branch` persiste uniquement la sélection `(ConversationId, ConversationBranchId, ModelScope, ProfileId)` et, si nécessaire, le catalogue `Default` vide du modèle ;
+- un WorkingDraft est signalé dans la liste mais le selector reste lié au `ProfileId` confirmé ; le gate Stage 3 conserve seul le choix `previous/modified` avant envoi ;
+- choisir/appliquer un modèle ne sauvegarde, ne démarre, ne charge, ne stoppe ni ne switch aucun provider ;
+- si le modèle lié à la branche diffère du modèle provider sauvegardé ou du modèle réellement chargé, Send est bloqué dans Presentation avec un message explicite avant toute persistance User ou tout appel provider ;
+- le selector suit les règles de surfaces transitoires existantes : indisponible pendant stream/opération/édition/gates, `Escape` annule sans mutation, changement de conversation recharge la projection et désélection efface l'ancien état ;
+- aucun changement de schema JSON, Domain, resolver, `GenerationSnapshot` ou lifecycle provider dans cette étape.
+
 ### Etapes suivantes
 
-- UIX-02 Stage 6 : dual selector modèle/profil complet, branch-scoped, alimenté par la bibliothèque persistante ;
 - UIX-03 : contexte, provenance/révisions et navigation de branches progressivement exposés ;
+- UIX-02 extensions différées : suppression de profils/modèles et comparaison visuelle avancée des révisions, après contrats métier dédiés ;
 - Lot 11 : RAG foundation après le track UIX recommandé.
 
 ## Lots 11 à 15

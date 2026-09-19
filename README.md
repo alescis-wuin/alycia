@@ -37,6 +37,8 @@ UIX-02 Stage 4 exposes the immutable confirmed revision chain for the selected c
 
 UIX-02 Stage 5 adds a provider-neutral persistent model-library foundation without changing which model is active. Saved provider/model settings can be explicitly added or updated in `providers/models.json`, listed in Models, and copied back into the editable settings. Library reuse never saves, starts, loads, switches provider, or changes conversation bindings implicitly. The full branch-scoped model/profile dual selector remains the next UIX-02 stage.
 
+UIX-02 Stage 6 adds the compact branch-scoped model/profile selector to the Conversation composer. Its model column consumes the persistent Stage 5 library, its profile column consumes the existing model-scoped confirmed-profile catalogs, and `Use for this branch` persists only the explicit branch selection (plus a missing empty `Default` catalog when required). Choosing a model never saves or switches provider configuration and never starts or loads a runtime; when the branch-selected model differs from the saved or loaded model, Send is blocked with an explicit Models remediation path before any message/provider call.
+
 ## Prerequisites
 
 - Linux, macOS, or Windows for the application itself;
@@ -74,6 +76,7 @@ The current Avalonia presentation provides:
 - explicit managed-provider storage inspection plus separately confirmed inactive-release cleanup, runtime-only uninstall, and runtime-plus-model-cache uninstall;
 - explicit Models configuration for Hugging Face GGUF reference, optional context/generation overrides, reasoning enable/disable, and bounded reasoning tokens;
 - a persistent provider-neutral model library that can retain multiple saved model configurations without implying they are loaded;
+- a compact Conversation model/profile dual selector that restores and explicitly pins the effective pair per active branch without implicitly switching or loading a provider model;
 - no automatic provider fallback: unsaved or unavailable selections are never silently replaced;
 - a managed llama.cpp session bound to a dynamically selected IPv4-loopback port with localhost-only CORS, the bundled UI disabled, a per-launch ephemeral API key outside the command line, public `/health` readiness followed by authenticated `/props` ownership verification, and Bearer-authenticated chat streaming;
 - OpenAI-compatible SSE streaming with separate visible Content and Reasoning chunks;

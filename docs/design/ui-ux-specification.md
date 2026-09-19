@@ -305,7 +305,15 @@ Au clic : popup dual box :
 - colonne gauche = modèles ;
 - colonne droite = profils du modèle sélectionné.
 
-Le choix modèle/profil est persisté par conversation et restauré après changement de conversation ou redémarrage.
+#### Implémentation UIX-02 Stage 6
+
+- le choix modèle/profil est persisté pour la **branche active** via le contrat branch-scoped existant et restauré après changement de conversation/branche ou redémarrage ;
+- un ancien choix conversation-scoped reste visible comme fallback de compatibilité et peut être épinglé explicitement à la branche avec `Use for this branch` ;
+- la liste modèles vient de la bibliothèque persistante Stage 5 ; le modèle sauvegardé courant ou un modèle déjà lié à la branche peuvent rester visibles comme entrées de compatibilité sans être importés silencieusement ;
+- la colonne profils ne propose que les profils confirmés du modèle ; un WorkingDraft existant est signalé mais reste soumis au gate pré-envoi Stage 3 ;
+- sélectionner ou appliquer une paire ne sauvegarde ni ne charge jamais le provider implicitement ;
+- si la branche attend un autre modèle que celui sauvegardé/chargé, le composer conserve l'accès au selector mais `Send` est désactivé avec une remédiation explicite vers Models ;
+- `Escape` ou Close annule le preview sans persistance.
 
 ---
 
@@ -499,7 +507,15 @@ La bibliothèque persistante de modèles est désormais un contrat réel Applica
 - `Use selected settings` recopie une entrée dans le formulaire éditable mais n'effectue ni save, ni start/load, ni binding de conversation ;
 - un modèle d'un autre provider ne bascule jamais automatiquement le provider courant ;
 - suppression de bibliothèque/cache et chargement automatique restent différés ;
-- la popup dual-box du composer est le Stage 6 et doit consommer cette bibliothèque persistante plutôt qu'une liste Presentation synthétique.
+- UIX-02 Stage 6 consomme cette bibliothèque persistante dans la popup dual-box du composer plutôt qu'une liste Presentation synthétique.
+
+#### Implémentation UIX-02 Stage 6
+
+- la dual-box est branch-scoped et restaure la sélection effective de la branche ;
+- les profils affichés sont ceux du catalogue confirmé du modèle sélectionné ;
+- `Use for this branch` est la seule frontière de persistance du popup ;
+- changer de modèle dans le popup ne modifie pas la configuration provider active et ne déclenche aucun load ;
+- une incompatibilité entre modèle de branche et modèle sauvegardé/chargé bloque l'envoi avant génération tout en laissant le selector accessible.
 
 Cible du dual box complet :
 
@@ -1132,13 +1148,14 @@ Ces durées sont UX, pas des invariants métier ; elles doivent rester testables
 - UIX-02 Stage 2 : création/édition des profils custom dans Models, WorkingDraft persistant explicite, commit en révision immuable, restauration/discard et blocage des drafts stale ; le profil `Default` reste non éditable.
 - UIX-02 Stage 3 : autosave local debounced des WorkingDrafts, continuité d’édition/autosave pendant un stream sans commit concurrent, et gate avant nouvel envoi `Use previous version` / `Use modified version` fondé sur le profil réellement résolu par la branche ; un draft stale ne peut pas être confirmé.
 - UIX-02 Stage 4 : timeline des révisions confirmées d'un profil custom et restauration non destructive d'une ancienne révision comme WorkingDraft basé sur la tête courante ; confirmer la restauration ajoute une nouvelle révision immuable.
+- UIX-02 Stage 5 : bibliothèque persistante provider-neutral de configurations modèles, réutilisable explicitement sans changer le modèle actif.
+- UIX-02 Stage 6 : dual selector modèle/profil du composer, branch-scoped, alimenté par la bibliothèque persistante et les catalogues de profils, sans chargement/switch implicite et avec blocage pré-envoi sur mismatch.
 
 ### Encore requis par cette spécification
 
 - title generation ;
 - assistant avatar ;
 - hover/focus timestamp/provenance/copy ;
-- model/profile dual selector complet avec bibliothèque de modèles ;
 - comparaison visuelle avancée entre révisions de profils ;
 - context button/panel ;
 - one-shot features ;

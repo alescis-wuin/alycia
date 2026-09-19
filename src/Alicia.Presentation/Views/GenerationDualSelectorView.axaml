@@ -1,0 +1,110 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Alicia.Presentation.ViewModels"
+             x:Class="Alicia.Presentation.Views.GenerationDualSelectorView"
+             x:DataType="vm:MainViewModel"
+             AutomationProperties.Name="Model and generation profile selector">
+  <Border Classes="surface"
+          HorizontalAlignment="Stretch"
+          MaxWidth="680"
+          MaxHeight="430"
+          Padding="18">
+    <Grid RowDefinitions="Auto,*,Auto" RowSpacing="14">
+      <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+        <StackPanel Spacing="3">
+          <TextBlock Text="Model and profile"
+                     FontSize="18"
+                     FontWeight="SemiBold"
+                     AutomationProperties.HeadingLevel="2"
+                     Foreground="{DynamicResource TextPrimaryBrush}" />
+          <TextBlock Text="Choose the pair persisted for the active conversation branch. This does not switch or load the provider automatically."
+                     FontSize="12"
+                     TextWrapping="Wrap"
+                     Foreground="{DynamicResource TextSecondaryBrush}" />
+        </StackPanel>
+        <Button Grid.Column="1"
+                Classes="secondary-action"
+                Command="{Binding CancelGenerationDualSelectorCommand}"
+                Content="Close"
+                AutomationProperties.Name="Close model and profile selector" />
+      </Grid>
+
+      <Grid Grid.Row="1"
+            ColumnDefinitions="*,*"
+            ColumnSpacing="14">
+        <StackPanel Grid.Column="0" Spacing="8">
+          <TextBlock Text="Models"
+                     FontSize="13"
+                     FontWeight="SemiBold"
+                     Foreground="{DynamicResource TextPrimaryBrush}" />
+          <ListBox ItemsSource="{Binding GenerationDualSelector.Models}"
+                   SelectedItem="{Binding GenerationDualSelector.SelectedModel, Mode=TwoWay}"
+                   MinHeight="190"
+                   MaxHeight="260"
+                   AutomationProperties.Name="Saved models">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:GenerationDualSelectorModelItemViewModel">
+                <StackPanel Margin="4,6" Spacing="2">
+                  <TextBlock Text="{Binding DisplayName}"
+                             FontWeight="SemiBold"
+                             TextWrapping="Wrap" />
+                  <TextBlock Text="{Binding ModelReference}"
+                             FontSize="11"
+                             TextWrapping="Wrap"
+                             Foreground="{DynamicResource TextSecondaryBrush}" />
+                  <TextBlock Text="{Binding StateText}"
+                             FontSize="11"
+                             TextWrapping="Wrap"
+                             Foreground="{DynamicResource TextSecondaryBrush}" />
+                </StackPanel>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </StackPanel>
+
+        <StackPanel Grid.Column="1" Spacing="8">
+          <TextBlock Text="Profiles"
+                     FontSize="13"
+                     FontWeight="SemiBold"
+                     Foreground="{DynamicResource TextPrimaryBrush}" />
+          <ListBox ItemsSource="{Binding GenerationDualSelector.Profiles}"
+                   SelectedItem="{Binding GenerationDualSelector.SelectedProfile, Mode=TwoWay}"
+                   MinHeight="190"
+                   MaxHeight="260"
+                   AutomationProperties.Name="Confirmed generation profiles">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:GenerationDualSelectorProfileItemViewModel">
+                <StackPanel Margin="4,6" Spacing="2">
+                  <TextBlock Text="{Binding Name}"
+                             FontWeight="SemiBold"
+                             TextWrapping="Wrap" />
+                  <TextBlock Text="{Binding StateText}"
+                             FontSize="11"
+                             TextWrapping="Wrap"
+                             Foreground="{DynamicResource TextSecondaryBrush}" />
+                </StackPanel>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </StackPanel>
+      </Grid>
+
+      <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="14">
+        <TextBlock Text="{Binding GenerationDualSelector.PreviewStatusText}"
+                   VerticalAlignment="Center"
+                   FontSize="12"
+                   LineHeight="18"
+                   TextWrapping="Wrap"
+                   AutomationProperties.LiveSetting="Polite"
+                   Foreground="{DynamicResource TextSecondaryBrush}" />
+        <Button Grid.Column="1"
+                Classes="primary-action"
+                Command="{Binding ApplyGenerationDualSelectorCommand}"
+                IsEnabled="{Binding CanApplyGenerationDualSelector}"
+                Content="Use for this branch"
+                AutomationProperties.Name="Use selected model and profile for active branch"
+                AutomationProperties.HelpText="Persist the selected model scope and confirmed generation profile for the active conversation branch without loading the provider automatically." />
+      </Grid>
+    </Grid>
+  </Border>
+</UserControl>

@@ -3136,6 +3136,128 @@ public sealed class MainViewModelTests
         Assert.Equal("Ready", viewModel.ProviderStatusText);
     }
 
+    [Fact]
+    public async Task BranchModelMismatchKeepsComposerVisibleButBlocksSendUntilModelIsLoaded()
+    {
+        DateTimeOffset now = new(2026, 9, 20, 0, 10, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        Conversation conversation = new(ConversationId.New(), "Dual selector mismatch", now, now);
+        repository.Seed(conversation);
+        InferenceProviderConfiguration currentConfiguration = new(
+            "llama.cpp.cuda",
+            "owner/model-GGUF:Q4_K_M",
+            generation: new InferenceGenerationOptions(reasoningEnabled: false));
+        InferenceProviderConfiguration branchConfiguration = new(
+            "llama.cpp.cuda",
+            "owner/branch-model-GGUF:Q5_K_M",
+            generation: new InferenceGenerationOptions(reasoningEnabled: false));
+        GenerationProfileModelScope branchScope = new(
+            branchConfiguration.ProviderId,
+            branchConfiguration.ModelReference!);
+        GenerationProfileCatalog branchCatalog = GenerationProfileCatalog.CreateEmpty(
+            branchScope,
+            GenerationProfileId.New());
+        InMemoryGenerationProfileCatalogStore profileStore = new();
+        profileStore.Seed(branchCatalog);
+        InMemoryConversationGenerationSelectionStore selectionStore = new();
+        selectionStore.Seed(new ConversationGenerationSelection(
+            conversation.Id,
+            conversation.ActiveBranchId,
+            branchScope,
+            branchCatalog.DefaultProfile.Id));
+        InMemoryInferenceModelLibraryStore libraryStore = new(new InferenceModelLibrary(
+        [
+            new InferenceModelLibraryEntry(currentConfiguration, now.AddMinutes(-2)),
+            new InferenceModelLibraryEntry(branchConfiguration, now.AddMinutes(-1)),
+        ]));
+        StubInferenceProviderConfigurationStore configurationStore = new(currentConfiguration);
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(now),
+            providerConfigurationStore: configurationStore,
+            generationProfileCatalogStore: profileStore,
+            conversationGenerationSelectionStore: selectionStore,
+            inferenceModelLibraryStore: libraryStore);
+
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+        viewModel.MessageDraft = "Do not send with the wrong model";
+
+        Assert.True(viewModel.ShowMessageComposer);
+        Assert.True(viewModel.IsComposerEnabled);
+        Assert.False(viewModel.CanSendMessage);
+        Assert.Equal("branch-model-GGUF | Default", viewModel.GenerationDualSelectorLabel);
+        Assert.Contains(
+            "branch-model-GGUF:Q5_K_M",
+            viewModel.GenerationDualSelectorReadinessText,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ApplyingDualSelectorPersistsOnlyBranchSelectionAndNeverSwitchesProviderImplicitly()
+    {
+        DateTimeOffset now = new(2026, 9, 20, 0, 20, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        Conversation conversation = new(ConversationId.New(), "Dual selector apply", now, now);
+        repository.Seed(conversation);
+        InferenceProviderConfiguration currentConfiguration = new(
+            "llama.cpp.cuda",
+            "owner/model-GGUF:Q4_K_M",
+            generation: new InferenceGenerationOptions(reasoningEnabled: false));
+        InferenceProviderConfiguration alternateConfiguration = new(
+            "llama.cpp.cuda",
+            "owner/alternate-GGUF:Q6_K",
+            generation: new InferenceGenerationOptions(reasoningEnabled: false));
+        GenerationProfileModelScope currentScope = new(
+            currentConfiguration.ProviderId,
+            currentConfiguration.ModelReference!);
+        GenerationProfileModelScope alternateScope = new(
+            alternateConfiguration.ProviderId,
+            alternateConfiguration.ModelReference!);
+        InMemoryGenerationProfileCatalogStore profileStore = new();
+        profileStore.Seed(GenerationProfileCatalog.CreateEmpty(
+            currentScope,
+            GenerationProfileId.New()));
+        GenerationProfileCatalog alternateCatalog = GenerationProfileCatalog.CreateEmpty(
+            alternateScope,
+            GenerationProfileId.New());
+        profileStore.Seed(alternateCatalog);
+        InMemoryConversationGenerationSelectionStore selectionStore = new();
+        InMemoryInferenceModelLibraryStore libraryStore = new(new InferenceModelLibrary(
+        [
+            new InferenceModelLibraryEntry(currentConfiguration, now.AddMinutes(-2)),
+            new InferenceModelLibraryEntry(alternateConfiguration, now.AddMinutes(-1)),
+        ]));
+        StubInferenceProviderConfigurationStore configurationStore = new(currentConfiguration);
+        StubInferenceProviderRuntime providerRuntime = new(InferenceProviderState.Running);
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(now),
+            inferenceProvider: providerRuntime,
+            providerConfigurationStore: configurationStore,
+            generationProfileCatalogStore: profileStore,
+            conversationGenerationSelectionStore: selectionStore,
+            inferenceModelLibraryStore: libraryStore);
+
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+        viewModel.OpenGenerationDualSelectorCommand.Execute(null);
+        viewModel.GenerationDualSelector.SelectedModel = Assert.Single(
+            viewModel.GenerationDualSelector.Models,
+            item => item.ModelReference == alternateConfiguration.ModelReference);
+
+        Assert.True(viewModel.CanApplyGenerationDualSelector);
+        await viewModel.ApplyGenerationDualSelectorCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        ConversationGenerationSelection saved = Assert.IsType<ConversationGenerationSelection>(
+            selectionStore.LastSavedSelection);
+        Assert.Equal(conversation.ActiveBranchId, saved.BranchId);
+        Assert.Equal(alternateScope, saved.ModelScope);
+        Assert.Equal(alternateCatalog.DefaultProfile.Id, saved.ProfileId);
+        Assert.Equal(0, configurationStore.SaveCount);
+        Assert.Equal(0, providerRuntime.StartCount);
+        Assert.Equal(currentConfiguration.ModelReference, providerRuntime.Current.ModelReference);
+        Assert.False(viewModel.IsGenerationDualSelectorVisible);
+    }
+
     private static MainViewModel CreateViewModel(
         IConversationRepository repository,
         TimeProvider timeProvider,

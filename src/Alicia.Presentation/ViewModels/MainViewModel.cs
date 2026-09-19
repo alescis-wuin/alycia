@@ -142,8 +142,13 @@ public sealed class MainViewModel : ViewModelBase
             conversationGenerationSelectionStore,
             generationProfileTimeProvider,
             inferenceModelLibraryStore);
+        GenerationDualSelector = new GenerationDualSelectorViewModel(
+            inferenceModelLibraryStore,
+            generationProfileCatalogStore,
+            conversationGenerationSelectionStore);
         Model.ProfileEditor.PropertyChanged += OnGenerationProfileEditorPropertyChanged;
         Model.ProfileHistory.PropertyChanged += OnGenerationProfileHistoryPropertyChanged;
+        GenerationDualSelector.PropertyChanged += OnGenerationDualSelectorPropertyChanged;
         ConfigurationGate = new ConversationConfigurationGateViewModel();
         _conversationUiStateStore = conversationUiStateStore
             ?? new TransientConversationUiStateStore();
@@ -209,6 +214,15 @@ public sealed class MainViewModel : ViewModelBase
         SaveGenerationProfileSelectionCommand = new AsyncRelayCommand(
             SaveGenerationProfileSelectionAsync,
             () => CanSaveGenerationProfileSelection);
+        OpenGenerationDualSelectorCommand = new RelayCommand(
+            OpenGenerationDualSelector,
+            () => CanOpenGenerationDualSelector);
+        ApplyGenerationDualSelectorCommand = new AsyncRelayCommand(
+            ApplyGenerationDualSelectorAsync,
+            () => CanApplyGenerationDualSelector);
+        CancelGenerationDualSelectorCommand = new RelayCommand(
+            CancelGenerationDualSelector,
+            () => IsGenerationDualSelectorVisible);
         BeginCreateGenerationProfileCommand = new RelayCommand(
             BeginCreateGenerationProfile,
             () => CanCreateGenerationProfile);
@@ -255,6 +269,8 @@ public sealed class MainViewModel : ViewModelBase
     public ProviderViewModel Provider { get; }
 
     public ModelViewModel Model { get; }
+
+    public GenerationDualSelectorViewModel GenerationDualSelector { get; }
 
     public GenerationSettingsViewModel GenerationSettings { get; }
 
@@ -324,6 +340,12 @@ public sealed class MainViewModel : ViewModelBase
     public IRelayCommand UseSelectedLibraryModelCommand { get; }
 
     public IAsyncRelayCommand SaveGenerationProfileSelectionCommand { get; }
+
+    public IRelayCommand OpenGenerationDualSelectorCommand { get; }
+
+    public IAsyncRelayCommand ApplyGenerationDualSelectorCommand { get; }
+
+    public IRelayCommand CancelGenerationDualSelectorCommand { get; }
 
     public IRelayCommand BeginCreateGenerationProfileCommand { get; }
 
@@ -479,6 +501,88 @@ public sealed class MainViewModel : ViewModelBase
 
     public ObservableCollection<GenerationProfile> GenerationProfiles =>
         Model.GenerationProfiles;
+
+    public bool IsGenerationDualSelectorVisible => GenerationDualSelector.IsOpen;
+
+    private bool CanInteractWithGenerationDualSelector =>
+        GenerationDualSelector.SupportsSelector
+        && SelectedConversation is not null
+        && _selectedConversationBranchId is not null
+        && !IsBusy
+        && !IsGeneratingResponse
+        && !IsDeleteConfirmationVisible
+        && !IsGenerationProfileSendGateVisible
+        && !IsGenerationProfileEditorVisible;
+
+    public bool CanOpenGenerationDualSelector =>
+        CanInteractWithGenerationDualSelector
+        && !IsGenerationDualSelectorVisible;
+
+    public bool CanApplyGenerationDualSelector =>
+        CanInteractWithGenerationDualSelector
+        && IsGenerationDualSelectorVisible
+        && GenerationDualSelector.HasPendingChanges
+        && GenerationDualSelector.SelectedModel is not null
+        && GenerationDualSelector.SelectedProfile is not null;
+
+    public string GenerationDualSelectorLabel => GenerationDualSelector.TriggerLabel;
+
+    public string GenerationDualSelectorStatusText => GenerationDualSelector.StatusText;
+
+    public string GenerationDualSelectorReadinessText
+    {
+        get
+        {
+            ConversationGenerationSelection? selection = GenerationDualSelector.ResolvedSelection;
+            if (selection is null)
+            {
+                return GenerationDualSelector.StatusText;
+            }
+
+            InferenceProviderConfiguration? saved = Model.SavedProviderConfiguration;
+            if (saved is null
+                || !saved.HasModelReference
+                || !string.Equals(saved.ProviderId, selection.ModelScope.ProviderId, StringComparison.Ordinal)
+                || !string.Equals(saved.ModelReference, selection.ModelScope.ModelReference, StringComparison.Ordinal))
+            {
+                return $"This branch expects '{selection.ModelScope.ModelReference}'. Open Models, reuse that library model, save its provider settings, then load it before sending.";
+            }
+
+            if (Provider.Snapshot is { State: InferenceProviderState.Running } snapshot
+                && (!string.Equals(SelectedProvider?.Id, selection.ModelScope.ProviderId, StringComparison.Ordinal)
+                    || !string.Equals(snapshot.ModelReference, selection.ModelScope.ModelReference, StringComparison.Ordinal)))
+            {
+                return $"This branch expects '{selection.ModelScope.ModelReference}', but another model is currently loaded. Stop the provider and load the branch model before sending.";
+            }
+
+            return GenerationDualSelector.StatusText;
+        }
+    }
+
+    private bool IsGenerationDualSelectorReadyForSend
+    {
+        get
+        {
+            ConversationGenerationSelection? selection = GenerationDualSelector.ResolvedSelection;
+            if (selection is null)
+            {
+                return true;
+            }
+
+            InferenceProviderConfiguration? saved = Model.SavedProviderConfiguration;
+            if (saved is null
+                || !saved.HasModelReference
+                || !string.Equals(saved.ProviderId, selection.ModelScope.ProviderId, StringComparison.Ordinal)
+                || !string.Equals(saved.ModelReference, selection.ModelScope.ModelReference, StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            return Provider.Snapshot is not { State: InferenceProviderState.Running } snapshot
+                || string.Equals(SelectedProvider?.Id, selection.ModelScope.ProviderId, StringComparison.Ordinal)
+                    && string.Equals(snapshot.ModelReference, selection.ModelScope.ModelReference, StringComparison.Ordinal);
+        }
+    }
 
     public GenerationProfile? SelectedGenerationProfile
     {
@@ -759,10 +863,12 @@ public sealed class MainViewModel : ViewModelBase
         && HasSelectedConversation
         && !IsDeleteConfirmationVisible
         && !IsGenerationProfileSendGateVisible
+        && !IsGenerationDualSelectorVisible
         && IsProviderRunning;
 
     public bool CanSendMessage => IsComposerEnabled
         && IsProviderRunning
+        && IsGenerationDualSelectorReadyForSend
         && !string.IsNullOrWhiteSpace(MessageDraft);
 
     public bool IsProviderBusy
@@ -1018,6 +1124,8 @@ public sealed class MainViewModel : ViewModelBase
 
     public bool CanRetryResponse => !IsBusy
         && !IsGeneratingResponse
+        && !IsGenerationDualSelectorVisible
+        && IsGenerationDualSelectorReadyForSend
         && _isRetryResponseUnlocked
         && _retryConversationId is ConversationId retryConversationId
         && _retryTriggeringMessageId is not null
@@ -1055,6 +1163,7 @@ public sealed class MainViewModel : ViewModelBase
             OnPropertyChanged(nameof(CanSendMessage));
             OnPropertyChanged(nameof(IsComposerEnabled));
             SendMessageCommand.NotifyCanExecuteChanged();
+            RaiseGenerationDualSelectorStateChanged();
         }
     }
 
@@ -1219,7 +1328,9 @@ public sealed class MainViewModel : ViewModelBase
                 ? "Response not completed • Retry response is available"
                 : !IsProviderRunning
                     ? "Start the selected provider before sending messages"
-                    : $"Enter sends • Shift+Enter adds a new line • {ProviderModelReference}";
+                    : !IsGenerationDualSelectorReadyForSend
+                        ? GenerationDualSelectorReadinessText
+                        : $"Enter sends • Shift+Enter adds a new line • {GenerationDualSelectorLabel}";
 
     public string SendButtonLabel => IsSendingMessage ? "Saving…" : "Send";
 
@@ -1527,6 +1638,7 @@ public sealed class MainViewModel : ViewModelBase
             await Model
                 .SaveCurrentModelToLibraryAsync(SelectedProvider)
                 .ConfigureAwait(true);
+            await RefreshGenerationDualSelectorAsync().ConfigureAwait(true);
             OnPropertyChanged(nameof(ModelLibraryItems));
             OnPropertyChanged(nameof(SelectedModelLibraryItem));
             RaiseModelLibraryStateChanged();
@@ -1561,7 +1673,44 @@ public sealed class MainViewModel : ViewModelBase
                     SelectedConversation.Id,
                     branchId)
                 .ConfigureAwait(true);
+            await RefreshGenerationDualSelectorAsync().ConfigureAwait(true);
             RaiseGenerationProfileSelectionStateChanged();
+        }).ConfigureAwait(true);
+    }
+
+    private void OpenGenerationDualSelector()
+    {
+        if (!CanOpenGenerationDualSelector)
+        {
+            return;
+        }
+
+        GenerationDualSelector.Open();
+        RaiseGenerationDualSelectorStateChanged();
+    }
+
+    private void CancelGenerationDualSelector()
+    {
+        if (!IsGenerationDualSelectorVisible)
+        {
+            return;
+        }
+
+        GenerationDualSelector.Cancel();
+        RaiseGenerationDualSelectorStateChanged();
+    }
+
+    private async Task ApplyGenerationDualSelectorAsync()
+    {
+        if (!CanApplyGenerationDualSelector)
+        {
+            return;
+        }
+
+        await ExecuteOperationAsync(async () =>
+        {
+            await GenerationDualSelector.ApplyAsync().ConfigureAwait(true);
+            await RefreshGenerationProfilesAsync().ConfigureAwait(true);
         }).ConfigureAwait(true);
     }
 
@@ -1637,6 +1786,7 @@ public sealed class MainViewModel : ViewModelBase
             await ExecuteWithGenerationProfileAutosaveSuppressedAsync(
                 () => Model.CommitGenerationProfileAsync())
                 .ConfigureAwait(true);
+            await RefreshGenerationDualSelectorAsync().ConfigureAwait(true);
             RaiseGenerationProfileSelectionStateChanged();
             RaiseGenerationProfileEditorStateChanged();
         }).ConfigureAwait(true);
@@ -1687,6 +1837,15 @@ public sealed class MainViewModel : ViewModelBase
         _ = sender;
         _ = eventArgs;
         RaiseGenerationProfileHistoryStateChanged();
+    }
+
+    private void OnGenerationDualSelectorPropertyChanged(
+        object? sender,
+        PropertyChangedEventArgs eventArgs)
+    {
+        _ = sender;
+        _ = eventArgs;
+        RaiseGenerationDualSelectorStateChanged();
     }
 
     private void OnGenerationProfileEditorPropertyChanged(
@@ -1936,7 +2095,19 @@ public sealed class MainViewModel : ViewModelBase
                 SelectedConversation?.Id,
                 _selectedConversationBranchId)
             .ConfigureAwait(true);
+        await RefreshGenerationDualSelectorAsync().ConfigureAwait(true);
         RaiseGenerationProfileSelectionStateChanged();
+    }
+
+    private async Task RefreshGenerationDualSelectorAsync()
+    {
+        await GenerationDualSelector
+            .LoadAsync(
+                SelectedConversation?.Id,
+                _selectedConversationBranchId,
+                Model.SavedProviderConfiguration)
+            .ConfigureAwait(true);
+        RaiseGenerationDualSelectorStateChanged();
     }
 
     private void RaiseGenerationProfileSelectionStateChanged()
@@ -1956,6 +2127,24 @@ public sealed class MainViewModel : ViewModelBase
     {
         OnPropertyChanged(nameof(CanRestoreGenerationProfileRevision));
         RestoreGenerationProfileRevisionCommand.NotifyCanExecuteChanged();
+    }
+
+    private void RaiseGenerationDualSelectorStateChanged()
+    {
+        OnPropertyChanged(nameof(IsGenerationDualSelectorVisible));
+        OnPropertyChanged(nameof(CanOpenGenerationDualSelector));
+        OnPropertyChanged(nameof(CanApplyGenerationDualSelector));
+        OnPropertyChanged(nameof(GenerationDualSelectorLabel));
+        OnPropertyChanged(nameof(GenerationDualSelectorStatusText));
+        OnPropertyChanged(nameof(GenerationDualSelectorReadinessText));
+        OnPropertyChanged(nameof(CanSendMessage));
+        OnPropertyChanged(nameof(CanRetryResponse));
+        OnPropertyChanged(nameof(ComposerStatusText));
+        OpenGenerationDualSelectorCommand.NotifyCanExecuteChanged();
+        ApplyGenerationDualSelectorCommand.NotifyCanExecuteChanged();
+        CancelGenerationDualSelectorCommand.NotifyCanExecuteChanged();
+        SendMessageCommand.NotifyCanExecuteChanged();
+        RetryResponseCommand.NotifyCanExecuteChanged();
     }
 
     private void RaiseGenerationProfileEditorStateChanged()
@@ -1979,6 +2168,7 @@ public sealed class MainViewModel : ViewModelBase
         CancelGenerationProfileEditCommand.NotifyCanExecuteChanged();
         RestoreGenerationProfileRevisionCommand.NotifyCanExecuteChanged();
         SaveGenerationProfileSelectionCommand.NotifyCanExecuteChanged();
+        RaiseGenerationDualSelectorStateChanged();
     }
 
     private IInferenceProviderRuntime GetSelectedProviderRuntime()
@@ -3333,6 +3523,7 @@ public sealed class MainViewModel : ViewModelBase
         UsePreviousGenerationProfileForSendCommand.NotifyCanExecuteChanged();
         UseModifiedGenerationProfileForSendCommand.NotifyCanExecuteChanged();
         CancelGenerationProfileSendGateCommand.NotifyCanExecuteChanged();
+        RaiseGenerationDualSelectorStateChanged();
     }
 
     private async Task RetryResponseAsync()
@@ -3628,6 +3819,12 @@ public sealed class MainViewModel : ViewModelBase
             return;
         }
 
+        if (IsGenerationDualSelectorVisible)
+        {
+            CancelGenerationDualSelector();
+            return;
+        }
+
         if (IsDeleteConfirmationVisible)
         {
             CancelDelete();
@@ -3863,6 +4060,7 @@ public sealed class MainViewModel : ViewModelBase
         SelectedConversation = null;
         _selectedConversationBranchId = null;
         Model.ClearConversationGenerationSelection();
+        GenerationDualSelector.Clear();
         ConversationStream.ClearMessages();
         IsDeleteConfirmationVisible = false;
         RaiseGenerationProfileSelectionStateChanged();
@@ -4252,6 +4450,7 @@ public sealed class MainViewModel : ViewModelBase
         SaveCurrentModelToLibraryCommand.NotifyCanExecuteChanged();
         UseSelectedLibraryModelCommand.NotifyCanExecuteChanged();
         SendMessageCommand.NotifyCanExecuteChanged();
+        RaiseGenerationDualSelectorStateChanged();
         UpdateConfigurationGate();
     }
 
@@ -4273,6 +4472,7 @@ public sealed class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(CanRetryResponse));
         SendMessageCommand.NotifyCanExecuteChanged();
         RetryResponseCommand.NotifyCanExecuteChanged();
+        RaiseGenerationDualSelectorStateChanged();
         RaiseConversationScrollStateChanged();
         RaiseMessageStateChanged();
         RaiseEmptyStateChanged();
