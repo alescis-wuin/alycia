@@ -490,6 +490,19 @@ Si validation/chargement réussit :
 
 ### 9.3 Dual box Modèles / Profils
 
+#### Fondation UIX-02 Stage 5
+
+La bibliothèque persistante de modèles est désormais un contrat réel Application/Infrastructure, séparé de la configuration provider active. Models peut conserver plusieurs snapshots de configuration modèle sans prétendre qu'ils sont chargés.
+
+- `Save current model to library` ajoute ou met à jour explicitement le couple provider/modèle actuellement sauvegardé ;
+- aucun modèle existant n'est importé silencieusement dans la bibliothèque ;
+- `Use selected settings` recopie une entrée dans le formulaire éditable mais n'effectue ni save, ni start/load, ni binding de conversation ;
+- un modèle d'un autre provider ne bascule jamais automatiquement le provider courant ;
+- suppression de bibliothèque/cache et chargement automatique restent différés ;
+- la popup dual-box du composer est le Stage 6 et doit consommer cette bibliothèque persistante plutôt qu'une liste Presentation synthétique.
+
+Cible du dual box complet :
+
 Deux colonnes :
 
 **Modèles :**

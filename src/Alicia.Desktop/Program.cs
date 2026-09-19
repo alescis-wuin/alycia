@@ -17,6 +17,7 @@ internal static class Program
 {
     private static LlamaCppProviderRuntime? _llamaCppRuntime;
     private static JsonInferenceProviderConfigurationStore? _providerConfigurationStore;
+    private static JsonInferenceModelLibraryStore? _modelLibraryStore;
     private static JsonGenerationProfileCatalogStore? _generationProfileCatalogStore;
     private static JsonConversationGenerationSelectionStore? _conversationGenerationSelectionStore;
     private static JsonConversationUiStateStore? _conversationUiStateStore;
@@ -41,6 +42,7 @@ internal static class Program
             }
 
             _providerConfigurationStore?.Dispose();
+            _modelLibraryStore?.Dispose();
             _generationProfileCatalogStore?.Dispose();
             _conversationGenerationSelectionStore?.Dispose();
             _conversationUiStateStore?.Dispose();
@@ -80,6 +82,9 @@ internal static class Program
         string providerConfigurationPath = Path.Combine(
             providersDirectory,
             "configuration.json");
+        string modelLibraryPath = Path.Combine(
+            providersDirectory,
+            "models.json");
         string generationProfileCatalogPath = Path.Combine(
             generationsDirectory,
             "profiles.json");
@@ -112,6 +117,8 @@ internal static class Program
                 providerConfigurationPath,
                 LlamaCppProviderRuntime.ProviderId,
                 legacyLlamaCppSettingsPath);
+        JsonInferenceModelLibraryStore modelLibraryStore =
+            _modelLibraryStore ??= new JsonInferenceModelLibraryStore(modelLibraryPath);
         JsonGenerationProfileCatalogStore generationProfileCatalogStore =
             _generationProfileCatalogStore ??= new JsonGenerationProfileCatalogStore(
                 generationProfileCatalogPath);
@@ -152,7 +159,8 @@ internal static class Program
             isReducedMotionEnabled: ReducedMotionPreference.IsEnabled(),
             generationProfileCatalogStore: generationProfileCatalogStore,
             conversationGenerationSelectionStore: conversationGenerationSelectionStore,
-            generationProfileTimeProvider: timeProvider);
+            generationProfileTimeProvider: timeProvider,
+            inferenceModelLibraryStore: modelLibraryStore);
         return _mainViewModel;
     }
 }

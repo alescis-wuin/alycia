@@ -736,6 +736,39 @@ internal sealed class StubInferenceProviderConfigurationStore : IInferenceProvid
     }
 }
 
+internal sealed class InMemoryInferenceModelLibraryStore : IInferenceModelLibraryStore
+{
+    public InMemoryInferenceModelLibraryStore(InferenceModelLibrary? library = null)
+    {
+        Library = library;
+    }
+
+    public InferenceModelLibrary? Library { get; private set; }
+
+    public int LoadCount { get; private set; }
+
+    public int SaveCount { get; private set; }
+
+    public Task<InferenceModelLibrary?> LoadAsync(
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        LoadCount++;
+        return Task.FromResult(Library);
+    }
+
+    public Task SaveAsync(
+        InferenceModelLibrary library,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(library);
+        cancellationToken.ThrowIfCancellationRequested();
+        Library = library;
+        SaveCount++;
+        return Task.CompletedTask;
+    }
+}
+
 internal sealed class StubConversationUiStateStore : IConversationUiStateStore
 {
     public StubConversationUiStateStore(ConversationUiStateSnapshot? snapshot = null)

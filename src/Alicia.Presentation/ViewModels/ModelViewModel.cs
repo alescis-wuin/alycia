@@ -8,12 +8,16 @@ namespace Alicia.Presentation.ViewModels;
 public sealed class ModelViewModel : ViewModelBase
 {
     private readonly IInferenceProviderConfigurationStore _providerConfigurationStore;
+    private readonly IInferenceModelLibraryStore? _modelLibraryStore;
     private readonly IGenerationProfileCatalogStore? _generationProfileCatalogStore;
     private readonly IConversationBranchGenerationSelectionStore? _conversationGenerationSelectionStore;
     private readonly TimeProvider _timeProvider;
     private readonly Dictionary<string, InferenceProviderConfiguration?> _providerConfigurations =
         new(StringComparer.Ordinal);
     private readonly ObservableCollection<GenerationProfile> _generationProfiles = [];
+    private readonly ObservableCollection<InferenceModelLibraryItemViewModel> _modelLibraryItems = [];
+    private InferenceModelLibrary _modelLibrary = InferenceModelLibrary.Empty;
+    private InferenceModelLibraryItemViewModel? _selectedModelLibraryItem;
     private string _providerContextSizeText = string.Empty;
     private string _providerModelReference = string.Empty;
     private string? _persistedSelectedProviderId;
@@ -32,12 +36,14 @@ public sealed class ModelViewModel : ViewModelBase
         GenerationSettingsViewModel generationSettings,
         IGenerationProfileCatalogStore? generationProfileCatalogStore = null,
         IConversationBranchGenerationSelectionStore? conversationGenerationSelectionStore = null,
-        TimeProvider? timeProvider = null)
+        TimeProvider? timeProvider = null,
+        IInferenceModelLibraryStore? modelLibraryStore = null)
     {
         ArgumentNullException.ThrowIfNull(providerConfigurationStore);
         ArgumentNullException.ThrowIfNull(generationSettings);
 
         _providerConfigurationStore = providerConfigurationStore;
+        _modelLibraryStore = modelLibraryStore;
         _generationProfileCatalogStore = generationProfileCatalogStore;
         _conversationGenerationSelectionStore = conversationGenerationSelectionStore;
         _timeProvider = timeProvider ?? TimeProvider.System;
@@ -53,6 +59,15 @@ public sealed class ModelViewModel : ViewModelBase
     public GenerationProfileHistoryViewModel ProfileHistory { get; }
 
     public ObservableCollection<GenerationProfile> GenerationProfiles => _generationProfiles;
+
+    public ObservableCollection<InferenceModelLibraryItemViewModel> ModelLibraryItems =>
+        _modelLibraryItems;
+
+    public InferenceModelLibraryItemViewModel? SelectedModelLibraryItem
+    {
+        get => _selectedModelLibraryItem;
+        internal set => SetProperty(ref _selectedModelLibraryItem, value);
+    }
 
     public GenerationProfile? SelectedGenerationProfile
     {
@@ -84,6 +99,8 @@ public sealed class ModelViewModel : ViewModelBase
 
     internal InferenceProviderConfiguration? SavedProviderConfiguration => _savedProviderConfiguration;
 
+    internal bool SupportsModelLibrary => _modelLibraryStore is not null;
+
     internal bool SupportsGenerationProfileEditing =>
         _generationProfileCatalogStore is not null;
 
@@ -104,6 +121,12 @@ public sealed class ModelViewModel : ViewModelBase
         ArgumentNullException.ThrowIfNull(providerOptions);
 
         _providerConfigurations.Clear();
+
+        InferenceModelLibrary? persistedLibrary = _modelLibraryStore is null
+            ? null
+            : await _modelLibraryStore.LoadAsync().ConfigureAwait(true);
+        _modelLibrary = persistedLibrary ?? InferenceModelLibrary.Empty;
+        ReplaceModelLibraryItems(_modelLibrary.Entries);
 
         foreach (InferenceProviderDescriptor descriptor in providerOptions)
         {
@@ -139,6 +162,7 @@ public sealed class ModelViewModel : ViewModelBase
             : null;
 
         LoadProviderConfigurationDraft(_savedProviderConfiguration);
+        RefreshModelLibraryCurrentState();
     }
 
     internal async Task<InferenceProviderConfiguration> SaveAsync(
@@ -160,7 +184,96 @@ public sealed class ModelViewModel : ViewModelBase
         _savedProviderConfiguration = configuration;
         _persistedSelectedProviderId = configuration.ProviderId;
         _providerSelectionNotice = null;
+        RefreshModelLibraryCurrentState();
         return configuration;
+    }
+
+    internal string ModelLibraryStatusText
+    {
+        get
+        {
+            if (!SupportsModelLibrary)
+            {
+                return "The model library is not available in this host.";
+            }
+
+            if (_modelLibraryItems.Count == 0)
+            {
+                return "No model is saved in the Alicia library yet. Save provider settings, then add the saved model explicitly.";
+            }
+
+            return SelectedModelLibraryItem is null
+                ? $"{_modelLibraryItems.Count} saved model(s). Select one to inspect or reuse its saved settings."
+                : $"Selected library model: {SelectedModelLibraryItem.ModelReference}.";
+        }
+    }
+
+    internal bool CanSaveCurrentModelToLibrary(InferenceProviderDescriptor? descriptor)
+    {
+        return SupportsModelLibrary
+            && descriptor is not null
+            && _savedProviderConfiguration is not null
+            && _savedProviderConfiguration.HasModelReference
+            && string.Equals(
+                descriptor.Id,
+                _savedProviderConfiguration.ProviderId,
+                StringComparison.Ordinal)
+            && !HasConfigurationChanges(descriptor);
+    }
+
+    internal async Task SaveCurrentModelToLibraryAsync(
+        InferenceProviderDescriptor descriptor,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(descriptor);
+
+        if (!CanSaveCurrentModelToLibrary(descriptor)
+            || _savedProviderConfiguration is null)
+        {
+            throw new InvalidOperationException(
+                "Save a model configuration before adding it to the model library.");
+        }
+
+        InferenceModelLibraryEntry entry = new(
+            _savedProviderConfiguration,
+            _timeProvider.GetUtcNow());
+        InferenceModelLibrary updatedLibrary = _modelLibrary.WithEntry(entry);
+
+        await _modelLibraryStore!
+            .SaveAsync(updatedLibrary, cancellationToken)
+            .ConfigureAwait(true);
+
+        _modelLibrary = updatedLibrary;
+        ReplaceModelLibraryItems(updatedLibrary.Entries);
+        SelectedModelLibraryItem = _modelLibraryItems.FirstOrDefault(item =>
+            string.Equals(item.ProviderId, entry.ProviderId, StringComparison.Ordinal)
+            && string.Equals(item.ModelReference, entry.ModelReference, StringComparison.Ordinal));
+        RefreshModelLibraryCurrentState();
+    }
+
+    internal bool CanUseSelectedLibraryModel(InferenceProviderDescriptor? descriptor)
+    {
+        return SupportsModelLibrary
+            && descriptor is not null
+            && SelectedModelLibraryItem is not null
+            && string.Equals(
+                descriptor.Id,
+                SelectedModelLibraryItem.ProviderId,
+                StringComparison.Ordinal);
+    }
+
+    internal void UseSelectedLibraryModelAsDraft(InferenceProviderDescriptor descriptor)
+    {
+        ArgumentNullException.ThrowIfNull(descriptor);
+
+        if (!CanUseSelectedLibraryModel(descriptor)
+            || SelectedModelLibraryItem is null)
+        {
+            throw new InvalidOperationException(
+                "Select a library model owned by the active provider before reusing its settings.");
+        }
+
+        LoadProviderConfigurationDraft(SelectedModelLibraryItem.Entry.Configuration);
     }
 
     internal bool HasConfigurationChanges(InferenceProviderDescriptor? descriptor)
@@ -776,6 +889,36 @@ public sealed class ModelViewModel : ViewModelBase
         foreach (GenerationProfile profile in profiles)
         {
             _generationProfiles.Add(profile);
+        }
+    }
+
+    private void ReplaceModelLibraryItems(IEnumerable<InferenceModelLibraryEntry> entries)
+    {
+        string? selectedProviderId = SelectedModelLibraryItem?.ProviderId;
+        string? selectedModelReference = SelectedModelLibraryItem?.ModelReference;
+
+        _modelLibraryItems.Clear();
+        foreach (InferenceModelLibraryEntry entry in entries
+            .OrderByDescending(entry => entry.SavedAtUtc)
+            .ThenBy(entry => entry.ProviderId, StringComparer.Ordinal)
+            .ThenBy(entry => entry.ModelReference, StringComparer.Ordinal))
+        {
+            _modelLibraryItems.Add(new InferenceModelLibraryItemViewModel(entry));
+        }
+
+        SelectedModelLibraryItem = selectedProviderId is null || selectedModelReference is null
+            ? null
+            : _modelLibraryItems.FirstOrDefault(item =>
+                string.Equals(item.ProviderId, selectedProviderId, StringComparison.Ordinal)
+                && string.Equals(item.ModelReference, selectedModelReference, StringComparison.Ordinal));
+        RefreshModelLibraryCurrentState();
+    }
+
+    private void RefreshModelLibraryCurrentState()
+    {
+        foreach (InferenceModelLibraryItemViewModel item in _modelLibraryItems)
+        {
+            item.RefreshCurrentState(_savedProviderConfiguration);
         }
     }
 

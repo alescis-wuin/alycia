@@ -53,6 +53,7 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 | UIX-02 Stage 2 profile editor / WorkingDraft | terminé | création/édition custom + draft persistant explicite + révision immuable |
 | UIX-02 Stage 3 WorkingDraft autosave / pre-send gate | terminé | autosave local + choix version précédente/modifiée avant nouvel envoi |
 | UIX-02 Stage 4 profile revision history / restore | terminé | timeline immuable + restauration d'une ancienne révision comme WorkingDraft basé sur la tête courante |
+| UIX-02 Stage 5 persistent model library foundation | terminé | catalogue multi-modèles provider-neutral + projection Models explicite, sans chargement implicite |
 | Lot 11 RAG foundation | planifié | à faire |
 | Lot 12 Retrieval/grounded generation | planifié | à faire |
 | Lot 13 Tools/MCP/agents | planifié | à faire |
@@ -358,9 +359,22 @@ Introduire avant RAG.
 - aucun changement de schema JSON, de binding de branche ou de `GenerationSnapshot` ;
 - suppression de profil, comparaison visuelle avancée, bibliothèque de modèles et dual selector complet restent hors de cette étape.
 
+### UIX-02 Stage 5 - fondation de bibliothèque persistante de modèles - terminé
+
+- Application introduit `InferenceModelLibraryEntry`, `InferenceModelLibrary` et le port `IInferenceModelLibraryStore` sans modifier la configuration provider active ;
+- une entrée conserve un snapshot provider-neutral de la configuration sauvegardée : provider, référence modèle, contexte optionnel et options de génération existantes ;
+- l'identité bibliothèque est le couple exact `(ProviderId, ModelReference)` et une nouvelle sauvegarde de ce couple met à jour l'entrée au lieu de la dupliquer ;
+- Infrastructure ajoute `JsonInferenceModelLibraryStore` schema v1 dans `providers/models.json`, avec écriture atomique et aucune donnée secrète/conversationnelle ;
+- aucun modèle historique n'est importé silencieusement : `Save current model to library` reste une action explicite après `Save settings` ;
+- Models projette les entrées sauvegardées et indique le modèle correspondant à la configuration provider actuellement sauvegardée ;
+- `Use selected settings` recopie seulement la configuration bibliothèque dans le draft Models ; il ne sauvegarde, ne démarre, ne charge ni ne rebinde rien automatiquement ;
+- une entrée appartenant à un autre provider ne peut pas être injectée implicitement dans le draft du provider courant ;
+- aucun changement de `ConversationGenerationSelection`, resolver, `GenerationSnapshot`, profile catalog ou lifecycle provider dans cette étape ;
+- suppression de modèles, suppression du cache local, chargement/switch automatique et dual selector composer modèle/profil restent hors de cette étape.
+
 ### Etapes suivantes
 
-- UIX-02 : progression vers le dual selector modèle/profil complet ;
+- UIX-02 Stage 6 : dual selector modèle/profil complet, branch-scoped, alimenté par la bibliothèque persistante ;
 - UIX-03 : contexte, provenance/révisions et navigation de branches progressivement exposés ;
 - Lot 11 : RAG foundation après le track UIX recommandé.
 

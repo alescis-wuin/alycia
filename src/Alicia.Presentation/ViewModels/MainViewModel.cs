@@ -82,7 +82,8 @@ public sealed class MainViewModel : ViewModelBase
         IGenerationProfileCatalogStore? generationProfileCatalogStore = null,
         IConversationBranchGenerationSelectionStore? conversationGenerationSelectionStore = null,
         TimeProvider? generationProfileTimeProvider = null,
-        TimeSpan? generationProfileDraftAutosaveDelay = null)
+        TimeSpan? generationProfileDraftAutosaveDelay = null,
+        IInferenceModelLibraryStore? inferenceModelLibraryStore = null)
     {
         ArgumentNullException.ThrowIfNull(createConversation);
         ArgumentNullException.ThrowIfNull(appendMessage);
@@ -139,7 +140,8 @@ public sealed class MainViewModel : ViewModelBase
             GenerationSettings,
             generationProfileCatalogStore,
             conversationGenerationSelectionStore,
-            generationProfileTimeProvider);
+            generationProfileTimeProvider,
+            inferenceModelLibraryStore);
         Model.ProfileEditor.PropertyChanged += OnGenerationProfileEditorPropertyChanged;
         Model.ProfileHistory.PropertyChanged += OnGenerationProfileHistoryPropertyChanged;
         ConfigurationGate = new ConversationConfigurationGateViewModel();
@@ -198,6 +200,12 @@ public sealed class MainViewModel : ViewModelBase
         SaveProviderConfigurationCommand = new AsyncRelayCommand(
             SaveProviderConfigurationAsync,
             () => CanSaveProviderConfiguration);
+        SaveCurrentModelToLibraryCommand = new AsyncRelayCommand(
+            SaveCurrentModelToLibraryAsync,
+            () => CanSaveCurrentModelToLibrary);
+        UseSelectedLibraryModelCommand = new RelayCommand(
+            UseSelectedLibraryModel,
+            () => CanUseSelectedLibraryModel);
         SaveGenerationProfileSelectionCommand = new AsyncRelayCommand(
             SaveGenerationProfileSelectionAsync,
             () => CanSaveGenerationProfileSelection);
@@ -310,6 +318,10 @@ public sealed class MainViewModel : ViewModelBase
     public IAsyncRelayCommand StopProviderCommand { get; }
 
     public IAsyncRelayCommand SaveProviderConfigurationCommand { get; }
+
+    public IAsyncRelayCommand SaveCurrentModelToLibraryCommand { get; }
+
+    public IRelayCommand UseSelectedLibraryModelCommand { get; }
 
     public IAsyncRelayCommand SaveGenerationProfileSelectionCommand { get; }
 
@@ -434,6 +446,36 @@ public sealed class MainViewModel : ViewModelBase
             RaiseProviderConfigurationStateChanged();
         }
     }
+
+    public ObservableCollection<InferenceModelLibraryItemViewModel> ModelLibraryItems =>
+        Model.ModelLibraryItems;
+
+    public InferenceModelLibraryItemViewModel? SelectedModelLibraryItem
+    {
+        get => Model.SelectedModelLibraryItem;
+        set
+        {
+            if (ReferenceEquals(Model.SelectedModelLibraryItem, value))
+            {
+                return;
+            }
+
+            Model.SelectedModelLibraryItem = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(ModelLibraryStatusText));
+            OnPropertyChanged(nameof(CanUseSelectedLibraryModel));
+            UseSelectedLibraryModelCommand.NotifyCanExecuteChanged();
+        }
+    }
+
+    public string ModelLibraryStatusText => Model.ModelLibraryStatusText;
+
+    public bool CanSaveCurrentModelToLibrary => !IsBusy
+        && !IsProviderBusy
+        && Model.CanSaveCurrentModelToLibrary(SelectedProvider);
+
+    public bool CanUseSelectedLibraryModel => IsProviderSettingsEditable
+        && Model.CanUseSelectedLibraryModel(SelectedProvider);
 
     public ObservableCollection<GenerationProfile> GenerationProfiles =>
         Model.GenerationProfiles;
@@ -692,6 +734,8 @@ public sealed class MainViewModel : ViewModelBase
             OnPropertyChanged(nameof(StatusText));
             OnPropertyChanged(nameof(CanRetryResponse));
             OnPropertyChanged(nameof(CanSaveProviderConfiguration));
+            OnPropertyChanged(nameof(CanSaveCurrentModelToLibrary));
+            OnPropertyChanged(nameof(CanUseSelectedLibraryModel));
             OnPropertyChanged(nameof(IsProviderSettingsEditable));
             OnPropertyChanged(nameof(IsProviderSelectionEditable));
             OnPropertyChanged(nameof(IsProviderReasoningBudgetEditable));
@@ -702,6 +746,8 @@ public sealed class MainViewModel : ViewModelBase
             SendMessageCommand.NotifyCanExecuteChanged();
             RetryResponseCommand.NotifyCanExecuteChanged();
             SaveProviderConfigurationCommand.NotifyCanExecuteChanged();
+            SaveCurrentModelToLibraryCommand.NotifyCanExecuteChanged();
+            UseSelectedLibraryModelCommand.NotifyCanExecuteChanged();
             SaveGenerationProfileSelectionCommand.NotifyCanExecuteChanged();
             ConversationHistory.NotifyInteractionStateChanged();
         }
@@ -1469,6 +1515,36 @@ public sealed class MainViewModel : ViewModelBase
         }).ConfigureAwait(true);
     }
 
+    private async Task SaveCurrentModelToLibraryAsync()
+    {
+        if (!CanSaveCurrentModelToLibrary || SelectedProvider is null)
+        {
+            return;
+        }
+
+        await ExecuteOperationAsync(async () =>
+        {
+            await Model
+                .SaveCurrentModelToLibraryAsync(SelectedProvider)
+                .ConfigureAwait(true);
+            OnPropertyChanged(nameof(ModelLibraryItems));
+            OnPropertyChanged(nameof(SelectedModelLibraryItem));
+            RaiseModelLibraryStateChanged();
+        }).ConfigureAwait(true);
+    }
+
+    private void UseSelectedLibraryModel()
+    {
+        if (!CanUseSelectedLibraryModel || SelectedProvider is null)
+        {
+            return;
+        }
+
+        Model.UseSelectedLibraryModelAsDraft(SelectedProvider);
+        RaiseProviderDraftChanged();
+        RaiseModelLibraryStateChanged();
+    }
+
     private async Task SaveGenerationProfileSelectionAsync()
     {
         if (!CanSaveGenerationProfileSelection
@@ -1934,6 +2010,8 @@ public sealed class MainViewModel : ViewModelBase
     {
         OnPropertyChanged(nameof(HasProviderConfigurationChanges));
         OnPropertyChanged(nameof(CanSaveProviderConfiguration));
+        OnPropertyChanged(nameof(CanSaveCurrentModelToLibrary));
+        OnPropertyChanged(nameof(CanUseSelectedLibraryModel));
         OnPropertyChanged(nameof(ProviderConfigurationValidationText));
         OnPropertyChanged(nameof(HasProviderConfigurationValidationError));
         OnPropertyChanged(nameof(ProviderConfigurationStatusText));
@@ -1941,9 +2019,20 @@ public sealed class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsProviderReasoningBudgetEditable));
         OnPropertyChanged(nameof(ComposerStatusText));
         SaveProviderConfigurationCommand.NotifyCanExecuteChanged();
+        SaveCurrentModelToLibraryCommand.NotifyCanExecuteChanged();
+        UseSelectedLibraryModelCommand.NotifyCanExecuteChanged();
         StartProviderCommand.NotifyCanExecuteChanged();
         RaiseGenerationProfileSelectionStateChanged();
         UpdateConfigurationGate();
+    }
+
+    private void RaiseModelLibraryStateChanged()
+    {
+        OnPropertyChanged(nameof(ModelLibraryStatusText));
+        OnPropertyChanged(nameof(CanSaveCurrentModelToLibrary));
+        OnPropertyChanged(nameof(CanUseSelectedLibraryModel));
+        SaveCurrentModelToLibraryCommand.NotifyCanExecuteChanged();
+        UseSelectedLibraryModelCommand.NotifyCanExecuteChanged();
     }
 
     internal event EventHandler<WorkspaceNavigationRequestedEventArgs>? WorkspaceNavigationRequested;
@@ -2616,6 +2705,8 @@ public sealed class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsProviderModelEditable));
         OnPropertyChanged(nameof(IsProviderReasoningBudgetEditable));
         OnPropertyChanged(nameof(CanSaveProviderConfiguration));
+        OnPropertyChanged(nameof(CanSaveCurrentModelToLibrary));
+        OnPropertyChanged(nameof(CanUseSelectedLibraryModel));
         OnPropertyChanged(nameof(CanDetectProvider));
         OnPropertyChanged(nameof(CanInstallProvider));
         OnPropertyChanged(nameof(CanStartProvider));
@@ -2633,6 +2724,8 @@ public sealed class MainViewModel : ViewModelBase
         CheckProviderUpdateCommand.NotifyCanExecuteChanged();
         UpdateProviderCommand.NotifyCanExecuteChanged();
         SaveProviderConfigurationCommand.NotifyCanExecuteChanged();
+        SaveCurrentModelToLibraryCommand.NotifyCanExecuteChanged();
+        UseSelectedLibraryModelCommand.NotifyCanExecuteChanged();
     }
 
     private async Task StartProviderAsync()
@@ -4094,6 +4187,8 @@ public sealed class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsProviderSelectionEditable));
         OnPropertyChanged(nameof(IsProviderReasoningBudgetEditable));
         OnPropertyChanged(nameof(CanSaveProviderConfiguration));
+        OnPropertyChanged(nameof(CanSaveCurrentModelToLibrary));
+        OnPropertyChanged(nameof(CanUseSelectedLibraryModel));
         OnPropertyChanged(nameof(HasProviderConfigurationChanges));
         OnPropertyChanged(nameof(ProviderConfigurationValidationText));
         OnPropertyChanged(nameof(HasProviderConfigurationValidationError));
@@ -4154,6 +4249,8 @@ public sealed class MainViewModel : ViewModelBase
         StartProviderCommand.NotifyCanExecuteChanged();
         StopProviderCommand.NotifyCanExecuteChanged();
         SaveProviderConfigurationCommand.NotifyCanExecuteChanged();
+        SaveCurrentModelToLibraryCommand.NotifyCanExecuteChanged();
+        UseSelectedLibraryModelCommand.NotifyCanExecuteChanged();
         SendMessageCommand.NotifyCanExecuteChanged();
         UpdateConfigurationGate();
     }

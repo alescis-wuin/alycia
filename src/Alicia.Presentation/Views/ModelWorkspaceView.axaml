@@ -19,7 +19,7 @@
                    FontWeight="Bold"
                    AutomationProperties.HeadingLevel="1"
                    Foreground="{DynamicResource TextPrimaryBrush}" />
-        <TextBlock Text="Configure the model reference and provider-neutral generation options."
+        <TextBlock Text="Manage saved models, model settings, and model-scoped generation profiles."
                    FontSize="14"
                    Foreground="{DynamicResource TextSecondaryBrush}" />
       </StackPanel>
@@ -42,6 +42,81 @@
               Classes="workspace-primary-surface"
               Padding="22">
         <StackPanel Spacing="20">
+          <Border Classes="workspace-secondary-surface"
+                  Padding="18">
+            <StackPanel Spacing="12">
+              <StackPanel Spacing="4">
+                <TextBlock Classes="workspace-section-title"
+                           Text="Model library"
+                           AutomationProperties.HeadingLevel="2" />
+                <TextBlock Classes="workspace-section-description"
+                           Text="Keep multiple saved model configurations without pretending they are loaded. Reusing a library entry only fills the editable settings; Save settings remains explicit." />
+              </StackPanel>
+
+              <ListBox ItemsSource="{Binding ModelLibraryItems}"
+                       SelectedItem="{Binding SelectedModelLibraryItem, Mode=TwoWay}"
+                       MaxHeight="260"
+                       AutomationProperties.Name="Saved model library">
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:InferenceModelLibraryItemViewModel">
+                    <Grid ColumnDefinitions="*,Auto" Margin="4,6" ColumnSpacing="16">
+                      <StackPanel Spacing="2">
+                        <TextBlock Text="{Binding DisplayName}"
+                                   FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding ModelReference}"
+                                   FontSize="12"
+                                   TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" />
+                        <TextBlock Text="{Binding RuntimeSummaryText}"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" />
+                      </StackPanel>
+                      <StackPanel Grid.Column="1"
+                                  Spacing="2"
+                                  HorizontalAlignment="Right">
+                        <TextBlock Text="{Binding QuantizationText}"
+                                   HorizontalAlignment="Right"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" />
+                        <TextBlock Text="{Binding StateText}"
+                                   HorizontalAlignment="Right"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" />
+                        <TextBlock Text="{Binding SavedAtText}"
+                                   HorizontalAlignment="Right"
+                                   FontSize="11"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" />
+                      </StackPanel>
+                    </Grid>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+
+              <TextBlock Text="{Binding ModelLibraryStatusText}"
+                         FontSize="12"
+                         LineHeight="18"
+                         TextWrapping="Wrap"
+                         AutomationProperties.LiveSetting="Polite"
+                         Foreground="{DynamicResource TextSecondaryBrush}" />
+
+              <WrapPanel Orientation="Horizontal">
+                <Button Classes="secondary-action"
+                        Margin="0,0,8,8"
+                        Command="{Binding SaveCurrentModelToLibraryCommand}"
+                        IsEnabled="{Binding CanSaveCurrentModelToLibrary}"
+                        Content="Save current model to library"
+                        AutomationProperties.Name="Save current model configuration to library" />
+                <Button Classes="secondary-action"
+                        Margin="0,0,0,8"
+                        Command="{Binding UseSelectedLibraryModelCommand}"
+                        IsEnabled="{Binding CanUseSelectedLibraryModel}"
+                        Content="Use selected settings"
+                        AutomationProperties.Name="Use selected library model settings"
+                        AutomationProperties.HelpText="Copies the selected saved model configuration into the editable settings. It does not save, start, or load the model automatically." />
+              </WrapPanel>
+            </StackPanel>
+          </Border>
+
           <StackPanel Spacing="14">
             <StackPanel Spacing="4">
               <TextBlock Classes="workspace-section-title"

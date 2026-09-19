@@ -35,6 +35,8 @@ UIX-02 Stage 3 turns those WorkingDrafts into debounced local autosaves and adds
 
 UIX-02 Stage 4 exposes the immutable confirmed revision chain for the selected custom profile in Models. Older revisions can be restored only as a new WorkingDraft based on the current confirmed head; confirming that draft appends a new immutable revision rather than rewinding history. Existing WorkingDrafts block historical restore so autosaved local work is never overwritten silently. Profile deletion, visual revision comparison, the full model/profile dual selector, branch navigation, and context UI remain later stages.
 
+UIX-02 Stage 5 adds a provider-neutral persistent model-library foundation without changing which model is active. Saved provider/model settings can be explicitly added or updated in `providers/models.json`, listed in Models, and copied back into the editable settings. Library reuse never saves, starts, loads, switches provider, or changes conversation bindings implicitly. The full branch-scoped model/profile dual selector remains the next UIX-02 stage.
+
 ## Prerequisites
 
 - Linux, macOS, or Windows for the application itself;
@@ -71,6 +73,7 @@ The current Avalonia presentation provides:
 - a visually simplified Provider workspace that keeps Runtime primary, de-emphasizes update/maintenance detail, isolates destructive actions without changing provider behavior, and keeps latest-generation observability inside collapsed Technical details;
 - explicit managed-provider storage inspection plus separately confirmed inactive-release cleanup, runtime-only uninstall, and runtime-plus-model-cache uninstall;
 - explicit Models configuration for Hugging Face GGUF reference, optional context/generation overrides, reasoning enable/disable, and bounded reasoning tokens;
+- a persistent provider-neutral model library that can retain multiple saved model configurations without implying they are loaded;
 - no automatic provider fallback: unsaved or unavailable selections are never silently replaced;
 - a managed llama.cpp session bound to a dynamically selected IPv4-loopback port with localhost-only CORS, the bundled UI disabled, a per-launch ephemeral API key outside the command line, public `/health` readiness followed by authenticated `/props` ownership verification, and Bearer-authenticated chat streaming;
 - OpenAI-compatible SSE streaming with separate visible Content and Reasoning chunks;

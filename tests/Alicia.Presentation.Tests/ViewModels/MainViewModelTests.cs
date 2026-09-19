@@ -2345,6 +2345,150 @@ public sealed class MainViewModelTests
     }
 
     [Fact]
+    public async Task ModelLibraryLoadsSavedModelsAndMarksCurrentProviderModel()
+    {
+        DateTimeOffset now = new(2026, 9, 19, 18, 30, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        InferenceProviderConfiguration currentConfiguration = new(
+            "llama.cpp.cuda",
+            "owner/current-GGUF:Q4_K_M",
+            contextSize: 4096,
+            generation: new InferenceGenerationOptions(reasoningEnabled: false));
+        StubInferenceProviderConfigurationStore configurationStore = new(currentConfiguration);
+        InferenceModelLibrary library = new(
+        [
+            new InferenceModelLibraryEntry(currentConfiguration, now.AddMinutes(-5)),
+            new InferenceModelLibraryEntry(
+                new InferenceProviderConfiguration(
+                    "llama.cpp.cuda",
+                    "owner/other-GGUF:Q8_0",
+                    contextSize: 8192),
+                now),
+        ]);
+        InMemoryInferenceModelLibraryStore libraryStore = new(library);
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(now),
+            providerConfigurationStore: configurationStore,
+            inferenceModelLibraryStore: libraryStore);
+
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        Assert.Equal(1, libraryStore.LoadCount);
+        Assert.Equal(2, viewModel.ModelLibraryItems.Count);
+        InferenceModelLibraryItemViewModel current = Assert.Single(
+            viewModel.ModelLibraryItems,
+            item => item.IsCurrentSavedModel);
+        Assert.Equal("owner/current-GGUF:Q4_K_M", current.ModelReference);
+        Assert.Contains("2 saved model", viewModel.ModelLibraryStatusText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task SavingCurrentProviderModelAddsItToLibraryWithoutChangingProviderConfiguration()
+    {
+        DateTimeOffset now = new(2026, 9, 19, 18, 45, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        InferenceProviderConfiguration currentConfiguration = new(
+            "llama.cpp.cuda",
+            "owner/current-GGUF:Q4_K_M",
+            contextSize: 4096,
+            generation: new InferenceGenerationOptions(reasoningEnabled: false));
+        StubInferenceProviderConfigurationStore configurationStore = new(currentConfiguration);
+        InMemoryInferenceModelLibraryStore libraryStore = new();
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(now),
+            providerConfigurationStore: configurationStore,
+            inferenceModelLibraryStore: libraryStore);
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        Assert.True(viewModel.CanSaveCurrentModelToLibrary);
+        await viewModel.SaveCurrentModelToLibraryCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.Equal(1, libraryStore.SaveCount);
+        Assert.NotNull(libraryStore.Library);
+        InferenceModelLibraryEntry entry = Assert.Single(libraryStore.Library.Entries);
+        Assert.Equal(currentConfiguration, entry.Configuration);
+        Assert.Equal(now, entry.SavedAtUtc);
+        Assert.Equal(0, configurationStore.SaveCount);
+        Assert.Single(viewModel.ModelLibraryItems);
+        Assert.True(viewModel.ModelLibraryItems[0].IsCurrentSavedModel);
+    }
+
+    [Fact]
+    public async Task UsingLibraryModelCopiesSettingsIntoDraftWithoutSavingOrStartingProvider()
+    {
+        DateTimeOffset now = new(2026, 9, 19, 19, 0, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        InferenceProviderConfiguration currentConfiguration = new(
+            "llama.cpp.cuda",
+            "owner/current-GGUF:Q4_K_M",
+            contextSize: 4096,
+            generation: new InferenceGenerationOptions(reasoningEnabled: false));
+        InferenceProviderConfiguration libraryConfiguration = new(
+            "llama.cpp.cuda",
+            "owner/library-GGUF:Q8_0",
+            contextSize: 8192,
+            generation: new InferenceGenerationOptions(
+                maxOutputTokens: 512,
+                temperature: 0.7,
+                reasoningEnabled: true,
+                reasoningBudgetTokens: 256));
+        StubInferenceProviderConfigurationStore configurationStore = new(currentConfiguration);
+        InMemoryInferenceModelLibraryStore libraryStore = new(
+            new InferenceModelLibrary(
+            [
+                new InferenceModelLibraryEntry(libraryConfiguration, now),
+            ]));
+        StubInferenceProviderRuntime provider = new(InferenceProviderState.Ready);
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(now),
+            inferenceProvider: provider,
+            providerConfigurationStore: configurationStore,
+            inferenceModelLibraryStore: libraryStore);
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        viewModel.SelectedModelLibraryItem = Assert.Single(viewModel.ModelLibraryItems);
+        Assert.True(viewModel.CanUseSelectedLibraryModel);
+
+        viewModel.UseSelectedLibraryModelCommand.Execute(null);
+
+        Assert.Equal("owner/library-GGUF:Q8_0", viewModel.ProviderModelReference);
+        Assert.Equal("8192", viewModel.ProviderContextSizeText);
+        Assert.Equal("512", viewModel.ProviderMaxOutputTokensText);
+        Assert.True(viewModel.ProviderReasoningEnabled);
+        Assert.Equal("256", viewModel.ProviderReasoningBudgetText);
+        Assert.True(viewModel.HasProviderConfigurationChanges);
+        Assert.Equal(0, configurationStore.SaveCount);
+        Assert.Equal(0, provider.StartCount);
+    }
+
+    [Fact]
+    public async Task LibraryModelFromAnotherProviderCannotBeAppliedToCurrentProviderDraft()
+    {
+        DateTimeOffset now = new(2026, 9, 19, 19, 15, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        InferenceModelLibrary library = new(
+        [
+            new InferenceModelLibraryEntry(
+                new InferenceProviderConfiguration(
+                    "provider.other",
+                    "owner/model"),
+                now),
+        ]);
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(now),
+            inferenceModelLibraryStore: new InMemoryInferenceModelLibraryStore(library));
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        viewModel.SelectedModelLibraryItem = Assert.Single(viewModel.ModelLibraryItems);
+
+        Assert.False(viewModel.CanUseSelectedLibraryModel);
+    }
+
+    [Fact]
     public async Task SavedGenerationSettingsAreValidatedAndPassedToProvider()
     {
         InMemoryConversationRepository repository = new();
@@ -3005,7 +3149,8 @@ public sealed class MainViewModelTests
         bool isReducedMotionEnabled = false,
         IGenerationProfileCatalogStore? generationProfileCatalogStore = null,
         IConversationBranchGenerationSelectionStore? conversationGenerationSelectionStore = null,
-        TimeSpan? generationProfileDraftAutosaveDelay = null)
+        TimeSpan? generationProfileDraftAutosaveDelay = null,
+        IInferenceModelLibraryStore? inferenceModelLibraryStore = null)
     {
         IStreamingConversationResponder resolvedResponder =
             responder ?? new DeterministicConversationResponder("Development response");
@@ -3041,6 +3186,7 @@ public sealed class MainViewModelTests
             generationProfileCatalogStore,
             conversationGenerationSelectionStore,
             timeProvider,
-            generationProfileDraftAutosaveDelay);
+            generationProfileDraftAutosaveDelay,
+            inferenceModelLibraryStore);
     }
 }
