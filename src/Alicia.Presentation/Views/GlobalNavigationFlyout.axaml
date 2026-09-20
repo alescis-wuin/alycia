@@ -54,9 +54,7 @@
                   CornerRadius="2"
                   Background="{DynamicResource AccentSecondaryBrush}"
                   IsVisible="{Binding IsConversationsSelected}" />
-          <TextBlock Grid.Column="2"
-                     Text="Conversations"
-                     VerticalAlignment="Center" />
+          <TextBlock Grid.Column="2" Text="Conversations" VerticalAlignment="Center" />
         </Grid>
       </Button>
 
@@ -71,9 +69,7 @@
                   CornerRadius="2"
                   Background="{DynamicResource AccentSecondaryBrush}"
                   IsVisible="{Binding IsProvidersSelected}" />
-          <TextBlock Grid.Column="2"
-                     Text="Providers"
-                     VerticalAlignment="Center" />
+          <TextBlock Grid.Column="2" Text="Providers" VerticalAlignment="Center" />
         </Grid>
       </Button>
 
@@ -88,9 +84,22 @@
                   CornerRadius="2"
                   Background="{DynamicResource AccentSecondaryBrush}"
                   IsVisible="{Binding IsModelsSelected}" />
-          <TextBlock Grid.Column="2"
-                     Text="Models"
-                     VerticalAlignment="Center" />
+          <TextBlock Grid.Column="2" Text="Models" VerticalAlignment="Center" />
+        </Grid>
+      </Button>
+
+      <Button Classes="global-nav-label"
+              Classes.selected="{Binding IsProfilesSelected}"
+              Command="{Binding NavigateToProfilesCommand}"
+              AutomationProperties.Name="Profiles"
+              AutomationProperties.ItemStatus="{Binding ProfilesNavigationStatus}">
+        <Grid ColumnDefinitions="3,10,*">
+          <Border Grid.Column="0"
+                  Width="3"
+                  CornerRadius="2"
+                  Background="{DynamicResource AccentSecondaryBrush}"
+                  IsVisible="{Binding IsProfilesSelected}" />
+          <TextBlock Grid.Column="2" Text="Profiles" VerticalAlignment="Center" />
         </Grid>
       </Button>
     </StackPanel>

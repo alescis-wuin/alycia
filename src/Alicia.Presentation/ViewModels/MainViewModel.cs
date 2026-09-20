@@ -615,6 +615,10 @@ public sealed class MainViewModel : ViewModelBase
         && !IsBusy
         && !IsGeneratingResponse;
 
+    public bool CanBrowseGenerationProfiles =>
+        CanManageGenerationProfiles
+        && !IsGenerationProfileEditorVisible;
+
     public bool CanCreateGenerationProfile =>
         CanManageGenerationProfiles
         && !IsGenerationProfileEditorVisible;
@@ -649,6 +653,16 @@ public sealed class MainViewModel : ViewModelBase
         : Model.GenerationProfileScope is GenerationProfileModelScope scope
             ? $"{scope.ProviderId} • {scope.ModelReference}"
             : "No saved model scope";
+
+    public string GenerationProfileWorkspaceSelectionTitle =>
+        SelectedGenerationProfile?.Name ?? "No profile selected";
+
+    public string GenerationProfileWorkspaceSelectionDescription => SelectedGenerationProfile switch
+    {
+        null => "Choose a confirmed profile from the list. Browsing and editing profiles do not require an active conversation.",
+        { IsDefault: true } => "Default is read-only and keeps provider/model generation behavior unless a custom confirmed profile is explicitly selected for a branch.",
+        { Name: string name } => $"'{name}' is a confirmed custom profile. Editing creates or continues a local WorkingDraft; Save revision appends immutable history.",
+    };
 
     public bool IsGenerationProfileSelectionEditable =>
         Model.SupportsGenerationProfileSelection
@@ -2115,6 +2129,9 @@ public sealed class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(GenerationProfiles));
         OnPropertyChanged(nameof(SelectedGenerationProfile));
         OnPropertyChanged(nameof(GenerationProfileScopeText));
+        OnPropertyChanged(nameof(GenerationProfileWorkspaceSelectionTitle));
+        OnPropertyChanged(nameof(GenerationProfileWorkspaceSelectionDescription));
+        OnPropertyChanged(nameof(CanBrowseGenerationProfiles));
         OnPropertyChanged(nameof(IsGenerationProfileSelectionEditable));
         OnPropertyChanged(nameof(CanSaveGenerationProfileSelection));
         OnPropertyChanged(nameof(GenerationProfileSelectionStatusText));
@@ -2153,6 +2170,7 @@ public sealed class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsGenerationProfileEditorVisible));
         OnPropertyChanged(nameof(CanEditGenerationProfileDraft));
         OnPropertyChanged(nameof(CanManageGenerationProfiles));
+        OnPropertyChanged(nameof(CanBrowseGenerationProfiles));
         OnPropertyChanged(nameof(CanCreateGenerationProfile));
         OnPropertyChanged(nameof(CanEditSelectedGenerationProfile));
         OnPropertyChanged(nameof(CanSaveGenerationProfileDraft));

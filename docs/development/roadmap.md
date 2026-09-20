@@ -56,6 +56,7 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 | UIX-02 Stage 5 persistent model library foundation | terminé | catalogue multi-modèles provider-neutral + projection Models explicite, sans chargement implicite |
 | UIX-02 Stage 6 branch model/profile dual selector | terminé | dual-box composer branch-scoped + garde pré-envoi sur modèle sauvegardé/chargé, sans switch implicite |
 | UIX-03 Stage 1 settings ownership | terminé | Models limité aux réglages de chargement/reload ; comportement de génération possédé par les profils |
+| UIX-03 Stage 2 dedicated Profiles workspace | terminé | Profiles devient une destination globale dédiée ; Models ne contient plus la gestion des profils |
 | Lot 11 RAG foundation | planifié | à faire |
 | Lot 12 Retrieval/grounded generation | planifié | à faire |
 | Lot 13 Tools/MCP/agents | planifié | à faire |
@@ -401,9 +402,20 @@ Introduire avant RAG.
 - l'état « current model / settings differ » de la bibliothèque ignore donc les différences de génération seules ;
 - aucun changement du resolver, des `GenerationSnapshot`, de la sélection branch-scoped, du lifecycle provider ou des schemas JSON.
 
+### UIX-03 Stage 2 - workspace Profiles dédié - terminé
+
+- le shell global expose désormais quatre destinations de premier niveau : Conversations, Provider, Models et Profiles ;
+- la sélection, la création, l'édition, les WorkingDrafts, les commits de révisions et l'historique/restauration quittent entièrement `ModelWorkspaceView` ;
+- `ProfilesWorkspaceView` devient la surface dédiée, avec liste des profils confirmés à gauche et sélection/éditeur/historique à droite ;
+- le scope provider/modèle sauvegardé reste explicite et aucun changement de modèle/provider n'est déclenché depuis Profiles ;
+- parcourir ou éditer les profils ne nécessite plus de conversation active ; la sélection de branche reste une action séparée `Use on this branch` qui exige conversation + branche actives ;
+- sélectionner un profil dans le workspace ne persiste jamais implicitement son binding de branche ;
+- la liste des profils est verrouillée pendant l'édition et pendant les opérations/générations gardées afin de préserver le workflow mono-éditeur existant ;
+- `Default` reste read-only ; autosave, stale-draft guard, révisions immuables et restauration non destructive restent inchangés ;
+- aucun schema JSON, contrat Domain/Application, resolver, `GenerationSnapshot`, lifecycle provider ou modèle library n'est modifié.
+
 ### Etapes suivantes
 
-- UIX-03 Stage 2 : workspace Profiles dédié et sortie complète de l'édition des profils depuis Models ;
 - UIX-03 Stage 3 : redesign de la bibliothèque Models en navigation + fiche de chargement ;
 - UIX-03 Stage 4 : composer réduit à deux lignes (message/envoi, modèle/profil) et intégration du gate modèle ;
 - UIX-03 Stage 5 : remplacement de la modale dual-selector par un drawer/panneau de sélection ;

@@ -4,7 +4,7 @@ Alicia is a cross-platform AI chat application built with C#, .NET, and Avalonia
 
 ## Status
 
-The repository contains the engineering foundation, a provider-neutral conversation core, local JSON conversation persistence, tested conversation lifecycle operations, a functional Avalonia shell with dedicated Conversations/Provider/Models workspaces, provider-neutral response generation/streaming, a real local llama.cpp CUDA adapter, restart-sensitive model loading configuration, model-scoped generation profiles including bounded reasoning, and bounded provider failure handling with safe `Missing/Unsupported/Faulted/Network/Model` classification. The desktop UI can detect or install a managed Linux x64 CUDA build, save a Hugging Face GGUF model plus optional loading overrides, configure per-generation behavior through profiles, launch `llama-server -hf`, stream visible content and separated reasoning incrementally, persist only the completed visible Assistant message, stop an active stream, and explicitly retry the same unanswered User message without duplicating it. Automatic transport retry is restricted to bounded idempotent provider GET boundaries; generation POSTs are never replayed automatically. Managed llama.cpp installation/update targets an Alicia-validated pinned release and exposes explicit update checking. Managed storage maintenance can inspect usage, clean inactive retained releases, uninstall runtime files while preserving the model cache, or explicitly remove runtime plus model cache; every destructive scope requires separate confirmation and never touches provider configuration or conversations. Provider-neutral generation observability records only bounded metadata for the latest generation and a small rotating local JSONL history: provider/model/version, end-to-end and first-output latency, token usage, llama.cpp timing metadata when present, cancellation, and safe failure classification. Prompt, reasoning, response, raw HTTP, API-key, endpoint, and diagnostic content are not written to that observation log. Tool calling, retrieval, attachments, multimodality, and additional platform installers/hosts are intentionally deferred to later atomic work packages.
+The repository contains the engineering foundation, a provider-neutral conversation core, local JSON conversation persistence, tested conversation lifecycle operations, a functional Avalonia shell with dedicated Conversations/Provider/Models/Profiles workspaces, provider-neutral response generation/streaming, a real local llama.cpp CUDA adapter, restart-sensitive model loading configuration, model-scoped generation profiles including bounded reasoning, and bounded provider failure handling with safe `Missing/Unsupported/Faulted/Network/Model` classification. The desktop UI can detect or install a managed Linux x64 CUDA build, save a Hugging Face GGUF model plus optional loading overrides, configure per-generation behavior through profiles, launch `llama-server -hf`, stream visible content and separated reasoning incrementally, persist only the completed visible Assistant message, stop an active stream, and explicitly retry the same unanswered User message without duplicating it. Automatic transport retry is restricted to bounded idempotent provider GET boundaries; generation POSTs are never replayed automatically. Managed llama.cpp installation/update targets an Alicia-validated pinned release and exposes explicit update checking. Managed storage maintenance can inspect usage, clean inactive retained releases, uninstall runtime files while preserving the model cache, or explicitly remove runtime plus model cache; every destructive scope requires separate confirmation and never touches provider configuration or conversations. Provider-neutral generation observability records only bounded metadata for the latest generation and a small rotating local JSONL history: provider/model/version, end-to-end and first-output latency, token usage, llama.cpp timing metadata when present, cancellation, and safe failure classification. Prompt, reasoning, response, raw HTTP, API-key, endpoint, and diagnostic content are not written to that observation log. Tool calling, retrieval, attachments, multimodality, and additional platform installers/hosts are intentionally deferred to later atomic work packages.
 
 ## Current platform target
 
@@ -41,6 +41,8 @@ UIX-02 Stage 6 adds the compact branch-scoped model/profile selector to the Conv
 
 UIX-03 Stage 1 establishes settings ownership before the larger workspace redesign. Models now exposes only model-loading concerns (currently model reference and context size), while output limits, sampling, seed, reasoning, system instructions, and suggestions are edited through generation profiles. Existing provider-level generation configuration remains as a compatibility fallback and is preserved when model loading settings are saved; a brand-new model configuration starts with provider/model generation defaults. Reusing a model-library entry copies only model loading settings and never injects its stored generation payload into the editable Models draft.
 
+UIX-03 Stage 2 moves profile management into a dedicated first-level Profiles workspace. The global rail now exposes Conversations, Provider, Models, and Profiles; Models no longer contains profile controls. Profiles owns confirmed-profile browsing, explicit active-branch assignment, custom profile editing, WorkingDraft actions, immutable revision history, and non-destructive restore. Profiles can be browsed and edited without an active conversation, while `Use on this branch` remains an explicit branch-scoped persistence action.
+
 ## Prerequisites
 
 - Linux, macOS, or Windows for the application itself;
@@ -68,7 +70,7 @@ make verify
 
 The current Avalonia presentation provides:
 
-- a persistent 56 px icon-only global rail with dedicated **Conversations**, **Provider**, and **Models** workspaces plus a delayed label flyout;
+- a persistent 56 px icon-only global rail with dedicated **Conversations**, **Provider**, **Models**, and **Profiles** workspaces plus a delayed label flyout;
 - a Conversation-only history surface with create/select, title-and-content search, lazy three-message previews, persisted per-conversation icon/color identity, contextual `…`/right-click Rename/Change icon/Change color/Delete actions, a persisted wide-layout collapse preference, a temporary narrow-layout history overlay, and a blocking compact delete modal;
 - a polished conversation thread with transparent history/thread surfaces and an opaque click-to-focus composer as the primary input surface;
 - a deterministic Conversation configuration gate that keeps history readable while provider/model setup is incomplete, replaces the unavailable composer with one recommended CTA, and becomes central onboarding when no conversations exist;
@@ -76,7 +78,8 @@ The current Avalonia presentation provides:
 - explicit Provider detect/install/start/stop operations and phase-aware installation progress outside the Conversation sidebar;
 - a visually simplified Provider workspace that keeps Runtime primary, de-emphasizes update/maintenance detail, isolates destructive actions without changing provider behavior, and keeps latest-generation observability inside collapsed Technical details;
 - explicit managed-provider storage inspection plus separately confirmed inactive-release cleanup, runtime-only uninstall, and runtime-plus-model-cache uninstall;
-- explicit Models configuration for Hugging Face GGUF reference and restart-sensitive context size, with generation behavior owned by model-scoped profiles;
+- explicit Models configuration for Hugging Face GGUF reference and restart-sensitive context size, with no profile-management controls mixed into that workspace;
+- a dedicated Profiles workspace for model-scoped generation behavior, explicit active-branch assignment, WorkingDraft editing/autosave, immutable revisions, and non-destructive history restore;
 - a persistent provider-neutral model library that can retain multiple saved model configurations without implying they are loaded; Models reuse copies only loading settings and does not inject stored generation behavior;
 - a compact Conversation model/profile dual selector that restores and explicitly pins the effective pair per active branch without implicitly switching or loading a provider model;
 - no automatic provider fallback: unsaved or unavailable selections are never silently replaced;
@@ -134,6 +137,12 @@ The provider-neutral Application contracts remain independent of llama.cpp/CUDA/
 - `docs/decisions/0039-branch-scoped-generation-selection.md`
 - `docs/decisions/0040-active-branch-generation-profile-selection-ui.md`
 - `docs/decisions/0041-generation-profile-editor-working-draft.md`
+- `docs/decisions/0042-generation-profile-autosave-and-pre-send-gate.md`
+- `docs/decisions/0043-generation-profile-revision-history-restore-as-draft.md`
+- `docs/decisions/0044-persistent-model-library-foundation.md`
+- `docs/decisions/0045-branch-model-profile-dual-selector.md`
+- `docs/decisions/0046-generation-settings-ownership.md`
+- `docs/decisions/0047-dedicated-profiles-workspace.md`
 - `docs/development/roadmap.md`
 - `docs/design/ui-ux-specification.md`
 - `docs/user-guide/README.md`

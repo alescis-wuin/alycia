@@ -386,7 +386,7 @@
                        TextWrapping="Wrap"
                        AutomationProperties.LiveSetting="Polite"
                        Foreground="{DynamicResource TextSecondaryBrush}" />
-            <TextBlock Text="Model loading settings are managed in Models. Per-generation behavior is managed through generation profiles. Provider lifecycle remains here."
+            <TextBlock Text="Model loading settings are managed in Models. Per-generation behavior is managed in the dedicated Profiles workspace. Provider lifecycle remains here."
                        FontSize="12"
                        LineHeight="18"
                        TextWrapping="Wrap"

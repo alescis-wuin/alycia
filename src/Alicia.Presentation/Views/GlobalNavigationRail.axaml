@@ -121,6 +121,31 @@
                     Data="M12,2 L21,7 V17 L12,22 L3,17 V7 L12,2 M12,4.3 L5.1,8.1 L12,11.9 L18.9,8.1 L12,4.3 M5,10.1 V15.8 L11,19.1 V13.4 L5,10.1 M13,19.1 L19,15.8 V10.1 L13,13.4 V19.1 Z" />
         </Grid>
       </Button>
+
+      <Button Classes="global-nav-item"
+              Classes.selected="{Binding IsProfilesSelected}"
+              Command="{Binding NavigateToProfilesCommand}"
+              AutomationProperties.Name="Profiles"
+              AutomationProperties.ItemStatus="{Binding ProfilesNavigationStatus}"
+              AutomationProperties.HelpText="Open the generation profiles workspace."
+              ToolTip.Tip="Profiles">
+        <Grid>
+          <Border Width="3"
+                  Height="24"
+                  CornerRadius="2"
+                  Margin="1,0,0,0"
+                  HorizontalAlignment="Left"
+                  VerticalAlignment="Center"
+                  Background="{DynamicResource AccentSecondaryBrush}"
+                  IsVisible="{Binding IsProfilesSelected}" />
+          <PathIcon Width="22"
+                    Height="22"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Foreground="{DynamicResource TextSecondaryBrush}"
+                    Data="M4,6 H10 M14,6 H20 M12,4 V8 M4,12 H6 M10,12 H20 M8,10 V14 M4,18 H14 M18,18 H20 M16,16 V20" />
+        </Grid>
+      </Button>
     </StackPanel>
   </Border>
 </UserControl>

@@ -490,12 +490,24 @@ Le journal structuré local ne contient aucun prompt/message, raisonnement, rép
 
 - suppression du disclosure `Generation` de la configuration Models ;
 - maximum de sortie, température, top-p, top-k, seed, reasoning et budget reasoning restent disponibles uniquement dans l'éditeur de profil ;
-- la section profils reste temporairement dans Models jusqu'au workspace Profiles de Stage 2 ;
+- Stage 1 conserve encore la section profils dans Models ; UIX-03 Stage 2 la déplace ensuite dans un workspace Profiles dédié ;
 - `Save model settings` ne réécrit pas les anciennes options provider-level de génération : elles sont préservées uniquement pour compatibilité legacy ;
 - une nouvelle configuration modèle utilise les defaults provider/modèle pour la génération ;
 - `Use model settings` depuis la bibliothèque recopie seulement référence modèle + contexte et ignore les options de génération éventuellement présentes dans le schema v1 de la bibliothèque ;
 - les différences de génération seules ne marquent plus une entrée bibliothèque comme différente du modèle sauvegardé ;
 - aucun schema JSON, resolver, snapshot ou binding branch-scoped n'est modifié.
+
+#### Implémentation UIX-03 Stage 2 - dedicated Profiles workspace
+
+- le rail global ajoute **Profiles** comme quatrième destination après Conversations, Provider et Models ;
+- Models ne contient plus aucun contrôle de sélection, création, édition ou historique de profil ;
+- Profiles affiche les profils confirmés du scope du modèle sauvegardé dans une liste stable à gauche ;
+- la zone droite porte le résumé du profil sélectionné, l'éditeur WorkingDraft et l'historique de révisions ;
+- la consultation/édition d'un profil ne dépend pas d'une conversation active ; seule l'action explicite `Use on this branch` dépend d'une conversation et d'une branche actives ;
+- sélectionner un profil dans la liste n'écrit aucun binding de branche ;
+- `Default` reste non éditable et les règles autosave/stale/history existantes sont conservées ;
+- navigation, titres, états live et noms Automation restent explicites ;
+- aucun changement de persistence, resolver, snapshot, lifecycle ou model library n'est introduit.
 
 ### 9.2 Ajout Hugging Face
 
@@ -1137,7 +1149,7 @@ Ces durées sont UX, pas des invariants métier ; elles doivent rester testables
 
 - Shell Presentation ;
 - rail global 56 px ;
-- Conversations / Provider / Models ;
+- Conversations / Provider / Models / Profiles ;
 - flyout global différé ;
 - Conversation-only workspace ;
 - recherche history titre + contenu ;
@@ -1157,8 +1169,8 @@ Ces durées sont UX, pas des invariants métier ; elles doivent rester testables
 - gate de configuration déterministe ;
 - history responsive en overlay + modale de suppression ;
 - accessibilité clavier/focus/Automation et Reduced Motion foundation ;
-- UIX-02 Stage 1 : profils confirmés du modèle sauvegardé projetés dans Models et sélection explicite du profil pour la branche active, sans édition de profil ni bibliothèque de modèles.
-- UIX-02 Stage 2 : création/édition des profils custom dans Models, WorkingDraft persistant explicite, commit en révision immuable, restauration/discard et blocage des drafts stale ; le profil `Default` reste non éditable.
+- UIX-02 Stage 1 : profils confirmés du modèle sauvegardé et sélection explicite du profil pour la branche active ; cette capacité est désormais présentée dans Profiles depuis UIX-03 Stage 2.
+- UIX-02 Stage 2 : création/édition des profils custom, WorkingDraft persistant explicite, commit en révision immuable, restauration/discard et blocage des drafts stale ; ces contrôles vivent désormais dans Profiles et `Default` reste non éditable.
 - UIX-02 Stage 3 : autosave local debounced des WorkingDrafts, continuité d’édition/autosave pendant un stream sans commit concurrent, et gate avant nouvel envoi `Use previous version` / `Use modified version` fondé sur le profil réellement résolu par la branche ; un draft stale ne peut pas être confirmé.
 - UIX-02 Stage 4 : timeline des révisions confirmées d'un profil custom et restauration non destructive d'une ancienne révision comme WorkingDraft basé sur la tête courante ; confirmer la restauration ajoute une nouvelle révision immuable.
 - UIX-02 Stage 5 : bibliothèque persistante provider-neutral de configurations modèles, réutilisable explicitement sans changer le modèle actif.
@@ -1177,7 +1189,8 @@ Ces durées sont UX, pas des invariants métier ; elles doivent rester testables
 - GenerationSnapshot ;
 - branching ;
 - Provider final cards/logs/update/uninstall ;
-- Model library/load/unload/profiles ;
+- Model library/load/unload ;
+- suppression de profils et comparaison visuelle avancée entre révisions ;
 
 ---
 

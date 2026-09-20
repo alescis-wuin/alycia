@@ -1,0 +1,319 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Alicia.Presentation.ViewModels"
+             xmlns:generations="using:Alicia.Application.Generations"
+             x:Class="Alicia.Presentation.Views.ProfilesWorkspaceView"
+             x:DataType="vm:MainViewModel"
+             AutomationProperties.Name="Profiles workspace"
+             AutomationProperties.LandmarkType="Main"
+             AutomationProperties.AccessibilityView="Control">
+  <Grid Margin="28" RowDefinitions="Auto,18,*">
+    <Grid MaxWidth="1180" HorizontalAlignment="Center" ColumnDefinitions="*,Auto">
+      <StackPanel Spacing="4">
+        <TextBlock Text="Profiles"
+                   FontSize="30"
+                   FontWeight="Bold"
+                   AutomationProperties.HeadingLevel="1"
+                   Foreground="{DynamicResource TextPrimaryBrush}" />
+        <TextBlock Text="Configure reusable per-generation behavior, WorkingDrafts, and immutable profile revisions."
+                   FontSize="14"
+                   Foreground="{DynamicResource TextSecondaryBrush}" />
+      </StackPanel>
+
+      <Border Grid.Column="1"
+              Classes="status-chip workspace-status-chip"
+              VerticalAlignment="Center"
+              MaxWidth="420">
+        <TextBlock Text="{Binding GenerationProfileScopeText}"
+                   FontSize="12"
+                   TextTrimming="CharacterEllipsis"
+                   Foreground="{DynamicResource TextPrimaryBrush}"
+                   AutomationProperties.Name="Active profile model scope" />
+      </Border>
+    </Grid>
+
+    <Grid Grid.Row="2"
+          MaxWidth="1180"
+          HorizontalAlignment="Center"
+          ColumnDefinitions="280,18,*">
+      <ScrollViewer Grid.Column="0"
+                    VerticalScrollBarVisibility="Auto"
+                    HorizontalScrollBarVisibility="Disabled">
+        <Border Classes="workspace-primary-surface"
+                Padding="18">
+          <StackPanel Spacing="14">
+          <StackPanel Spacing="4">
+            <TextBlock Classes="workspace-section-title"
+                       Text="Confirmed profiles"
+                       AutomationProperties.HeadingLevel="2" />
+            <TextBlock Classes="workspace-section-description"
+                       Text="Profiles are scoped to the currently saved model. Selecting one here never changes a branch until you explicitly apply it." />
+          </StackPanel>
+
+          <TextBlock Text="Model scope"
+                     FontSize="11"
+                     FontWeight="SemiBold"
+                     Foreground="{DynamicResource TextSecondaryBrush}" />
+          <TextBlock Text="{Binding GenerationProfileScopeText}"
+                     FontSize="12"
+                     TextWrapping="Wrap"
+                     Foreground="{DynamicResource TextPrimaryBrush}" />
+
+          <ListBox ItemsSource="{Binding GenerationProfiles}"
+                   SelectedItem="{Binding SelectedGenerationProfile, Mode=TwoWay}"
+                   IsEnabled="{Binding CanBrowseGenerationProfiles}"
+                   MinHeight="170"
+                   MaxHeight="330"
+                   AutomationProperties.Name="Confirmed generation profiles"
+                   AutomationProperties.HelpText="Choose a confirmed profile to inspect, edit, or explicitly bind to the active conversation branch.">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="generations:GenerationProfile">
+                <Grid ColumnDefinitions="*,Auto" Margin="4,6" ColumnSpacing="10">
+                  <TextBlock Text="{Binding Name}"
+                             VerticalAlignment="Center"
+                             FontWeight="SemiBold" />
+                  <Border Grid.Column="1"
+                          Classes="status-chip"
+                          Padding="7,2"
+                          IsVisible="{Binding IsDefault}">
+                    <TextBlock Text="Default"
+                               FontSize="10"
+                               Foreground="{DynamicResource TextSecondaryBrush}" />
+                  </Border>
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+
+          <StackPanel Spacing="6">
+            <TextBlock Text="Branch usage"
+                       FontSize="11"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextSecondaryBrush}" />
+            <TextBlock Text="{Binding GenerationProfileSelectionStatusText}"
+                       FontSize="12"
+                       LineHeight="18"
+                       TextWrapping="Wrap"
+                       AutomationProperties.LiveSetting="Polite"
+                       Foreground="{DynamicResource TextSecondaryBrush}" />
+            <Button Classes="primary-action"
+                    Command="{Binding SaveGenerationProfileSelectionCommand}"
+                    IsEnabled="{Binding CanSaveGenerationProfileSelection}"
+                    Content="Use on this branch"
+                    AutomationProperties.Name="Use selected generation profile for active branch" />
+          </StackPanel>
+
+          <Border Height="1" Background="{DynamicResource BorderBrush}" Opacity="0.65" />
+
+          <WrapPanel Orientation="Horizontal">
+            <Button Classes="secondary-action"
+                    Margin="0,0,8,8"
+                    Command="{Binding BeginCreateGenerationProfileCommand}"
+                    IsEnabled="{Binding CanCreateGenerationProfile}"
+                    Content="New profile"
+                    AutomationProperties.Name="Create custom generation profile" />
+            <Button Classes="secondary-action"
+                    Margin="0,0,0,8"
+                    Command="{Binding BeginEditGenerationProfileCommand}"
+                    IsEnabled="{Binding CanEditSelectedGenerationProfile}"
+                    Content="Edit profile"
+                    AutomationProperties.Name="Edit selected custom generation profile" />
+          </WrapPanel>
+          </StackPanel>
+        </Border>
+      </ScrollViewer>
+
+      <ScrollViewer Grid.Column="2"
+                    VerticalScrollBarVisibility="Auto"
+                    HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Spacing="18">
+          <Border Classes="workspace-secondary-surface" Padding="18">
+            <StackPanel Spacing="5">
+              <TextBlock Text="Selected profile"
+                         FontSize="11"
+                         FontWeight="SemiBold"
+                         Foreground="{DynamicResource TextSecondaryBrush}" />
+              <TextBlock Text="{Binding GenerationProfileWorkspaceSelectionTitle}"
+                         FontSize="20"
+                         FontWeight="SemiBold"
+                         AutomationProperties.HeadingLevel="2"
+                         Foreground="{DynamicResource TextPrimaryBrush}" />
+              <TextBlock Text="{Binding GenerationProfileWorkspaceSelectionDescription}"
+                         FontSize="12"
+                         LineHeight="18"
+                         TextWrapping="Wrap"
+                         Foreground="{DynamicResource TextSecondaryBrush}" />
+            </StackPanel>
+          </Border>
+
+          <Border Classes="workspace-primary-surface"
+                  Padding="18"
+                  IsVisible="{Binding IsGenerationProfileEditorVisible}"
+                  IsEnabled="{Binding CanEditGenerationProfileDraft}">
+            <StackPanel Spacing="12">
+              <StackPanel Spacing="3">
+                <TextBlock Text="Profile editor"
+                           FontSize="18"
+                           FontWeight="SemiBold"
+                           AutomationProperties.HeadingLevel="2"
+                           Foreground="{DynamicResource TextPrimaryBrush}" />
+                <TextBlock Text="{Binding GenerationProfileEditor.StatusText}"
+                           FontSize="12"
+                           LineHeight="18"
+                           TextWrapping="Wrap"
+                           AutomationProperties.LiveSetting="Polite"
+                           Foreground="{DynamicResource TextSecondaryBrush}" />
+              </StackPanel>
+
+              <TextBox Text="{Binding GenerationProfileEditor.Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                       PlaceholderText="Profile name"
+                       AutomationProperties.Name="Generation profile name" />
+
+              <TextBox Text="{Binding GenerationProfileEditor.BaseSystemInstructions, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                       AcceptsReturn="True"
+                       TextWrapping="Wrap"
+                       MinHeight="110"
+                       PlaceholderText="Base system instructions • optional"
+                       AutomationProperties.Name="Generation profile system instructions" />
+
+              <Expander Header="Generation behavior"
+                        Classes="workspace-disclosure"
+                        IsExpanded="True"
+                        AutomationProperties.Name="Generation profile behavior settings">
+                <StackPanel Spacing="8" Margin="0,10,0,0">
+                  <TextBox Text="{Binding GenerationProfileEditor.MaxOutputTokensText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                           PlaceholderText="Max output tokens • provider default"
+                           AutomationProperties.Name="Profile maximum output tokens" />
+                  <TextBox Text="{Binding GenerationProfileEditor.TemperatureText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                           PlaceholderText="Temperature • provider default"
+                           AutomationProperties.Name="Profile temperature" />
+                  <TextBox Text="{Binding GenerationProfileEditor.TopPText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                           PlaceholderText="Top-p • provider default"
+                           AutomationProperties.Name="Profile top-p" />
+                  <TextBox Text="{Binding GenerationProfileEditor.TopKText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                           PlaceholderText="Top-k • provider default"
+                           AutomationProperties.Name="Profile top-k" />
+                  <TextBox Text="{Binding GenerationProfileEditor.SeedText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                           PlaceholderText="Seed • provider random"
+                           AutomationProperties.Name="Profile random seed" />
+
+                  <ComboBox SelectedIndex="{Binding GenerationProfileEditor.ReasoningModeIndex, Mode=TwoWay}"
+                            AutomationProperties.Name="Profile reasoning mode"
+                            AutomationProperties.HelpText="Keep the provider default, explicitly disable reasoning, or enable it with a token budget.">
+                    <ComboBoxItem Content="Provider default" />
+                    <ComboBoxItem Content="Disabled" />
+                    <ComboBoxItem Content="Enabled" />
+                  </ComboBox>
+
+                  <TextBox Text="{Binding GenerationProfileEditor.ReasoningBudgetText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                           IsEnabled="{Binding GenerationProfileEditor.IsReasoningBudgetEditable}"
+                           PlaceholderText="Reasoning budget tokens • 512 recommended"
+                           AutomationProperties.Name="Profile reasoning token budget" />
+                </StackPanel>
+              </Expander>
+
+              <TextBox Text="{Binding GenerationProfileEditor.InitialSuggestionsText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                       AcceptsReturn="True"
+                       TextWrapping="Wrap"
+                       MinHeight="84"
+                       PlaceholderText="Initial suggestions • one per line"
+                       AutomationProperties.Name="Generation profile initial suggestions" />
+
+              <TextBlock Text="WorkingDraft changes autosave locally after a short pause. Save revision confirms a new immutable revision; editing never rewrites confirmed history."
+                         FontSize="12"
+                         LineHeight="18"
+                         TextWrapping="Wrap"
+                         Foreground="{DynamicResource TextSecondaryBrush}" />
+
+              <WrapPanel Orientation="Horizontal">
+                <Button Classes="secondary-action"
+                        Margin="0,0,8,8"
+                        Command="{Binding SaveGenerationProfileDraftCommand}"
+                        IsEnabled="{Binding CanSaveGenerationProfileDraft}"
+                        Content="Save draft now"
+                        AutomationProperties.Name="Save generation profile working draft now" />
+                <Button Classes="primary-action"
+                        Margin="0,0,8,8"
+                        Command="{Binding CommitGenerationProfileCommand}"
+                        IsEnabled="{Binding CanCommitGenerationProfile}"
+                        Content="Save revision"
+                        AutomationProperties.Name="Save confirmed generation profile revision" />
+                <Button Classes="secondary-action"
+                        Margin="0,0,8,8"
+                        Command="{Binding DiscardGenerationProfileDraftCommand}"
+                        IsEnabled="{Binding CanDiscardGenerationProfileDraft}"
+                        Content="Discard draft"
+                        AutomationProperties.Name="Discard generation profile working draft" />
+                <Button Classes="secondary-action"
+                        Margin="0,0,0,8"
+                        Command="{Binding CancelGenerationProfileEditCommand}"
+                        Content="Close editor"
+                        AutomationProperties.Name="Close generation profile editor" />
+              </WrapPanel>
+            </StackPanel>
+          </Border>
+
+          <Border Classes="workspace-primary-surface"
+                  Padding="18"
+                  IsVisible="{Binding Model.ProfileHistory.IsVisible}">
+            <StackPanel Spacing="12">
+              <StackPanel Spacing="3">
+                <TextBlock Text="Revision history"
+                           FontSize="18"
+                           FontWeight="SemiBold"
+                           AutomationProperties.HeadingLevel="2"
+                           Foreground="{DynamicResource TextPrimaryBrush}" />
+                <TextBlock Text="{Binding Model.ProfileHistory.StatusText}"
+                           FontSize="12"
+                           LineHeight="18"
+                           TextWrapping="Wrap"
+                           AutomationProperties.LiveSetting="Polite"
+                           Foreground="{DynamicResource TextSecondaryBrush}" />
+              </StackPanel>
+
+              <ListBox ItemsSource="{Binding Model.ProfileHistory.Revisions}"
+                       SelectedItem="{Binding Model.ProfileHistory.SelectedRevision, Mode=TwoWay}"
+                       MaxHeight="280"
+                       AutomationProperties.Name="Generation profile revision history">
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:GenerationProfileRevisionItemViewModel">
+                    <Grid ColumnDefinitions="*,Auto" Margin="4,6">
+                      <StackPanel Spacing="2">
+                        <TextBlock Text="{Binding RevisionLabel}" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding CreatedAtText}"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" />
+                        <TextBlock Text="{Binding PayloadHashText}"
+                                   FontSize="11"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" />
+                      </StackPanel>
+                      <TextBlock Grid.Column="1"
+                                 Text="{Binding ProfileName}"
+                                 Margin="12,0,0,0"
+                                 VerticalAlignment="Center"
+                                 FontSize="12"
+                                 Foreground="{DynamicResource TextSecondaryBrush}" />
+                    </Grid>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+
+              <Button Classes="secondary-action"
+                      Command="{Binding RestoreGenerationProfileRevisionCommand}"
+                      IsEnabled="{Binding CanRestoreGenerationProfileRevision}"
+                      Content="Restore selected as draft"
+                      AutomationProperties.Name="Restore selected generation profile revision as working draft"
+                      AutomationProperties.HelpText="Copies the selected historical revision into a new WorkingDraft based on the current confirmed revision. Existing history is never rewritten." />
+
+              <TextBlock Text="Restoring never moves or rewrites history. Historical contents become a WorkingDraft based on the current revision; Save revision appends a new immutable head."
+                         FontSize="12"
+                         LineHeight="18"
+                         TextWrapping="Wrap"
+                         Foreground="{DynamicResource TextSecondaryBrush}" />
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </ScrollViewer>
+    </Grid>
+  </Grid>
+</UserControl>

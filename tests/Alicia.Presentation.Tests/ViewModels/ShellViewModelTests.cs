@@ -18,9 +18,11 @@ public sealed class ShellViewModelTests
         Assert.True(shell.IsConversationsSelected);
         Assert.False(shell.IsProvidersSelected);
         Assert.False(shell.IsModelsSelected);
+        Assert.False(shell.IsProfilesSelected);
         Assert.Equal("Current workspace", shell.ConversationsNavigationStatus);
         Assert.Equal("Available workspace", shell.ProvidersNavigationStatus);
         Assert.Equal("Available workspace", shell.ModelsNavigationStatus);
+        Assert.Equal("Available workspace", shell.ProfilesNavigationStatus);
     }
 
     [Fact]
@@ -35,9 +37,11 @@ public sealed class ShellViewModelTests
         Assert.False(shell.IsConversationsSelected);
         Assert.True(shell.IsProvidersSelected);
         Assert.False(shell.IsModelsSelected);
+        Assert.False(shell.IsProfilesSelected);
         Assert.Equal("Available workspace", shell.ConversationsNavigationStatus);
         Assert.Equal("Current workspace", shell.ProvidersNavigationStatus);
         Assert.Equal("Available workspace", shell.ModelsNavigationStatus);
+        Assert.Equal("Available workspace", shell.ProfilesNavigationStatus);
         Assert.Same(workspace, shell.Workspace);
 
         shell.NavigateToModelsCommand.Execute(null);
@@ -46,6 +50,17 @@ public sealed class ShellViewModelTests
         Assert.False(shell.IsConversationsSelected);
         Assert.False(shell.IsProvidersSelected);
         Assert.True(shell.IsModelsSelected);
+        Assert.False(shell.IsProfilesSelected);
+        Assert.Same(workspace, shell.Workspace);
+
+        shell.NavigateToProfilesCommand.Execute(null);
+
+        Assert.Equal(WorkspaceSection.Profiles, shell.SelectedSection);
+        Assert.False(shell.IsConversationsSelected);
+        Assert.False(shell.IsProvidersSelected);
+        Assert.False(shell.IsModelsSelected);
+        Assert.True(shell.IsProfilesSelected);
+        Assert.Equal("Current workspace", shell.ProfilesNavigationStatus);
         Assert.Same(workspace, shell.Workspace);
 
         shell.NavigateToConversationsCommand.Execute(null);
@@ -54,9 +69,9 @@ public sealed class ShellViewModelTests
         Assert.True(shell.IsConversationsSelected);
         Assert.False(shell.IsProvidersSelected);
         Assert.False(shell.IsModelsSelected);
+        Assert.False(shell.IsProfilesSelected);
         Assert.Same(workspace, shell.Workspace);
     }
-
 
     [Fact]
     public void ReducedMotionPreferenceIsProjectedThroughShell()
@@ -86,6 +101,7 @@ public sealed class ShellViewModelTests
 
         Assert.Equal(WorkspaceSection.Models, shell.SelectedSection);
         Assert.True(shell.IsModelsSelected);
+        Assert.False(shell.IsProfilesSelected);
     }
 
     private static MainViewModel CreateWorkspace(

@@ -18,6 +18,8 @@ public sealed class ShellViewModel : ViewModelBase
             () => SelectedSection = WorkspaceSection.Providers);
         NavigateToModelsCommand = new RelayCommand(
             () => SelectedSection = WorkspaceSection.Models);
+        NavigateToProfilesCommand = new RelayCommand(
+            () => SelectedSection = WorkspaceSection.Profiles);
     }
 
     public MainViewModel Workspace { get; }
@@ -27,6 +29,8 @@ public sealed class ShellViewModel : ViewModelBase
     public IRelayCommand NavigateToProvidersCommand { get; }
 
     public IRelayCommand NavigateToModelsCommand { get; }
+
+    public IRelayCommand NavigateToProfilesCommand { get; }
 
     public WorkspaceSection SelectedSection
     {
@@ -38,9 +42,11 @@ public sealed class ShellViewModel : ViewModelBase
                 OnPropertyChanged(nameof(IsConversationsSelected));
                 OnPropertyChanged(nameof(IsProvidersSelected));
                 OnPropertyChanged(nameof(IsModelsSelected));
+                OnPropertyChanged(nameof(IsProfilesSelected));
                 OnPropertyChanged(nameof(ConversationsNavigationStatus));
                 OnPropertyChanged(nameof(ProvidersNavigationStatus));
                 OnPropertyChanged(nameof(ModelsNavigationStatus));
+                OnPropertyChanged(nameof(ProfilesNavigationStatus));
             }
         }
     }
@@ -50,6 +56,8 @@ public sealed class ShellViewModel : ViewModelBase
     public bool IsProvidersSelected => SelectedSection == WorkspaceSection.Providers;
 
     public bool IsModelsSelected => SelectedSection == WorkspaceSection.Models;
+
+    public bool IsProfilesSelected => SelectedSection == WorkspaceSection.Profiles;
 
     public bool IsReducedMotionEnabled => Workspace.IsReducedMotionEnabled;
 
@@ -62,6 +70,10 @@ public sealed class ShellViewModel : ViewModelBase
         : "Available workspace";
 
     public string ModelsNavigationStatus => IsModelsSelected
+        ? "Current workspace"
+        : "Available workspace";
+
+    public string ProfilesNavigationStatus => IsProfilesSelected
         ? "Current workspace"
         : "Available workspace";
 

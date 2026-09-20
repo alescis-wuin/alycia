@@ -26,6 +26,10 @@
       <Grid IsVisible="{Binding IsModelsSelected}">
         <local:ModelWorkspaceView DataContext="{Binding Workspace}" />
       </Grid>
+
+      <Grid IsVisible="{Binding IsProfilesSelected}">
+        <local:ProfilesWorkspaceView DataContext="{Binding Workspace}" />
+      </Grid>
     </Grid>
 
     <local:GlobalNavigationFlyout x:Name="NavigationFlyout"

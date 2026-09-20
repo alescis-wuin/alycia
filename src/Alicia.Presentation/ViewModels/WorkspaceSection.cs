@@ -5,4 +5,5 @@ public enum WorkspaceSection
     Conversations,
     Providers,
     Models,
+    Profiles,
 }

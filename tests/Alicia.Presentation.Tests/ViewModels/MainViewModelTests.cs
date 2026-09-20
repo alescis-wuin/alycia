@@ -133,6 +133,49 @@ public sealed class MainViewModelTests
     }
 
     [Fact]
+    public async Task ProfilesCanBeBrowsedWithoutConversationWhileBranchBindingStaysUnavailable()
+    {
+        DateTimeOffset now = new(2026, 9, 20, 14, 0, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        GenerationProfileModelScope scope = new(
+            "llama.cpp.cuda",
+            "owner/model-GGUF:Q4_K_M");
+        GenerationProfile defaultProfile = GenerationProfile.CreateDefault(GenerationProfileId.New());
+        GenerationProfile customProfile = new(GenerationProfileId.New(), "Coding");
+        InMemoryGenerationProfileCatalogStore profileStore = new();
+        profileStore.Seed(new GenerationProfileCatalog(
+            scope,
+            defaultProfile,
+            [new GenerationProfileRevision(
+                GenerationProfileRevisionId.New(),
+                null,
+                now,
+                customProfile)]));
+        InMemoryConversationGenerationSelectionStore selectionStore = new();
+
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(now),
+            generationProfileCatalogStore: profileStore,
+            conversationGenerationSelectionStore: selectionStore);
+
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        Assert.Null(viewModel.SelectedConversation);
+        Assert.Equal(2, viewModel.GenerationProfiles.Count);
+        Assert.True(viewModel.CanBrowseGenerationProfiles);
+        Assert.False(viewModel.IsGenerationProfileSelectionEditable);
+        Assert.False(viewModel.CanSaveGenerationProfileSelection);
+        Assert.Equal("No profile selected", viewModel.GenerationProfileWorkspaceSelectionTitle);
+
+        viewModel.SelectedGenerationProfile = customProfile;
+
+        Assert.True(viewModel.CanEditSelectedGenerationProfile);
+        Assert.Equal("Coding", viewModel.GenerationProfileWorkspaceSelectionTitle);
+        Assert.Contains("WorkingDraft", viewModel.GenerationProfileWorkspaceSelectionDescription, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task SavingDefaultProfileCreatesCatalogAndPinsActiveBranchExplicitly()
     {
         DateTimeOffset now = new(2026, 9, 18, 10, 10, 0, TimeSpan.Zero);
