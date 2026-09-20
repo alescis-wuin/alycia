@@ -452,7 +452,7 @@ Affichage direct :
 Détails secondaires :
 
 - état de configuration ;
-- rappel que modèle/génération appartiennent à Models ;
+- rappel que le chargement modèle appartient à Models et que le comportement par génération appartient aux profils ;
 - diagnostics techniques bruts restent hors Presentation.
 
 ### 8.7 Accessibilité visuelle
@@ -481,8 +481,21 @@ Le journal structuré local ne contient aucun prompt/message, raisonnement, rép
 - titre + navigation contextuelle ;
 - une surface principale centrée pour la configuration ;
 - résumé provider secondaire dans la même surface, sans carte concurrente ;
-- Runtime et Generation conservent leurs disclosures existants ;
-- la grammaire visuelle est alignée avec Provider sans modifier les bindings ni la sauvegarde.
+- Models est réservé aux réglages qui affectent le chargement du modèle ou nécessitent un reload ;
+- pour le runtime llama.cpp actuel : référence modèle + taille de contexte ;
+- le comportement par génération appartient aux profils et n'est plus éditable dans la configuration modèle ;
+- la grammaire visuelle reste alignée avec Provider.
+
+#### Implémentation UIX-03 Stage 1 - settings ownership
+
+- suppression du disclosure `Generation` de la configuration Models ;
+- maximum de sortie, température, top-p, top-k, seed, reasoning et budget reasoning restent disponibles uniquement dans l'éditeur de profil ;
+- la section profils reste temporairement dans Models jusqu'au workspace Profiles de Stage 2 ;
+- `Save model settings` ne réécrit pas les anciennes options provider-level de génération : elles sont préservées uniquement pour compatibilité legacy ;
+- une nouvelle configuration modèle utilise les defaults provider/modèle pour la génération ;
+- `Use model settings` depuis la bibliothèque recopie seulement référence modèle + contexte et ignore les options de génération éventuellement présentes dans le schema v1 de la bibliothèque ;
+- les différences de génération seules ne marquent plus une entrée bibliothèque comme différente du modèle sauvegardé ;
+- aucun schema JSON, resolver, snapshot ou binding branch-scoped n'est modifié.
 
 ### 9.2 Ajout Hugging Face
 

@@ -78,7 +78,8 @@ public sealed class InferenceModelLibraryItemViewModel : ViewModelBase
             && string.Equals(currentConfiguration.ProviderId, ProviderId, StringComparison.Ordinal)
             && string.Equals(currentConfiguration.ModelReference, ModelReference, StringComparison.Ordinal);
         bool settingsDifference = isCurrent
-            && !Equals(currentConfiguration, Entry.Configuration);
+            && currentConfiguration is not null
+            && currentConfiguration.ContextSize != Entry.Configuration.ContextSize;
 
         _hasCurrentSettingsDifference = settingsDifference;
         IsCurrentSavedModel = isCurrent;

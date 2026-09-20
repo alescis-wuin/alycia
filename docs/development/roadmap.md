@@ -55,6 +55,7 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 | UIX-02 Stage 4 profile revision history / restore | terminé | timeline immuable + restauration d'une ancienne révision comme WorkingDraft basé sur la tête courante |
 | UIX-02 Stage 5 persistent model library foundation | terminé | catalogue multi-modèles provider-neutral + projection Models explicite, sans chargement implicite |
 | UIX-02 Stage 6 branch model/profile dual selector | terminé | dual-box composer branch-scoped + garde pré-envoi sur modèle sauvegardé/chargé, sans switch implicite |
+| UIX-03 Stage 1 settings ownership | terminé | Models limité aux réglages de chargement/reload ; comportement de génération possédé par les profils |
 | Lot 11 RAG foundation | planifié | à faire |
 | Lot 12 Retrieval/grounded generation | planifié | à faire |
 | Lot 13 Tools/MCP/agents | planifié | à faire |
@@ -387,11 +388,30 @@ Introduire avant RAG.
 - le selector suit les règles de surfaces transitoires existantes : indisponible pendant stream/opération/édition/gates, `Escape` annule sans mutation, changement de conversation recharge la projection et désélection efface l'ancien état ;
 - aucun changement de schema JSON, Domain, resolver, `GenerationSnapshot` ou lifecycle provider dans cette étape.
 
+
+### UIX-03 Stage 1 - ownership des réglages modèle/profil - terminé
+
+- Models n'expose plus les réglages par génération : maximum de sortie, température, top-p, top-k, seed, reasoning et budget reasoning quittent la configuration modèle ;
+- pour le runtime llama.cpp actuel, Models conserve uniquement la référence modèle et la taille de contexte comme réglages de chargement/reload ;
+- l'éditeur de profil devient l'unique surface utilisateur pour les instructions système, les limites de sortie, le sampling, le seed, le reasoning et les suggestions initiales ;
+- Stage 1 conserve temporairement la section profils dans Models : le déplacement vers un workspace Profiles dédié appartient à Stage 2 ;
+- aucune migration de schema n'est introduite : les anciennes options `InferenceProviderConfiguration.Generation` restent lisibles comme fallback de compatibilité ;
+- enregistrer les réglages modèle préserve les anciennes options de génération déjà persistées et une nouvelle configuration modèle démarre avec les defaults provider/modèle ;
+- `Use model settings` depuis la bibliothèque ne recopie que la référence modèle et le contexte, jamais les options de génération stockées dans une entrée historique ;
+- l'état « current model / settings differ » de la bibliothèque ignore donc les différences de génération seules ;
+- aucun changement du resolver, des `GenerationSnapshot`, de la sélection branch-scoped, du lifecycle provider ou des schemas JSON.
+
 ### Etapes suivantes
 
-- UIX-03 : contexte, provenance/révisions et navigation de branches progressivement exposés ;
+- UIX-03 Stage 2 : workspace Profiles dédié et sortie complète de l'édition des profils depuis Models ;
+- UIX-03 Stage 3 : redesign de la bibliothèque Models en navigation + fiche de chargement ;
+- UIX-03 Stage 4 : composer réduit à deux lignes (message/envoi, modèle/profil) et intégration du gate modèle ;
+- UIX-03 Stage 5 : remplacement de la modale dual-selector par un drawer/panneau de sélection ;
+- UIX-03 Stage 6 : decluttering final du workspace Provider ;
+- UIX-03 Stage 7 : polish accessibility/responsive/visual QA ;
+- contexte, provenance/révisions et navigation de branches restent des extensions UIX-03 ultérieures adossées aux contrats existants ;
 - UIX-02 extensions différées : suppression de profils/modèles et comparaison visuelle avancée des révisions, après contrats métier dédiés ;
-- Lot 11 : RAG foundation après le track UIX recommandé.
+- Lot 11 : RAG foundation après ce track de simplification UI.
 
 ## Lots 11 à 15
 

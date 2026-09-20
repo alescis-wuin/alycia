@@ -273,7 +273,7 @@ public sealed class ModelViewModel : ViewModelBase
                 "Select a library model owned by the active provider before reusing its settings.");
         }
 
-        LoadProviderConfigurationDraft(SelectedModelLibraryItem.Entry.Configuration);
+        LoadModelLoadingDraft(SelectedModelLibraryItem.Entry.Configuration);
     }
 
     internal bool HasConfigurationChanges(InferenceProviderDescriptor? descriptor)
@@ -319,13 +319,13 @@ public sealed class ModelViewModel : ViewModelBase
             return false;
         }
 
-        if (!GenerationSettings.TryBuild(
-            out InferenceGenerationOptions? generation,
-            out validationError)
-            || generation is null)
-        {
-            return false;
-        }
+        InferenceGenerationOptions generation = _savedProviderConfiguration is not null
+            && string.Equals(
+                _savedProviderConfiguration.ProviderId,
+                descriptor.Id,
+                StringComparison.Ordinal)
+            ? _savedProviderConfiguration.Generation
+            : new InferenceGenerationOptions();
 
         try
         {
@@ -347,12 +347,12 @@ public sealed class ModelViewModel : ViewModelBase
     {
         return _providerSelectionNotice
             ?? (HasConfigurationChanges(descriptor)
-                ? "Provider settings have unsaved changes."
+                ? "Model loading settings have unsaved changes."
                 : _savedProviderConfiguration is null
-                    ? "Save provider settings before starting a model."
-                    : _savedProviderConfiguration.UsesProviderDefaults
-                        ? "Saved • Optional runtime and generation values use provider defaults."
-                        : "Saved • Explicit runtime or generation overrides are active.");
+                    ? "Save model loading settings before starting a model."
+                    : _savedProviderConfiguration.ContextSize is null
+                        ? "Saved • Model loading settings use provider/model defaults where unspecified."
+                        : "Saved • Explicit model loading overrides are active. Generation behavior is managed by profiles.");
     }
 
     internal async Task LoadGenerationProfilesAsync(
@@ -924,9 +924,14 @@ public sealed class ModelViewModel : ViewModelBase
 
     private void LoadProviderConfigurationDraft(InferenceProviderConfiguration? configuration)
     {
+        LoadModelLoadingDraft(configuration);
+        GenerationSettings.Load(configuration?.Generation);
+    }
+
+    private void LoadModelLoadingDraft(InferenceProviderConfiguration? configuration)
+    {
         _providerModelReference = configuration?.ModelReference ?? string.Empty;
         _providerContextSizeText = GenerationSettingsViewModel.FormatOptional(configuration?.ContextSize);
-        GenerationSettings.Load(configuration?.Generation);
 
         OnPropertyChanged(nameof(ProviderModelReference));
         OnPropertyChanged(nameof(ProviderContextSizeText));

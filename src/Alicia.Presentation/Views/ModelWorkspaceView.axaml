@@ -19,7 +19,7 @@
                    FontWeight="Bold"
                    AutomationProperties.HeadingLevel="1"
                    Foreground="{DynamicResource TextPrimaryBrush}" />
-        <TextBlock Text="Manage saved models, model settings, and model-scoped generation profiles."
+        <TextBlock Text="Manage saved models and restart-sensitive loading settings; generation behavior lives in profiles."
                    FontSize="14"
                    Foreground="{DynamicResource TextSecondaryBrush}" />
       </StackPanel>
@@ -50,7 +50,7 @@
                            Text="Model library"
                            AutomationProperties.HeadingLevel="2" />
                 <TextBlock Classes="workspace-section-description"
-                           Text="Keep multiple saved model configurations without pretending they are loaded. Reusing a library entry only fills the editable settings; Save settings remains explicit." />
+                           Text="Keep multiple saved model configurations without pretending they are loaded. Reusing an entry fills only model loading settings; generation behavior remains profile-owned." />
               </StackPanel>
 
               <ListBox ItemsSource="{Binding ModelLibraryItems}"
@@ -110,9 +110,9 @@
                         Margin="0,0,0,8"
                         Command="{Binding UseSelectedLibraryModelCommand}"
                         IsEnabled="{Binding CanUseSelectedLibraryModel}"
-                        Content="Use selected settings"
-                        AutomationProperties.Name="Use selected library model settings"
-                        AutomationProperties.HelpText="Copies the selected saved model configuration into the editable settings. It does not save, start, or load the model automatically." />
+                        Content="Use model settings"
+                        AutomationProperties.Name="Use selected library model loading settings"
+                        AutomationProperties.HelpText="Copies only the selected model reference and restart-sensitive runtime settings. Generation behavior is not copied. This does not save, start, or load the model automatically." />
               </WrapPanel>
             </StackPanel>
           </Border>
@@ -123,7 +123,7 @@
                          Text="Model configuration"
                          AutomationProperties.HeadingLevel="2" />
               <TextBlock Classes="workspace-section-description"
-                         Text="Keep the model identity visible and group advanced runtime or generation controls below it." />
+                         Text="Only settings that affect model loading or require a reload belong here. Per-generation behavior is configured in profiles." />
             </StackPanel>
 
             <TextBox Text="{Binding ProviderModelReference, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
@@ -146,58 +146,6 @@
               </StackPanel>
             </Expander>
 
-            <Expander Header="Generation"
-                      Classes="workspace-disclosure"
-                      IsExpanded="True"
-                      IsEnabled="{Binding IsProviderSettingsEditable}"
-                      AutomationProperties.Name="Generation settings">
-              <StackPanel Spacing="8" Margin="0,10,0,0">
-                <TextBox Text="{Binding ProviderMaxOutputTokensText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                         PlaceholderText="Max output tokens • provider default"
-                         AutomationProperties.Name="Maximum output tokens" />
-                <TextBox Text="{Binding ProviderTemperatureText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                         PlaceholderText="Temperature • provider default"
-                         AutomationProperties.Name="Temperature" />
-                <TextBox Text="{Binding ProviderTopPText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                         PlaceholderText="Top-p • provider default"
-                         AutomationProperties.Name="Top-p" />
-                <TextBox Text="{Binding ProviderTopKText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                         PlaceholderText="Top-k • provider default"
-                         AutomationProperties.Name="Top-k" />
-                <TextBox Text="{Binding ProviderSeedText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                         PlaceholderText="Seed • provider random"
-                         AutomationProperties.Name="Random seed" />
-
-                <Border Classes="workspace-secondary-surface"
-                        Margin="0,6,0,0"
-                        Padding="14">
-                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                    <StackPanel Spacing="3">
-                      <TextBlock Text="Reasoning"
-                                 FontSize="14"
-                                 FontWeight="SemiBold"
-                                 Foreground="{DynamicResource TextPrimaryBrush}" />
-                      <TextBlock Text="Show model reasoning separately from the final response."
-                                 FontSize="12"
-                                 TextWrapping="Wrap"
-                                 Foreground="{DynamicResource TextSecondaryBrush}" />
-                    </StackPanel>
-                    <ToggleSwitch Grid.Column="1"
-                                  IsChecked="{Binding ProviderReasoningEnabled, Mode=TwoWay}"
-                                  VerticalAlignment="Center"
-                                  AutomationProperties.Name="Enable model reasoning"
-                                  AutomationProperties.HelpText="When disabled Alicia asks llama.cpp to skip reasoning. When enabled reasoning streams separately from the final answer." />
-                  </Grid>
-                </Border>
-
-                <TextBox Text="{Binding ProviderReasoningBudgetText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                         IsEnabled="{Binding IsProviderReasoningBudgetEditable}"
-                         PlaceholderText="Reasoning budget tokens • 512 recommended"
-                         AutomationProperties.Name="Reasoning token budget"
-                         AutomationProperties.HelpText="Maximum reasoning tokens sent to llama.cpp for each response. Alicia proposes 512 when no explicit budget exists." />
-              </StackPanel>
-            </Expander>
-
             <TextBlock Text="{Binding ProviderConfigurationValidationText}"
                        IsVisible="{Binding HasProviderConfigurationValidationError}"
                        FontSize="12"
@@ -208,8 +156,8 @@
             <Button Classes="primary-action"
                     Command="{Binding SaveProviderConfigurationCommand}"
                     IsEnabled="{Binding CanSaveProviderConfiguration}"
-                    Content="Save settings"
-                    AutomationProperties.Name="Save model and generation settings" />
+                    Content="Save model settings"
+                    AutomationProperties.Name="Save model loading settings" />
           </StackPanel>
 
           <Border Classes="workspace-secondary-surface"
@@ -220,7 +168,7 @@
                            Text="Generation profile"
                            AutomationProperties.HeadingLevel="2" />
                 <TextBlock Classes="workspace-section-description"
-                           Text="Choose the confirmed profile used by the active conversation branch, or create and revise a custom profile for this saved model." />
+                           Text="Profiles own per-generation behavior: system instructions, output limits, sampling, seed, and reasoning. Choose the branch profile or create and revise a custom profile for this saved model." />
               </StackPanel>
 
               <TextBlock Text="{Binding GenerationProfileScopeText}"
@@ -299,10 +247,10 @@
                            PlaceholderText="Base system instructions • optional"
                            AutomationProperties.Name="Generation profile system instructions" />
 
-                  <Expander Header="Generation overrides"
+                  <Expander Header="Generation behavior"
                             Classes="workspace-disclosure"
                             IsExpanded="True"
-                            AutomationProperties.Name="Generation profile overrides">
+                            AutomationProperties.Name="Generation profile behavior settings">
                     <StackPanel Spacing="8" Margin="0,10,0,0">
                       <TextBox Text="{Binding GenerationProfileEditor.MaxOutputTokensText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                PlaceholderText="Max output tokens • provider default"

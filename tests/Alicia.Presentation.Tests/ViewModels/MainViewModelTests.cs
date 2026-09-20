@@ -2355,9 +2355,14 @@ public sealed class MainViewModelTests
             contextSize: 4096,
             generation: new InferenceGenerationOptions(reasoningEnabled: false));
         StubInferenceProviderConfigurationStore configurationStore = new(currentConfiguration);
+        InferenceProviderConfiguration libraryCurrentConfiguration = new(
+            "llama.cpp.cuda",
+            "owner/current-GGUF:Q4_K_M",
+            contextSize: 4096,
+            generation: new InferenceGenerationOptions(reasoningEnabled: true));
         InferenceModelLibrary library = new(
         [
-            new InferenceModelLibraryEntry(currentConfiguration, now.AddMinutes(-5)),
+            new InferenceModelLibraryEntry(libraryCurrentConfiguration, now.AddMinutes(-5)),
             new InferenceModelLibraryEntry(
                 new InferenceProviderConfiguration(
                     "llama.cpp.cuda",
@@ -2380,6 +2385,7 @@ public sealed class MainViewModelTests
             viewModel.ModelLibraryItems,
             item => item.IsCurrentSavedModel);
         Assert.Equal("owner/current-GGUF:Q4_K_M", current.ModelReference);
+        Assert.Equal("Current saved model", current.StateText);
         Assert.Contains("2 saved model", viewModel.ModelLibraryStatusText, StringComparison.Ordinal);
     }
 
@@ -2416,7 +2422,7 @@ public sealed class MainViewModelTests
     }
 
     [Fact]
-    public async Task UsingLibraryModelCopiesSettingsIntoDraftWithoutSavingOrStartingProvider()
+    public async Task UsingLibraryModelCopiesOnlyLoadingSettingsWithoutChangingGenerationBehavior()
     {
         DateTimeOffset now = new(2026, 9, 19, 19, 0, 0, TimeSpan.Zero);
         InMemoryConversationRepository repository = new();
@@ -2424,7 +2430,9 @@ public sealed class MainViewModelTests
             "llama.cpp.cuda",
             "owner/current-GGUF:Q4_K_M",
             contextSize: 4096,
-            generation: new InferenceGenerationOptions(reasoningEnabled: false));
+            generation: new InferenceGenerationOptions(
+                maxOutputTokens: 128,
+                reasoningEnabled: false));
         InferenceProviderConfiguration libraryConfiguration = new(
             "llama.cpp.cuda",
             "owner/library-GGUF:Q8_0",
@@ -2456,9 +2464,8 @@ public sealed class MainViewModelTests
 
         Assert.Equal("owner/library-GGUF:Q8_0", viewModel.ProviderModelReference);
         Assert.Equal("8192", viewModel.ProviderContextSizeText);
-        Assert.Equal("512", viewModel.ProviderMaxOutputTokensText);
-        Assert.True(viewModel.ProviderReasoningEnabled);
-        Assert.Equal("256", viewModel.ProviderReasoningBudgetText);
+        Assert.Equal("128", viewModel.ProviderMaxOutputTokensText);
+        Assert.False(viewModel.ProviderReasoningEnabled);
         Assert.True(viewModel.HasProviderConfigurationChanges);
         Assert.Equal(0, configurationStore.SaveCount);
         Assert.Equal(0, provider.StartCount);
@@ -2489,11 +2496,24 @@ public sealed class MainViewModelTests
     }
 
     [Fact]
-    public async Task SavedGenerationSettingsAreValidatedAndPassedToProvider()
+    public async Task SavingModelLoadingSettingsPreservesExistingLegacyGenerationConfiguration()
     {
         InMemoryConversationRepository repository = new();
         StubInferenceProviderRuntime provider = new(InferenceProviderState.Ready);
-        StubInferenceProviderConfigurationStore configurationStore = new();
+        InferenceGenerationOptions legacyGeneration = new(
+            maxOutputTokens: 256,
+            temperature: 0.6,
+            topP: 0.9,
+            topK: 50,
+            seed: 42,
+            reasoningEnabled: true,
+            reasoningBudgetTokens: 384);
+        StubInferenceProviderConfigurationStore configurationStore = new(
+            new InferenceProviderConfiguration(
+                "llama.cpp.cuda",
+                "owner/old-model-GGUF:Q4_K_M",
+                contextSize: 4096,
+                generation: legacyGeneration));
         MainViewModel viewModel = CreateViewModel(
             repository,
             new MutableTimeProvider(new DateTimeOffset(2026, 8, 11, 21, 29, 0, TimeSpan.Zero)),
@@ -2503,13 +2523,7 @@ public sealed class MainViewModelTests
 
         viewModel.ProviderModelReference = "owner/model-GGUF:Q5_K_M";
         viewModel.ProviderContextSizeText = "8192";
-        viewModel.ProviderMaxOutputTokensText = "256";
-        viewModel.ProviderTemperatureText = "0.6";
-        viewModel.ProviderTopPText = "0.9";
-        viewModel.ProviderTopKText = "50";
-        viewModel.ProviderSeedText = "42";
-        viewModel.ProviderReasoningEnabled = true;
-        viewModel.ProviderReasoningBudgetText = "384";
+        viewModel.ProviderTopPText = "1.5";
 
         Assert.False(viewModel.HasProviderConfigurationValidationError);
         await viewModel.SaveProviderConfigurationCommand.ExecuteAsync(null).ConfigureAwait(true);
@@ -2517,62 +2531,40 @@ public sealed class MainViewModelTests
 
         InferenceProviderConfiguration saved = Assert.IsType<InferenceProviderConfiguration>(
             configurationStore.LastSavedConfiguration);
-        Assert.Equal("llama.cpp.cuda", saved.ProviderId);
         Assert.Equal("owner/model-GGUF:Q5_K_M", saved.ModelReference);
         Assert.Equal(8192, saved.ContextSize);
-        Assert.Equal(256, saved.Generation.MaxOutputTokens);
-        Assert.Equal(0.6, saved.Generation.Temperature);
-        Assert.Equal(0.9, saved.Generation.TopP);
-        Assert.Equal(50, saved.Generation.TopK);
-        Assert.Equal(42, saved.Generation.Seed);
-        Assert.Equal(true, saved.Generation.ReasoningEnabled);
-        Assert.Equal(384, saved.Generation.ReasoningBudgetTokens);
+        Assert.Equal(legacyGeneration, saved.Generation);
         Assert.Equal(saved, provider.LastStartedConfiguration);
     }
 
     [Fact]
-    public async Task InvalidGenerationSettingBlocksSaveAndStart()
-    {
-        InMemoryConversationRepository repository = new();
-        StubInferenceProviderRuntime provider = new(InferenceProviderState.Ready);
-        MainViewModel viewModel = CreateViewModel(
-            repository,
-            new MutableTimeProvider(new DateTimeOffset(2026, 8, 11, 21, 29, 30, TimeSpan.Zero)),
-            inferenceProvider: provider);
-        await viewModel.InitializeAsync().ConfigureAwait(true);
-
-        viewModel.ProviderTopPText = "1.5";
-
-        Assert.True(viewModel.HasProviderConfigurationValidationError);
-        Assert.Contains("Top-p", viewModel.ProviderConfigurationValidationText, StringComparison.Ordinal);
-        Assert.False(viewModel.CanSaveProviderConfiguration);
-        Assert.False(viewModel.CanStartProvider);
-    }
-
-    [Fact]
-    public async Task BlankSamplingSettingsPreserveDefaultsWhileReasoningChoiceIsExplicit()
+    public async Task NewModelSettingsIgnoreLegacyGenerationDraftAndUseProviderDefaults()
     {
         InMemoryConversationRepository repository = new();
         StubInferenceProviderRuntime provider = new(InferenceProviderState.Ready);
         StubInferenceProviderConfigurationStore configurationStore = new();
         MainViewModel viewModel = CreateViewModel(
             repository,
-            new MutableTimeProvider(new DateTimeOffset(2026, 8, 11, 21, 29, 45, TimeSpan.Zero)),
+            new MutableTimeProvider(new DateTimeOffset(2026, 8, 11, 21, 29, 30, TimeSpan.Zero)),
             inferenceProvider: provider,
             providerConfigurationStore: configurationStore);
         await viewModel.InitializeAsync().ConfigureAwait(true);
 
         viewModel.ProviderModelReference = "owner/model-GGUF";
+        viewModel.ProviderTopPText = "1.5";
+        viewModel.ProviderReasoningEnabled = true;
+        viewModel.ProviderReasoningBudgetText = "384";
+
+        Assert.False(viewModel.HasProviderConfigurationValidationError);
+        Assert.True(viewModel.CanSaveProviderConfiguration);
         await viewModel.SaveProviderConfigurationCommand.ExecuteAsync(null).ConfigureAwait(true);
 
         InferenceProviderConfiguration saved = Assert.IsType<InferenceProviderConfiguration>(
             configurationStore.LastSavedConfiguration);
-        Assert.Null(saved.ContextSize);
-        Assert.False(saved.Generation.ReasoningEnabled);
-        Assert.Null(saved.Generation.ReasoningBudgetTokens);
-        Assert.False(saved.Generation.UsesOnlyProviderDefaults);
-        Assert.False(saved.UsesProviderDefaults);
-        Assert.Contains("Explicit", viewModel.ProviderConfigurationStatusText, StringComparison.Ordinal);
+        Assert.True(saved.Generation.UsesOnlyProviderDefaults);
+        Assert.True(saved.UsesProviderDefaults);
+        Assert.Contains("provider/model defaults", viewModel.ProviderConfigurationStatusText, StringComparison.Ordinal);
+        Assert.True(viewModel.CanStartProvider);
     }
 
     [Fact]
@@ -2648,26 +2640,24 @@ public sealed class MainViewModelTests
     }
 
     [Fact]
-    public async Task EnabledReasoningRequiresPositiveBudgetBeforeSettingsCanBeSaved()
+    public void EnabledReasoningRequiresPositiveBudgetInGenerationProfile()
     {
-        InMemoryConversationRepository repository = new();
-        StubInferenceProviderRuntime provider = new(InferenceProviderState.Ready);
-        MainViewModel viewModel = CreateViewModel(
-            repository,
-            new MutableTimeProvider(new DateTimeOffset(2026, 8, 13, 0, 40, 0, TimeSpan.Zero)),
-            inferenceProvider: provider);
-        await viewModel.InitializeAsync().ConfigureAwait(true);
+        GenerationProfileEditorViewModel editor = new();
+        editor.LoadNew(GenerationProfileId.New());
+        editor.Name = "Reasoning";
+        editor.ReasoningModeIndex = 2;
+        editor.ReasoningBudgetText = string.Empty;
 
-        viewModel.ProviderReasoningEnabled = true;
-        viewModel.ProviderReasoningBudgetText = string.Empty;
+        Assert.False(editor.TryBuildProfile(out _, out string? validationError));
+        Assert.Contains("Reasoning budget", validationError, StringComparison.Ordinal);
 
-        Assert.True(viewModel.HasProviderConfigurationValidationError);
-        Assert.Contains("Reasoning budget", viewModel.ProviderConfigurationValidationText, StringComparison.Ordinal);
-        Assert.False(viewModel.CanSaveProviderConfiguration);
+        editor.ReasoningBudgetText = "256";
 
-        viewModel.ProviderReasoningBudgetText = "256";
-
-        Assert.False(viewModel.HasProviderConfigurationValidationError);
+        Assert.True(editor.TryBuildProfile(out GenerationProfile? profile, out validationError));
+        Assert.Null(validationError);
+        GenerationProfile built = Assert.IsType<GenerationProfile>(profile);
+        Assert.Equal(true, built.GenerationOptions.ReasoningEnabled);
+        Assert.Equal(256, built.GenerationOptions.ReasoningBudgetTokens);
     }
 
     [Fact]
