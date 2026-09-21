@@ -509,6 +509,25 @@ Le journal structuré local ne contient aucun prompt/message, raisonnement, rép
 - navigation, titres, états live et noms Automation restent explicites ;
 - aucun changement de persistence, resolver, snapshot, lifecycle ou model library n'est introduit.
 
+#### UIX-03 Stage 3A - Models navigation and loading-detail interaction contract
+
+Stage 3A freezes the Models interaction semantics before the visual implementation. ADR 0048 is authoritative for this redesign.
+
+- wide layouts use a master/detail concept: persistent model-library navigation on the left, selected saved-model detail plus model loading settings on the right;
+- narrow layouts may stack the same regions without changing their semantic order; exact breakpoints remain deferred to Stage 7;
+- selecting a library item is inspection-only and never copies settings, saves configuration, switches provider, starts/loads a model, or changes a branch/profile binding;
+- selected library entry, persisted provider configuration, editable loading draft, and provider runtime state remain distinct UI concepts;
+- selected-model detail exposes only data backed by the existing library entry: provider/model identity, quantization, context, saved timestamp and current-saved/settings-differ state;
+- no library card/detail may claim that a model is loaded solely because it is saved or selected;
+- `Use model settings` remains the explicit library-to-draft action and copies only model reference plus context size;
+- `Save model settings` remains the draft-to-provider-configuration boundary;
+- `Save current model to library` remains the saved-provider-configuration-to-library boundary;
+- an entry from another provider remains inspectable but cannot be applied and never switches provider implicitly;
+- empty, unavailable, no-selection, provider-mismatch, invalid-draft and guarded-busy states must all be explicit;
+- Stage 3A adds no runtime behavior, persistence schema, provider lifecycle, model deletion, cache/download management, aliases/tags, automatic loading or Presentation-wide refactor.
+
+The older target descriptions in sections 9.2, 9.4 and 9.6 describe possible later product capabilities. They do not expand UIX-03 Stage 3 scope unless a dedicated business contract and ADR make those capabilities real.
+
 ### 9.2 Ajout Hugging Face
 
 Champ texte direct :
@@ -1049,7 +1068,7 @@ La fondation UI/UX peut être considérée prête lorsque :
 
 ### 22.1 Portée
 
-Le raisonnement est un **paramètre de génération du modèle**, donc son contrôle appartient à la vue **Modèles**, et non à Provider ni au menu ponctuel du message.
+This ownership statement has been superseded by ADR 0046. Reasoning is a **per-generation profile setting** and its user-facing controls belong to **Profiles**, not Models or Provider. The provider request mapping below remains relevant to the runtime adapter.
 
 Paramètres initiaux :
 

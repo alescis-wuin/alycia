@@ -57,6 +57,7 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 | UIX-02 Stage 6 branch model/profile dual selector | terminé | dual-box composer branch-scoped + garde pré-envoi sur modèle sauvegardé/chargé, sans switch implicite |
 | UIX-03 Stage 1 settings ownership | terminé | Models limité aux réglages de chargement/reload ; comportement de génération possédé par les profils |
 | UIX-03 Stage 2 dedicated Profiles workspace | terminé | Profiles devient une destination globale dédiée ; Models ne contient plus la gestion des profils |
+| UIX-03 Stage 3A Models interaction contract | completed | navigation/detail semantics, state matrix and explicit action boundaries; documentation-only |
 | Lot 11 RAG foundation | planifié | à faire |
 | Lot 12 Retrieval/grounded generation | planifié | à faire |
 | Lot 13 Tools/MCP/agents | planifié | à faire |
@@ -414,9 +415,22 @@ Introduire avant RAG.
 - `Default` reste read-only ; autosave, stale-draft guard, révisions immuables et restauration non destructive restent inchangés ;
 - aucun schema JSON, contrat Domain/Application, resolver, `GenerationSnapshot`, lifecycle provider ou modèle library n'est modifié.
 
-### Etapes suivantes
+### UIX-03 Stage 3A - Models navigation/detail interaction contract - completed
 
-- UIX-03 Stage 3 : redesign de la bibliothèque Models en navigation + fiche de chargement ;
+- ADR 0048 freezes the Stage 3 interaction semantics before any runtime or XAML change;
+- Models becomes a master/detail concept: library navigation on the left, saved-model inspection and loading-settings work on the right;
+- selecting a library entry is inspection-only and never copies settings, persists data, switches provider, starts/loads a model, or changes branch/profile bindings;
+- the selected library entry, persisted provider configuration, editable loading draft, and provider runtime state remain four distinct concepts;
+- the detail projects only data already backed by `InferenceModelLibraryEntry`; it must not invent loaded/cache/download/alias/tag state;
+- `Use model settings`, `Save model settings`, and `Save current model to library` remain three explicit and separate action boundaries;
+- another-provider entries remain inspectable but cannot be applied to the active provider draft;
+- no C#, XAML, persistence schema, provider lifecycle, resolver, branch binding, profile, or `GenerationSnapshot` behavior changes in Stage 3A.
+
+### Next steps
+
+- UIX-03 Stage 3B: add the minimal Presentation projection/state needed by the Models master/detail contract, with focused behavior tests;
+- UIX-03 Stage 3C: implement the Models master/detail XAML, empty/mismatch/status states, and accessibility bindings against the Stage 3A contract;
+- UIX-03 Stage 3D: run focused responsive/accessibility/manual QA, close Stage 3, and synchronize the implementation evidence;
 - UIX-03 Stage 4 : composer réduit à deux lignes (message/envoi, modèle/profil) et intégration du gate modèle ;
 - UIX-03 Stage 5 : remplacement de la modale dual-selector par un drawer/panneau de sélection ;
 - UIX-03 Stage 6 : decluttering final du workspace Provider ;
