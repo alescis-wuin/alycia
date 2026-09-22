@@ -58,6 +58,7 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 | UIX-03 Stage 1 settings ownership | terminé | Models limité aux réglages de chargement/reload ; comportement de génération possédé par les profils |
 | UIX-03 Stage 2 dedicated Profiles workspace | terminé | Profiles devient une destination globale dédiée ; Models ne contient plus la gestion des profils |
 | UIX-03 Stage 3A Models interaction contract | completed | navigation/detail semantics, state matrix and explicit action boundaries; documentation-only |
+| UIX-03 Stage 3B Models Presentation projection | completed | minimal master/detail projection state, provider mismatch, stable selection refresh and focused behavior tests |
 | Lot 11 RAG foundation | planifié | à faire |
 | Lot 12 Retrieval/grounded generation | planifié | à faire |
 | Lot 13 Tools/MCP/agents | planifié | à faire |
@@ -426,9 +427,17 @@ Introduire avant RAG.
 - another-provider entries remain inspectable but cannot be applied to the active provider draft;
 - no C#, XAML, persistence schema, provider lifecycle, resolver, branch binding, profile, or `GenerationSnapshot` behavior changes in Stage 3A.
 
+### UIX-03 Stage 3B - Models Presentation projection/state - completed
+
+- `InferenceModelLibraryItemViewModel` now exposes exact saved context data and an explicit loading-settings-difference flag without projecting legacy generation behavior;
+- `MainViewModel` exposes library availability, empty, no-selection, selected-detail and provider-mismatch states for the future master/detail XAML;
+- selected-library detail status remains inspection-only and explains explicit provider switching when an entry belongs to another provider;
+- refreshing the library projection preserves an existing selection by the exact provider/model pair; saving the first model still selects the new entry when no selection existed;
+- focused Presentation tests cover unavailable/empty states, inspection-only selection, provider mismatch, loading-vs-generation differences, stable selection refresh and the existing running-provider editability guard;
+- no XAML, Application/Domain contract, persistence schema, provider lifecycle, generation resolver, branch binding or profile behavior changes are introduced.
+
 ### Next steps
 
-- UIX-03 Stage 3B: add the minimal Presentation projection/state needed by the Models master/detail contract, with focused behavior tests;
 - UIX-03 Stage 3C: implement the Models master/detail XAML, empty/mismatch/status states, and accessibility bindings against the Stage 3A contract;
 - UIX-03 Stage 3D: run focused responsive/accessibility/manual QA, close Stage 3, and synchronize the implementation evidence;
 - UIX-03 Stage 4 : composer réduit à deux lignes (message/envoi, modèle/profil) et intégration du gate modèle ;

@@ -484,13 +484,34 @@ public sealed class MainViewModel : ViewModelBase
 
             Model.SelectedModelLibraryItem = value;
             OnPropertyChanged();
-            OnPropertyChanged(nameof(ModelLibraryStatusText));
-            OnPropertyChanged(nameof(CanUseSelectedLibraryModel));
-            UseSelectedLibraryModelCommand.NotifyCanExecuteChanged();
+            RaiseModelLibraryStateChanged();
         }
     }
 
     public string ModelLibraryStatusText => Model.ModelLibraryStatusText;
+
+    public bool IsModelLibraryAvailable => Model.SupportsModelLibrary;
+
+    public bool HasModelLibraryItems => Model.HasModelLibraryItems;
+
+    public bool HasSelectedModelLibraryItem => Model.HasSelectedModelLibraryItem;
+
+    public bool ShowModelLibraryUnavailableState => !IsModelLibraryAvailable;
+
+    public bool ShowModelLibraryEmptyState => IsModelLibraryAvailable && !HasModelLibraryItems;
+
+    public bool ShowModelLibrarySelectionPrompt => IsModelLibraryAvailable
+        && HasModelLibraryItems
+        && !HasSelectedModelLibraryItem;
+
+    public bool ShowSelectedModelLibraryDetail => IsModelLibraryAvailable
+        && HasSelectedModelLibraryItem;
+
+    public bool HasSelectedModelLibraryProviderMismatch =>
+        Model.HasSelectedModelLibraryProviderMismatch(SelectedProvider);
+
+    public string SelectedModelLibraryDetailStatusText =>
+        Model.GetSelectedModelLibraryDetailStatusText(SelectedProvider);
 
     public bool CanSaveCurrentModelToLibrary => !IsBusy
         && !IsProviderBusy
@@ -2218,8 +2239,6 @@ public sealed class MainViewModel : ViewModelBase
     {
         OnPropertyChanged(nameof(HasProviderConfigurationChanges));
         OnPropertyChanged(nameof(CanSaveProviderConfiguration));
-        OnPropertyChanged(nameof(CanSaveCurrentModelToLibrary));
-        OnPropertyChanged(nameof(CanUseSelectedLibraryModel));
         OnPropertyChanged(nameof(ProviderConfigurationValidationText));
         OnPropertyChanged(nameof(HasProviderConfigurationValidationError));
         OnPropertyChanged(nameof(ProviderConfigurationStatusText));
@@ -2227,8 +2246,7 @@ public sealed class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsProviderReasoningBudgetEditable));
         OnPropertyChanged(nameof(ComposerStatusText));
         SaveProviderConfigurationCommand.NotifyCanExecuteChanged();
-        SaveCurrentModelToLibraryCommand.NotifyCanExecuteChanged();
-        UseSelectedLibraryModelCommand.NotifyCanExecuteChanged();
+        RaiseModelLibraryStateChanged();
         StartProviderCommand.NotifyCanExecuteChanged();
         RaiseGenerationProfileSelectionStateChanged();
         UpdateConfigurationGate();
@@ -2237,6 +2255,15 @@ public sealed class MainViewModel : ViewModelBase
     private void RaiseModelLibraryStateChanged()
     {
         OnPropertyChanged(nameof(ModelLibraryStatusText));
+        OnPropertyChanged(nameof(IsModelLibraryAvailable));
+        OnPropertyChanged(nameof(HasModelLibraryItems));
+        OnPropertyChanged(nameof(HasSelectedModelLibraryItem));
+        OnPropertyChanged(nameof(ShowModelLibraryUnavailableState));
+        OnPropertyChanged(nameof(ShowModelLibraryEmptyState));
+        OnPropertyChanged(nameof(ShowModelLibrarySelectionPrompt));
+        OnPropertyChanged(nameof(ShowSelectedModelLibraryDetail));
+        OnPropertyChanged(nameof(HasSelectedModelLibraryProviderMismatch));
+        OnPropertyChanged(nameof(SelectedModelLibraryDetailStatusText));
         OnPropertyChanged(nameof(CanSaveCurrentModelToLibrary));
         OnPropertyChanged(nameof(CanUseSelectedLibraryModel));
         SaveCurrentModelToLibraryCommand.NotifyCanExecuteChanged();

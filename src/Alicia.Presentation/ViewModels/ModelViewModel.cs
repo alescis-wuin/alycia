@@ -101,6 +101,10 @@ public sealed class ModelViewModel : ViewModelBase
 
     internal bool SupportsModelLibrary => _modelLibraryStore is not null;
 
+    internal bool HasModelLibraryItems => SupportsModelLibrary && _modelLibraryItems.Count > 0;
+
+    internal bool HasSelectedModelLibraryItem => SelectedModelLibraryItem is not null;
+
     internal bool SupportsGenerationProfileEditing =>
         _generationProfileCatalogStore is not null;
 
@@ -199,7 +203,7 @@ public sealed class ModelViewModel : ViewModelBase
 
             if (_modelLibraryItems.Count == 0)
             {
-                return "No model is saved in the Alicia library yet. Save provider settings, then add the saved model explicitly.";
+                return "No model is saved in the Alycia library yet. Save provider settings, then add the saved model explicitly.";
             }
 
             return SelectedModelLibraryItem is null
@@ -243,23 +247,61 @@ public sealed class ModelViewModel : ViewModelBase
             .SaveAsync(updatedLibrary, cancellationToken)
             .ConfigureAwait(true);
 
+        bool hadSelection = SelectedModelLibraryItem is not null;
+
         _modelLibrary = updatedLibrary;
         ReplaceModelLibraryItems(updatedLibrary.Entries);
-        SelectedModelLibraryItem = _modelLibraryItems.FirstOrDefault(item =>
-            string.Equals(item.ProviderId, entry.ProviderId, StringComparison.Ordinal)
-            && string.Equals(item.ModelReference, entry.ModelReference, StringComparison.Ordinal));
+        if (!hadSelection)
+        {
+            SelectedModelLibraryItem = _modelLibraryItems.FirstOrDefault(item =>
+                string.Equals(item.ProviderId, entry.ProviderId, StringComparison.Ordinal)
+                && string.Equals(item.ModelReference, entry.ModelReference, StringComparison.Ordinal));
+        }
+
         RefreshModelLibraryCurrentState();
     }
 
     internal bool CanUseSelectedLibraryModel(InferenceProviderDescriptor? descriptor)
     {
         return SupportsModelLibrary
+            && SelectedModelLibraryMatchesProvider(descriptor);
+    }
+
+    internal bool HasSelectedModelLibraryProviderMismatch(InferenceProviderDescriptor? descriptor)
+    {
+        return SelectedModelLibraryItem is not null
             && descriptor is not null
-            && SelectedModelLibraryItem is not null
-            && string.Equals(
-                descriptor.Id,
-                SelectedModelLibraryItem.ProviderId,
-                StringComparison.Ordinal);
+            && !SelectedModelLibraryMatchesProvider(descriptor);
+    }
+
+    internal string GetSelectedModelLibraryDetailStatusText(InferenceProviderDescriptor? descriptor)
+    {
+        if (!SupportsModelLibrary)
+        {
+            return "The model library is not available in this host.";
+        }
+
+        if (_modelLibraryItems.Count == 0)
+        {
+            return "No saved model is available to inspect. Model loading settings remain editable independently.";
+        }
+
+        if (SelectedModelLibraryItem is null)
+        {
+            return "Select a saved model to inspect its provider and loading settings. Selection does not change the loading draft.";
+        }
+
+        if (descriptor is null)
+        {
+            return $"Saved for provider '{SelectedModelLibraryItem.ProviderId}'. Choose a provider explicitly in Provider before reusing these loading settings.";
+        }
+
+        if (!SelectedModelLibraryMatchesProvider(descriptor))
+        {
+            return $"Saved for provider '{SelectedModelLibraryItem.ProviderId}'. The active provider is '{descriptor.Id}'. Switch providers explicitly in Provider before reusing these loading settings.";
+        }
+
+        return "Saved for the active provider. Use model settings to copy only the model reference and context size into the loading draft.";
     }
 
     internal void UseSelectedLibraryModelAsDraft(InferenceProviderDescriptor descriptor)
@@ -890,6 +932,16 @@ public sealed class ModelViewModel : ViewModelBase
         {
             _generationProfiles.Add(profile);
         }
+    }
+
+    private bool SelectedModelLibraryMatchesProvider(InferenceProviderDescriptor? descriptor)
+    {
+        return descriptor is not null
+            && SelectedModelLibraryItem is not null
+            && string.Equals(
+                descriptor.Id,
+                SelectedModelLibraryItem.ProviderId,
+                StringComparison.Ordinal);
     }
 
     private void ReplaceModelLibraryItems(IEnumerable<InferenceModelLibraryEntry> entries)

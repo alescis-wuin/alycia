@@ -20,6 +20,14 @@ public sealed class InferenceModelLibraryItemViewModel : ViewModelBase
 
     public string ModelReference => Entry.ModelReference;
 
+    public int? ContextSize => Entry.Configuration.ContextSize;
+
+    public bool HasExplicitContextSize => ContextSize is not null;
+
+    public string SavedContextText => ContextSize is int contextSize
+        ? $"{contextSize} tokens"
+        : "Provider/model default";
+
     public string DisplayName
     {
         get
@@ -54,6 +62,8 @@ public sealed class InferenceModelLibraryItemViewModel : ViewModelBase
         "yyyy-MM-dd HH:mm 'UTC'",
         CultureInfo.InvariantCulture);
 
+    public bool HasCurrentSettingsDifference => _hasCurrentSettingsDifference;
+
     public bool IsCurrentSavedModel
     {
         get => _isCurrentSavedModel;
@@ -81,8 +91,13 @@ public sealed class InferenceModelLibraryItemViewModel : ViewModelBase
             && currentConfiguration is not null
             && currentConfiguration.ContextSize != Entry.Configuration.ContextSize;
 
-        _hasCurrentSettingsDifference = settingsDifference;
+        if (_hasCurrentSettingsDifference != settingsDifference)
+        {
+            _hasCurrentSettingsDifference = settingsDifference;
+            OnPropertyChanged(nameof(HasCurrentSettingsDifference));
+            OnPropertyChanged(nameof(StateText));
+        }
+
         IsCurrentSavedModel = isCurrent;
-        OnPropertyChanged(nameof(StateText));
     }
 }

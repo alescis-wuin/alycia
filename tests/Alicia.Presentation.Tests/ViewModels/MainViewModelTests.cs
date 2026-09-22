@@ -2428,8 +2428,59 @@ public sealed class MainViewModelTests
             viewModel.ModelLibraryItems,
             item => item.IsCurrentSavedModel);
         Assert.Equal("owner/current-GGUF:Q4_K_M", current.ModelReference);
+        Assert.Equal(4096, current.ContextSize);
+        Assert.True(current.HasExplicitContextSize);
+        Assert.Equal("4096 tokens", current.SavedContextText);
+        Assert.False(current.HasCurrentSettingsDifference);
         Assert.Equal("Current saved model", current.StateText);
+        Assert.True(viewModel.IsModelLibraryAvailable);
+        Assert.True(viewModel.HasModelLibraryItems);
+        Assert.False(viewModel.HasSelectedModelLibraryItem);
+        Assert.False(viewModel.ShowModelLibraryUnavailableState);
+        Assert.False(viewModel.ShowModelLibraryEmptyState);
+        Assert.True(viewModel.ShowModelLibrarySelectionPrompt);
+        Assert.False(viewModel.ShowSelectedModelLibraryDetail);
         Assert.Contains("2 saved model", viewModel.ModelLibraryStatusText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ModelLibraryUnavailableAndEmptyStatesRemainExplicit()
+    {
+        InMemoryConversationRepository repository = new();
+        MutableTimeProvider timeProvider = new(
+            new DateTimeOffset(2026, 9, 19, 18, 35, 0, TimeSpan.Zero));
+
+        MainViewModel unavailable = CreateViewModel(repository, timeProvider);
+        await unavailable.InitializeAsync().ConfigureAwait(true);
+
+        Assert.False(unavailable.IsModelLibraryAvailable);
+        Assert.False(unavailable.HasModelLibraryItems);
+        Assert.False(unavailable.HasSelectedModelLibraryItem);
+        Assert.True(unavailable.ShowModelLibraryUnavailableState);
+        Assert.False(unavailable.ShowModelLibraryEmptyState);
+        Assert.False(unavailable.ShowModelLibrarySelectionPrompt);
+        Assert.False(unavailable.ShowSelectedModelLibraryDetail);
+        Assert.Equal(
+            "The model library is not available in this host.",
+            unavailable.SelectedModelLibraryDetailStatusText);
+
+        MainViewModel empty = CreateViewModel(
+            new InMemoryConversationRepository(),
+            timeProvider,
+            inferenceModelLibraryStore: new InMemoryInferenceModelLibraryStore());
+        await empty.InitializeAsync().ConfigureAwait(true);
+
+        Assert.True(empty.IsModelLibraryAvailable);
+        Assert.False(empty.HasModelLibraryItems);
+        Assert.False(empty.HasSelectedModelLibraryItem);
+        Assert.False(empty.ShowModelLibraryUnavailableState);
+        Assert.True(empty.ShowModelLibraryEmptyState);
+        Assert.False(empty.ShowModelLibrarySelectionPrompt);
+        Assert.False(empty.ShowSelectedModelLibraryDetail);
+        Assert.Contains(
+            "No saved model is available to inspect",
+            empty.SelectedModelLibraryDetailStatusText,
+            StringComparison.Ordinal);
     }
 
     [Fact]
@@ -2444,9 +2495,11 @@ public sealed class MainViewModelTests
             generation: new InferenceGenerationOptions(reasoningEnabled: false));
         StubInferenceProviderConfigurationStore configurationStore = new(currentConfiguration);
         InMemoryInferenceModelLibraryStore libraryStore = new();
+        StubInferenceProviderRuntime provider = new(InferenceProviderState.Ready);
         MainViewModel viewModel = CreateViewModel(
             repository,
             new MutableTimeProvider(now),
+            inferenceProvider: provider,
             providerConfigurationStore: configurationStore,
             inferenceModelLibraryStore: libraryStore);
         await viewModel.InitializeAsync().ConfigureAwait(true);
@@ -2460,8 +2513,68 @@ public sealed class MainViewModelTests
         Assert.Equal(currentConfiguration, entry.Configuration);
         Assert.Equal(now, entry.SavedAtUtc);
         Assert.Equal(0, configurationStore.SaveCount);
+        Assert.Equal(0, provider.StartCount);
         Assert.Single(viewModel.ModelLibraryItems);
         Assert.True(viewModel.ModelLibraryItems[0].IsCurrentSavedModel);
+    }
+
+    [Fact]
+    public async Task SelectingLibraryModelIsInspectionOnlyAndKeepsLoadingDraftUnchanged()
+    {
+        DateTimeOffset now = new(2026, 9, 19, 18, 55, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        InferenceProviderConfiguration currentConfiguration = new(
+            "llama.cpp.cuda",
+            "owner/current-GGUF:Q4_K_M",
+            contextSize: 4096);
+        InferenceProviderConfiguration libraryConfiguration = new(
+            "llama.cpp.cuda",
+            "owner/library-GGUF:Q8_0",
+            contextSize: 8192);
+        StubInferenceProviderConfigurationStore configurationStore = new(currentConfiguration);
+        InMemoryInferenceModelLibraryStore libraryStore = new(new InferenceModelLibrary(
+        [
+            new InferenceModelLibraryEntry(libraryConfiguration, now),
+        ]));
+        StubInferenceProviderRuntime provider = new(InferenceProviderState.Ready);
+        StubInferenceProviderRegistry registry = new(provider);
+        InMemoryConversationGenerationSelectionStore selectionStore = new();
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(now),
+            inferenceProvider: provider,
+            providerRegistry: registry,
+            providerConfigurationStore: configurationStore,
+            conversationGenerationSelectionStore: selectionStore,
+            inferenceModelLibraryStore: libraryStore);
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        string initialModelReference = viewModel.ProviderModelReference;
+        string initialContextSize = viewModel.ProviderContextSizeText;
+        int initialProviderSelectCount = registry.SelectCount;
+
+        viewModel.SelectedModelLibraryItem = Assert.Single(viewModel.ModelLibraryItems);
+
+        Assert.Equal(initialModelReference, viewModel.ProviderModelReference);
+        Assert.Equal(initialContextSize, viewModel.ProviderContextSizeText);
+        Assert.Equal(0, configurationStore.SaveCount);
+        Assert.Equal(0, libraryStore.SaveCount);
+        Assert.Equal(initialProviderSelectCount, registry.SelectCount);
+        Assert.Equal(0, provider.StartCount);
+        Assert.Equal(0, provider.StopCount);
+        Assert.Equal(0, selectionStore.SaveCount);
+        Assert.True(viewModel.HasSelectedModelLibraryItem);
+        Assert.True(viewModel.ShowSelectedModelLibraryDetail);
+        Assert.False(viewModel.ShowModelLibrarySelectionPrompt);
+        Assert.False(viewModel.HasSelectedModelLibraryProviderMismatch);
+        Assert.Contains(
+            "Selected library model",
+            viewModel.ModelLibraryStatusText,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "Saved for the active provider",
+            viewModel.SelectedModelLibraryDetailStatusText,
+            StringComparison.Ordinal);
     }
 
     [Fact]
@@ -2533,9 +2646,140 @@ public sealed class MainViewModelTests
             inferenceModelLibraryStore: new InMemoryInferenceModelLibraryStore(library));
         await viewModel.InitializeAsync().ConfigureAwait(true);
 
+        InferenceModelLibraryItemViewModel selected = Assert.Single(viewModel.ModelLibraryItems);
+        viewModel.SelectedModelLibraryItem = selected;
+
+        Assert.Null(selected.ContextSize);
+        Assert.False(selected.HasExplicitContextSize);
+        Assert.Equal("Provider/model default", selected.SavedContextText);
+        Assert.False(viewModel.CanUseSelectedLibraryModel);
+        Assert.True(viewModel.HasSelectedModelLibraryProviderMismatch);
+        Assert.True(viewModel.ShowSelectedModelLibraryDetail);
+        Assert.Contains(
+            "Switch providers explicitly in Provider",
+            viewModel.SelectedModelLibraryDetailStatusText,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task CurrentLibraryModelReportsLoadingDifferenceButIgnoresGenerationOnlyDifference()
+    {
+        DateTimeOffset now = new(2026, 9, 19, 19, 20, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        InferenceProviderConfiguration currentConfiguration = new(
+            "llama.cpp.cuda",
+            "owner/current-GGUF:Q4_K_M",
+            contextSize: 4096,
+            generation: new InferenceGenerationOptions(reasoningEnabled: false));
+        StubInferenceProviderConfigurationStore configurationStore = new(currentConfiguration);
+        InMemoryInferenceModelLibraryStore libraryStore = new(new InferenceModelLibrary(
+        [
+            new InferenceModelLibraryEntry(
+                new InferenceProviderConfiguration(
+                    "llama.cpp.cuda",
+                    "owner/current-GGUF:Q4_K_M",
+                    contextSize: 8192,
+                    generation: new InferenceGenerationOptions(reasoningEnabled: true)),
+                now),
+        ]));
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(now),
+            providerConfigurationStore: configurationStore,
+            inferenceModelLibraryStore: libraryStore);
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        InferenceModelLibraryItemViewModel item = Assert.Single(viewModel.ModelLibraryItems);
+        Assert.True(item.IsCurrentSavedModel);
+        Assert.True(item.HasCurrentSettingsDifference);
+        Assert.Equal("Current model • library settings differ", item.StateText);
+
+        InMemoryInferenceModelLibraryStore generationOnlyStore = new(new InferenceModelLibrary(
+        [
+            new InferenceModelLibraryEntry(
+                new InferenceProviderConfiguration(
+                    "llama.cpp.cuda",
+                    "owner/current-GGUF:Q4_K_M",
+                    contextSize: 4096,
+                    generation: new InferenceGenerationOptions(reasoningEnabled: true)),
+                now),
+        ]));
+        MainViewModel generationOnly = CreateViewModel(
+            new InMemoryConversationRepository(),
+            new MutableTimeProvider(now),
+            providerConfigurationStore: new StubInferenceProviderConfigurationStore(currentConfiguration),
+            inferenceModelLibraryStore: generationOnlyStore);
+        await generationOnly.InitializeAsync().ConfigureAwait(true);
+
+        InferenceModelLibraryItemViewModel generationOnlyItem = Assert.Single(
+            generationOnly.ModelLibraryItems);
+        Assert.True(generationOnlyItem.IsCurrentSavedModel);
+        Assert.False(generationOnlyItem.HasCurrentSettingsDifference);
+        Assert.Equal("Current saved model", generationOnlyItem.StateText);
+    }
+
+    [Fact]
+    public async Task LibraryProjectionRefreshPreservesExactSelectedProviderModelPair()
+    {
+        DateTimeOffset now = new(2026, 9, 19, 19, 25, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        InferenceProviderConfiguration currentConfiguration = new(
+            "llama.cpp.cuda",
+            "owner/current-GGUF:Q4_K_M",
+            contextSize: 4096);
+        InferenceProviderConfiguration selectedConfiguration = new(
+            "llama.cpp.cuda",
+            "owner/selected-GGUF:Q8_0",
+            contextSize: 8192);
+        InMemoryInferenceModelLibraryStore libraryStore = new(new InferenceModelLibrary(
+        [
+            new InferenceModelLibraryEntry(selectedConfiguration, now.AddMinutes(-1)),
+        ]));
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(now),
+            providerConfigurationStore: new StubInferenceProviderConfigurationStore(currentConfiguration),
+            inferenceModelLibraryStore: libraryStore);
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
+        viewModel.SelectedModelLibraryItem = Assert.Single(viewModel.ModelLibraryItems);
+        Assert.Equal(selectedConfiguration.ModelReference, viewModel.SelectedModelLibraryItem.ModelReference);
+
+        await viewModel.SaveCurrentModelToLibraryCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        Assert.Equal(2, viewModel.ModelLibraryItems.Count);
+        Assert.NotNull(viewModel.SelectedModelLibraryItem);
+        Assert.Equal(selectedConfiguration.ProviderId, viewModel.SelectedModelLibraryItem.ProviderId);
+        Assert.Equal(selectedConfiguration.ModelReference, viewModel.SelectedModelLibraryItem.ModelReference);
+    }
+
+    [Fact]
+    public async Task RunningProviderKeepsSelectedLibraryDetailInspectableButDisablesReuse()
+    {
+        DateTimeOffset now = new(2026, 9, 19, 19, 27, 0, TimeSpan.Zero);
+        InMemoryConversationRepository repository = new();
+        InferenceProviderConfiguration currentConfiguration = new(
+            "llama.cpp.cuda",
+            "owner/current-GGUF:Q4_K_M",
+            contextSize: 4096);
+        InMemoryInferenceModelLibraryStore libraryStore = new(new InferenceModelLibrary(
+        [
+            new InferenceModelLibraryEntry(currentConfiguration, now),
+        ]));
+        MainViewModel viewModel = CreateViewModel(
+            repository,
+            new MutableTimeProvider(now),
+            inferenceProvider: new StubInferenceProviderRuntime(InferenceProviderState.Running),
+            providerConfigurationStore: new StubInferenceProviderConfigurationStore(currentConfiguration),
+            inferenceModelLibraryStore: libraryStore);
+        await viewModel.InitializeAsync().ConfigureAwait(true);
+
         viewModel.SelectedModelLibraryItem = Assert.Single(viewModel.ModelLibraryItems);
 
+        Assert.False(viewModel.IsProviderSettingsEditable);
         Assert.False(viewModel.CanUseSelectedLibraryModel);
+        Assert.True(viewModel.ShowSelectedModelLibraryDetail);
+        Assert.False(viewModel.HasSelectedModelLibraryProviderMismatch);
     }
 
     [Fact]
