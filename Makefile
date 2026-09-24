@@ -7,6 +7,8 @@ ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 SOLUTION := $(ROOT)/Alicia.slnx
 DESKTOP_PROJECT := $(ROOT)/src/Alicia.Desktop/Alicia.Desktop.csproj
 ARCHITECTURE_TEST_PROJECT := $(ROOT)/tests/Alicia.Architecture.Tests/Alicia.Architecture.Tests.csproj
+PRESENTATION_TEST_PROJECT := $(ROOT)/tests/Alicia.Presentation.Tests/Alicia.Presentation.Tests.csproj
+UI_TEST_ARTIFACTS_DIR ?= $(ROOT)/artifacts/ui-tests
 COMMON_SCRIPT := $(ROOT)/scripts/lib/common.sh
 HOOK_INSTALLER := $(ROOT)/scripts/hooks/install.sh
 CHECKS_DIRECTORY := $(ROOT)/scripts/checks
@@ -30,7 +32,7 @@ TOOLCHAIN_SHA256 ?=
 TOOLCHAIN_OFFLINE_ONLY ?= 0
 TOOLCHAIN_FORCE ?= 0
 
-.PHONY: help doctor toolchain-bootstrap toolchain-check toolchain-info toolchain-clean toolchain-self-test  hooks-install hooks-check clean restore build rebuild run test architecture dependency-graph status git-check  branch-check worktree-clean staged syntax format format-check lint audit signatures linear-history  bootstrap-verify verify-fast verify verify-push patch patch-validate patch-pack patch-self-test  worktree-clean-self-test
+.PHONY: help doctor toolchain-bootstrap toolchain-check toolchain-info toolchain-clean toolchain-self-test  hooks-install hooks-check clean restore build rebuild run test ui-test ui-snapshots architecture dependency-graph status git-check  branch-check worktree-clean staged syntax format format-check lint audit signatures linear-history  bootstrap-verify verify-fast verify verify-push patch patch-validate patch-pack patch-self-test  worktree-clean-self-test
 
 help: ## Show the available commands
 	@printf "\nAvailable commands:\n\n"
@@ -97,6 +99,14 @@ run: build ## Build and run the desktop Avalonia host
 
 test: build ## Run all automated tests
 	@"$(DOTNET)" test --solution "$(SOLUTION)" --configuration "$(CONFIGURATION)" --no-build --no-restore
+
+ui-test: build ## Run Presentation tests including deterministic headless UI layout and input checks
+	@ALYCIA_UI_CAPTURE=0 "$(DOTNET)" test --project "$(PRESENTATION_TEST_PROJECT)" --configuration "$(CONFIGURATION)" --no-build --no-restore
+
+ui-snapshots: build ## Run Presentation headless UI checks and write deterministic PNG artifacts
+	@rm -rf -- "$(UI_TEST_ARTIFACTS_DIR)"
+	@mkdir -p -- "$(UI_TEST_ARTIFACTS_DIR)"
+	@ALYCIA_UI_CAPTURE=1 ALYCIA_UI_ARTIFACTS_DIR="$(UI_TEST_ARTIFACTS_DIR)" "$(DOTNET)" test --project "$(PRESENTATION_TEST_PROJECT)" --configuration "$(CONFIGURATION)" --no-build --no-restore
 
 architecture: build ## Run architecture boundary tests
 	@"$(DOTNET)" test --project "$(ARCHITECTURE_TEST_PROJECT)" --configuration "$(CONFIGURATION)" --no-build --no-restore

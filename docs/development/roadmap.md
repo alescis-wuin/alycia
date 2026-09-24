@@ -60,6 +60,7 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 | UIX-03 Stage 3A Models interaction contract | completed | navigation/detail semantics, state matrix and explicit action boundaries; documentation-only |
 | UIX-03 Stage 3B Models Presentation projection | completed | minimal master/detail projection state, provider mismatch, stable selection refresh and focused behavior tests |
 | UIX-03 Stage 3C Models master/detail XAML | completed | two-column library/detail workspace, explicit empty/mismatch/status states and accessible action boundaries |
+| UIX-03 Stage 3D-A deterministic headless UI QA | completed | Avalonia Headless layout/input harness, fixed viewport matrix and optional PNG capture artifacts |
 | Lot 11 RAG foundation | planifié | à faire |
 | Lot 12 Retrieval/grounded generation | planifié | à faire |
 | Lot 13 Tools/MCP/agents | planifié | à faire |
@@ -447,9 +448,18 @@ Introduire avant RAG.
 - accessibility names, help text, heading levels and polite live status regions describe the explicit interaction boundaries;
 - no Presentation behavior, Application/Domain contract, persistence schema, provider lifecycle, resolver, branch binding, profile behavior or `GenerationSnapshot` semantics change in Stage 3C.
 
+### UIX-03 Stage 3D-A - deterministic headless UI QA foundation - completed
+
+- Presentation tests now use Avalonia Headless XUnit with the Skia renderer for repeatable XAML/layout/input execution without a display server;
+- Models is exercised at 720x560, 900x700, 1280x820 and 1600x900 using deterministic provider/configuration/library test doubles;
+- focused UI tests cover horizontal containment, minimum-viewport scrolling, keyboard focus traversal, ListBox keyboard selection, keyboard activation of `Use model settings`, and the running-provider editability guard;
+- `make ui-test` runs the Presentation suite including headless checks; `make ui-snapshots` emits reviewable PNG captures and SHA-256 sidecars under ignored `artifacts/ui-tests/`;
+- Stage 3D-A intentionally generates current-state snapshots without committing visual baselines; approval/tolerance policy remains an explicit Stage 3D-B closeout concern;
+- no Domain/Application/Infrastructure contract, persistence schema, provider lifecycle, branch/profile behavior or Models business semantics change.
+
 ### Next steps
 
-- UIX-03 Stage 3D: run focused responsive/accessibility/manual QA, close Stage 3, and synchronize the implementation evidence;
+- UIX-03 Stage 3D-B: execute/review the deterministic capture matrix, correct any responsive/accessibility regressions, decide whether reviewed Linux captures become visual-regression baselines, and close Stage 3;
 - UIX-03 Stage 4 : composer réduit à deux lignes (message/envoi, modèle/profil) et intégration du gate modèle ;
 - UIX-03 Stage 5 : remplacement de la modale dual-selector par un drawer/panneau de sélection ;
 - UIX-03 Stage 6 : decluttering final du workspace Provider ;
