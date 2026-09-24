@@ -7,182 +7,421 @@
              AutomationProperties.LandmarkType="Main"
              AutomationProperties.AccessibilityView="Control">
   <Grid Margin="28" RowDefinitions="Auto,18,*">
-    <Grid MaxWidth="1120" HorizontalAlignment="Center" ColumnDefinitions="*,Auto">
+    <Grid MaxWidth="1180" HorizontalAlignment="Center" ColumnDefinitions="*,Auto">
       <StackPanel Spacing="4">
         <TextBlock Text="Models"
                    FontSize="30"
                    FontWeight="Bold"
                    AutomationProperties.HeadingLevel="1"
                    Foreground="{DynamicResource TextPrimaryBrush}" />
-        <TextBlock Text="Manage saved models and restart-sensitive loading settings. Generation behavior is configured in Profiles."
+        <TextBlock Text="Browse saved models, inspect their loading settings, and edit the active provider loading draft. Generation behavior is configured in Profiles."
                    FontSize="14"
                    Foreground="{DynamicResource TextSecondaryBrush}" />
       </StackPanel>
 
-      <Border Grid.Column="1" Classes="status-chip workspace-status-chip" VerticalAlignment="Center">
+      <Border Grid.Column="1"
+              Classes="status-chip workspace-status-chip"
+              VerticalAlignment="Center"
+              MaxWidth="420">
         <TextBlock Text="{Binding ProviderName}"
                    FontSize="13"
                    FontWeight="SemiBold"
-                   Foreground="{DynamicResource TextPrimaryBrush}" />
+                   TextTrimming="CharacterEllipsis"
+                   Foreground="{DynamicResource TextPrimaryBrush}"
+                   AutomationProperties.Name="Active inference provider" />
       </Border>
     </Grid>
 
-    <ScrollViewer Grid.Row="2"
-                  VerticalScrollBarVisibility="Auto"
-                  HorizontalScrollBarVisibility="Disabled">
-      <Border MaxWidth="1120"
-              HorizontalAlignment="Center"
-              Classes="workspace-primary-surface"
-              Padding="22">
-        <StackPanel Spacing="20">
-          <Border Classes="workspace-secondary-surface" Padding="18">
-            <StackPanel Spacing="12">
-              <StackPanel Spacing="4">
-                <TextBlock Classes="workspace-section-title"
-                           Text="Model library"
-                           AutomationProperties.HeadingLevel="2" />
-                <TextBlock Classes="workspace-section-description"
-                           Text="Keep multiple saved model configurations without pretending they are loaded. Reusing an entry fills only model loading settings; generation behavior remains profile-owned." />
-              </StackPanel>
-
-              <ListBox ItemsSource="{Binding ModelLibraryItems}"
-                       SelectedItem="{Binding SelectedModelLibraryItem, Mode=TwoWay}"
-                       MaxHeight="260"
-                       AutomationProperties.Name="Saved model library">
-                <ListBox.ItemTemplate>
-                  <DataTemplate x:DataType="vm:InferenceModelLibraryItemViewModel">
-                    <Grid ColumnDefinitions="*,Auto" Margin="4,6" ColumnSpacing="16">
-                      <StackPanel Spacing="2">
-                        <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" />
-                        <TextBlock Text="{Binding ModelReference}"
-                                   FontSize="12"
-                                   TextWrapping="Wrap"
-                                   Foreground="{DynamicResource TextSecondaryBrush}" />
-                        <TextBlock Text="{Binding RuntimeSummaryText}"
-                                   FontSize="12"
-                                   Foreground="{DynamicResource TextSecondaryBrush}" />
-                      </StackPanel>
-                      <StackPanel Grid.Column="1" Spacing="2" HorizontalAlignment="Right">
-                        <TextBlock Text="{Binding QuantizationText}"
-                                   HorizontalAlignment="Right"
-                                   FontSize="12"
-                                   Foreground="{DynamicResource TextSecondaryBrush}" />
-                        <TextBlock Text="{Binding StateText}"
-                                   HorizontalAlignment="Right"
-                                   FontSize="12"
-                                   Foreground="{DynamicResource TextSecondaryBrush}" />
-                        <TextBlock Text="{Binding SavedAtText}"
-                                   HorizontalAlignment="Right"
-                                   FontSize="11"
-                                   Foreground="{DynamicResource TextSecondaryBrush}" />
-                      </StackPanel>
-                    </Grid>
-                  </DataTemplate>
-                </ListBox.ItemTemplate>
-              </ListBox>
-
-              <TextBlock Text="{Binding ModelLibraryStatusText}"
-                         FontSize="12"
-                         LineHeight="18"
-                         TextWrapping="Wrap"
-                         AutomationProperties.LiveSetting="Polite"
-                         Foreground="{DynamicResource TextSecondaryBrush}" />
-
-              <WrapPanel Orientation="Horizontal">
-                <Button Classes="secondary-action"
-                        Margin="0,0,8,8"
-                        Command="{Binding SaveCurrentModelToLibraryCommand}"
-                        IsEnabled="{Binding CanSaveCurrentModelToLibrary}"
-                        Content="Save current model to library"
-                        AutomationProperties.Name="Save current model configuration to library" />
-                <Button Classes="secondary-action"
-                        Margin="0,0,0,8"
-                        Command="{Binding UseSelectedLibraryModelCommand}"
-                        IsEnabled="{Binding CanUseSelectedLibraryModel}"
-                        Content="Use model settings"
-                        AutomationProperties.Name="Use selected library model loading settings"
-                        AutomationProperties.HelpText="Copies only the selected model reference and restart-sensitive runtime settings. Generation behavior is not copied. This does not save, start, or load the model automatically." />
-              </WrapPanel>
-            </StackPanel>
-          </Border>
-
+    <Grid Grid.Row="2"
+          MaxWidth="1180"
+          HorizontalAlignment="Center"
+          ColumnDefinitions="320,18,*">
+      <ScrollViewer Grid.Column="0"
+                    VerticalScrollBarVisibility="Auto"
+                    HorizontalScrollBarVisibility="Disabled">
+        <Border Classes="workspace-primary-surface"
+                Padding="18">
           <StackPanel Spacing="14">
             <StackPanel Spacing="4">
               <TextBlock Classes="workspace-section-title"
-                         Text="Model configuration"
+                         Text="Model library"
                          AutomationProperties.HeadingLevel="2" />
               <TextBlock Classes="workspace-section-description"
-                         Text="Only settings that affect model loading or require a reload belong here. Per-generation behavior is configured in Profiles." />
+                         Text="Saved entries are navigation targets only. Selecting one never changes provider settings, starts a runtime, or changes a conversation branch." />
             </StackPanel>
 
-            <TextBox Text="{Binding ProviderModelReference, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                     PlaceholderText="owner/model-GGUF[:quant]"
-                     IsEnabled="{Binding IsProviderModelEditable}"
-                     AutomationProperties.Name="Model reference"
-                     AutomationProperties.HelpText="For llama.cpp, enter a compatible Hugging Face GGUF repository. Optional quantization can follow a colon."
-                     ToolTip.Tip="Model passed directly to llama-server with -hf" />
-
-            <Expander Header="Runtime"
-                      Classes="workspace-disclosure"
-                      IsExpanded="True"
-                      IsEnabled="{Binding IsProviderSettingsEditable}"
-                      AutomationProperties.Name="Runtime settings">
-              <StackPanel Spacing="8" Margin="0,10,0,0">
-                <TextBox Text="{Binding ProviderContextSizeText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                         PlaceholderText="Context size • model default"
-                         AutomationProperties.Name="Context size"
-                         AutomationProperties.HelpText="Optional prompt context size. Leave blank to use the model or provider default." />
-              </StackPanel>
-            </Expander>
-
-            <TextBlock Text="{Binding ProviderConfigurationValidationText}"
-                       IsVisible="{Binding HasProviderConfigurationValidationError}"
+            <TextBlock Text="{Binding ModelLibraryStatusText}"
                        FontSize="12"
+                       LineHeight="18"
                        TextWrapping="Wrap"
                        AutomationProperties.LiveSetting="Polite"
-                       Foreground="{DynamicResource DangerBrush}" />
+                       Foreground="{DynamicResource TextSecondaryBrush}" />
 
-            <Button Classes="primary-action"
-                    Command="{Binding SaveProviderConfigurationCommand}"
-                    IsEnabled="{Binding CanSaveProviderConfiguration}"
-                    Content="Save model settings"
-                    AutomationProperties.Name="Save model loading settings" />
+            <Border Classes="workspace-secondary-surface"
+                    Padding="12"
+                    IsVisible="{Binding ShowModelLibraryUnavailableState}">
+              <StackPanel Spacing="3">
+                <TextBlock Text="Library unavailable"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimaryBrush}" />
+                <TextBlock Text="This host does not expose a persistent model library. Model loading settings remain available on the right."
+                           FontSize="12"
+                           LineHeight="18"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource TextSecondaryBrush}" />
+              </StackPanel>
+            </Border>
+
+            <Border Classes="workspace-secondary-surface"
+                    Padding="12"
+                    IsVisible="{Binding ShowModelLibraryEmptyState}">
+              <StackPanel Spacing="3">
+                <TextBlock Text="No saved models"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimaryBrush}" />
+                <TextBlock Text="Save valid provider loading settings first, then add that saved configuration to the library explicitly."
+                           FontSize="12"
+                           LineHeight="18"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource TextSecondaryBrush}" />
+              </StackPanel>
+            </Border>
+
+            <ListBox ItemsSource="{Binding ModelLibraryItems}"
+                     SelectedItem="{Binding SelectedModelLibraryItem, Mode=TwoWay}"
+                     IsVisible="{Binding HasModelLibraryItems}"
+                     MinHeight="220"
+                     MaxHeight="460"
+                     AutomationProperties.Name="Saved model library"
+                     AutomationProperties.HelpText="Select a saved model to inspect it. Selection alone never applies settings or changes the active provider.">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:InferenceModelLibraryItemViewModel">
+                  <Grid ColumnDefinitions="*,Auto" Margin="4,7" ColumnSpacing="12">
+                    <StackPanel Spacing="2">
+                      <TextBlock Text="{Binding DisplayName}"
+                                 FontWeight="SemiBold"
+                                 TextTrimming="CharacterEllipsis" />
+                      <TextBlock Text="{Binding ModelReference}"
+                                 FontSize="11"
+                                 TextWrapping="Wrap"
+                                 Foreground="{DynamicResource TextSecondaryBrush}" />
+                      <TextBlock Text="{Binding ProviderId}"
+                                 FontSize="11"
+                                 Foreground="{DynamicResource TextSecondaryBrush}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1"
+                                Spacing="3"
+                                HorizontalAlignment="Right">
+                      <TextBlock Text="{Binding QuantizationText}"
+                                 HorizontalAlignment="Right"
+                                 FontSize="11"
+                                 Foreground="{DynamicResource TextSecondaryBrush}" />
+                      <TextBlock Text="{Binding StateText}"
+                                 HorizontalAlignment="Right"
+                                 FontSize="11"
+                                 TextWrapping="Wrap"
+                                 MaxWidth="120"
+                                 Foreground="{DynamicResource TextSecondaryBrush}" />
+                    </StackPanel>
+                  </Grid>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+
+            <TextBlock Text="Library entries keep provider/model identity and saved loading settings. Profiles, branch bindings, and generation behavior are not copied into this navigation surface."
+                       FontSize="11"
+                       LineHeight="17"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource TextSecondaryBrush}" />
           </StackPanel>
+        </Border>
+      </ScrollViewer>
 
-          <Border Classes="workspace-secondary-surface" Padding="18" VerticalAlignment="Top">
-            <StackPanel Spacing="10">
-              <TextBlock Classes="workspace-section-title"
-                         Text="Summary"
-                         AutomationProperties.HeadingLevel="2" />
-
-              <TextBlock Text="Provider"
-                         FontSize="12"
+      <ScrollViewer Grid.Column="2"
+                    VerticalScrollBarVisibility="Auto"
+                    HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Spacing="18">
+          <Border Classes="workspace-secondary-surface"
+                  Padding="18"
+                  IsVisible="{Binding ShowModelLibraryUnavailableState}">
+            <StackPanel Spacing="4">
+              <TextBlock Text="Saved model detail"
+                         FontSize="18"
                          FontWeight="SemiBold"
-                         Foreground="{DynamicResource TextSecondaryBrush}" />
-              <TextBlock Text="{Binding ProviderName}"
-                         FontSize="17"
-                         FontWeight="SemiBold"
+                         AutomationProperties.HeadingLevel="2"
                          Foreground="{DynamicResource TextPrimaryBrush}" />
-              <TextBlock Text="{Binding ProviderStatusText}"
-                         FontSize="13"
+              <TextBlock Text="The model library is unavailable in this host. The loading draft below remains independent and editable when provider state allows it."
+                         FontSize="12"
+                         LineHeight="18"
+                         TextWrapping="Wrap"
                          Foreground="{DynamicResource TextSecondaryBrush}" />
+            </StackPanel>
+          </Border>
 
-              <TextBlock Text="{Binding ProviderConfigurationStatusText}"
-                         Margin="0,8,0,0"
-                         FontSize="13"
-                         LineHeight="20"
+          <Border Classes="workspace-secondary-surface"
+                  Padding="18"
+                  IsVisible="{Binding ShowModelLibraryEmptyState}">
+            <StackPanel Spacing="4">
+              <TextBlock Text="Saved model detail"
+                         FontSize="18"
+                         FontWeight="SemiBold"
+                         AutomationProperties.HeadingLevel="2"
+                         Foreground="{DynamicResource TextPrimaryBrush}" />
+              <TextBlock Text="No saved model is available to inspect yet. Saving the loading draft does not add it to the library automatically."
+                         FontSize="12"
+                         LineHeight="18"
+                         TextWrapping="Wrap"
+                         Foreground="{DynamicResource TextSecondaryBrush}" />
+            </StackPanel>
+          </Border>
+
+          <Border Classes="workspace-secondary-surface"
+                  Padding="18"
+                  IsVisible="{Binding ShowModelLibrarySelectionPrompt}">
+            <StackPanel Spacing="4">
+              <TextBlock Text="Select a saved model"
+                         FontSize="18"
+                         FontWeight="SemiBold"
+                         AutomationProperties.HeadingLevel="2"
+                         Foreground="{DynamicResource TextPrimaryBrush}" />
+              <TextBlock Text="{Binding SelectedModelLibraryDetailStatusText}"
+                         FontSize="12"
+                         LineHeight="18"
+                         TextWrapping="Wrap"
+                         Foreground="{DynamicResource TextSecondaryBrush}" />
+            </StackPanel>
+          </Border>
+
+          <Border Classes="workspace-primary-surface"
+                  Padding="18"
+                  IsVisible="{Binding ShowSelectedModelLibraryDetail}">
+            <StackPanel Spacing="14">
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                <StackPanel Spacing="3">
+                  <TextBlock Text="Saved model detail"
+                             FontSize="11"
+                             FontWeight="SemiBold"
+                             Foreground="{DynamicResource TextSecondaryBrush}" />
+                  <TextBlock Text="{Binding SelectedModelLibraryItem.DisplayName}"
+                             FontSize="20"
+                             FontWeight="SemiBold"
+                             TextWrapping="Wrap"
+                             AutomationProperties.HeadingLevel="2"
+                             Foreground="{DynamicResource TextPrimaryBrush}" />
+                </StackPanel>
+
+                <Border Grid.Column="1"
+                        Classes="status-chip"
+                        VerticalAlignment="Top"
+                        MaxWidth="220">
+                  <TextBlock Text="{Binding SelectedModelLibraryItem.StateText}"
+                             FontSize="11"
+                             TextWrapping="Wrap"
+                             Foreground="{DynamicResource TextSecondaryBrush}" />
+                </Border>
+              </Grid>
+
+              <Border Classes="workspace-secondary-surface"
+                      Padding="10"
+                      IsVisible="{Binding HasSelectedModelLibraryProviderMismatch}">
+                <StackPanel Spacing="2">
+                  <TextBlock Text="Different provider"
+                             FontSize="12"
+                             FontWeight="SemiBold"
+                             Foreground="{DynamicResource DangerBrush}" />
+                  <TextBlock Text="Switch providers explicitly in Provider before reusing this entry. Selecting it here never changes the active provider."
+                             FontSize="11"
+                             LineHeight="17"
+                             TextWrapping="Wrap"
+                             Foreground="{DynamicResource TextSecondaryBrush}" />
+                </StackPanel>
+              </Border>
+
+              <Grid ColumnDefinitions="*,*" ColumnSpacing="18">
+                <StackPanel Spacing="3">
+                  <TextBlock Text="Provider"
+                             FontSize="11"
+                             FontWeight="SemiBold"
+                             Foreground="{DynamicResource TextSecondaryBrush}" />
+                  <TextBlock Text="{Binding SelectedModelLibraryItem.ProviderId}"
+                             TextWrapping="Wrap"
+                             Foreground="{DynamicResource TextPrimaryBrush}" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Spacing="3">
+                  <TextBlock Text="Quantization"
+                             FontSize="11"
+                             FontWeight="SemiBold"
+                             Foreground="{DynamicResource TextSecondaryBrush}" />
+                  <TextBlock Text="{Binding SelectedModelLibraryItem.QuantizationText}"
+                             TextWrapping="Wrap"
+                             Foreground="{DynamicResource TextPrimaryBrush}" />
+                </StackPanel>
+              </Grid>
+
+              <StackPanel Spacing="3">
+                <TextBlock Text="Model reference"
+                           FontSize="11"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextSecondaryBrush}" />
+                <TextBlock Text="{Binding SelectedModelLibraryItem.ModelReference}"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource TextPrimaryBrush}" />
+              </StackPanel>
+
+              <Grid ColumnDefinitions="*,*" ColumnSpacing="18">
+                <StackPanel Spacing="3">
+                  <TextBlock Text="Saved context"
+                             FontSize="11"
+                             FontWeight="SemiBold"
+                             Foreground="{DynamicResource TextSecondaryBrush}" />
+                  <TextBlock Text="{Binding SelectedModelLibraryItem.SavedContextText}"
+                             Foreground="{DynamicResource TextPrimaryBrush}" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Spacing="3">
+                  <TextBlock Text="Library record"
+                             FontSize="11"
+                             FontWeight="SemiBold"
+                             Foreground="{DynamicResource TextSecondaryBrush}" />
+                  <TextBlock Text="{Binding SelectedModelLibraryItem.SavedAtText}"
+                             TextWrapping="Wrap"
+                             Foreground="{DynamicResource TextPrimaryBrush}" />
+                </StackPanel>
+              </Grid>
+
+              <TextBlock Text="{Binding SelectedModelLibraryDetailStatusText}"
+                         FontSize="12"
+                         LineHeight="18"
                          TextWrapping="Wrap"
                          AutomationProperties.LiveSetting="Polite"
                          Foreground="{DynamicResource TextSecondaryBrush}" />
-              <TextBlock Text="Generation instructions, sampling, output limits, seed, and reasoning are managed in the dedicated Profiles workspace."
+
+              <Button Classes="primary-action"
+                      Command="{Binding UseSelectedLibraryModelCommand}"
+                      IsEnabled="{Binding CanUseSelectedLibraryModel}"
+                      Content="Use model settings"
+                      AutomationProperties.Name="Use selected library model loading settings"
+                      AutomationProperties.HelpText="Copies only the selected model reference and saved context into the loading draft. It does not save, switch providers, start a runtime, load a model, or change a branch binding." />
+            </StackPanel>
+          </Border>
+
+          <Border Classes="workspace-primary-surface" Padding="18">
+            <StackPanel Spacing="14">
+              <StackPanel Spacing="4">
+                <TextBlock Text="Model loading settings"
+                           FontSize="18"
+                           FontWeight="SemiBold"
+                           AutomationProperties.HeadingLevel="2"
+                           Foreground="{DynamicResource TextPrimaryBrush}" />
+                <TextBlock Text="This is the editable loading draft for the active provider. It remains separate from the selected library entry until you explicitly reuse saved settings."
+                           FontSize="12"
+                           LineHeight="18"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource TextSecondaryBrush}" />
+              </StackPanel>
+
+              <TextBlock Text="{Binding ProviderConfigurationStatusText}"
                          FontSize="12"
                          LineHeight="18"
+                         TextWrapping="Wrap"
+                         AutomationProperties.LiveSetting="Polite"
+                         Foreground="{DynamicResource TextSecondaryBrush}" />
+
+              <TextBox Text="{Binding ProviderModelReference, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                       PlaceholderText="owner/model-GGUF[:quant]"
+                       IsEnabled="{Binding IsProviderModelEditable}"
+                       AutomationProperties.Name="Model reference loading draft"
+                       AutomationProperties.HelpText="For llama.cpp, enter a compatible Hugging Face GGUF repository. Optional quantization can follow a colon."
+                       ToolTip.Tip="Model passed directly to llama-server with -hf" />
+
+              <Expander Header="Runtime loading settings"
+                        Classes="workspace-disclosure"
+                        IsExpanded="True"
+                        IsEnabled="{Binding IsProviderSettingsEditable}"
+                        AutomationProperties.Name="Runtime loading settings">
+                <StackPanel Spacing="8" Margin="0,10,0,0">
+                  <TextBox Text="{Binding ProviderContextSizeText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                           PlaceholderText="Context size • model default"
+                           AutomationProperties.Name="Context size loading draft"
+                           AutomationProperties.HelpText="Optional prompt context size. Leave blank to use the model or provider default." />
+                </StackPanel>
+              </Expander>
+
+              <TextBlock Text="{Binding ProviderConfigurationValidationText}"
+                         IsVisible="{Binding HasProviderConfigurationValidationError}"
+                         FontSize="12"
+                         TextWrapping="Wrap"
+                         AutomationProperties.LiveSetting="Polite"
+                         Foreground="{DynamicResource DangerBrush}" />
+
+              <Button Classes="primary-action"
+                      Command="{Binding SaveProviderConfigurationCommand}"
+                      IsEnabled="{Binding CanSaveProviderConfiguration}"
+                      Content="Save model settings"
+                      AutomationProperties.Name="Save model loading settings"
+                      AutomationProperties.HelpText="Persists the active provider loading draft. Saving does not start or load the model and does not add it to the library automatically." />
+
+              <Border Height="1"
+                      Background="{DynamicResource BorderBrush}"
+                      Opacity="0.65" />
+
+              <StackPanel Spacing="6">
+                <TextBlock Text="Library snapshot"
+                           FontSize="11"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextSecondaryBrush}" />
+                <TextBlock Text="After the loading configuration is saved, add that persisted provider/model configuration to the library explicitly."
+                           FontSize="11"
+                           LineHeight="17"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource TextSecondaryBrush}" />
+                <Button Classes="secondary-action"
+                        Command="{Binding SaveCurrentModelToLibraryCommand}"
+                        IsEnabled="{Binding CanSaveCurrentModelToLibrary}"
+                        Content="Save current model to library"
+                        AutomationProperties.Name="Save current model configuration to library"
+                        AutomationProperties.HelpText="Adds the currently saved provider model loading configuration to the library. It does not save an unsaved draft and does not start or load a model." />
+              </StackPanel>
+
+              <TextBlock Text="Generation instructions, sampling, output limits, seed, and reasoning remain owned by Profiles and are never edited here."
+                         FontSize="11"
+                         LineHeight="17"
+                         TextWrapping="Wrap"
+                         Foreground="{DynamicResource TextSecondaryBrush}" />
+            </StackPanel>
+          </Border>
+
+          <Border Classes="workspace-secondary-surface" Padding="18">
+            <StackPanel Spacing="10">
+              <TextBlock Text="Provider runtime"
+                         FontSize="18"
+                         FontWeight="SemiBold"
+                         AutomationProperties.HeadingLevel="2"
+                         Foreground="{DynamicResource TextPrimaryBrush}" />
+
+              <TextBlock Text="Provider"
+                         FontSize="11"
+                         FontWeight="SemiBold"
+                         Foreground="{DynamicResource TextSecondaryBrush}" />
+              <TextBlock Text="{Binding ProviderName}"
+                         FontSize="16"
+                         FontWeight="SemiBold"
+                         Foreground="{DynamicResource TextPrimaryBrush}" />
+              <TextBlock Text="{Binding ProviderStatusText}"
+                         FontSize="12"
+                         LineHeight="18"
+                         TextWrapping="Wrap"
+                         AutomationProperties.LiveSetting="Polite"
+                         Foreground="{DynamicResource TextSecondaryBrush}" />
+
+              <TextBlock Text="Runtime state is independent from the library selection. A saved or selected entry must never be presented as loaded solely because it appears in the library."
+                         FontSize="11"
+                         LineHeight="17"
                          TextWrapping="Wrap"
                          Foreground="{DynamicResource TextSecondaryBrush}" />
             </StackPanel>
           </Border>
         </StackPanel>
-      </Border>
-    </ScrollViewer>
+      </ScrollViewer>
+    </Grid>
   </Grid>
 </UserControl>

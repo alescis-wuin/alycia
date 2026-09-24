@@ -59,6 +59,7 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 | UIX-03 Stage 2 dedicated Profiles workspace | terminé | Profiles devient une destination globale dédiée ; Models ne contient plus la gestion des profils |
 | UIX-03 Stage 3A Models interaction contract | completed | navigation/detail semantics, state matrix and explicit action boundaries; documentation-only |
 | UIX-03 Stage 3B Models Presentation projection | completed | minimal master/detail projection state, provider mismatch, stable selection refresh and focused behavior tests |
+| UIX-03 Stage 3C Models master/detail XAML | completed | two-column library/detail workspace, explicit empty/mismatch/status states and accessible action boundaries |
 | Lot 11 RAG foundation | planifié | à faire |
 | Lot 12 Retrieval/grounded generation | planifié | à faire |
 | Lot 13 Tools/MCP/agents | planifié | à faire |
@@ -436,9 +437,18 @@ Introduire avant RAG.
 - focused Presentation tests cover unavailable/empty states, inspection-only selection, provider mismatch, loading-vs-generation differences, stable selection refresh and the existing running-provider editability guard;
 - no XAML, Application/Domain contract, persistence schema, provider lifecycle, generation resolver, branch binding or profile behavior changes are introduced.
 
+### UIX-03 Stage 3C - Models master/detail XAML - completed
+
+- `ModelWorkspaceView` now uses the Stage 3A master/detail structure: persistent saved-model navigation on the left and selected saved-model detail plus loading work on the right;
+- unavailable, empty, no-selection, selected-detail and provider-mismatch states are explicit without changing runtime behavior;
+- the selected saved-model detail exposes only persisted provider/model identity, quantization, context, timestamp and current-saved/settings-differ state already projected by Stage 3B;
+- `Use model settings`, `Save model settings`, and `Save current model to library` remain visually and semantically separate action boundaries;
+- loading draft, saved library entry and provider runtime are rendered as distinct surfaces so selection never implies loading;
+- accessibility names, help text, heading levels and polite live status regions describe the explicit interaction boundaries;
+- no Presentation behavior, Application/Domain contract, persistence schema, provider lifecycle, resolver, branch binding, profile behavior or `GenerationSnapshot` semantics change in Stage 3C.
+
 ### Next steps
 
-- UIX-03 Stage 3C: implement the Models master/detail XAML, empty/mismatch/status states, and accessibility bindings against the Stage 3A contract;
 - UIX-03 Stage 3D: run focused responsive/accessibility/manual QA, close Stage 3, and synchronize the implementation evidence;
 - UIX-03 Stage 4 : composer réduit à deux lignes (message/envoi, modèle/profil) et intégration du gate modèle ;
 - UIX-03 Stage 5 : remplacement de la modale dual-selector par un drawer/panneau de sélection ;
