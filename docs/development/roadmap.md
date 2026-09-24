@@ -61,6 +61,8 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 | UIX-03 Stage 3B Models Presentation projection | completed | minimal master/detail projection state, provider mismatch, stable selection refresh and focused behavior tests |
 | UIX-03 Stage 3C Models master/detail XAML | completed | two-column library/detail workspace, explicit empty/mismatch/status states and accessible action boundaries |
 | UIX-03 Stage 3D-A deterministic headless UI QA | completed | Avalonia Headless layout/input harness, fixed viewport matrix and optional PNG capture artifacts |
+| UIX-03 Stage 3D-B visual review / Stage 3 closeout | completed | reviewed deterministic capture matrix; Stage 3 closed with non-blocking responsive polish deferred |
+| UIX-03 Stage 4A composer interaction contract | completed | two-line composer and branch model/profile readiness boundaries frozen; documentation-only |
 | Lot 11 RAG foundation | planifié | à faire |
 | Lot 12 Retrieval/grounded generation | planifié | à faire |
 | Lot 13 Tools/MCP/agents | planifié | à faire |
@@ -457,10 +459,30 @@ Introduire avant RAG.
 - Stage 3D-A intentionally generates current-state snapshots without committing visual baselines; approval/tolerance policy remains an explicit Stage 3D-B closeout concern;
 - no Domain/Application/Infrastructure contract, persistence schema, provider lifecycle, branch/profile behavior or Models business semantics change.
 
+### UIX-03 Stage 3D-B - deterministic visual review / Stage 3 closeout - completed
+
+- the eight Stage 3D-A Skia captures were reviewed at 720x560, 900x700, 1280x820 and 1600x900 across empty, keyboard-focus, scrolled, populated-selection and running-provider states;
+- the reviewed archive is `alycia-uix03-stage3d-a-visual-artifacts-20260924-103200.zip` with SHA-256 `7035711861a3ab2086abf29ae9798a13b7c981a13845aafa117dddc84cb52862`;
+- Stage 3D-A verification is green at published commit `d5f61f744fc9972472b4fda30818437c7652af43`: 439/439 solution tests, 5/5 architecture tests, valid dependency graph, syntax/lint/audit/toolchain/worktree/signature/history gates;
+- no blocking layout, focus, keyboard, scrolling or provider-guard regression was found in the reviewed matrix;
+- minor responsive polish remains non-blocking: header copy is dense/truncated at the minimum viewport, the header/provider combination is tight around 900x700, and the minimum-viewport scrolled snapshot clips part of the long library-save button label;
+- those observations are explicitly deferred to UIX-03 Stage 7 final accessibility/responsive/visual polish because controls remain reachable and Stage 3 interaction semantics are preserved;
+- reviewed PNGs are not promoted to committed visual-regression baselines in Stage 3: structural/input assertions remain deterministic, while baseline promotion waits for a pinned CI OS/font/DPI environment and explicit tolerance policy;
+- UIX-03 Stage 3 is closed. Models now has a documented interaction contract, Presentation projection, master/detail XAML, deterministic headless regression coverage and reviewed visual evidence.
+
+### UIX-03 Stage 4A - two-line composer / branch readiness interaction contract - completed
+
+- ADR 0049 freezes the Stage 4 composer semantics before implementation;
+- the composer is organized as two semantic lines: message + response actions first, compact model/profile selection + readiness second;
+- ADR 0022 remains authoritative for global provider/model availability: when its configuration gate is visible, it still replaces the composer;
+- branch model/profile readiness remains inside an otherwise available composer: a branch-model mismatch keeps the selector accessible, disables Send through the existing readiness guard and shows explicit guidance without mutating provider configuration or runtime state;
+- `Use for this branch` remains the only selector persistence boundary; opening/selecting never switches provider, saves model settings or loads a model;
+- the WorkingDraft pre-send gate, Enter/Shift+Enter behavior, Stop/Retry semantics and existing transient-surface precedence remain unchanged;
+- Stage 4A is documentation-only: no XAML, Presentation behavior, Domain/Application/Infrastructure contract, persistence schema, provider lifecycle, resolver or `GenerationSnapshot` behavior changes.
+
 ### Next steps
 
-- UIX-03 Stage 3D-B: execute/review the deterministic capture matrix, correct any responsive/accessibility regressions, decide whether reviewed Linux captures become visual-regression baselines, and close Stage 3;
-- UIX-03 Stage 4 : composer réduit à deux lignes (message/envoi, modèle/profil) et intégration du gate modèle ;
+- UIX-03 Stage 4B: implement the two-line composer layout and compact branch model/profile readiness gate defined by ADR 0049, with focused Presentation/headless tests;
 - UIX-03 Stage 5 : remplacement de la modale dual-selector par un drawer/panneau de sélection ;
 - UIX-03 Stage 6 : decluttering final du workspace Provider ;
 - UIX-03 Stage 7 : polish accessibility/responsive/visual QA ;
