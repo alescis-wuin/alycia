@@ -63,6 +63,7 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 | UIX-03 Stage 3D-A deterministic headless UI QA | completed | Avalonia Headless layout/input harness, fixed viewport matrix and optional PNG capture artifacts |
 | UIX-03 Stage 3D-B visual review / Stage 3 closeout | completed | reviewed deterministic capture matrix; Stage 3 closed with non-blocking responsive polish deferred |
 | UIX-03 Stage 4A composer interaction contract | completed | two-line composer and branch model/profile readiness boundaries frozen; documentation-only |
+| UIX-03 Stage 4B two-line composer implementation | validation candidate | message/response actions first line, branch model/profile readiness second line, deterministic headless coverage |
 | Lot 11 RAG foundation | planifié | à faire |
 | Lot 12 Retrieval/grounded generation | planifié | à faire |
 | Lot 13 Tools/MCP/agents | planifié | à faire |
@@ -480,9 +481,21 @@ Introduire avant RAG.
 - the WorkingDraft pre-send gate, Enter/Shift+Enter behavior, Stop/Retry semantics and existing transient-surface precedence remain unchanged;
 - Stage 4A is documentation-only: no XAML, Presentation behavior, Domain/Application/Infrastructure contract, persistence schema, provider lifecycle, resolver or `GenerationSnapshot` behavior changes.
 
+### UIX-03 Stage 4B - two-line composer implementation - validation candidate
+
+- `MainView` now renders the message field with Send/Stop/Retry on the first semantic row and the compact model/profile selector with readiness guidance on the second;
+- long selector labels are width-bounded and ellipsized so they cannot make the composer horizontally inaccessible at the deterministic desktop minimum;
+- branch readiness keeps the existing `GenerationDualSelectorReadinessText` semantics and polite live-region behavior; no new provider/model orchestration is introduced;
+- the ADR 0022 global configuration gate still replaces the composer, while branch mismatch keeps the composer and selector available and disables Send through the existing readiness guard;
+- existing selector persistence remains unchanged: inspecting/cancelling is non-persistent and `Use for this branch` remains the explicit branch-selection boundary;
+- Stage 4B adds deterministic headless layout, containment, keyboard-order, branch-mismatch and configuration-gate regression coverage across the Conversation viewport matrix;
+- no Domain/Application/Infrastructure contract, persistence schema, provider lifecycle, resolver, `GenerationSnapshot`, WorkingDraft-gate or Stage 5 selector-surface semantics change.
+
+- Stage 4B recovery uses immutable shared identity brushes and unconditional Headless window cleanup; expected inventory is now 447 solution tests / 136 Presentation tests / 15 captures.
+- Publication remains gated by owner-host validation, visual review, signed commit and manual push.
+
 ### Next steps
 
-- UIX-03 Stage 4B: implement the two-line composer layout and compact branch model/profile readiness gate defined by ADR 0049, with focused Presentation/headless tests;
 - UIX-03 Stage 5 : remplacement de la modale dual-selector par un drawer/panneau de sélection ;
 - UIX-03 Stage 6 : decluttering final du workspace Provider ;
 - UIX-03 Stage 7 : polish accessibility/responsive/visual QA ;

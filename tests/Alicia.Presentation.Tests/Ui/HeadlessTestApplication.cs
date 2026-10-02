@@ -4,6 +4,8 @@ using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 
 [assembly: AvaloniaTestApplication(typeof(Alicia.Presentation.Tests.Ui.HeadlessTestAppBuilder))]
+[assembly: AvaloniaTestIsolation(AvaloniaTestIsolationLevel.PerAssembly)]
+[assembly: CollectionBehavior(DisableTestParallelization = true)]
 
 namespace Alicia.Presentation.Tests.Ui;
 

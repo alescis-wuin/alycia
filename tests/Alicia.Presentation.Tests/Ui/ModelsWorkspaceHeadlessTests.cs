@@ -28,33 +28,38 @@ public sealed class ModelsWorkspaceHeadlessTests
         await viewModel.InitializeAsync().ConfigureAwait(true);
 
         MainWindow window = CreateModelsWindow(viewModel);
-        ShowAndFlush(window);
-        ResizeAndFlush(window, width, height);
+        try
+        {
+            ShowAndFlush(window);
+            ResizeAndFlush(window, width, height);
 
-        ModelWorkspaceView workspace = FindRequired<ModelWorkspaceView>(window, "Models workspace");
-        TextBox modelReference = FindRequired<TextBox>(workspace, "Model reference loading draft");
-        TextBox contextSize = FindRequired<TextBox>(workspace, "Context size loading draft");
-        Button saveModelSettings = FindRequired<Button>(workspace, "Save model loading settings");
-        Button saveToLibrary = FindRequired<Button>(workspace, "Save current model configuration to library");
+            ModelWorkspaceView workspace = FindRequired<ModelWorkspaceView>(window, "Models workspace");
+            TextBox modelReference = FindRequired<TextBox>(workspace, "Model reference loading draft");
+            TextBox contextSize = FindRequired<TextBox>(workspace, "Context size loading draft");
+            Button saveModelSettings = FindRequired<Button>(workspace, "Save model loading settings");
+            Button saveToLibrary = FindRequired<Button>(workspace, "Save current model configuration to library");
 
-        UiTestArtifactWriter.Capture(window, $"models/empty-{snapshotName}.png");
+            UiTestArtifactWriter.Capture(window, $"models/empty-{snapshotName}.png");
 
-        Assert.True(workspace.IsEffectivelyVisible);
-        Assert.True(modelReference.IsEffectivelyVisible);
-        Assert.True(contextSize.IsEffectivelyVisible);
-        Assert.True(saveModelSettings.IsEffectivelyVisible);
-        Assert.True(saveToLibrary.IsEffectivelyVisible);
-        Assert.False(viewModel.HasModelLibraryItems);
-        Assert.True(viewModel.ShowModelLibraryEmptyState);
-        Assert.False(viewModel.ShowSelectedModelLibraryDetail);
+            Assert.True(workspace.IsEffectivelyVisible);
+            Assert.True(modelReference.IsEffectivelyVisible);
+            Assert.True(contextSize.IsEffectivelyVisible);
+            Assert.True(saveModelSettings.IsEffectivelyVisible);
+            Assert.True(saveToLibrary.IsEffectivelyVisible);
+            Assert.False(viewModel.HasModelLibraryItems);
+            Assert.True(viewModel.ShowModelLibraryEmptyState);
+            Assert.False(viewModel.ShowSelectedModelLibraryDetail);
 
-        AssertHorizontallyInside(window, workspace);
-        AssertHorizontallyInside(window, modelReference);
-        AssertHorizontallyInside(window, contextSize);
-        AssertHorizontallyInside(window, saveModelSettings);
-        AssertHorizontallyInside(window, saveToLibrary);
-
-        window.Close();
+            AssertHorizontallyInside(window, workspace);
+            AssertHorizontallyInside(window, modelReference);
+            AssertHorizontallyInside(window, contextSize);
+            AssertHorizontallyInside(window, saveModelSettings);
+            AssertHorizontallyInside(window, saveToLibrary);
+        }
+        finally
+        {
+            window.Close();
+        }
     }
 
     [AvaloniaFact]
@@ -64,25 +69,31 @@ public sealed class ModelsWorkspaceHeadlessTests
         await viewModel.InitializeAsync().ConfigureAwait(true);
 
         MainWindow window = CreateModelsWindow(viewModel);
-        ShowAndFlush(window);
-        ResizeAndFlush(window, 720, 560);
+        try
+        {
+            ShowAndFlush(window);
+            ResizeAndFlush(window, 720, 560);
 
-        ModelWorkspaceView workspace = FindRequired<ModelWorkspaceView>(window, "Models workspace");
-        TextBox modelReference = FindRequired<TextBox>(workspace, "Model reference loading draft");
+            ModelWorkspaceView workspace = FindRequired<ModelWorkspaceView>(window, "Models workspace");
+            TextBox modelReference = FindRequired<TextBox>(workspace, "Model reference loading draft");
 
-        Assert.True(modelReference.Focus());
-        Assert.True(modelReference.IsFocused);
+            Assert.True(modelReference.Focus());
+            Assert.True(modelReference.IsFocused);
 
-        PressAndRelease(window, Key.Tab, RawInputModifiers.None, PhysicalKey.Tab);
-        Assert.False(modelReference.IsFocused);
-        Assert.Single(GetFocusedInputs(window));
+            PressAndRelease(window, Key.Tab, RawInputModifiers.None, PhysicalKey.Tab);
+            Assert.False(modelReference.IsFocused);
+            Assert.Single(GetFocusedInputs(window));
 
-        PressAndRelease(window, Key.Tab, RawInputModifiers.Shift, PhysicalKey.Tab);
-        UiTestArtifactWriter.Capture(window, "models/keyboard-720x560.png");
+            PressAndRelease(window, Key.Tab, RawInputModifiers.Shift, PhysicalKey.Tab);
+            UiTestArtifactWriter.Capture(window, "models/keyboard-720x560.png");
 
-        Assert.True(modelReference.IsFocused);
-        Assert.Single(GetFocusedInputs(window));
-        window.Close();
+            Assert.True(modelReference.IsFocused);
+            Assert.Single(GetFocusedInputs(window));
+        }
+        finally
+        {
+            window.Close();
+        }
     }
 
     [AvaloniaFact]
@@ -102,35 +113,41 @@ public sealed class ModelsWorkspaceHeadlessTests
         await viewModel.InitializeAsync().ConfigureAwait(true);
 
         MainWindow window = CreateModelsWindow(viewModel);
-        ShowAndFlush(window);
-        ResizeAndFlush(window, 900, 700);
+        try
+        {
+            ShowAndFlush(window);
+            ResizeAndFlush(window, 900, 700);
 
-        ModelWorkspaceView workspace = FindRequired<ModelWorkspaceView>(window, "Models workspace");
-        ListBox library = FindRequired<ListBox>(workspace, "Saved model library");
-        Button useSettings = FindRequired<Button>(workspace, "Use selected library model loading settings");
+            ModelWorkspaceView workspace = FindRequired<ModelWorkspaceView>(window, "Models workspace");
+            ListBox library = FindRequired<ListBox>(workspace, "Saved model library");
+            Button useSettings = FindRequired<Button>(workspace, "Use selected library model loading settings");
 
-        Assert.True(library.IsEffectivelyVisible);
+            Assert.True(library.IsEffectivelyVisible);
 
-        library.SelectedIndex = 0;
-        Flush();
-        ListBoxItem firstLibraryItem = Assert.IsType<ListBoxItem>(library.ContainerFromIndex(0));
-        Assert.True(firstLibraryItem.Focus());
-        Assert.True(firstLibraryItem.IsFocused);
-        PressAndRelease(window, Key.Down, RawInputModifiers.None, PhysicalKey.ArrowDown);
-        Flush();
+            library.SelectedIndex = 0;
+            Flush();
+            ListBoxItem firstLibraryItem = Assert.IsType<ListBoxItem>(library.ContainerFromIndex(0));
+            Assert.True(firstLibraryItem.Focus());
+            Assert.True(firstLibraryItem.IsFocused);
+            PressAndRelease(window, Key.Down, RawInputModifiers.None, PhysicalKey.ArrowDown);
+            Flush();
 
-        Assert.Equal(1, library.SelectedIndex);
-        Assert.Equal(alternate.ModelReference, viewModel.SelectedModelLibraryItem?.ModelReference);
-        Assert.Equal(current.ModelReference, viewModel.ProviderModelReference);
-        Assert.True(useSettings.IsEnabled);
+            Assert.Equal(1, library.SelectedIndex);
+            Assert.Equal(alternate.ModelReference, viewModel.SelectedModelLibraryItem?.ModelReference);
+            Assert.Equal(current.ModelReference, viewModel.ProviderModelReference);
+            Assert.True(useSettings.IsEnabled);
 
-        Assert.True(useSettings.Focus());
-        PressAndRelease(window, Key.Space, RawInputModifiers.None, PhysicalKey.Space);
-        UiTestArtifactWriter.Capture(window, "models/populated-use-settings-900x700.png");
+            Assert.True(useSettings.Focus());
+            PressAndRelease(window, Key.Space, RawInputModifiers.None, PhysicalKey.Space);
+            UiTestArtifactWriter.Capture(window, "models/populated-use-settings-900x700.png");
 
-        Assert.Equal(alternate.ModelReference, viewModel.ProviderModelReference);
-        Assert.Equal("4096", viewModel.ProviderContextSizeText);
-        window.Close();
+            Assert.Equal(alternate.ModelReference, viewModel.ProviderModelReference);
+            Assert.Equal("4096", viewModel.ProviderContextSizeText);
+        }
+        finally
+        {
+            window.Close();
+        }
     }
 
     [AvaloniaFact]
@@ -140,37 +157,43 @@ public sealed class ModelsWorkspaceHeadlessTests
         await viewModel.InitializeAsync().ConfigureAwait(true);
 
         MainWindow window = CreateModelsWindow(viewModel);
-        ShowAndFlush(window);
-        ResizeAndFlush(window, 720, 560);
+        try
+        {
+            ShowAndFlush(window);
+            ResizeAndFlush(window, 720, 560);
 
-        ModelWorkspaceView workspace = FindRequired<ModelWorkspaceView>(window, "Models workspace");
-        TextBlock providerRuntimeHeading = workspace
-            .GetVisualDescendants()
-            .OfType<TextBlock>()
-            .Single(textBlock => string.Equals(
-                textBlock.Text,
-                "Provider runtime",
-                StringComparison.Ordinal));
-        ScrollViewer detailScroller = providerRuntimeHeading
-            .GetVisualAncestors()
-            .OfType<ScrollViewer>()
-            .First();
-        Vector before = detailScroller.Offset;
+            ModelWorkspaceView workspace = FindRequired<ModelWorkspaceView>(window, "Models workspace");
+            TextBlock providerRuntimeHeading = workspace
+                .GetVisualDescendants()
+                .OfType<TextBlock>()
+                .Single(textBlock => string.Equals(
+                    textBlock.Text,
+                    "Provider runtime",
+                    StringComparison.Ordinal));
+            ScrollViewer detailScroller = providerRuntimeHeading
+                .GetVisualAncestors()
+                .OfType<ScrollViewer>()
+                .First();
+            Vector before = detailScroller.Offset;
 
-        Point? origin = detailScroller.TranslatePoint(new Point(0, 0), window);
-        Assert.NotNull(origin);
-        Point wheelPoint = new(
-            origin.Value.X + Math.Max(8, detailScroller.Bounds.Width / 2),
-            origin.Value.Y + Math.Max(8, Math.Min(detailScroller.Bounds.Height / 2, 120)));
-        window.MouseWheel(wheelPoint, new Vector(0, -6), RawInputModifiers.None);
-        Flush();
-        UiTestArtifactWriter.Capture(window, "models/scrolled-720x560.png");
+            Point? origin = detailScroller.TranslatePoint(new Point(0, 0), window);
+            Assert.NotNull(origin);
+            Point wheelPoint = new(
+                origin.Value.X + Math.Max(8, detailScroller.Bounds.Width / 2),
+                origin.Value.Y + Math.Max(8, Math.Min(detailScroller.Bounds.Height / 2, 120)));
+            window.MouseWheel(wheelPoint, new Vector(0, -6), RawInputModifiers.None);
+            Flush();
+            UiTestArtifactWriter.Capture(window, "models/scrolled-720x560.png");
 
-        Assert.True(detailScroller.Extent.Height > detailScroller.Viewport.Height);
-        Assert.True(detailScroller.Offset.Y > before.Y);
-        Assert.InRange(Math.Abs(detailScroller.Offset.X), 0, 0.001);
-        AssertHorizontallyInside(window, detailScroller);
-        window.Close();
+            Assert.True(detailScroller.Extent.Height > detailScroller.Viewport.Height);
+            Assert.True(detailScroller.Offset.Y > before.Y);
+            Assert.InRange(Math.Abs(detailScroller.Offset.X), 0, 0.001);
+            AssertHorizontallyInside(window, detailScroller);
+        }
+        finally
+        {
+            window.Close();
+        }
     }
 
     [AvaloniaFact]
@@ -181,19 +204,25 @@ public sealed class ModelsWorkspaceHeadlessTests
         await viewModel.InitializeAsync().ConfigureAwait(true);
 
         MainWindow window = CreateModelsWindow(viewModel);
-        ShowAndFlush(window);
-        ResizeAndFlush(window, 900, 700);
+        try
+        {
+            ShowAndFlush(window);
+            ResizeAndFlush(window, 900, 700);
 
-        ModelWorkspaceView workspace = FindRequired<ModelWorkspaceView>(window, "Models workspace");
-        TextBox modelReference = FindRequired<TextBox>(workspace, "Model reference loading draft");
-        Button saveModelSettings = FindRequired<Button>(workspace, "Save model loading settings");
+            ModelWorkspaceView workspace = FindRequired<ModelWorkspaceView>(window, "Models workspace");
+            TextBox modelReference = FindRequired<TextBox>(workspace, "Model reference loading draft");
+            Button saveModelSettings = FindRequired<Button>(workspace, "Save model loading settings");
 
-        UiTestArtifactWriter.Capture(window, "models/provider-running-900x700.png");
+            UiTestArtifactWriter.Capture(window, "models/provider-running-900x700.png");
 
-        Assert.False(modelReference.IsEnabled);
-        Assert.False(saveModelSettings.IsEnabled);
-        Assert.Equal("Running", viewModel.ProviderStatusText);
-        window.Close();
+            Assert.False(modelReference.IsEnabled);
+            Assert.False(saveModelSettings.IsEnabled);
+            Assert.Equal("Running", viewModel.ProviderStatusText);
+        }
+        finally
+        {
+            window.Close();
+        }
     }
 
     private static MainWindow CreateModelsWindow(MainViewModel viewModel)

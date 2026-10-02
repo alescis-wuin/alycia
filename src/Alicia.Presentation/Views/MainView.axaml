@@ -320,81 +320,89 @@
                 Cursor="Ibeam"
                 PointerPressed="OnMessageComposerShellPointerPressed"
                 AutomationProperties.Name="Message composer"
-                AutomationProperties.HelpText="Write a user message. Enter sends; Shift+Enter inserts a new line. Choose the model/profile pair for the active branch from the compact selector.">
-          <Grid RowDefinitions="*,Auto"
-                ColumnDefinitions="*,Auto">
-            <TextBox x:Name="MessageComposer"
-                     Grid.Row="0"
-                     Grid.ColumnSpan="2"
-                     Classes="message-composer"
-                     Text="{Binding MessageDraft, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                     PlaceholderText="{Binding ComposerPlaceholder}"
-                     AcceptsReturn="True"
-                     AcceptsTab="False"
-                     TextWrapping="Wrap"
-                     IsEnabled="{Binding IsComposerEnabled}"
-                     KeyDown="OnMessageComposerKeyDown"
-                     AutomationProperties.Name="Message text"
-                     AutomationProperties.HelpText="Type a user message. Press Enter to send or Shift+Enter for a new line."
-                     AutomationProperties.AcceleratorKey="Enter"
-                     ToolTip.Tip="Enter sends • Shift+Enter adds a new line" />
+                AutomationProperties.HelpText="Compose on two semantic lines: message and response actions first, then the active branch model/profile selection and readiness. Enter sends; Shift+Enter inserts a new line.">
+          <Grid RowDefinitions="Auto,Auto"
+                RowSpacing="8">
+            <Grid Grid.Row="0"
+                  ColumnDefinitions="*,Auto"
+                  ColumnSpacing="10"
+                  AutomationProperties.Name="Message and response actions">
+              <TextBox x:Name="MessageComposer"
+                       Grid.Column="0"
+                       Classes="message-composer"
+                       Text="{Binding MessageDraft, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                       PlaceholderText="{Binding ComposerPlaceholder}"
+                       AcceptsReturn="True"
+                       AcceptsTab="False"
+                       TextWrapping="Wrap"
+                       IsEnabled="{Binding IsComposerEnabled}"
+                       KeyDown="OnMessageComposerKeyDown"
+                       AutomationProperties.Name="Message text"
+                       AutomationProperties.HelpText="Type a user message. Press Enter to send or Shift+Enter for a new line."
+                       AutomationProperties.AcceleratorKey="Enter"
+                       ToolTip.Tip="Enter sends • Shift+Enter adds a new line" />
 
-            <StackPanel Grid.Row="1"
-                        Grid.Column="0"
-                        Margin="0,8,10,0"
-                        Spacing="3"
-                        VerticalAlignment="Bottom">
+              <StackPanel Grid.Column="1"
+                          VerticalAlignment="Bottom"
+                          Orientation="Horizontal"
+                          Spacing="8"
+                          AutomationProperties.Name="Response actions">
+                <Button Classes="send-action"
+                        IsEnabled="{Binding CanSendMessage}"
+                        Click="OnSendMessageClick"
+                        AutomationProperties.Name="Send message"
+                        AutomationProperties.HelpText="Persist this user message and start an Alicia streamed response."
+                        AutomationProperties.AcceleratorKey="Enter"
+                        ToolTip.Tip="Send message (Enter)">
+                  <PathIcon Width="22"
+                            Height="22"
+                            Foreground="{DynamicResource TextOnAccentBrush}"
+                            Data="M7,5 L20,12 L7,19 Z" />
+                </Button>
+                <Button Classes="secondary-action composer-secondary-action"
+                        Command="{Binding StopResponseCommand}"
+                        IsVisible="{Binding IsGeneratingResponse}"
+                        IsEnabled="{Binding CanStopResponse}"
+                        Content="Stop"
+                        AutomationProperties.Name="Stop Alicia response"
+                        AutomationProperties.HelpText="Cancel the active streamed response without removing the user message or saving partial output."
+                        AutomationProperties.AcceleratorKey="Escape"
+                        ToolTip.Tip="Stop response (Escape)" />
+                <Button Classes="secondary-action composer-secondary-action"
+                        Command="{Binding RetryResponseCommand}"
+                        IsVisible="{Binding CanRetryResponse}"
+                        IsEnabled="{Binding CanRetryResponse}"
+                        Content="Retry response"
+                        AutomationProperties.Name="Retry Alicia response"
+                        AutomationProperties.HelpText="Generate another response for the existing unanswered user message."
+                        ToolTip.Tip="Retry response without resending your message" />
+              </StackPanel>
+            </Grid>
+
+            <Grid Grid.Row="1"
+                  ColumnDefinitions="Auto,*"
+                  ColumnSpacing="10"
+                  AutomationProperties.Name="Branch model and profile readiness">
               <Button Classes="secondary-action composer-secondary-action"
                       HorizontalAlignment="Left"
+                      MaxWidth="280"
                       Command="{Binding OpenGenerationDualSelectorCommand}"
                       IsEnabled="{Binding CanOpenGenerationDualSelector}"
-                      Content="{Binding GenerationDualSelectorLabel}"
                       AutomationProperties.Name="Choose model and generation profile"
-                      AutomationProperties.HelpText="Open the model/profile selector for the active conversation branch." />
-              <TextBlock Text="{Binding GenerationDualSelectorReadinessText}"
+                      AutomationProperties.HelpText="Open the model/profile selector for the active conversation branch. Selecting does not save provider settings or load a model.">
+                <TextBlock Text="{Binding GenerationDualSelectorLabel}"
+                           TextTrimming="CharacterEllipsis" />
+              </Button>
+              <TextBlock Grid.Column="1"
+                         Text="{Binding GenerationDualSelectorReadinessText}"
                          FontSize="11"
-                         MaxWidth="520"
+                         LineHeight="16"
+                         VerticalAlignment="Center"
                          TextWrapping="Wrap"
+                         AutomationProperties.Name="Branch model and profile readiness status"
                          AutomationProperties.LiveSetting="Polite"
                          Foreground="{DynamicResource TextSecondaryBrush}" />
-            </StackPanel>
-
-            <StackPanel Grid.Row="1"
-                        Grid.Column="1"
-                        Margin="10,8,0,0"
-                        VerticalAlignment="Bottom"
-                        Orientation="Horizontal"
-                        Spacing="8">
-              <Button Classes="send-action"
-                      IsEnabled="{Binding CanSendMessage}"
-                      Click="OnSendMessageClick"
-                      AutomationProperties.Name="Send message"
-                      AutomationProperties.HelpText="Persist this user message and start an Alicia streamed response."
-                      AutomationProperties.AcceleratorKey="Enter"
-                      ToolTip.Tip="Send message (Enter)">
-                <PathIcon Width="22"
-                          Height="22"
-                          Foreground="{DynamicResource TextOnAccentBrush}"
-                          Data="M7,5 L20,12 L7,19 Z" />
-              </Button>
-              <Button Classes="secondary-action composer-secondary-action"
-                      Command="{Binding StopResponseCommand}"
-                      IsVisible="{Binding IsGeneratingResponse}"
-                      IsEnabled="{Binding CanStopResponse}"
-                      Content="Stop"
-                      AutomationProperties.Name="Stop Alicia response"
-                      AutomationProperties.HelpText="Cancel the active streamed response without removing the user message or saving partial output."
-                      AutomationProperties.AcceleratorKey="Escape"
-                      ToolTip.Tip="Stop response (Escape)" />
-              <Button Classes="secondary-action composer-secondary-action"
-                      Command="{Binding RetryResponseCommand}"
-                      IsVisible="{Binding CanRetryResponse}"
-                      IsEnabled="{Binding CanRetryResponse}"
-                      Content="Retry response"
-                      AutomationProperties.Name="Retry Alicia response"
-                      AutomationProperties.HelpText="Generate another response for the existing unanswered user message."
-                      ToolTip.Tip="Retry response without resending your message" />
-            </StackPanel>
+            </Grid>
           </Grid>
         </Border>
       </Grid>

@@ -1,5 +1,6 @@
 using Alicia.Presentation.State;
 using Avalonia.Media;
+using Avalonia.Media.Immutable;
 
 namespace Alicia.Presentation.ViewModels;
 
@@ -99,13 +100,13 @@ internal static class ConversationIdentityPresentationCatalog
         };
     }
 
-    private static SolidColorBrush CreateAccent(byte red, byte green, byte blue)
+    private static ImmutableSolidColorBrush CreateAccent(byte red, byte green, byte blue)
     {
-        return new SolidColorBrush(Color.FromRgb(red, green, blue));
+        return new ImmutableSolidColorBrush(Color.FromRgb(red, green, blue));
     }
 
-    private static SolidColorBrush CreateSurface(byte red, byte green, byte blue)
+    private static ImmutableSolidColorBrush CreateSurface(byte red, byte green, byte blue)
     {
-        return new SolidColorBrush(Color.FromArgb(0x26, red, green, blue));
+        return new ImmutableSolidColorBrush(Color.FromArgb(0x26, red, green, blue));
     }
 }

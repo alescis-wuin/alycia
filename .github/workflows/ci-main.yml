@@ -57,7 +57,20 @@ jobs:
       - name: Build Release
         run: dotnet build Alicia.slnx --configuration Release --no-restore
       - name: Run Release tests
+        env:
+          ALYCIA_UI_CAPTURE: "1"
+          ALYCIA_UI_ARTIFACTS_DIR: ${{ github.workspace }}/artifacts/ui-tests
         run: dotnet test --solution Alicia.slnx --configuration Release --no-build --no-restore
+      - name: Verify UI artifact inventory
+        run: python scripts/checks/ui-artifacts.py artifacts/ui-tests
+      - name: Preserve UI review artifacts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ui-tests-${{ runner.os }}
+          path: artifacts/ui-tests/
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Audit dependencies
         run: make audit
 

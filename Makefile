@@ -107,6 +107,7 @@ ui-snapshots: build ## Run Presentation headless UI checks and write determinist
 	@rm -rf -- "$(UI_TEST_ARTIFACTS_DIR)"
 	@mkdir -p -- "$(UI_TEST_ARTIFACTS_DIR)"
 	@ALYCIA_UI_CAPTURE=1 ALYCIA_UI_ARTIFACTS_DIR="$(UI_TEST_ARTIFACTS_DIR)" "$(DOTNET)" test --project "$(PRESENTATION_TEST_PROJECT)" --configuration "$(CONFIGURATION)" --no-build --no-restore
+	@python3 "$(CHECKS_DIRECTORY)/ui-artifacts.py" "$(UI_TEST_ARTIFACTS_DIR)"
 
 architecture: build ## Run architecture boundary tests
 	@"$(DOTNET)" test --project "$(ARCHITECTURE_TEST_PROJECT)" --configuration "$(CONFIGURATION)" --no-build --no-restore
@@ -181,7 +182,7 @@ verify-fast: ## Run fast checks suitable before a commit
 	@$(MAKE) --no-print-directory branch-check staged syntax toolchain-check dependency-graph format-check
 
 verify: ## Run the complete local quality gate
-	@$(MAKE) --no-print-directory branch-check toolchain-check clean restore build test architecture dependency-graph syntax lint format-check audit toolchain-self-test worktree-clean-self-test signatures linear-history
+	@$(MAKE) --no-print-directory branch-check toolchain-check clean restore build test ui-snapshots architecture dependency-graph syntax lint format-check audit toolchain-self-test worktree-clean-self-test signatures linear-history
 
 verify-push: ## Require a clean repository before the complete quality gate
 	@$(MAKE) --no-print-directory worktree-clean

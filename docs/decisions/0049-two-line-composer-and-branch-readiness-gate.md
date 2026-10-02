@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — UIX-03 Stage 4A.
+Accepted — UIX-03 Stage 4A; Stage 4B implementation candidate awaiting owner validation and publication.
 
 ## Context
 
@@ -119,6 +119,25 @@ Stage 4 does not introduce:
 - Provider workspace decluttering from Stage 6;
 - final application-wide responsive/accessibility polish from Stage 7;
 - branch navigation, context-panel UI, RAG, tools/agents, attachments, or multimodal behavior.
+
+## Stage 4B implementation evidence
+
+- `MainView` renders the composer as two explicit semantic rows: message/response actions first, branch model/profile readiness second;
+- Send/Stop/Retry remain bound to their existing commands and guards; no command or provider-lifecycle semantics changed;
+- the selector trigger stays available on the second row and truncates long labels instead of forcing horizontal overflow;
+- branch readiness remains a polite live text region beside the selector and continues to use `GenerationDualSelectorReadinessText`;
+- deterministic headless coverage exercises the ready composer across 720x560, 900x700, 1280x820 and 1600x900, plus branch mismatch, keyboard order and global configuration-gate replacement;
+- existing ViewModel tests remain authoritative for selector persistence and no-implicit-provider-mutation invariants.
+
+## Stage 4B validation recovery
+
+- The initial full-solution run reproduced one Dispatcher access failure (445/446).
+- The shared identity palette now uses immutable brushes: the original mutable static brushes could retain the Dispatcher of a non-UI test. A dedicated cross-thread regression fails before this change and passes afterward.
+- Headless windows close in `finally`, including failed layout/assertion paths.
+- PerAssembly isolation and non-parallel execution within Presentation remain enabled; independent MTP test modules keep their normal parallel execution.
+- The updated inventory is 447 solution tests, including 136 Presentation tests and 5 architecture tests. The additional palette test produces no screenshot: the visual inventory remains 15 PNGs.
+- Local snapshot generation and all CI workflows validate the same 15 PNG names, viewport dimensions and SHA-256 sidecars. CI retains the images for review.
+- These implementation facts do not prove publication. Owner-host validation, visual review, a signed commit, `make verify-push` and a manual push remain the closeout gates.
 
 ## Consequences
 

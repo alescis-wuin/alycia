@@ -50,6 +50,26 @@ It also exercises:
 
 The suite deliberately does not infer business state from pixels. Existing ViewModel tests remain authoritative for persistence, provider switching, branch binding and other business invariants.
 
+## Current Conversation composer matrix
+
+UIX-03 Stage 4B extends the headless suite with Conversation composer coverage at the same deterministic desktop matrix:
+
+- 720 x 560;
+- 900 x 700;
+- 1280 x 820;
+- 1600 x 900.
+
+The suite verifies that:
+
+- the message field and Send/Stop/Retry occupy the first semantic line;
+- the model/profile selector and branch-readiness guidance occupy the second semantic line;
+- both lines remain horizontally contained at every tested viewport;
+- keyboard traversal proceeds from the message field to Send and then to the branch model/profile selector when no other response action is visible;
+- a branch-model mismatch keeps the composer and selector visible while Send remains disabled;
+- the global ADR 0022 configuration gate still replaces the composer when provider/model setup is unavailable.
+
+Snapshot mode also emits `conversation/composer-ready-*.png`, `conversation/composer-mismatch-720x560.png`, `conversation/composer-keyboard-720x560.png`, and `conversation/configuration-gate-900x700.png` for explicit review.
+
 ## Snapshot policy
 
 Stage 3D-A generates reviewable current-state PNGs but does not commit image baselines automatically.
@@ -98,3 +118,27 @@ For stable future baseline comparison, CI should keep the following fixed:
 ## Boundaries
 
 Headless tests validate Avalonia's in-process control tree. They do not replace platform-level accessibility or window-manager validation. Native accessibility-tree/E2E checks can be added later with an OS automation layer where platform support is sufficiently stable.
+
+## Dispatcher ownership and recovery validation
+
+The identity palette is shared by plain ViewModel tests and Headless rendering.
+It must not retain mutable Avalonia objects owned by the Dispatcher of its first
+caller. `ConversationIdentityBrushTests` exercises all fourteen brushes on a
+different thread and checks their original colors, opacity and transforms.
+
+Keep `AvaloniaTestIsolationLevel.PerAssembly` and
+`CollectionBehavior(DisableTestParallelization = true)` for Presentation. Test
+modules are separate executables: no solution-wide serialization is needed for
+this palette fix. Every test window is closed in `finally` to avoid retaining
+failed scenarios in the shared application.
+
+At the Stage 4B recovery checkpoint, expect 136 Presentation tests and 447 tests
+for the solution, including 5 architecture tests. The palette regression adds
+one test but no screenshot. `scripts/checks/ui-artifacts.py` requires exactly
+15 PNGs, the configured viewport dimensions and matching SHA-256 sidecars.
+`make ui-snapshots` and `make verify` enforce this inventory; CI enables captures
+in the solution run, applies the same checker and retains captures for review.
+
+The Develop workflow also runs on pushes to `feature/conversation-response`,
+so the active implementation receives a check before promotion to Develop.
+Artifacts remain review evidence, not approved pixel baselines.
