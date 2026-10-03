@@ -44,6 +44,26 @@ public sealed class GenerationDualSelectorModelItemViewModel : ViewModelBase
 
     public string DisplayName => FormatModelDisplayName(ModelReference);
 
+    public string Author
+    {
+        get
+        {
+            string reference = ModelReference;
+            if (reference.StartsWith('/')
+                || reference.StartsWith('.')
+                || reference.Contains('\\')
+                || reference.Contains("://", StringComparison.Ordinal))
+            {
+                return string.Empty;
+            }
+
+            int separator = reference.IndexOf('/');
+            return separator > 0 ? reference[..separator] : string.Empty;
+        }
+    }
+
+    public bool HasAuthor => Author.Length > 0;
+
     public bool IsSavedInLibrary { get; }
 
     public bool IsCurrentSavedModel { get; }

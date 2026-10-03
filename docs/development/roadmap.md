@@ -63,7 +63,8 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 | UIX-03 Stage 3D-A deterministic headless UI QA | completed | Avalonia Headless layout/input harness, fixed viewport matrix and optional PNG capture artifacts |
 | UIX-03 Stage 3D-B visual review / Stage 3 closeout | completed | reviewed deterministic capture matrix; Stage 3 closed with non-blocking responsive polish deferred |
 | UIX-03 Stage 4A composer interaction contract | completed | two-line composer and branch model/profile readiness boundaries frozen; documentation-only |
-| UIX-03 Stage 4B two-line composer implementation | validation candidate | message/response actions first line, branch model/profile readiness second line, deterministic headless coverage |
+| UIX-03 Stage 4B two-line composer implementation | completed | signed checkpoint e2a9cbd, owner-host review and Linux CI 447/447, 15 verified captures |
+| UIX-03 Stage 5 branch model/profile selection panel | validation candidate | compact panel anchored to the composer trigger, circular vector actions and 27-image inventory |
 | Lot 11 RAG foundation | planifié | à faire |
 | Lot 12 Retrieval/grounded generation | planifié | à faire |
 | Lot 13 Tools/MCP/agents | planifié | à faire |
@@ -481,7 +482,7 @@ Introduire avant RAG.
 - the WorkingDraft pre-send gate, Enter/Shift+Enter behavior, Stop/Retry semantics and existing transient-surface precedence remain unchanged;
 - Stage 4A is documentation-only: no XAML, Presentation behavior, Domain/Application/Infrastructure contract, persistence schema, provider lifecycle, resolver or `GenerationSnapshot` behavior changes.
 
-### UIX-03 Stage 4B - two-line composer implementation - validation candidate
+### UIX-03 Stage 4B - two-line composer implementation - completed
 
 - `MainView` now renders the message field with Send/Stop/Retry on the first semantic row and the compact model/profile selector with readiness guidance on the second;
 - long selector labels are width-bounded and ellipsized so they cannot make the composer horizontally inaccessible at the deterministic desktop minimum;
@@ -492,11 +493,19 @@ Introduire avant RAG.
 - no Domain/Application/Infrastructure contract, persistence schema, provider lifecycle, resolver, `GenerationSnapshot`, WorkingDraft-gate or Stage 5 selector-surface semantics change.
 
 - Stage 4B recovery uses immutable shared identity brushes and unconditional Headless window cleanup; expected inventory is now 447 solution tests / 136 Presentation tests / 15 captures.
-- Publication remains gated by owner-host validation, visual review, signed commit and manual push.
+- Published after owner-host native review as signed commit `e2a9cbd36d3fd3599384996e2990f1ec7920d0f1`; Linux CI run `37017246159` passed 447 tests and validated 15 captures.
+
+### UIX-03 Stage 5 - branch model/profile selection panel - validation candidate
+
+- ADR 0050 now defines a compact panel anchored above the composer trigger, after owner review of the first full-height drawer; model and profile lists scroll independently. Visible text is limited to headings, names and model authors; details move to tooltips and branch markers.
+- Opening restores the current branch selection. Inspecting and cancelling write nothing; `Use for this branch` keeps the existing branch confirmation and missing Default-catalog boundary.
+- Initial list focus, cyclic Tab/Shift+Tab, Escape/Close/backdrop cancellation and return to the composer trigger are covered. Conversation/workspace changes cancel the preview; active generation keeps the trigger unavailable.
+- Saved-library entries, branch compatibility entries, confirmed custom profiles and WorkingDraft states stay distinct. Provider configuration, runtime and persistence schemas remain unchanged.
+- Candidate inventory: 465 solution tests / 154 Presentation tests / 27 captures. Owner-host native review, signed commit and manual push remain required before publication.
 
 ### Next steps
 
-- UIX-03 Stage 5 : remplacement de la modale dual-selector par un drawer/panneau de sélection ;
+- UIX-03 Stage 5 : revue native et publication du panneau validé ;
 - UIX-03 Stage 6 : decluttering final du workspace Provider ;
 - UIX-03 Stage 7 : polish accessibility/responsive/visual QA ;
 - contexte, provenance/révisions et navigation de branches restent des extensions UIX-03 ultérieures adossées aux contrats existants ;

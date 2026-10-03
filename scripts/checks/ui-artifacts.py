@@ -9,6 +9,18 @@ from pathlib import Path
 
 EXPECTED = {
     **{
+        f"selector/panel-ready-{width}x{height}.png": (width, height)
+        for width, height in [(720, 560), (900, 700), (1280, 820), (1600, 900)]
+    },
+    "selector/compact-1600x900.png": (1600, 900),
+    "selector/panel-keyboard-720x560.png": (720, 560),
+    "selector/confirmed-mismatch-900x700.png": (900, 700),
+    "selector/custom-working-draft-900x700.png": (900, 700),
+    "selector/compatibility-900x700.png": (900, 700),
+    "selector/empty-720x560.png": (720, 560),
+    "selector/long-labels-720x560.png": (720, 560),
+    "selector/scrolled-720x560.png": (720, 560),
+    **{
         f"conversation/composer-ready-{width}x{height}.png": (width, height)
         for width, height in [(720, 560), (900, 700), (1280, 820), (1600, 900)]
     },
@@ -57,7 +69,7 @@ def main() -> int:
     except (OSError, ValueError) as error:
         print(f"[ERROR] {error}", file=sys.stderr)
         return 1
-    print("[OK] UI artifacts: 15/15 PNGs, matching viewports and SHA-256 sidecars.")
+    print(f"[OK] UI artifacts: {len(EXPECTED)}/{len(EXPECTED)} PNGs, matching viewports and SHA-256 sidecars.")
     return 0
 
 

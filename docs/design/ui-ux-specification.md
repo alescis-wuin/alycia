@@ -300,7 +300,7 @@ Dans le composer : contrôle compact unique, par exemple :
 
 `Qwen3 4B | Code ▾`
 
-Au clic : popup dual box :
+Au clic : panneau compact ancré au bouton modèle/profil (ADR 0050) :
 
 - colonne gauche = modèles ;
 - colonne droite = profils du modèle sélectionné.
@@ -314,6 +314,7 @@ Au clic : popup dual box :
 - sélectionner ou appliquer une paire ne sauvegarde ni ne charge jamais le provider implicitement ;
 - si la branche attend un autre modèle que celui sauvegardé/chargé, le composer conserve l'accès au selector mais `Send` est désactivé avec une remédiation explicite vers Models ;
 - `Escape` ou Close annule le preview sans persistance.
+- UIX-03 Stage 5 : panneau compact ancré au-dessus du bouton du composer, adapté au minimum 720×560 ; seulement en-têtes, noms et auteur connus, boutons circulaires SVG, marqueurs de branche et détails en infobulles ; listes à défilement indépendant, focus initial/cyclique et retour au composer ; quitter Conversation annule également le preview.
 
 ---
 

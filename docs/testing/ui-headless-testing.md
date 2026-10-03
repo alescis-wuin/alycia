@@ -132,13 +132,35 @@ modules are separate executables: no solution-wide serialization is needed for
 this palette fix. Every test window is closed in `finally` to avoid retaining
 failed scenarios in the shared application.
 
-At the Stage 4B recovery checkpoint, expect 136 Presentation tests and 447 tests
-for the solution, including 5 architecture tests. The palette regression adds
-one test but no screenshot. `scripts/checks/ui-artifacts.py` requires exactly
-15 PNGs, the configured viewport dimensions and matching SHA-256 sidecars.
+The published Stage 4B recovery checkpoint contained 136 Presentation tests and
+447 solution tests, including 5 architecture tests, with 15 validated PNGs.
+Stage 5 extends this inventory as listed below. The shared artifact checker
+validates the current PNG count, configured viewports and SHA-256 sidecars.
 `make ui-snapshots` and `make verify` enforce this inventory; CI enables captures
 in the solution run, applies the same checker and retains captures for review.
 
 The Develop workflow also runs on pushes to `feature/conversation-response`,
 so the active implementation receives a check before promotion to Develop.
 Artifacts remain review evidence, not approved pixel baselines.
+
+## Current branch selection panel matrix
+
+UIX-03 Stage 5 keeps all 15 previous images and adds 12 under `selector/`:
+
+- `panel-ready-720x560.png`, `panel-ready-900x700.png`, `panel-ready-1280x820.png`, `panel-ready-1600x900.png`;
+- `compact-1600x900.png`;
+- `panel-keyboard-720x560.png`;
+- `confirmed-mismatch-900x700.png`;
+- `custom-working-draft-900x700.png`;
+- `compatibility-900x700.png`;
+- `empty-720x560.png`;
+- `long-labels-720x560.png`;
+- `scrolled-720x560.png`.
+
+The candidate inventory is 154 Presentation tests and 465 solution tests, including 5 architecture tests. The shared checker now requires exactly 27 PNGs with the same viewport and SHA-256 checks used by CI.
+
+Owner review of v1 led to a compact panel anchored above the composer trigger. The compact-catalog test verifies only headings, names and authors are visible, all four action/help buttons contain vector icons with circular bounds and tooltips, and effective branch markers remain visible. The viewport matrix checks the 8 px anchor gap and 520 px width. Empty guidance is available through help rather than permanent text.
+
+Panel tests verify initial/cyclic/returned focus, Escape/Close/backdrop cancellation, explicit branch apply and missing Default-catalog creation, custom confirmed profiles with an unchanged WorkingDraft, model compatibility outside the library, empty guidance, independent list scrolling, conversation/workspace changes, active-generation guards and resize without discarding a preview. Window cleanup remains unconditional. Provider configuration/library/runtime counters are asserted unchanged during inspection, cancellation and branch confirmation.
+
+Owner-host native review and publication of Stage 5 remain required. Linux headless proof does not replace keyboard/window-manager review or later Windows/macOS promotion checks.

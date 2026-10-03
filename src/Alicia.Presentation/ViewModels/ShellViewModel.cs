@@ -39,6 +39,11 @@ public sealed class ShellViewModel : ViewModelBase
         {
             if (SetProperty(ref _selectedSection, value))
             {
+                if (value != WorkspaceSection.Conversations)
+                {
+                    Workspace.CancelGenerationDualSelectorCommand.Execute(null);
+                }
+
                 OnPropertyChanged(nameof(IsConversationsSelected));
                 OnPropertyChanged(nameof(IsProvidersSelected));
                 OnPropertyChanged(nameof(IsModelsSelected));

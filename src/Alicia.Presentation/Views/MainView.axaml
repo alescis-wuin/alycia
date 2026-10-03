@@ -383,7 +383,8 @@
                   ColumnDefinitions="Auto,*"
                   ColumnSpacing="10"
                   AutomationProperties.Name="Branch model and profile readiness">
-              <Button Classes="secondary-action composer-secondary-action"
+              <Button x:Name="GenerationSelectorTrigger"
+                      Classes="secondary-action composer-secondary-action"
                       HorizontalAlignment="Left"
                       MaxWidth="280"
                       Command="{Binding OpenGenerationDualSelectorCommand}"
@@ -431,12 +432,15 @@
             BorderThickness="0"
             IsVisible="{Binding IsGenerationDualSelectorVisible}"
             Command="{Binding CancelGenerationDualSelectorCommand}"
+            Focusable="False"
             ZIndex="80"
             AutomationProperties.Name="Close model and profile selector backdrop" />
 
-    <views:GenerationDualSelectorView
-        Margin="20,20,20,96"
-        HorizontalAlignment="Center"
+    <views:GenerationDualSelectorView x:Name="GenerationSelectorPanel"
+        Width="520"
+        MaxHeight="340"
+        Margin="12"
+        HorizontalAlignment="Left"
         VerticalAlignment="Bottom"
         IsVisible="{Binding IsGenerationDualSelectorVisible}"
         ZIndex="90" />

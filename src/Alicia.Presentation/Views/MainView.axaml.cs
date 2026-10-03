@@ -23,6 +23,7 @@ public partial class MainView : UserControl
 
     private bool _initialized;
     private bool _messageScrollPending;
+    private bool _isGenerationSelectorOpen;
     private MainViewModel? _subscribedViewModel;
     private readonly HashSet<MessageViewModel> _subscribedMessages = [];
     private readonly DispatcherTimer _scrollPersistenceTimer;
@@ -32,6 +33,7 @@ public partial class MainView : UserControl
     public MainView()
     {
         InitializeComponent();
+        LayoutUpdated += OnSelectorAnchorLayoutUpdated;
 
         _thinkingIndicatorTimer = new DispatcherTimer
         {
@@ -65,6 +67,7 @@ public partial class MainView : UserControl
         SubscribeToMessages(viewModel);
         viewModel.SetConversationHistoryNarrowLayout(
             Bounds.Width <= NarrowConversationLayoutWidth);
+        UpdateGenerationSelectorLayout(Bounds.Width);
 
         if (!_initialized)
         {
@@ -94,12 +97,44 @@ public partial class MainView : UserControl
     private void OnMainViewSizeChanged(object? sender, SizeChangedEventArgs eventArgs)
     {
         _ = sender;
+        UpdateGenerationSelectorLayout(eventArgs.NewSize.Width);
 
         if (DataContext is MainViewModel viewModel)
         {
             viewModel.SetConversationHistoryNarrowLayout(
                 eventArgs.NewSize.Width <= NarrowConversationLayoutWidth);
         }
+    }
+
+    private void OnSelectorAnchorLayoutUpdated(object? sender, EventArgs eventArgs)
+    {
+        _ = sender;
+        _ = eventArgs;
+        if (_subscribedViewModel?.IsGenerationDualSelectorVisible == true)
+        {
+            UpdateGenerationSelectorLayout(Bounds.Width);
+        }
+    }
+
+    private void UpdateGenerationSelectorLayout(double width)
+    {
+        Point? anchor = GenerationSelectorTrigger.TranslatePoint(default, this);
+        if (anchor is not Point position || width <= 24 || Bounds.Height <= 24)
+        {
+            return;
+        }
+
+        if (!GenerationSelectorTrigger.IsEffectivelyVisible || GenerationSelectorTrigger.Bounds.Height <= 0)
+        {
+            position = new Point(12d, Bounds.Height - 12d);
+        }
+
+        double panelWidth = Math.Min(520d, width - 24d);
+        double left = Math.Clamp(position.X, 12d, width - panelWidth - 12d);
+        double bottom = Math.Max(12d, Bounds.Height - position.Y + 8d);
+        GenerationSelectorPanel.Width = panelWidth;
+        GenerationSelectorPanel.MaxHeight = Math.Min(340d, Math.Max(80d, position.Y - 20d));
+        GenerationSelectorPanel.Margin = new Thickness(left, 12d, 12d, bottom);
     }
 
     private void OnMessageComposerShellPointerPressed(
@@ -176,6 +211,7 @@ public partial class MainView : UserControl
 
         UnsubscribeFromMessages();
         _subscribedViewModel = viewModel;
+        _isGenerationSelectorOpen = viewModel.IsGenerationDualSelectorVisible;
         _subscribedViewModel.PropertyChanged += OnViewModelPropertyChanged;
         _subscribedViewModel.Messages.CollectionChanged += OnMessagesCollectionChanged;
         SynchronizeMessageSubscriptions();
@@ -188,6 +224,7 @@ public partial class MainView : UserControl
             _subscribedViewModel.PropertyChanged -= OnViewModelPropertyChanged;
             _subscribedViewModel.Messages.CollectionChanged -= OnMessagesCollectionChanged;
             _subscribedViewModel = null;
+            _isGenerationSelectorOpen = false;
         }
 
         foreach (MessageViewModel message in _subscribedMessages)
@@ -201,6 +238,41 @@ public partial class MainView : UserControl
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
     {
         _ = sender;
+
+        if (string.Equals(
+            eventArgs.PropertyName,
+            nameof(MainViewModel.IsGenerationDualSelectorVisible),
+            StringComparison.Ordinal))
+        {
+            MainViewModel? viewModel = _subscribedViewModel;
+            bool wasOpened = viewModel?.IsGenerationDualSelectorVisible == true;
+            if (_isGenerationSelectorOpen == wasOpened)
+            {
+                return;
+            }
+
+            _isGenerationSelectorOpen = wasOpened;
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (!ReferenceEquals(viewModel, _subscribedViewModel)
+                    || !IsEffectivelyVisible)
+                {
+                    return;
+                }
+
+                if (wasOpened && viewModel?.IsGenerationDualSelectorVisible == true)
+                {
+                    UpdateGenerationSelectorLayout(Bounds.Width);
+                    GenerationSelectorPanel.FocusInitialSelection();
+                }
+                else if (!wasOpened && viewModel?.IsGenerationDualSelectorVisible == false
+                    && GenerationSelectorTrigger.IsEffectivelyVisible
+                    && GenerationSelectorTrigger.IsEnabled)
+                {
+                    GenerationSelectorTrigger.Focus();
+                }
+            }, DispatcherPriority.Input);
+        }
 
         if (string.Equals(
             eventArgs.PropertyName,

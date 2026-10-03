@@ -36,6 +36,10 @@ public sealed class GenerationDualSelectorViewModel : ViewModelBase
 
     public ObservableCollection<GenerationDualSelectorProfileItemViewModel> Profiles => _profiles;
 
+    public bool HasModels => _models.Count > 0;
+
+    public bool HasProfiles => _profiles.Count > 0;
+
     public GenerationDualSelectorModelItemViewModel? SelectedModel
     {
         get => _selectedModel;
@@ -47,6 +51,7 @@ public sealed class GenerationDualSelectorViewModel : ViewModelBase
             }
 
             ReplaceProfiles(value);
+            OnPropertyChanged(nameof(HasProfiles));
             OnPropertyChanged(nameof(HasPendingChanges));
             OnPropertyChanged(nameof(PreviewStatusText));
         }
@@ -430,6 +435,8 @@ public sealed class GenerationDualSelectorViewModel : ViewModelBase
 
     private void RaiseSelectionDerivedStateChanged()
     {
+        OnPropertyChanged(nameof(HasModels));
+        OnPropertyChanged(nameof(HasProfiles));
         OnPropertyChanged(nameof(HasPendingChanges));
         OnPropertyChanged(nameof(PreviewStatusText));
     }

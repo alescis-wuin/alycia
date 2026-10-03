@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — UIX-03 Stage 4A; Stage 4B implementation candidate awaiting owner validation and publication.
+Accepted — UIX-03 Stage 4B validated and published as `e2a9cbd36d3fd3599384996e2990f1ec7920d0f1`.
 
 ## Context
 
@@ -137,7 +137,7 @@ Stage 4 does not introduce:
 - PerAssembly isolation and non-parallel execution within Presentation remain enabled; independent MTP test modules keep their normal parallel execution.
 - The updated inventory is 447 solution tests, including 136 Presentation tests and 5 architecture tests. The additional palette test produces no screenshot: the visual inventory remains 15 PNGs.
 - Local snapshot generation and all CI workflows validate the same 15 PNG names, viewport dimensions and SHA-256 sidecars. CI retains the images for review.
-- These implementation facts do not prove publication. Owner-host validation, visual review, a signed commit, `make verify-push` and a manual push remain the closeout gates.
+- Owner-host validation and visual review passed, including native branch-mismatch blocking. The owner created the signed checkpoint, passed `make verify-push` with a clean worktree and pushed it manually. Linux CI run `37017246159` passed all 447 tests and the 15-image inventory; GitHub verifies the commit signature.
 
 ## Consequences
 
