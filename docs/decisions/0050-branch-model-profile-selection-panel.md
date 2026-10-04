@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted contract — UIX-03 Stage 5 implementation candidate.
+Implemented — UIX-03 Stage 5 published as signed commit `e0d8132103c0138b41c68d9e31ef9b6c7733beeb`. Owner-host verification passed 465 tests and 27 captures; the owner confirmed CI success on 2026-10-03.
 
 ## Context
 

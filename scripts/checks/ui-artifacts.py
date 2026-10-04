@@ -8,6 +8,28 @@ import sys
 from pathlib import Path
 
 EXPECTED = {
+    "provider/storage-unknown-1280x820.png": (1280, 820),
+    "provider/storage-none-1280x820.png": (1280, 820),
+    "provider/storage-positive-1280x820.png": (1280, 820),
+    "provider/metrics-help-1280x820.png": (1280, 820),
+    "provider/metrics-large-1120x820.png": (1120, 820),
+    **{
+        f"provider/metrics-{width}x{height}.png": (width, height)
+        for width, height in [(720, 560), (900, 700), (1280, 820), (1600, 900)]
+    },
+    **{
+        f"provider/metrics-{outcome}-1280x820.png": (1280, 820)
+        for outcome in ["completed", "cancelled", "failed"]
+    },
+    **{
+        f"provider/ready-{width}x{height}.png": (width, height)
+        for width, height in [(720, 560), (900, 700), (1280, 820), (1600, 900)]
+    },
+    **{
+        f"provider/{scenario}-1280x820.png": (1280, 820)
+        for scenario in ["after-install", "after-start", "after-stop", "update", "maintenance",
+                         "failure-detect", "failure-update", "failure-storage"]
+    },
     **{
         f"selector/panel-ready-{width}x{height}.png": (width, height)
         for width, height in [(720, 560), (900, 700), (1280, 820), (1600, 900)]

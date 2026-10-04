@@ -21,11 +21,12 @@ internal static class UiTestMainViewModelFactory
     internal static MainViewModel Create(
         InferenceProviderState providerState = InferenceProviderState.Ready,
         InferenceModelLibrary? library = null,
-        InferenceProviderConfiguration? configuration = null)
+        InferenceProviderConfiguration? configuration = null,
+        StubInferenceProviderRuntime? runtime = null)
     {
         InMemoryConversationRepository repository = new();
         MutableTimeProvider timeProvider = new(_now);
-        StubInferenceProviderRuntime providerRuntime = new(providerState);
+        StubInferenceProviderRuntime providerRuntime = runtime ?? new(providerState);
         StubInferenceProviderRegistry providerRegistry = new(providerRuntime);
         InferenceProviderConfiguration resolvedConfiguration = configuration
             ?? new InferenceProviderConfiguration(

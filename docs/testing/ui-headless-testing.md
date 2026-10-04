@@ -164,3 +164,51 @@ Owner review of v1 led to a compact panel anchored above the composer trigger. T
 Panel tests verify initial/cyclic/returned focus, Escape/Close/backdrop cancellation, explicit branch apply and missing Default-catalog creation, custom confirmed profiles with an unchanged WorkingDraft, model compatibility outside the library, empty guidance, independent list scrolling, conversation/workspace changes, active-generation guards and resize without discarding a preview. Window cleanup remains unconditional. Provider configuration/library/runtime counters are asserted unchanged during inspection, cancellation and branch confirmation.
 
 Owner-host native review and publication of Stage 5 remain required. Linux headless proof does not replace keyboard/window-manager review or later Windows/macOS promotion checks.
+
+
+## Provider workspace — UIX-03 Stage 6
+
+The Stage 5 checkpoint passed 154 Presentation tests / 465 solution tests. Stage 6 adds real-control Provider coverage: four viewports, two action rows, responsive columns, full-width Maintenance, lifecycle transitions, validated update gating, explicit storage refresh and uninstall confirmation, visible detect/update/storage failures, keyboard focus through resize and unsaved-model startup guard.
+
+Stage 6 v2 passed with 168 Presentation tests and 479 solution tests, including 5 architecture tests.
+
+The shared checker retains all 27 prior captures and requires 12 more under `provider/`: `ready-{720x560,900x700,1280x820,1600x900}`, `after-{install,start,stop}-1280x820`, `update-1280x820`, `maintenance-1280x820`, and `failure-{detect,update,storage}-1280x820`. All 39 PNGs require exact viewport dimensions and SHA-256 sidecars. Windows are closed unconditionally.
+
+Opening Provider never triggers an update check or storage scan. Assertions use stub operation counters; native review remains required for the actual engine lifecycle and the owner desktop's font/DPI.
+
+
+### Stage 6 v3 — structured runtime metrics
+
+The current inventory is 179 Presentation tests and 490 solution tests, including five architecture tests. Retain the 39 v2 captures and add nine: `provider/metrics-{720x560,900x700,1280x820,1600x900}.png`, `metrics-{completed,cancelled,failed}-1280x820.png`, `metrics-large-1120x820.png` and `metrics-help-1280x820.png`. The checker requires all 48 PNGs, viewport dimensions and SHA-256 sidecars.
+
+Eleven added cases cover populated layouts, aligned number/unit columns, tabular figures and no horizontal clipping, both fr-FR/en-US decimal/group separators, updates from an initially absent observation, historical version tags, missing versus zero values, cancelled/failed outcomes, long references and large values across the responsive breakpoint, and keyboard help/native Maintenance expansion. The stored generation contract is unchanged. New locale tests restore their culture and every window is closed in finally.
+
+Run the normal UI snapshots in fr-FR and the complete solution in en-US before shipping. Owner native review remains required for desktop DPI, rendering and actual generation. The v2 owner gate and native review already passed; v3 remains a refinement candidate until its owner gate and visual acceptance.
+
+
+### Stage 6 v4 — native review refinement
+
+All workspace numbers use three decimal places in the current culture (including token/release counts as a display convention; underlying types and measurements stay unchanged). No thousands grouping is added. Values use DejaVu Sans Mono, with Consolas/Menlo/monospace fallbacks. Equal fractional widths and right alignment place decimal separators on the same axis within each numeric column. Units remain separate. Headless checks inspect rendered decimal positions and glyph widths, including fr-FR/en-US and large values.
+
+The Input/Output table has five subdued one-pixel separators. Help buttons are 32 px, refresh buttons 38 px, provider selection is dark and rounded, and the disabled fallback policy is soft amber. Native maintenance disclosure and all command guards remain unchanged. The 179 Presentation tests / 490 solution tests and 48-capture inventory are retained.
+
+
+### Stage 6 v5 — token integers, release states and aligned badges
+
+This refinement supersedes v4 formatting for the Input/Output Tokens row and Old releases only. Tokens are integers; an invisible measured decimal suffix reserves the width of the current-culture separator and three monospaced fractional digits. Their last integer digit aligns with the units digit immediately before the decimal separator in Duration/Rate. Cached input and other decimal rows retain three decimals. Missing token values remain em dashes. The reserved suffix is excluded from the normal accessibility tree.
+
+Old releases shows an amber Unknown badge before inspection and None detected after an inspection reports zero. Positive counts remain integers. A failed refresh does not invent a zero. Runtime, Installed and Fallback share a grid column for their badges, with 16 px text and identical padding/corner treatment; installed and historical version tags retain their turquoise color. Provider state transitions, explicit scanning, maintenance confirmation and persistence remain unchanged.
+
+Headless checks cover integer/decimal glyph positions, four viewports, badge start positions/heights/padding, two cultures, and the Unknown → None detected → positive count transitions. Three new Storage captures extend the inventory to 51; Presentation has 180 tests, solution 491. Native review and the full owner gate remain required before signed publication.
+
+### Stage 6 v6 — centred numeric blocks
+
+The existing four-viewport metrics checks now assert that Input/Output numeric blocks have the same width and are centred under their headings, that units appear in the row labels, and that the runtime version label is Version. Glyph-level integer/decimal alignment, monospaced digit checks, culture coverage, large values, missing values, badge consistency and storage spacing remain covered. The test and capture counts stay at 180 Presentation / 491 solution / 51 PNGs. Captures use deterministic fixture data; native owner review is still needed.
+
+### Stage 6 v7 — shared unit style and right-aligned values
+
+The owner supersedes the v5/v6 token-alignment choice: every value in Input/Output is now right-aligned to the last displayed digit, with 12 px of trailing cell padding. Tokens remain integers and no longer reserve a fractional suffix or align their last digit before the decimal separator. Duration and rate retain three fractional digits, so their decimal separators continue to align. The unused fractional-placeholder projection is removed.
+
+All seven unit labels in the generation table, whole-request metrics and Storage share a 16 px bold style using the existing violet AccentBrush. Table units remain in the first column next to Duration and Rate; numbers retain their turquoise monospaced style. Version and status badges retain v6 behavior.
+
+Existing viewport tests now assert rightmost glyph positions, decimal-to-decimal alignment, integer token formatting and consistent unit styling across all three regions. Counts remain 180 Presentation / 491 solution / 51 captures. Native v7 acceptance and the owner full gate remain pending. The patch accepts the exact uncommitted v5 or v6 checkpoint and rolls back to whichever preimage was applied.

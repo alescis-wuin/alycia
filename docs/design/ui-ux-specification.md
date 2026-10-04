@@ -392,78 +392,36 @@ La fin du stream ne réactive pas l’auto-scroll.
 
 ## 8. Vue Provider
 
-### 8.1 Structure — refinement 10.7A
+### 8.1 Structure — UIX-03 Stage 6
 
-La vue Provider doit rester une surface de contrôle, pas un tableau de bord technique permanent. L'ordre de lecture est :
+Deux colonnes indépendantes, bornées à 1120 px : commandes à gauche, informations à droite. Sous 1020 px de largeur du workspace, les informations passent sous les commandes ; focus et sections dépliées sont conservés.
 
-1. **Runtime** — sélection, état, version, progression et lifecycle ;
-2. **Runtime updates** — comparaison managed/validated/upstream et actions explicites ;
-3. **Maintenance** — repliée par défaut ;
-4. **Danger zone** — uniquement dans Maintenance ;
-5. **Technical details** — repliés par défaut.
+### 8.2 Commandes
 
-Le contenu est centré dans une largeur de lecture bornée. Les grandes cartes concurrentes `Édition | Informations` sont supprimées : une surface principale porte la tâche Runtime, les blocs secondaires utilisent une surface plus discrète et l'espace remplace les séparateurs répétitifs.
+Un panneau fusionne Runtime et Runtime updates. Le provider n'est nommé que dans son sélecteur. Deux lignes alignées :
 
-### 8.2 Hiérarchie des actions
+1. Install / Start / Stop selon l'état, puis Detect sous forme de bouton circulaire vectoriel ;
+2. Update, puis Check update sous forme de bouton circulaire vectoriel.
 
-- **Start** conserve la plus forte emphase dans la vue Provider ;
-- Detect, Install, Stop, Check update et Update validated restent immédiatement accessibles mais visuellement secondaires ;
-- les actions destructives ne partagent jamais la même emphase que le lifecycle normal ;
-- aucun bouton, binding, état d'activation ou contrat provider n'est modifié par 10.7A.
+Les commandes existantes gardent leurs conditions d'activation. Stop reste accessible pendant le démarrage. Une panne réseau/modèle ne se transforme pas en demande d'installation. Les raisons d'indisponibilité sont accessibles en infobulle, métadonnées et aide activable au clavier.
 
-### 8.3 Divulgation progressive
+### 8.3 Informations
 
-Le normal path ne doit pas exposer en permanence les actions rares :
+État, version installée en tag contrasté, résultat d'une vérification et version cible validée disponible. Chaque version n'apparaît qu'une fois dans ce résumé. Aucune version/mesure n'est inventée, ni contrôle non effectué présenté comme réussi. L'upstream ne devient jamais une cible d'installation implicite.
 
-- Maintenance est repliée au repos ;
-- les tailles runtime/cache, cleanup et désinstallation apparaissent après ouverture de Maintenance ;
-- Technical details est un second disclosure pour les informations supplémentaires ;
-- progression et erreurs restent visibles dans la section où l'action a lieu ;
-- les données indispensables à la décision ne sont pas cachées dans un tooltip.
+Les tailles runtime/cache et le nombre d'anciennes versions apparaissent dans Storage. Un bouton circulaire actualise explicitement les mesures : ce parcours de fichiers n'est pas déclenché à chaque ouverture. Runtime regroupe l’état, la version, le fallback et la dernière génération. Un tableau Input/Output sépare tokens, durées fournisseur et débits. Cached input, Total duration et First output occupent des lignes distinctes. Le modèle et son auteur sont séparés ; sa référence complète reste en infobulle. La version historique n’a un second tag que si elle diffère de la version installée. Last generation n’apparaît qu’une fois, accompagné d’un badge Completed/Cancelled/Failed ; sans observation, seule la ligne No generation yet apparaît.
 
-### 8.4 Progression et statut
+Les valeurs utilisent des chiffres tabulaires, un alignement à droite et des colonnes d’unités séparées. Comptages entiers ; secondes à trois décimales ; débits et stockage à deux décimales, selon la culture courante. Une mesure absente reste un tiret cadratin. Les valeurs sont turquoise et les unités utilisent la couleur secondaire contrastée.
 
-Pendant installation/démarrage/update :
+Fallback : Disabled est un badge rouge ; son explication complète est dans l’aide. Des boutons circulaires vectoriels ouvrent les infobulles de Runtime, fallback, métriques, Storage et Maintenance, avec activation clavier et fermeture via Échap/perte de focus.
 
-- une seule progression principale est affichée près du Runtime ;
-- étape, pourcentage et détail restent annoncés par live status ;
-- Reduced Motion conserve le texte même lorsque l'indeterminate animation est supprimée.
+### 8.4 Maintenance
 
-Au repos, la progression disparaît et le statut textuel demeure dans l'en-tête.
+Maintenance est repliée et occupe toute la largeur de la colonne des commandes, avec la même surface arrondie que les panneaux voisins et sans bandeau noir. Nettoyage des anciennes versions, désinstallation runtime et désinstallation runtime + cache restent trois actions distinctes. Inspection, arrêt du moteur et confirmation explicite restent nécessaires. Les descriptions de portée sont conservées dans la confirmation et les infobulles.
 
-### 8.5 Désinstallation
+### 8.5 Lisibilité et états
 
-Deux actions explicites restent inchangées :
-
-1. désinstaller le provider/runtime ;
-2. désinstaller et supprimer modèles/cache associés.
-
-`Clean old releases` reste une troisième maintenance distincte. Toutes les suppressions restent sous confirmation explicite et la Danger zone est séparée visuellement du lifecycle normal.
-
-### 8.6 Informations provider
-
-Affichage direct :
-
-- état ;
-- provider ;
-- version détectée ;
-- releases managed/validated/upstream dans Updates ;
-- détail utilisateur sûr.
-
-Détails secondaires :
-
-- état de configuration ;
-- rappel que le chargement modèle appartient à Models et que le comportement par génération appartient aux profils ;
-- diagnostics techniques bruts restent hors Presentation.
-
-### 8.7 Accessibilité visuelle
-
-- hiérarchie par titres, proximité et espace avant d'ajouter des lignes/bordures ;
-- un état n'est jamais exprimé uniquement par couleur ;
-- focus visible conservé ;
-- libellés textuels conservés sur les actions critiques ;
-- AutomationProperties, HeadingLevel et LiveSetting existants restent présents ;
-- les disclosure controls utilisent le contrôle natif `Expander`.
+Texte utile de 16 points minimum, valeurs et actions à 18 points, titres de panneaux à 20 points et titre de page à 32 points ; marges intérieures de 22–24 px et sections espacées. Les explications permanentes, répétitions de noms et ancienne consigne de saisie GGUF sont retirées. Les erreurs, progressions et résultats de maintenance restent visibles et les statuts dynamiques annoncés. Reduced Motion conserve l'information sans animation imposée. La couleur complète un libellé et ne remplace jamais l'état textuel.
 
 ---
 
@@ -1228,3 +1186,31 @@ Elle ne remplace pas les Lots produit suivants :
 - release/platform.
 
 Les écrans Context/Profile/Timeline doivent être raccordés à de vrais contrats Domain/Application, pas simulés uniquement en Presentation.
+
+
+### Stage 6 v4 — native review refinement
+
+All workspace numbers use three decimal places in the current culture (including token/release counts as a display convention; underlying types and measurements stay unchanged). No thousands grouping is added. Values use DejaVu Sans Mono, with Consolas/Menlo/monospace fallbacks. Equal fractional widths and right alignment place decimal separators on the same axis within each numeric column. Units remain separate. Headless checks inspect rendered decimal positions and glyph widths, including fr-FR/en-US and large values.
+
+The Input/Output table has five subdued one-pixel separators. Help buttons are 32 px, refresh buttons 38 px, provider selection is dark and rounded, and the disabled fallback policy is soft amber. Native maintenance disclosure and all command guards remain unchanged. The 179 Presentation tests / 490 solution tests and 48-capture inventory are retained.
+
+
+### Stage 6 v5 — token integers, release states and aligned badges
+
+This refinement supersedes v4 formatting for the Input/Output Tokens row and Old releases only. Tokens are integers; an invisible measured decimal suffix reserves the width of the current-culture separator and three monospaced fractional digits. Their last integer digit aligns with the units digit immediately before the decimal separator in Duration/Rate. Cached input and other decimal rows retain three decimals. Missing token values remain em dashes. The reserved suffix is excluded from the normal accessibility tree.
+
+Old releases shows an amber Unknown badge before inspection and None detected after an inspection reports zero. Positive counts remain integers. A failed refresh does not invent a zero. Runtime, Installed and Fallback share a grid column for their badges, with 16 px text and identical padding/corner treatment; installed and historical version tags retain their turquoise color. Provider state transitions, explicit scanning, maintenance confirmation and persistence remain unchanged.
+
+Headless checks cover integer/decimal glyph positions, four viewports, badge start positions/heights/padding, two cultures, and the Unknown → None detected → positive count transitions. Three new Storage captures extend the inventory to 51; Presentation has 180 tests, solution 491. Native review and the full owner gate remain required before signed publication.
+
+### Stage 6 v6 — generation table balance
+
+Supersedes the table layout in v5: units are stated once in Duration (s) and Rate (tok/s), with only numbers in Input/Output. Both numeric blocks share a measured width and are centred under their headings. A 24 px separator zone gives labels and values breathing room. Tokens remain integers with a reserved separator-plus-three-digit suffix, keeping the last integer digit aligned immediately before the decimal separator of duration/rate. Runtime uses the label Version; its aligned turquoise badge is unchanged. Storage and metrics below the table retain their v5 presentation.
+
+### Stage 6 v7 — shared unit style and right-aligned values
+
+The owner supersedes the v5/v6 token-alignment choice: every value in Input/Output is now right-aligned to the last displayed digit, with 12 px of trailing cell padding. Tokens remain integers and no longer reserve a fractional suffix or align their last digit before the decimal separator. Duration and rate retain three fractional digits, so their decimal separators continue to align. The unused fractional-placeholder projection is removed.
+
+All seven unit labels in the generation table, whole-request metrics and Storage share a 16 px bold style using the existing violet AccentBrush. Table units remain in the first column next to Duration and Rate; numbers retain their turquoise monospaced style. Version and status badges retain v6 behavior.
+
+Existing viewport tests now assert rightmost glyph positions, decimal-to-decimal alignment, integer token formatting and consistent unit styling across all three regions. Counts remain 180 Presentation / 491 solution / 51 captures. Native v7 acceptance and the owner full gate remain pending. The patch accepts the exact uncommitted v5 or v6 checkpoint and rolls back to whichever preimage was applied.

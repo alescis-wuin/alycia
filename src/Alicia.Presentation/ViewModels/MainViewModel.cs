@@ -961,6 +961,57 @@ public sealed class MainViewModel : ViewModelBase
     public bool CanStopProvider => IsProviderRunning
         || Provider.Snapshot?.State == InferenceProviderState.Starting;
 
+    // Select one existing lifecycle command; its original guards remain authoritative.
+    public IAsyncRelayCommand ProviderPrimaryCommand => Provider.Snapshot?.State switch
+    {
+        InferenceProviderState.Running or InferenceProviderState.Starting or InferenceProviderState.Stopping => StopProviderCommand,
+        InferenceProviderState.Installing => InstallProviderCommand,
+        InferenceProviderState.Missing or InferenceProviderState.Unsupported or InferenceProviderState.Faulted
+            when ProviderFailureKind is not InferenceProviderFailureKind.Network and not InferenceProviderFailureKind.Model => InstallProviderCommand,
+        _ => StartProviderCommand,
+    };
+
+    public bool CanExecuteProviderPrimary => ReferenceEquals(ProviderPrimaryCommand, StopProviderCommand) ? CanStopProvider
+        : ReferenceEquals(ProviderPrimaryCommand, InstallProviderCommand) ? CanInstallProvider : CanStartProvider;
+
+    public string ProviderPrimaryLabel => ReferenceEquals(ProviderPrimaryCommand, StopProviderCommand) ? "Stop"
+        : ReferenceEquals(ProviderPrimaryCommand, InstallProviderCommand) ? "Install" : "Start";
+
+    public string ProviderPrimaryHelp => ProviderPrimaryCommand.CanExecute(null)
+        ? $"{ProviderPrimaryLabel} the selected provider."
+        : IsProviderMaintenanceConfirmationVisible ? "Confirm or cancel maintenance first."
+        : IsProviderBusy ? "A provider operation is in progress."
+        : IsGeneratingResponse ? "Wait for generation to finish."
+        : SelectedProvider is null ? "Choose a provider."
+        : HasProviderFailure ? ProviderFailureMessage
+        : Provider.Snapshot?.State == InferenceProviderState.Ready
+            ? "Save a model configuration in Models before starting."
+            : "Detect the provider first.";
+
+    public string ProviderUpdateHelp => CanUpdateProvider ? "Install the validated runtime update."
+        : !SupportsProviderUpdates ? "Managed updates are unavailable for this provider."
+        : IsProviderMaintenanceConfirmationVisible ? "Confirm or cancel maintenance first."
+        : IsProviderBusy ? "A provider operation is in progress."
+        : IsProviderRunning || IsGeneratingResponse ? "Stop the engine before updating."
+        : !Provider.HasWorkspaceUpdateResult ? "Check for updates first."
+        : !IsProviderUpdateAvailable ? Provider.WorkspaceUpdateText
+        : "Detect the provider and resolve its current state before updating.";
+
+    public string ProviderMaintenanceHelp => IsProviderBusy ? "A provider operation is in progress."
+        : IsProviderRunning || IsGeneratingResponse ? "Stop the engine before maintenance."
+        : !HasProviderStorageInfo ? "Refresh storage before maintenance."
+        : "Each removal requires confirmation.";
+
+    private void RaiseProviderWorkspaceActionsChanged()
+    {
+        OnPropertyChanged(nameof(CanExecuteProviderPrimary));
+        OnPropertyChanged(nameof(ProviderPrimaryCommand));
+        OnPropertyChanged(nameof(ProviderPrimaryLabel));
+        OnPropertyChanged(nameof(ProviderPrimaryHelp));
+        OnPropertyChanged(nameof(ProviderUpdateHelp));
+        OnPropertyChanged(nameof(ProviderMaintenanceHelp));
+    }
+
     public bool CanCheckProviderUpdate => SelectedProvider is not null
         && Provider.SupportsProviderUpdates
         && !IsProviderBusy
@@ -2237,6 +2288,7 @@ public sealed class MainViewModel : ViewModelBase
 
     private void RaiseProviderConfigurationStateChanged()
     {
+        RaiseProviderWorkspaceActionsChanged();
         OnPropertyChanged(nameof(HasProviderConfigurationChanges));
         OnPropertyChanged(nameof(CanSaveProviderConfiguration));
         OnPropertyChanged(nameof(ProviderConfigurationValidationText));
@@ -2927,6 +2979,7 @@ public sealed class MainViewModel : ViewModelBase
 
     private void RaiseProviderMaintenanceConfirmationChanged()
     {
+        RaiseProviderWorkspaceActionsChanged();
         OnPropertyChanged(nameof(IsProviderMaintenanceConfirmationVisible));
         OnPropertyChanged(nameof(ProviderMaintenanceConfirmationTitle));
         OnPropertyChanged(nameof(ProviderMaintenanceConfirmationDescription));
@@ -4418,6 +4471,7 @@ public sealed class MainViewModel : ViewModelBase
 
     private void RaiseProviderStateChanged()
     {
+        RaiseProviderWorkspaceActionsChanged();
         OnPropertyChanged(nameof(IsProviderRunning));
         OnPropertyChanged(nameof(CanDetectProvider));
         OnPropertyChanged(nameof(CanInstallProvider));

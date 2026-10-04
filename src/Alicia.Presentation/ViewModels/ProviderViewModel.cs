@@ -2,7 +2,7 @@ using Alicia.Application.Providers;
 
 namespace Alicia.Presentation.ViewModels;
 
-public sealed class ProviderViewModel : ViewModelBase
+public sealed partial class ProviderViewModel : ViewModelBase
 {
     private readonly IInferenceProviderRegistry _providerRegistry;
     private bool _isProviderBusy;
@@ -188,6 +188,36 @@ public sealed class ProviderViewModel : ViewModelBase
             : _providerProgress.Stage;
 
     public string ProviderProgressDetailText => _providerProgress?.Detail ?? string.Empty;
+
+    // Compact workspace projection. Detailed messages remain available for diagnostics.
+    public string? WorkspaceVersion => _providerSnapshot?.Version ?? _providerUpdateInfo?.InstalledVersion;
+
+    public bool HasWorkspaceVersion => !string.IsNullOrWhiteSpace(WorkspaceVersion);
+
+    public bool HasWorkspaceUpdateResult => _providerUpdateInfo is not null || _providerUpdateStatusMessage is not null;
+
+    public string WorkspaceUpdateText => _providerUpdateStatusMessage
+        ?? (_providerUpdateInfo is null ? string.Empty
+            : _providerUpdateInfo.IsUpdateAvailable ? "Update available"
+            : !_providerUpdateInfo.IsManagedInstallation ? "External installation"
+            : "No validated update available");
+
+    public string? WorkspaceUpdateVersion => IsProviderUpdateAvailable ? _providerUpdateInfo?.ValidatedVersion : null;
+
+    public string WorkspaceRuntimeStorage => _providerStorageInfo is null ? "—" : $"{WorkspaceRuntimeSize} {WorkspaceRuntimeUnit}";
+
+    public string WorkspaceCacheStorage => _providerStorageInfo is null ? "—" : $"{WorkspaceCacheSize} {WorkspaceCacheUnit}";
+
+    public string WorkspaceRetainedReleases => _providerStorageInfo?.RetainedReleaseCount switch
+    {
+        null => "Unknown",
+        0 => "None detected",
+        int count => count.ToString(System.Globalization.CultureInfo.CurrentCulture),
+    };
+
+    public string WorkspaceMaintenanceResult => _providerMaintenanceStatusMessage ?? string.Empty;
+
+    public bool HasWorkspaceMaintenanceResult => !string.IsNullOrWhiteSpace(_providerMaintenanceStatusMessage);
 
     internal InferenceProviderSnapshot? Snapshot => _providerSnapshot;
 
@@ -477,6 +507,18 @@ public sealed class ProviderViewModel : ViewModelBase
 
     private void RaiseProjectionChanged()
     {
+        RaiseWorkspaceMetricsChanged();
+        OnPropertyChanged(nameof(WorkspaceVersion));
+        OnPropertyChanged(nameof(HasWorkspaceVersion));
+        OnPropertyChanged(nameof(HasWorkspaceUpdateResult));
+        OnPropertyChanged(nameof(WorkspaceUpdateText));
+        OnPropertyChanged(nameof(WorkspaceUpdateVersion));
+        OnPropertyChanged(nameof(WorkspaceRuntimeStorage));
+        OnPropertyChanged(nameof(WorkspaceCacheStorage));
+        OnPropertyChanged(nameof(WorkspaceRetainedReleases));
+        OnPropertyChanged(nameof(WorkspaceMaintenanceResult));
+        OnPropertyChanged(nameof(HasWorkspaceMaintenanceResult));
+
         OnPropertyChanged(nameof(IsProviderRunning));
         OnPropertyChanged(nameof(ProviderName));
         OnPropertyChanged(nameof(ProviderStatusText));

@@ -64,7 +64,8 @@ UIX ne remplace pas les Lots racines. Une capacité UI qui dépend d'un contrat 
 | UIX-03 Stage 3D-B visual review / Stage 3 closeout | completed | reviewed deterministic capture matrix; Stage 3 closed with non-blocking responsive polish deferred |
 | UIX-03 Stage 4A composer interaction contract | completed | two-line composer and branch model/profile readiness boundaries frozen; documentation-only |
 | UIX-03 Stage 4B two-line composer implementation | completed | signed checkpoint e2a9cbd, owner-host review and Linux CI 447/447, 15 verified captures |
-| UIX-03 Stage 5 branch model/profile selection panel | validation candidate | compact panel anchored to the composer trigger, circular vector actions and 27-image inventory |
+| UIX-03 Stage 5 branch model/profile selection panel | completed | signed checkpoint e0d8132; owner gate 465 tests / 27 captures; CI success confirmed by owner |
+| UIX-03 Stage 6 compact Provider workspace | validation candidate | two command rows, responsive information column, structured runtime metrics, explicit maintenance and 51-image inventory |
 | Lot 11 RAG foundation | planifié | à faire |
 | Lot 12 Retrieval/grounded generation | planifié | à faire |
 | Lot 13 Tools/MCP/agents | planifié | à faire |
@@ -495,18 +496,25 @@ Introduire avant RAG.
 - Stage 4B recovery uses immutable shared identity brushes and unconditional Headless window cleanup; expected inventory is now 447 solution tests / 136 Presentation tests / 15 captures.
 - Published after owner-host native review as signed commit `e2a9cbd36d3fd3599384996e2990f1ec7920d0f1`; Linux CI run `37017246159` passed 447 tests and validated 15 captures.
 
-### UIX-03 Stage 5 - branch model/profile selection panel - validation candidate
+### UIX-03 Stage 5 - branch model/profile selection panel - completed
 
 - ADR 0050 now defines a compact panel anchored above the composer trigger, after owner review of the first full-height drawer; model and profile lists scroll independently. Visible text is limited to headings, names and model authors; details move to tooltips and branch markers.
 - Opening restores the current branch selection. Inspecting and cancelling write nothing; `Use for this branch` keeps the existing branch confirmation and missing Default-catalog boundary.
 - Initial list focus, cyclic Tab/Shift+Tab, Escape/Close/backdrop cancellation and return to the composer trigger are covered. Conversation/workspace changes cancel the preview; active generation keeps the trigger unavailable.
 - Saved-library entries, branch compatibility entries, confirmed custom profiles and WorkingDraft states stay distinct. Provider configuration, runtime and persistence schemas remain unchanged.
-- Candidate inventory: 465 solution tests / 154 Presentation tests / 27 captures. Owner-host native review, signed commit and manual push remain required before publication.
+- Published signed checkpoint `e0d8132103c0138b41c68d9e31ef9b6c7733beeb`: owner-host gate passed 465 solution tests / 154 Presentation tests / 27 captures; owner confirmed CI success.
+
+### UIX-03 Stage 6 - compact Provider workspace - validation candidate
+
+- ADR 0051 captures the owner-approved two-column layout and two aligned action rows.
+- One state-dependent lifecycle action and icon-only detection; update and icon-only update check share the same primary surface.
+- Runtime combines state/version/fallback and structured Input/Output metrics; Storage stays independent. Tabular figures, local decimal formats, historical version identity and keyboard help refine the information column; rounded Maintenance spans the command column.
+- Explicit storage inspection, command guards and destructive confirmations remain intact. Provider/model/profile contracts and persistence do not change.
+- Stage 6 v2 passed the owner full gate (479 solution tests, 39 captures); owner confirmed native functionality, responsive behavior and no observed regressions. Approved v3 refinement adds 11 tests and 9 captures: 490 solution tests / 179 Presentation tests / 48 captures. Publication and v3 native review remain pending.
 
 ### Next steps
 
-- UIX-03 Stage 5 : revue native et publication du panneau validé ;
-- UIX-03 Stage 6 : decluttering final du workspace Provider ;
+- UIX-03 Stage 6 : revue native et publication du workspace Provider compact ;
 - UIX-03 Stage 7 : polish accessibility/responsive/visual QA ;
 - contexte, provenance/révisions et navigation de branches restent des extensions UIX-03 ultérieures adossées aux contrats existants ;
 - UIX-02 extensions différées : suppression de profils/modèles et comparaison visuelle avancée des révisions, après contrats métier dédiés ;
@@ -569,3 +577,31 @@ UIX-02 / UIX-03
    ↓
 Lot 11 → 15
 ```
+
+
+### Stage 6 v4 — native review refinement
+
+All workspace numbers use three decimal places in the current culture (including token/release counts as a display convention; underlying types and measurements stay unchanged). No thousands grouping is added. Values use DejaVu Sans Mono, with Consolas/Menlo/monospace fallbacks. Equal fractional widths and right alignment place decimal separators on the same axis within each numeric column. Units remain separate. Headless checks inspect rendered decimal positions and glyph widths, including fr-FR/en-US and large values.
+
+The Input/Output table has five subdued one-pixel separators. Help buttons are 32 px, refresh buttons 38 px, provider selection is dark and rounded, and the disabled fallback policy is soft amber. Native maintenance disclosure and all command guards remain unchanged. The 179 Presentation tests / 490 solution tests and 48-capture inventory are retained.
+
+
+### Stage 6 v5 — token integers, release states and aligned badges
+
+This refinement supersedes v4 formatting for the Input/Output Tokens row and Old releases only. Tokens are integers; an invisible measured decimal suffix reserves the width of the current-culture separator and three monospaced fractional digits. Their last integer digit aligns with the units digit immediately before the decimal separator in Duration/Rate. Cached input and other decimal rows retain three decimals. Missing token values remain em dashes. The reserved suffix is excluded from the normal accessibility tree.
+
+Old releases shows an amber Unknown badge before inspection and None detected after an inspection reports zero. Positive counts remain integers. A failed refresh does not invent a zero. Runtime, Installed and Fallback share a grid column for their badges, with 16 px text and identical padding/corner treatment; installed and historical version tags retain their turquoise color. Provider state transitions, explicit scanning, maintenance confirmation and persistence remain unchanged.
+
+Headless checks cover integer/decimal glyph positions, four viewports, badge start positions/heights/padding, two cultures, and the Unknown → None detected → positive count transitions. Three new Storage captures extend the inventory to 51; Presentation has 180 tests, solution 491. Native review and the full owner gate remain required before signed publication.
+
+### Stage 6 v6 — owner-approved table refinement candidate
+
+After the v5 native screenshot review, Version replaces Installed and the Input/Output table moves units to its row labels. Numeric blocks share a measured width, are centred under their headings, and preserve integer-before-decimal alignment. Storage and whole-request metrics are unchanged. Existing headless coverage is adapted without adding test cases: 180 Presentation tests, 491 solution tests and 51 captures. The v6 native review and owner full gate remain pending; no publication is implied.
+
+### Stage 6 v7 — shared unit style and right-aligned values
+
+The owner supersedes the v5/v6 token-alignment choice: every value in Input/Output is now right-aligned to the last displayed digit, with 12 px of trailing cell padding. Tokens remain integers and no longer reserve a fractional suffix or align their last digit before the decimal separator. Duration and rate retain three fractional digits, so their decimal separators continue to align. The unused fractional-placeholder projection is removed.
+
+All seven unit labels in the generation table, whole-request metrics and Storage share a 16 px bold style using the existing violet AccentBrush. Table units remain in the first column next to Duration and Rate; numbers retain their turquoise monospaced style. Version and status badges retain v6 behavior.
+
+Existing viewport tests now assert rightmost glyph positions, decimal-to-decimal alignment, integer token formatting and consistent unit styling across all three regions. Counts remain 180 Presentation / 491 solution / 51 captures. Native v7 acceptance and the owner full gate remain pending. The patch accepts the exact uncommitted v5 or v6 checkpoint and rolls back to whichever preimage was applied.

@@ -4,396 +4,439 @@
              xmlns:vm="using:Alicia.Presentation.ViewModels"
              x:Class="Alicia.Presentation.Views.ProviderWorkspaceView"
              x:DataType="vm:MainViewModel"
+             FontSize="16"
              AutomationProperties.Name="Provider workspace"
              AutomationProperties.LandmarkType="Main"
              AutomationProperties.AccessibilityView="Control">
-  <Grid Margin="28"
-        RowDefinitions="Auto,18,*">
+  <UserControl.Resources>
+    <StreamGeometry x:Key="HelpIcon">M12,4 C8,4 6,6 6,9 L9,9 C9,7.5 10,6.5 12,6.5 C14,6.5 15,7.5 15,9 C15,10 14,10.5 13,11 C11,12 10.5,13 10.5,16 L13,16 C13,14 13.5,13.5 15,12.5 C17,11.5 18,10 18,8.5 C18,5.5 15.5,4 12,4 Z M10.5,18 L13,18 L13,20.5 L10.5,20.5 Z</StreamGeometry>
+    <StreamGeometry x:Key="RefreshIcon">M20,4 L20,10 L14,10 L16.3,7.7 A6,6 0 1 0 18,12 L20,12 A8,8 0 1 1 17.7,6.3 Z</StreamGeometry>
+  </UserControl.Resources>
+  <UserControl.Styles>
+    <Style Selector="TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <Style Selector="Button.provider-icon">
+      <Setter Property="Width" Value="38" />
+      <Setter Property="Height" Value="38" />
+      <Setter Property="MinHeight" Value="38" />
+      <Setter Property="Padding" Value="8" />
+      <Setter Property="CornerRadius" Value="19" />
+      <Setter Property="Background" Value="{DynamicResource SurfaceRaisedBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource WorkspaceBorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.provider-help">
+      <Setter Property="Width" Value="32" />
+      <Setter Property="Height" Value="32" />
+      <Setter Property="MinHeight" Value="32" />
+      <Setter Property="Padding" Value="7" />
+      <Setter Property="CornerRadius" Value="16" />
+      <Setter Property="BorderBrush" Value="#46536C" />
+      <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.provider-help PathIcon">
+      <Setter Property="Opacity" Value="0.85" />
+    </Style>
+    <Style Selector="ComboBox.provider-selector">
+      <Setter Property="Background" Value="{DynamicResource SurfaceRaisedBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource WorkspaceBorderBrush}" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="MinHeight" Value="44" />
+    </Style>
+    <Style Selector="ComboBox.provider-selector:disabled /template/ Border#Background">
+      <Setter Property="Background" Value="{DynamicResource SurfaceRaisedBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource WorkspaceBorderBrush}" />
+    </Style>
+    <Style Selector="ComboBox.provider-selector:pointerover /template/ Border#Background">
+      <Setter Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
+    </Style>
+    <Style Selector="ComboBox.provider-selector:pressed /template/ Border#Background">
+      <Setter Property="Background" Value="{DynamicResource WorkspaceSurfaceBrush}" />
+    </Style>
+    <Style Selector="Border.provider-grid-line">
+      <Setter Property="Background" Value="{DynamicResource WorkspaceBorderBrush}" />
+      <Setter Property="Opacity" Value="0.3" />
+      <Setter Property="IsHitTestVisible" Value="False" />
+    </Style>
+    <Style Selector="Border.provider-badge.policy">
+      <Setter Property="Background" Value="#352A1D" />
+    </Style>
+    <Style Selector="Border.provider-badge.policy TextBlock">
+      <Setter Property="Foreground" Value="#E8B775" />
+    </Style>
+    <Style Selector="Expander.provider-disclosure">
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="FontSize" Value="20" />
+      <Setter Property="CornerRadius" Value="18" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Padding" Value="22,0,22,22" />
+      <Setter Property="Background" Value="{DynamicResource WorkspaceSurfaceBrush}" />
+    </Style>
+    <Style Selector="Button">
+      <Setter Property="FontSize" Value="18" />
+    </Style>
+    <Style Selector="ToolTip">
+      <Setter Property="FontSize" Value="16" />
+      <Setter Property="MaxWidth" Value="440" />
+      <Setter Property="Padding" Value="14" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Background" Value="{DynamicResource SurfaceRaisedBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource WorkspaceBorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="TextBlock.provider-heading">
+      <Setter Property="FontSize" Value="20" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TextBlock.provider-number">
+      <Setter Property="FontSize" Value="18" />
+      <Setter Property="FontFeatures" Value="tnum" />
+      <Setter Property="FontFamily" Value="DejaVu Sans Mono, Consolas, Menlo, monospace" />
+      <Setter Property="Foreground" Value="{DynamicResource AccentSecondaryBrush}" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="TextAlignment" Value="Right" />
+      <Setter Property="TextWrapping" Value="NoWrap" />
+    </Style>
+    <Style Selector="TextBlock.provider-unit">
+      <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="FontSize" Value="16" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="TextWrapping" Value="NoWrap" />
+    </Style>
+    <Style Selector="Border.provider-badge">
+      <Setter Property="Background" Value="{DynamicResource SurfaceRaisedBrush}" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Padding" Value="10,6" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="HorizontalAlignment" Value="Left" />
+    </Style>
+    <Style Selector="Border.provider-badge.success">
+      <Setter Property="Background" Value="{DynamicResource SuccessSurfaceBrush}" />
+    </Style>
+    <Style Selector="Border.provider-badge.success TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}" />
+    </Style>
+    <Style Selector="Border.provider-badge.cancelled">
+      <Setter Property="Background" Value="{DynamicResource EditSurfaceBrush}" />
+    </Style>
+    <Style Selector="Border.provider-badge.cancelled TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource EditBrush}" />
+    </Style>
+    <Style Selector="Border.provider-badge.failed">
+      <Setter Property="Background" Value="{DynamicResource DangerSurfaceBrush}" />
+    </Style>
+    <Style Selector="Border.provider-badge.failed TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+    </Style>
+    <Style Selector="Expander.provider-disclosure /template/ ToggleButton#ExpanderHeader">
+      <Setter Property="Background" Value="{DynamicResource WorkspaceSurfaceBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="FontSize" Value="20" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="MinHeight" Value="64" />
+      <Setter Property="Padding" Value="22,0,16,0" />
+    </Style>
+    <Style Selector="Expander.provider-disclosure /template/ Border#ExpanderContent">
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="Expander.provider-disclosure /template/ ToggleButton#ExpanderHeader:pointerover /template/ Border#ToggleButtonBackground">
+      <Setter Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
+    </Style>
+    <Style Selector="Expander.provider-disclosure /template/ ToggleButton#ExpanderHeader:pressed /template/ Border#ToggleButtonBackground">
+      <Setter Property="Background" Value="{DynamicResource SurfaceRaisedBrush}" />
+    </Style>
+  </UserControl.Styles>
 
-    <Grid MaxWidth="1120"
-          HorizontalAlignment="Center"
-          ColumnDefinitions="*,Auto">
-      <StackPanel Spacing="4">
-        <TextBlock Text="Provider"
-                   FontSize="30"
-                   FontWeight="Bold"
-                   AutomationProperties.HeadingLevel="1"
-                   Foreground="{DynamicResource TextPrimaryBrush}" />
-        <TextBlock Text="Control the local inference runtime without mixing model settings into this workspace."
-                   FontSize="14"
-                   TextWrapping="Wrap"
-                   Foreground="{DynamicResource TextSecondaryBrush}" />
-      </StackPanel>
-
-      <Border Grid.Column="1"
-              Classes="status-chip workspace-status-chip"
-              VerticalAlignment="Center">
-        <TextBlock Text="{Binding ProviderStatusText}"
-                   FontSize="13"
-                   FontWeight="SemiBold"
-                   AutomationProperties.Name="Provider status"
-                   AutomationProperties.LiveSetting="Polite"
-                   Foreground="{DynamicResource TextPrimaryBrush}" />
-      </Border>
-    </Grid>
-
-    <ScrollViewer Grid.Row="2"
-                  VerticalScrollBarVisibility="Auto"
-                  HorizontalScrollBarVisibility="Disabled">
-      <StackPanel MaxWidth="1120"
-                  HorizontalAlignment="Center"
-                  Spacing="16">
-
-        <Border Classes="workspace-primary-surface"
-                Padding="22">
-          <StackPanel Spacing="16">
-            <StackPanel Spacing="4">
-              <TextBlock Classes="workspace-section-title"
-                         Text="Runtime"
-                         AutomationProperties.HeadingLevel="2" />
-              <TextBlock Classes="workspace-section-description"
-                         Text="Choose the provider, inspect its state, then run the lifecycle action you need." />
-            </StackPanel>
-
-            <ComboBox ItemsSource="{Binding ProviderOptions}"
-                      SelectedItem="{Binding SelectedProvider, Mode=TwoWay}"
-                      IsEnabled="{Binding IsProviderSelectionEditable}"
-                      AutomationProperties.Name="Inference provider"
-                      AutomationProperties.HelpText="Choose the inference provider explicitly. Alicia does not switch providers automatically.">
-              <ComboBox.ItemTemplate>
-                <DataTemplate x:DataType="providers:InferenceProviderDescriptor">
-                  <TextBlock Text="{Binding Name}" />
-                </DataTemplate>
-              </ComboBox.ItemTemplate>
-            </ComboBox>
-
-            <Grid ColumnDefinitions="*,Auto"
-                  ColumnSpacing="18">
-              <StackPanel Spacing="3">
-                <TextBlock Text="{Binding ProviderName}"
-                           FontSize="17"
-                           FontWeight="SemiBold"
-                           Foreground="{DynamicResource TextPrimaryBrush}" />
-                <TextBlock Text="{Binding ProviderVersionText}"
-                           FontSize="12"
-                           Foreground="{DynamicResource TextSecondaryBrush}" />
-              </StackPanel>
-              <TextBlock Grid.Column="1"
-                         Text="{Binding ProviderFallbackText}"
-                         MaxWidth="360"
-                         VerticalAlignment="Center"
-                         FontSize="12"
-                         TextAlignment="Right"
-                         TextWrapping="Wrap"
-                         Foreground="{DynamicResource TextSecondaryBrush}" />
-            </Grid>
-
-            <TextBlock Text="{Binding ProviderDetailText}"
-                       FontSize="13"
-                       LineHeight="20"
-                       TextWrapping="Wrap"
-                       AutomationProperties.LiveSetting="Polite"
-                       Foreground="{DynamicResource TextSecondaryBrush}" />
-
-            <Border Classes="workspace-progress-surface"
-                    Padding="14"
-                    IsVisible="{Binding IsProviderProgressVisible}"
-                    AutomationProperties.Name="Provider operation progress">
-              <StackPanel Spacing="6">
-                <TextBlock Text="{Binding ProviderProgressText}"
-                           FontSize="13"
-                           FontWeight="SemiBold"
-                           AutomationProperties.LiveSetting="Polite"
-                           Foreground="{DynamicResource TextPrimaryBrush}" />
-                <ProgressBar Height="6"
-                             Minimum="0"
-                             Maximum="100"
-                             Value="{Binding ProviderProgressValue}"
-                             IsIndeterminate="{Binding IsProviderProgressIndeterminateAnimationEnabled}"
-                             AutomationProperties.Name="Provider operation progress indicator" />
-                <TextBlock Text="{Binding ProviderProgressDetailText}"
-                           FontSize="12"
-                           TextWrapping="Wrap"
-                           AutomationProperties.LiveSetting="Polite"
-                           Foreground="{DynamicResource TextSecondaryBrush}" />
-              </StackPanel>
-            </Border>
-
-            <Grid ColumnDefinitions="*,8,*,8,*,8,*">
-              <Button Grid.Column="0"
-                      Classes="quiet-action"
-                      Command="{Binding DetectProviderCommand}"
-                      IsEnabled="{Binding CanDetectProvider}"
-                      Content="Detect"
-                      AutomationProperties.Name="Detect selected provider" />
-                <Button Grid.Column="2"
-                      Classes="quiet-action"
-                      Command="{Binding InstallProviderCommand}"
-                      IsEnabled="{Binding CanInstallProvider}"
-                      Content="Install"
-                      AutomationProperties.Name="Install selected provider" />
-              <Button Grid.Column="4"
-                      Classes="primary-action"
-                      Command="{Binding StartProviderCommand}"
-                      IsEnabled="{Binding CanStartProvider}"
-                      Content="Start"
-                      AutomationProperties.Name="Start selected provider" />
-              <Button Grid.Column="6"
-                      Classes="secondary-action"
-                      Command="{Binding StopProviderCommand}"
-                      IsEnabled="{Binding CanStopProvider}"
-                      Content="Stop local AI"
-                      AutomationProperties.Name="Stop selected provider" />
-            </Grid>
-          </StackPanel>
-        </Border>
-
-        <Border Classes="workspace-secondary-surface"
-                Padding="18">
-          <StackPanel>
-            <Grid ColumnDefinitions="1.1*,24,*">
-              <StackPanel Spacing="5">
-              <TextBlock Classes="workspace-section-title"
-                         Text="Runtime updates"
-                         AutomationProperties.HeadingLevel="2" />
-              <TextBlock Classes="workspace-section-description"
-                         Text="Alicia installs only its pinned validated release. Upstream latest stays informational until validated." />
-              </StackPanel>
-
-              <StackPanel Grid.Column="2"
-                        Spacing="8">
-              <TextBlock Text="{Binding ProviderInstalledReleaseText}"
-                         FontSize="12"
-                         TextWrapping="Wrap"
-                         Foreground="{DynamicResource TextSecondaryBrush}" />
-              <TextBlock Text="{Binding ProviderValidatedReleaseText}"
-                         FontSize="12"
-                         TextWrapping="Wrap"
-                         Foreground="{DynamicResource TextSecondaryBrush}" />
-              <TextBlock Text="{Binding ProviderLatestReleaseText}"
-                         FontSize="12"
-                         TextWrapping="Wrap"
-                         Foreground="{DynamicResource TextSecondaryBrush}" />
-              </StackPanel>
-            </Grid>
-
-            <StackPanel Margin="0,14,0,0"
-                        Spacing="10">
-              <TextBlock Text="{Binding ProviderUpdateStatusText}"
-                       FontSize="12"
-                       LineHeight="18"
-                       TextWrapping="Wrap"
-                       AutomationProperties.LiveSetting="Polite"
-                       Foreground="{DynamicResource TextSecondaryBrush}" />
-
-              <Grid ColumnDefinitions="*,8,*">
-                <Button Grid.Column="0"
-                      Classes="quiet-action"
-                      Command="{Binding CheckProviderUpdateCommand}"
-                      IsEnabled="{Binding CanCheckProviderUpdate}"
-                      Content="Check update"
-                      AutomationProperties.Name="Check provider update" />
-              <Button Grid.Column="2"
-                      Classes="secondary-action"
-                      Command="{Binding UpdateProviderCommand}"
-                      IsEnabled="{Binding CanUpdateProvider}"
-                      Content="Update validated"
-                        AutomationProperties.Name="Update provider to Alicia validated release" />
+  <Grid Margin="28" RowDefinitions="Auto,20,*">
+    <TextBlock Text="Provider" FontSize="32" FontWeight="Bold" MaxWidth="1120" HorizontalAlignment="Stretch"
+               AutomationProperties.HeadingLevel="1" />
+    <ScrollViewer x:Name="ProviderScroll" Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+      <Grid x:Name="ProviderColumns" MaxWidth="1120" HorizontalAlignment="Stretch"
+            ColumnDefinitions="*,24,1.15*" RowDefinitions="Auto,Auto">
+        <StackPanel x:Name="ProviderCommands" Spacing="16">
+          <Border x:Name="RuntimePanel" Classes="workspace-primary-surface" Padding="22">
+            <StackPanel Spacing="18">
+              <Grid ColumnDefinitions="*,12,Auto">
+                <ComboBox Classes="provider-selector" Background="{DynamicResource SurfaceRaisedBrush}" BorderBrush="{DynamicResource WorkspaceBorderBrush}" ItemsSource="{Binding ProviderOptions}" SelectedItem="{Binding SelectedProvider, Mode=TwoWay}"
+                          IsEnabled="{Binding IsProviderSelectionEditable}" HorizontalAlignment="Stretch"
+                          VerticalAlignment="Center" FontSize="18"
+                          AutomationProperties.Name="Inference provider"
+                          AutomationProperties.HelpText="Select a provider explicitly.">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="providers:InferenceProviderDescriptor">
+                      <TextBlock Text="{Binding Name}" FontSize="18" />
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+                <Button FontSize="18" Grid.Column="2" Classes="provider-icon provider-help" ToolTip.Placement="Bottom" Click="OnHelpClick" KeyDown="OnHelpKeyDown" LostFocus="OnHelpLostFocus"
+                        ToolTip.Tip="{Binding ProviderPrimaryHelp}" AutomationProperties.Name="About provider actions">
+                  <PathIcon Width="18" Height="18" Data="M12,4 C8,4 6,6 6,9 L9,9 C9,7.5 10,6.5 12,6.5 C14,6.5 15,7.5 15,9 C15,10 14,10.5 13,11 C11,12 10.5,13 10.5,16 L13,16 C13,14 13.5,13.5 15,12.5 C17,11.5 18,10 18,8.5 C18,5.5 15.5,4 12,4 Z M10.5,18 L13,18 L13,20.5 L10.5,20.5 Z" />
+                </Button>
+              </Grid>
+              <Grid x:Name="ProviderActionRows" ColumnDefinitions="*,12,Auto" RowDefinitions="Auto,12,Auto">
+                <Border ToolTip.Tip="{Binding ProviderPrimaryHelp}">
+                  <Button FontSize="18" Classes="primary-action" Command="{Binding ProviderPrimaryCommand}" IsEnabled="{Binding CanExecuteProviderPrimary}"
+                          Content="{Binding ProviderPrimaryLabel}" HorizontalAlignment="Stretch"
+                          HorizontalContentAlignment="Center" Height="46"
+                          AutomationProperties.Name="Provider lifecycle action"
+                          AutomationProperties.HelpText="{Binding ProviderPrimaryHelp}" />
+                </Border>
+                <Button FontSize="18" Grid.Column="2" Classes="provider-icon" Command="{Binding DetectProviderCommand}" IsEnabled="{Binding CanDetectProvider}"
+                        ToolTip.Tip="Detect the selected engine" AutomationProperties.Name="Detect selected provider">
+                  <PathIcon Width="20" Height="20" Data="{StaticResource RefreshIcon}" />
+                </Button>
+                <Border Grid.Row="2" ToolTip.Tip="{Binding ProviderUpdateHelp}">
+                  <Button FontSize="18" Classes="secondary-action" Command="{Binding UpdateProviderCommand}" IsEnabled="{Binding CanUpdateProvider}"
+                          Content="Update" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Height="46"
+                          AutomationProperties.Name="Update provider to Alicia validated release"
+                          AutomationProperties.HelpText="{Binding ProviderUpdateHelp}" />
+                </Border>
+                <Button FontSize="18" Grid.Row="2" Grid.Column="2" Classes="provider-icon" Command="{Binding CheckProviderUpdateCommand}" IsEnabled="{Binding CanCheckProviderUpdate}"
+                        ToolTip.Tip="Check for a validated update" AutomationProperties.Name="Check provider update">
+                  <PathIcon Width="20" Height="20" Data="{StaticResource RefreshIcon}" />
+                </Button>
               </Grid>
             </StackPanel>
-          </StackPanel>
-        </Border>
-
-        <Expander Header="Maintenance"
-                  Classes="workspace-disclosure"
-                  IsExpanded="False"
-                  IsVisible="{Binding SupportsProviderMaintenance}"
-                  AutomationProperties.Name="Managed provider maintenance">
-          <StackPanel Margin="0,12,0,0"
-                      Spacing="16">
-            <Border Classes="workspace-secondary-surface"
-                    Padding="18">
-              <StackPanel Spacing="10">
-                <StackPanel Spacing="4">
-                  <TextBlock Classes="workspace-section-title"
-                             Text="Managed storage"
-                             AutomationProperties.HeadingLevel="2" />
-                  <TextBlock Classes="workspace-section-description"
-                             Text="Inspect Alicia-owned runtime and model-cache usage before cleanup. Configuration and conversations are outside this scope." />
+          </Border>
+          <Expander x:Name="MaintenancePanel" Classes="provider-disclosure" IsExpanded="False"
+                    IsVisible="{Binding SupportsProviderMaintenance}" AutomationProperties.Name="Managed provider maintenance">
+            <Expander.Header>
+              <TextBlock Text="Maintenance" Classes="provider-heading" AutomationProperties.HeadingLevel="2" />
+            </Expander.Header>
+            <StackPanel Spacing="16">
+              <Grid ColumnDefinitions="*,12,Auto">
+                <TextBlock Text="{Binding ProviderMaintenanceHelp}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                <Button FontSize="18" Grid.Column="2" Classes="provider-icon provider-help" ToolTip.Placement="Bottom" Click="OnHelpClick" KeyDown="OnHelpKeyDown" LostFocus="OnHelpLostFocus"
+                        ToolTip.Tip="Refresh storage and stop the engine before maintenance. Each removal has its own confirmation."
+                        AutomationProperties.Name="About provider maintenance">
+                  <PathIcon Width="18" Height="18" Data="{StaticResource HelpIcon}" />
+                </Button>
+              </Grid>
+              <Button FontSize="18" Classes="danger-subtle-action" Command="{Binding RequestCleanupRetainedProviderReleasesCommand}" IsEnabled="{Binding CanCleanupRetainedProviderReleases}"
+                      Content="Clean old releases" HorizontalAlignment="Stretch"
+                      AutomationProperties.Name="Request cleanup of inactive managed runtime releases"
+                      ToolTip.Tip="Remove inactive releases; keep the active runtime and model cache." />
+              <Button FontSize="18" Classes="danger-action" Command="{Binding RequestUninstallProviderRuntimeCommand}" IsEnabled="{Binding CanRequestProviderMaintenance}"
+                      Content="Uninstall runtime" HorizontalAlignment="Stretch"
+                      AutomationProperties.Name="Request managed runtime uninstall"
+                      ToolTip.Tip="Keep the model cache, configuration and conversations." />
+              <Button FontSize="18" Classes="danger-action" Command="{Binding RequestUninstallProviderRuntimeAndCacheCommand}" IsEnabled="{Binding CanRequestProviderMaintenance}"
+                      Content="Uninstall runtime + cache" HorizontalAlignment="Stretch"
+                      AutomationProperties.Name="Request managed runtime and model cache uninstall"
+                      ToolTip.Tip="Remove runtime and model cache; keep configuration and conversations." />
+              <Border IsVisible="{Binding IsProviderMaintenanceConfirmationVisible}" Padding="14" CornerRadius="12"
+                      Background="{DynamicResource DangerSurfaceBrush}" AutomationProperties.Name="Provider maintenance confirmation">
+                <StackPanel Spacing="12">
+                  <TextBlock Text="{Binding ProviderMaintenanceConfirmationTitle}" FontWeight="SemiBold"
+                             AutomationProperties.HeadingLevel="3" />
+                  <TextBlock Text="{Binding ProviderMaintenanceConfirmationDescription}" />
+                  <Button FontSize="18" Classes="quiet-action" Command="{Binding CancelProviderMaintenanceCommand}" Content="Cancel"
+                          HorizontalAlignment="Stretch" AutomationProperties.Name="Cancel provider maintenance" />
+                  <Button FontSize="18" Classes="danger-action" Command="{Binding ConfirmProviderMaintenanceCommand}" IsEnabled="{Binding CanConfirmProviderMaintenance}"
+                          Content="{Binding ProviderMaintenanceConfirmLabel}" HorizontalAlignment="Stretch"
+                          AutomationProperties.Name="Confirm provider maintenance" />
                 </StackPanel>
+              </Border>
+            </StackPanel>
+          </Expander>
+        </StackPanel>
 
-                <Button Classes="quiet-action"
-                        HorizontalAlignment="Left"
-                        Command="{Binding InspectProviderStorageCommand}"
-                        IsEnabled="{Binding CanInspectProviderStorage}"
-                        Content="Inspect storage"
-                        AutomationProperties.Name="Inspect managed provider storage" />
-
-                <StackPanel Spacing="4"
-                            IsVisible="{Binding HasProviderStorageInfo}"
-                            AutomationProperties.Name="Managed provider storage summary">
-                  <TextBlock Text="{Binding ProviderRuntimeStorageText}"
-                             FontSize="12"
-                             TextWrapping="Wrap"
-                             Foreground="{DynamicResource TextSecondaryBrush}" />
-                  <TextBlock Text="{Binding ProviderModelCacheStorageText}"
-                             FontSize="12"
-                             TextWrapping="Wrap"
-                             Foreground="{DynamicResource TextSecondaryBrush}" />
-                  <TextBlock Text="{Binding ProviderRetainedReleasesText}"
-                             FontSize="12"
-                             TextWrapping="Wrap"
-                             Foreground="{DynamicResource TextSecondaryBrush}" />
-                </StackPanel>
-
-                <TextBlock Text="{Binding ProviderMaintenanceStatusText}"
-                           FontSize="12"
-                           LineHeight="18"
-                           TextWrapping="Wrap"
-                           AutomationProperties.LiveSetting="Polite"
-                           Foreground="{DynamicResource TextSecondaryBrush}" />
-              </StackPanel>
-            </Border>
-
-            <Border Classes="workspace-danger-surface"
-                    Padding="18">
-              <StackPanel Spacing="10">
-                <StackPanel Spacing="4">
-                  <TextBlock Text="Danger zone"
-                             FontSize="15"
-                             FontWeight="SemiBold"
-                             AutomationProperties.HeadingLevel="2"
-                             Foreground="{DynamicResource DangerBrush}" />
-                  <TextBlock Text="Nothing is removed until a separate confirmation is accepted. Stop the local AI model first."
-                             FontSize="12"
-                             LineHeight="18"
-                             TextWrapping="Wrap"
-                             Foreground="{DynamicResource TextSecondaryBrush}" />
-                </StackPanel>
-
-                <Button Classes="danger-subtle-action"
-                        HorizontalAlignment="Left"
-                        Command="{Binding RequestCleanupRetainedProviderReleasesCommand}"
-                        IsEnabled="{Binding CanCleanupRetainedProviderReleases}"
-                        Content="Clean old releases"
-                        AutomationProperties.Name="Request cleanup of inactive managed runtime releases"
-                        AutomationProperties.HelpText="Preserves the active runtime and local model cache." />
-
-                <Grid ColumnDefinitions="*,8,*">
-                  <Button Grid.Column="0"
-                          Classes="danger-action"
-                          Command="{Binding RequestUninstallProviderRuntimeCommand}"
-                          IsEnabled="{Binding CanRequestProviderMaintenance}"
-                          Content="Uninstall runtime"
-                          AutomationProperties.Name="Request managed runtime uninstall"
-                          AutomationProperties.HelpText="Preserves the local model cache, provider configuration, and conversations." />
-                  <Button Grid.Column="2"
-                          Classes="danger-action"
-                          Command="{Binding RequestUninstallProviderRuntimeAndCacheCommand}"
-                          IsEnabled="{Binding CanRequestProviderMaintenance}"
-                          Content="Uninstall runtime + cache"
-                          AutomationProperties.Name="Request managed runtime and model cache uninstall"
-                          AutomationProperties.HelpText="Removes managed runtime files and the local model cache, but preserves provider configuration and conversations." />
-                </Grid>
-
-                <Border IsVisible="{Binding IsProviderMaintenanceConfirmationVisible}"
-                        Background="{DynamicResource DangerSurfaceBrush}"
-                        CornerRadius="12"
-                        Padding="14"
-                        AutomationProperties.Name="Provider maintenance confirmation">
-                  <StackPanel Spacing="10">
-                    <TextBlock Text="{Binding ProviderMaintenanceConfirmationTitle}"
-                               FontSize="14"
-                               FontWeight="SemiBold"
-                               AutomationProperties.HeadingLevel="3"
-                               Foreground="{DynamicResource TextPrimaryBrush}" />
-                    <TextBlock Text="{Binding ProviderMaintenanceConfirmationDescription}"
-                               FontSize="12"
-                               LineHeight="18"
-                               TextWrapping="Wrap"
-                               Foreground="{DynamicResource TextSecondaryBrush}" />
-                    <Grid ColumnDefinitions="*,8,*">
-                      <Button Grid.Column="0"
-                              Classes="quiet-action"
-                              Command="{Binding CancelProviderMaintenanceCommand}"
-                              Content="Cancel"
-                              AutomationProperties.Name="Cancel provider maintenance" />
-                      <Button Grid.Column="2"
-                              Classes="danger-action"
-                              Command="{Binding ConfirmProviderMaintenanceCommand}"
-                              IsEnabled="{Binding CanConfirmProviderMaintenance}"
-                              Content="{Binding ProviderMaintenanceConfirmLabel}"
-                              AutomationProperties.Name="Confirm provider maintenance" />
-                    </Grid>
-                  </StackPanel>
+        <StackPanel x:Name="ProviderInformation" Grid.Column="2" Spacing="20">
+          <Border x:Name="RuntimeInformationPanel" Classes="workspace-secondary-surface" Padding="24">
+            <StackPanel Spacing="20">
+              <Grid x:Name="RuntimeSummaryGrid" ColumnDefinitions="Auto,12,*,12,Auto" RowDefinitions="Auto,20,Auto,20,Auto">
+                <TextBlock Text="Runtime" Classes="provider-heading" AutomationProperties.HeadingLevel="2" />
+                <Border x:Name="RuntimeStateBadge" Grid.Column="2" Classes="provider-badge" Classes.success="{Binding IsProviderRunning}" Classes.failed="{Binding HasProviderFailure}">
+                  <TextBlock Text="{Binding ProviderStatusText}" FontSize="16" FontWeight="SemiBold"
+                             AutomationProperties.Name="Provider status" AutomationProperties.LiveSetting="Polite" />
+                </Border>
+                <Button FontSize="18" Grid.Column="4" Classes="provider-icon provider-help" ToolTip.Placement="Bottom" Click="OnHelpClick" KeyDown="OnHelpKeyDown" LostFocus="OnHelpLostFocus"
+                        ToolTip.Tip="The selected inference engine. Version is the detected runtime version; updates use only releases validated by Alicia."
+                        AutomationProperties.Name="About runtime" AutomationProperties.HelpText="The selected inference engine. Version is the detected runtime version; updates use only releases validated by Alicia.">
+                  <PathIcon Width="18" Height="18" Data="{StaticResource HelpIcon}" />
+                </Button>
+                <TextBlock x:Name="RuntimeVersionLabel" Grid.Row="2" Text="Version" VerticalAlignment="Center" IsVisible="{Binding Provider.HasWorkspaceVersion}" />
+                <Border x:Name="RuntimeVersionBadge" Grid.Row="2" Grid.Column="2" Classes="provider-badge" IsVisible="{Binding Provider.HasWorkspaceVersion}"
+                        Background="{DynamicResource AccentSecondaryBrush}">
+                  <TextBlock Text="{Binding Provider.WorkspaceVersion}" FontSize="16" FontWeight="SemiBold"
+                             Foreground="{DynamicResource TextOnAccentBrush}" AutomationProperties.Name="Installed runtime version" />
+                </Border>
+                <TextBlock Grid.Row="4" Text="Fallback :" VerticalAlignment="Center" />
+                <Border x:Name="RuntimeFallbackBadge" Grid.Row="4" Grid.Column="2" Classes="provider-badge policy" Background="#352A1D">
+                  <TextBlock Text="Disabled" FontSize="16" FontWeight="SemiBold" AutomationProperties.Name="Fallback disabled" />
+                </Border>
+                <Button FontSize="18" Grid.Row="4" Grid.Column="4" Classes="provider-icon provider-help" ToolTip.Placement="Bottom" Click="OnHelpClick" KeyDown="OnHelpKeyDown" LostFocus="OnHelpLostFocus"
+                        ToolTip.Tip="{Binding ProviderFallbackText}" AutomationProperties.Name="About provider fallback" AutomationProperties.HelpText="{Binding ProviderFallbackText}">
+                  <PathIcon Width="18" Height="18" Data="{StaticResource HelpIcon}" />
+                </Button>
+              </Grid>
+              <StackPanel Spacing="12" IsVisible="{Binding Provider.HasWorkspaceUpdateResult}">
+                <TextBlock Text="{Binding Provider.WorkspaceUpdateText}" AutomationProperties.LiveSetting="Polite"
+                           AutomationProperties.Name="Provider update result" ToolTip.Tip="{Binding ProviderUpdateStatusText}" />
+                <Border IsVisible="{Binding IsProviderUpdateAvailable}" Classes="provider-badge success">
+                  <TextBlock Text="{Binding Provider.WorkspaceUpdateVersion}" FontSize="16" FontWeight="SemiBold"
+                             AutomationProperties.Name="Validated update version" />
                 </Border>
               </StackPanel>
-            </Border>
-          </StackPanel>
-        </Expander>
-
-        <Expander Header="Technical details"
-                  Classes="workspace-disclosure"
-                  IsExpanded="False"
-                  AutomationProperties.Name="Provider technical details">
-          <StackPanel Margin="0,10,0,0"
-                      Spacing="12">
-            <StackPanel Spacing="7"
-                        IsVisible="{Binding SupportsProviderObservability}">
-              <TextBlock Text="Last generation"
-                         FontSize="14"
-                         FontWeight="SemiBold"
-                         AutomationProperties.HeadingLevel="3"
-                         Foreground="{DynamicResource TextPrimaryBrush}" />
-              <TextBlock Text="{Binding ProviderGenerationOutcomeText}"
-                         FontSize="12"
-                         FontWeight="SemiBold"
-                         AutomationProperties.LiveSetting="Polite"
-                         Foreground="{DynamicResource TextPrimaryBrush}" />
-              <StackPanel Spacing="4"
-                          IsVisible="{Binding HasProviderGenerationObservation}"
-                          AutomationProperties.Name="Last generation metrics">
-                <TextBlock Text="{Binding ProviderGenerationIdentityText}"
-                           FontSize="12"
-                           TextWrapping="Wrap"
-                           Foreground="{DynamicResource TextSecondaryBrush}" />
-                <TextBlock Text="{Binding ProviderGenerationLatencyText}"
-                           FontSize="12"
-                           TextWrapping="Wrap"
-                           Foreground="{DynamicResource TextSecondaryBrush}" />
-                <TextBlock Text="{Binding ProviderGenerationTokenUsageText}"
-                           FontSize="12"
-                           TextWrapping="Wrap"
-                           Foreground="{DynamicResource TextSecondaryBrush}" />
-                <TextBlock Text="{Binding ProviderGenerationTimingText}"
-                           FontSize="12"
-                           TextWrapping="Wrap"
-                           Foreground="{DynamicResource TextSecondaryBrush}" />
+              <TextBlock IsVisible="{Binding HasProviderFailure}" Text="{Binding ProviderFailureMessage}"
+                         Foreground="{DynamicResource DangerBrush}" AutomationProperties.Name="Provider failure"
+                         AutomationProperties.LiveSetting="Polite" />
+              <Border IsVisible="{Binding IsProviderProgressVisible}" Classes="workspace-progress-surface" Padding="14"
+                      AutomationProperties.Name="Provider operation progress">
+                <StackPanel Spacing="10">
+                  <TextBlock Text="{Binding ProviderProgressText}" FontWeight="SemiBold" AutomationProperties.LiveSetting="Polite" />
+                  <ProgressBar Height="6" Minimum="0" Maximum="100" Value="{Binding ProviderProgressValue}"
+                               IsIndeterminate="{Binding IsProviderProgressIndeterminateAnimationEnabled}"
+                               AutomationProperties.Name="Provider operation progress indicator" />
+                  <TextBlock Text="{Binding ProviderProgressDetailText}" />
+                </StackPanel>
+              </Border>
+              <Border Height="1" Background="{DynamicResource BorderBrush}" IsVisible="{Binding SupportsProviderObservability}" />
+              <StackPanel x:Name="GenerationMetricsPanel" Spacing="16" IsVisible="{Binding SupportsProviderObservability}">
+                <Grid ColumnDefinitions="*,Auto">
+                  <WrapPanel VerticalAlignment="Center">
+                    <TextBlock Text="Last generation" Classes="provider-heading" Margin="0,0,12,0" AutomationProperties.HeadingLevel="3" />
+                    <Border Classes="provider-badge" IsVisible="{Binding Provider.HasProviderGenerationObservation}"
+                            Classes.success="{Binding Provider.WorkspaceGenerationCompleted}"
+                            Classes.cancelled="{Binding Provider.WorkspaceGenerationCancelled}"
+                            Classes.failed="{Binding Provider.WorkspaceGenerationFailed}">
+                      <TextBlock Text="{Binding Provider.WorkspaceGenerationOutcome}" FontWeight="SemiBold"
+                                 AutomationProperties.Name="Last generation outcome" AutomationProperties.LiveSetting="Polite" />
+                    </Border>
+                  </WrapPanel>
+<Button FontSize="18" Grid.Column="1" Classes="provider-icon provider-help" ToolTip.Placement="Bottom" Click="OnHelpClick" KeyDown="OnHelpKeyDown" LostFocus="OnHelpLostFocus" ToolTip.Tip="{Binding Provider.WorkspaceGenerationHelp}"
+                        AutomationProperties.Name="About generation metrics" AutomationProperties.HelpText="{Binding Provider.WorkspaceGenerationHelp}">
+                  <PathIcon Width="18" Height="18" Data="{StaticResource HelpIcon}" />
+                </Button>
+                </Grid>
+                <TextBlock Text="No generation yet" IsVisible="{Binding !Provider.HasProviderGenerationObservation}"
+                           Foreground="{DynamicResource TextSecondaryBrush}" AutomationProperties.Name="No generation observed" />
+                <StackPanel Spacing="18" IsVisible="{Binding Provider.HasProviderGenerationObservation}" AutomationProperties.Name="Last generation metrics">
+                  <StackPanel Spacing="8" ToolTip.Tip="{Binding Provider.WorkspaceGenerationReference}">
+                    <TextBlock Text="{Binding Provider.WorkspaceGenerationModel}" FontSize="18" FontWeight="SemiBold"
+                               AutomationProperties.Name="Last generation model" />
+                    <TextBlock Text="{Binding Provider.WorkspaceGenerationAuthor}" IsVisible="{Binding Provider.HasWorkspaceGenerationAuthor}"
+                               Foreground="{DynamicResource TextSecondaryBrush}" AutomationProperties.Name="Last generation author" />
+                    <StackPanel Orientation="Horizontal" Spacing="10" IsVisible="{Binding Provider.HasDifferentWorkspaceGenerationVersion}">
+                      <TextBlock Text="Used version" VerticalAlignment="Center" />
+                      <Border Background="{DynamicResource AccentSecondaryBrush}" CornerRadius="10" Padding="10,6">
+                        <TextBlock Text="{Binding Provider.WorkspaceGenerationVersion}" FontSize="16" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextOnAccentBrush}" AutomationProperties.Name="Last generation runtime version" />
+                      </Border>
+                    </StackPanel>
+                    <TextBlock Text="{Binding Provider.WorkspaceGenerationFailure}" IsVisible="{Binding Provider.WorkspaceGenerationFailed}"
+                               Foreground="{DynamicResource DangerBrush}" AutomationProperties.Name="Last generation failure" />
+                  </StackPanel>
+                  <Grid x:Name="GenerationMetricsTable" ColumnDefinitions="Auto,24,*,24,*"
+                        RowDefinitions="Auto,20,Auto,20,Auto,20,Auto" AutomationProperties.Name="Input and output metrics">
+                    <Border Grid.Row="1" Grid.ColumnSpan="5" Height="1" Classes="provider-grid-line" />
+                    <Border Grid.Row="3" Grid.ColumnSpan="5" Height="1" Classes="provider-grid-line" />
+                    <Border Grid.Row="5" Grid.ColumnSpan="5" Height="1" Classes="provider-grid-line" />
+                    <Border Grid.Column="1" Grid.RowSpan="7" Width="1" Classes="provider-grid-line" />
+                    <Border Grid.Column="3" Grid.RowSpan="7" Width="1" Classes="provider-grid-line" />
+                    <TextBlock x:Name="InputMetricsHeading" Grid.Column="2" Text="Input" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                    <TextBlock x:Name="OutputMetricsHeading" Grid.Column="4" Text="Output" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                    <TextBlock Grid.Row="2" Text="Tokens" VerticalAlignment="Center" />
+                    <StackPanel Grid.Row="4" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                      <TextBlock Text="Duration" />
+                      <TextBlock Classes="provider-unit" Text="(s)" />
+                    </StackPanel>
+                    <StackPanel Grid.Row="6" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                      <TextBlock Text="Rate" />
+                      <TextBlock Classes="provider-unit" Text="(tok/s)" />
+                    </StackPanel>
+                    <TextBlock Grid.Row="2" Grid.Column="2" Classes="provider-number provider-integer" Margin="0,0,12,0"
+                               Text="{Binding Provider.WorkspaceInputTokens}" AutomationProperties.Name="Input tokens"
+                               AutomationProperties.HelpText="tokens" />
+                    <TextBlock Grid.Row="2" Grid.Column="4" Classes="provider-number provider-integer" Margin="0,0,12,0"
+                               Text="{Binding Provider.WorkspaceOutputTokens}" AutomationProperties.Name="Output tokens"
+                               AutomationProperties.HelpText="tokens" />
+                    <TextBlock Grid.Row="4" Grid.Column="2" Classes="provider-number" Margin="0,0,12,0"
+                               Text="{Binding Provider.WorkspaceInputDuration}" AutomationProperties.Name="Input duration"
+                               AutomationProperties.HelpText="seconds" />
+                    <TextBlock Grid.Row="4" Grid.Column="4" Classes="provider-number" Margin="0,0,12,0"
+                               Text="{Binding Provider.WorkspaceOutputDuration}" AutomationProperties.Name="Output duration"
+                               AutomationProperties.HelpText="seconds" />
+                    <TextBlock Grid.Row="6" Grid.Column="2" Classes="provider-number" Margin="0,0,12,0"
+                               Text="{Binding Provider.WorkspaceInputRate}" AutomationProperties.Name="Input rate"
+                               AutomationProperties.HelpText="tokens per second" />
+                    <TextBlock Grid.Row="6" Grid.Column="4" Classes="provider-number" Margin="0,0,12,0"
+                               Text="{Binding Provider.WorkspaceOutputRate}" AutomationProperties.Name="Output rate"
+                               AutomationProperties.HelpText="tokens per second" />
+                  </Grid>
+                  <Border Height="1" Background="{DynamicResource BorderBrush}" />
+                  <Grid ColumnDefinitions="*,16,Auto,6,Auto" RowDefinitions="Auto,12,Auto,12,Auto"
+                        AutomationProperties.Name="Whole request metrics">
+                    <TextBlock Grid.Row="0" Text="Cached input" VerticalAlignment="Center" />
+                <TextBlock Grid.Row="0" Grid.Column="2" Classes="provider-number" Text="{Binding Provider.WorkspaceCachedTokens}"
+                           AutomationProperties.Name="Cached input" />
+                    <TextBlock Grid.Row="0" Grid.Column="4" Classes="provider-unit" Text="tok" />
+                    <TextBlock Grid.Row="2" Text="Total duration" VerticalAlignment="Center" />
+                <TextBlock Grid.Row="2" Grid.Column="2" Classes="provider-number" Text="{Binding Provider.WorkspaceTotalDuration}"
+                           AutomationProperties.Name="Total duration" />
+                    <TextBlock Grid.Row="2" Grid.Column="4" Classes="provider-unit" Text="s" />
+                    <TextBlock Grid.Row="4" Text="First output" VerticalAlignment="Center" />
+                <TextBlock Grid.Row="4" Grid.Column="2" Classes="provider-number" Text="{Binding Provider.WorkspaceFirstOutput}"
+                           AutomationProperties.Name="First output" />
+                    <TextBlock Grid.Row="4" Grid.Column="4" Classes="provider-unit" Text="s" />
+                  </Grid>
+                </StackPanel>
               </StackPanel>
-              <TextBlock Text="{Binding ProviderObservabilityPrivacyText}"
-                         FontSize="11"
-                         LineHeight="17"
-                         TextWrapping="Wrap"
-                         Foreground="{DynamicResource TextSecondaryBrush}" />
             </StackPanel>
+          </Border>
+          <Border x:Name="StorageInformationPanel" Classes="workspace-secondary-surface" Padding="24" IsVisible="{Binding SupportsProviderMaintenance}">
+            <StackPanel Spacing="20">
+              <Grid ColumnDefinitions="*,Auto,12,Auto">
+                <TextBlock Text="Storage" Classes="provider-heading" AutomationProperties.HeadingLevel="2" />
+<Button FontSize="18" Grid.Column="1" Classes="provider-icon provider-help" ToolTip.Placement="Bottom" Click="OnHelpClick" KeyDown="OnHelpKeyDown" LostFocus="OnHelpLostFocus" ToolTip.Tip="Refresh scans the managed runtime and local model cache. Old releases counts inactive retained runtimes. An em dash means storage has not been inspected."
+                        AutomationProperties.Name="About provider storage" AutomationProperties.HelpText="Refresh scans the managed runtime and local model cache. Old releases counts inactive retained runtimes. An em dash means storage has not been inspected.">
+                  <PathIcon Width="18" Height="18" Data="{StaticResource HelpIcon}" />
+                </Button>
+                <Button FontSize="18" Grid.Column="3" Classes="provider-icon" Command="{Binding InspectProviderStorageCommand}" IsEnabled="{Binding CanInspectProviderStorage}"
+                        ToolTip.Tip="Refresh runtime and model cache sizes" AutomationProperties.Name="Inspect managed provider storage">
+                  <PathIcon Width="20" Height="20" Data="{StaticResource RefreshIcon}" />
+                </Button>
+              </Grid>
+              <Grid ColumnDefinitions="*,16,Auto,6,Auto" RowDefinitions="Auto,14,Auto,14,Auto"
+                    AutomationProperties.Name="Managed provider storage summary">
+                <TextBlock Text="Runtime" VerticalAlignment="Center" />
+                <TextBlock Grid.Row="0" Grid.Column="2" Classes="provider-number" Text="{Binding Provider.WorkspaceRuntimeSize}"
+                           AutomationProperties.Name="Runtime storage value" />
+                <TextBlock Grid.Row="0" Grid.Column="4" Classes="provider-unit" Text="{Binding Provider.WorkspaceRuntimeUnit}"
+                           AutomationProperties.Name="Runtime storage unit" />
 
-            <Separator Background="{DynamicResource WorkspaceBorderBrush}"
-                       IsVisible="{Binding SupportsProviderObservability}" />
+                <TextBlock Grid.Row="2" Text="Model cache" VerticalAlignment="Center" />
+                <TextBlock Grid.Row="2" Grid.Column="2" Classes="provider-number" Text="{Binding Provider.WorkspaceCacheSize}"
+                           AutomationProperties.Name="Model cache value" />
+                <TextBlock Grid.Row="2" Grid.Column="4" Classes="provider-unit" Text="{Binding Provider.WorkspaceCacheUnit}"
+                           AutomationProperties.Name="Model cache unit" />
 
-            <TextBlock Text="{Binding ProviderConfigurationStatusText}"
-                       FontSize="12"
-                       LineHeight="18"
-                       TextWrapping="Wrap"
-                       AutomationProperties.LiveSetting="Polite"
-                       Foreground="{DynamicResource TextSecondaryBrush}" />
-            <TextBlock Text="Model loading settings are managed in Models. Per-generation behavior is managed in the dedicated Profiles workspace. Provider lifecycle remains here."
-                       FontSize="12"
-                       LineHeight="18"
-                       TextWrapping="Wrap"
-                       Foreground="{DynamicResource TextSecondaryBrush}" />
-          </StackPanel>
-        </Expander>
-      </StackPanel>
+                <TextBlock Grid.Row="4" Text="Old releases" VerticalAlignment="Center" />
+                <TextBlock Grid.Row="4" Grid.Column="2" Classes="provider-number" Text="{Binding Provider.WorkspaceRetainedReleases}"
+                           IsVisible="{Binding Provider.HasRetainedProviderReleases}" AutomationProperties.Name="Old releases count" />
+                <Border Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="5" Classes="provider-badge policy" Background="#352A1D"
+                        IsVisible="{Binding !Provider.HasRetainedProviderReleases}" HorizontalAlignment="Right">
+                  <TextBlock Text="{Binding Provider.WorkspaceRetainedReleases}" FontSize="16" FontWeight="SemiBold"
+                             AutomationProperties.Name="Old releases status" AutomationProperties.LiveSetting="Polite" />
+                </Border>
+
+              </Grid>
+              <TextBlock Text="{Binding Provider.WorkspaceMaintenanceResult}" IsVisible="{Binding Provider.HasWorkspaceMaintenanceResult}"
+                         AutomationProperties.LiveSetting="Polite" />
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </Grid>
     </ScrollViewer>
   </Grid>
 </UserControl>
