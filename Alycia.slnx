@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/Alycia.Api/Alycia.Api.csproj" />
+    <Project Path="src/Alycia.Client.Avalonia/Alycia.Client.Avalonia.csproj" />
   </Folder>
 </Solution>
