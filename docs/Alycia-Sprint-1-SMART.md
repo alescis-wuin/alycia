@@ -36,7 +36,7 @@ This sprint completes none of the eight MVP business capabilities.
 
 ### Prerequisites
 
-- A **local** Alycia repository, created by the owner and separate from KnowledgeHub; the GitHub remote is handled during Sprint 2.
+- A **local**, independently initialized Alycia repository, created by the owner; setting up the GitHub remote was outside Sprint 1 scope and was subsequently completed during Sprint 2.
 - .NET 10 SDK.
 - Docker with Docker Compose.
 - GNU Make and Bash.
