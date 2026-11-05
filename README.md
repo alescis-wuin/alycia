@@ -197,6 +197,10 @@ It checks API health only. It does not verify PostgreSQL availability.
 
 The endpoint is separate from the JSON response envelope intended for application endpoints.
 
+For development-only OpenAPI/Scalar, request trace inspection,
+and targeted JSON Lines exports, see
+[Local API contracts and diagnostics](docs/Alycia-Developer-Diagnostics.md).
+
 ## Avalonia desktop client (Linux)
 
 The Avalonia client provides a minimal graphical interface for checking API availability.
