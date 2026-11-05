@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if ! git diff --cached --check; then
+    echo "Commit rejected: staged whitespace errors." >&2
+    echo "Fix the working files, review the diff, then stage again." >&2
+    exit 1
+fi

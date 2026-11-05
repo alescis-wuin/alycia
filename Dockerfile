@@ -1,9 +1,8 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-COPY Alycia.slnx ./
 COPY src/Alycia.Api/Alycia.Api.csproj src/Alycia.Api/
-RUN dotnet restore Alycia.slnx
+RUN dotnet restore src/Alycia.Api/Alycia.Api.csproj
 
 COPY src/Alycia.Api/ src/Alycia.Api/
 RUN dotnet publish src/Alycia.Api/Alycia.Api.csproj \

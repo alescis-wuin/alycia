@@ -1,4 +1,3 @@
-
 using System;
 using System.Net;
 using System.Net.Http;
@@ -14,14 +13,39 @@ internal sealed record BackendHealthResult(
 internal sealed class BackendHealthProbe
 {
     private const string DefaultBaseUrl = "http://127.0.0.1:8080";
-    private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(5);
-    private static readonly HttpClient Client = new();
+    private static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(5);
+    private static readonly HttpClient SharedClient = new();
+
+    private readonly HttpClient _client;
+    private readonly string? _configuredBaseUrl;
+    private readonly TimeSpan _timeout;
+
+    public BackendHealthProbe()
+        : this(SharedClient, null, DefaultTimeout)
+    {
+    }
+
+    internal BackendHealthProbe(
+        HttpClient client,
+        string? configuredBaseUrl,
+        TimeSpan timeout)
+    {
+        ArgumentNullException.ThrowIfNull(client);
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(
+            timeout,
+            TimeSpan.Zero);
+
+        _client = client;
+        _configuredBaseUrl = configuredBaseUrl;
+        _timeout = timeout;
+    }
 
     public async Task<BackendHealthResult> CheckAsync(
         CancellationToken cancellationToken = default)
     {
         var configuredUrl =
-            Environment.GetEnvironmentVariable("ALYCIA_API_BASE_URL")
+            _configuredBaseUrl
+            ?? Environment.GetEnvironmentVariable("ALYCIA_API_BASE_URL")
             ?? DefaultBaseUrl;
 
         if (!Uri.TryCreate(configuredUrl, UriKind.Absolute, out var baseUri)
@@ -43,12 +67,12 @@ internal sealed class BackendHealthProbe
 
         using var timeoutSource =
             CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeoutSource.CancelAfter(Timeout);
+        timeoutSource.CancelAfter(_timeout);
 
         try
         {
             using var response =
-                await Client.GetAsync(healthUri, timeoutSource.Token);
+                await _client.GetAsync(healthUri, timeoutSource.Token);
 
             if (response.StatusCode != HttpStatusCode.OK)
             {

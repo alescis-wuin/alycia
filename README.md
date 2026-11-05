@@ -43,6 +43,114 @@ The local `.env` file is excluded from Git and must never be committed.
 
 If `.env` already exists with a securely generated password, keep the existing file.
 
+## Local development quality checks
+
+Alycia provides local formatting, validation and test commands
+through GNU Make. These commands do not require CI/CD.
+
+### Formatting
+
+On a fresh checkout, restore .NET dependencies first:
+
+    dotnet restore Alycia.slnx
+
+Run formatting before staging changes:
+
+    make format
+
+This command formats relevant modified C# files using
+`dotnet format` and removes trailing whitespace from supported
+modified text files.
+
+It does not stage files or modify the Git index.
+
+Review the resulting changes before staging:
+
+    git diff
+    git status --short
+
+### Linting
+
+Check formatting without modifying files:
+
+    make lint
+
+The command reports formatting and whitespace violations
+and returns a non-zero exit code when checks fail.
+
+### Unit tests
+
+Run the focused xUnit test suite:
+
+    make test
+
+The tests cover the existing Avalonia backend health probe
+without starting the graphical client or Docker.
+
+### Combined checks
+
+Run linting followed by the unit tests:
+
+    make check
+
+This command stops if linting fails. It does not install
+Git hooks or run CI/CD.
+
+### Optional Git hooks
+
+Install the repository-local pre-commit hook explicitly:
+
+    make install-hooks
+
+Installation is optional, idempotent and does not modify
+global Git configuration.
+
+Existing hook configurations are preserved. Installation
+fails with a diagnostic if a conflict is detected.
+
+The pre-commit hook checks staged whitespace using:
+
+    git diff --cached --check
+
+It rejects invalid staged changes without modifying files
+or the Git index.
+
+### Recommended Git workflow
+
+1. Make the required source changes.
+2. Run `make format`.
+3. Review the working-tree diff.
+4. Run `make check`.
+5. Stage the reviewed files using `git add`.
+6. Inspect staged changes using `git diff --cached --check`
+   and `git diff --cached`.
+7. Create a signed commit using `git commit -S`.
+
+If the hook rejects a commit, correct the working files,
+review the changes and stage the corrected files again.
+The hook never stages changes automatically.
+
+### Logging inspection
+
+Start the local services when required:
+
+    make up
+
+Inspect API console logs:
+
+    docker compose logs --tail=50 api
+
+Inspect structured JSON Lines logs:
+
+    docker compose exec -T api sh -c \
+      'tail -n 10 /app/logs/alycia-*.jsonl'
+
+HTTP request events include timestamps, status codes,
+elapsed durations and trace correlation identifiers.
+
+Do not include secrets or sensitive request data in
+diagnostic reports.
+
 ## Build
 
 From the repository root:
