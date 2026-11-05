@@ -1,0 +1,28 @@
+
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Alycia.Client.Avalonia.MainWindow"
+        Title="Alycia — Backend Status"
+        Width="480"
+        Height="240"
+        MinWidth="380"
+        MinHeight="200">
+
+    <StackPanel Margin="24" Spacing="16">
+        <TextBlock Text="Backend connection"
+                   FontSize="24"
+                   FontWeight="SemiBold" />
+
+        <TextBlock x:Name="StatusText"
+                   Text="Checking..."
+                   FontSize="20" />
+
+        <TextBlock x:Name="DetailsText"
+                   Text="Checking API connectivity..."
+                   TextWrapping="Wrap" />
+
+        <Button x:Name="RetryButton"
+                Content="Check again"
+                HorizontalAlignment="Left" />
+    </StackPanel>
+</Window>
