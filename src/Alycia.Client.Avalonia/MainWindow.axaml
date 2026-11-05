@@ -1,28 +1,59 @@
-
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="Alycia.Client.Avalonia.MainWindow"
-        Title="Alycia — Backend Status"
-        Width="480"
-        Height="240"
-        MinWidth="380"
-        MinHeight="200">
+        Title="Alycia — Local Workspaces"
+        Width="620"
+        Height="570"
+        MinWidth="440"
+        MinHeight="400">
 
-    <StackPanel Margin="24" Spacing="16">
-        <TextBlock Text="Backend connection"
-                   FontSize="24"
-                   FontWeight="SemiBold" />
+    <ScrollViewer>
+        <StackPanel Margin="24" Spacing="12">
+            <TextBlock Text="Backend connection"
+                       FontSize="24"
+                       FontWeight="SemiBold" />
 
-        <TextBlock x:Name="StatusText"
-                   Text="Checking..."
-                   FontSize="20" />
+            <TextBlock x:Name="StatusText"
+                       Text="Checking..."
+                       FontSize="18" />
 
-        <TextBlock x:Name="DetailsText"
-                   Text="Checking API connectivity..."
-                   TextWrapping="Wrap" />
+            <TextBlock x:Name="DetailsText"
+                       Text="Checking API connectivity..."
+                       TextWrapping="Wrap" />
 
-        <Button x:Name="RetryButton"
-                Content="Check again"
-                HorizontalAlignment="Left" />
-    </StackPanel>
+            <Button x:Name="RetryButton"
+                    Content="Check again"
+                    HorizontalAlignment="Left" />
+
+            <Separator Margin="0,12,0,4" />
+
+            <TextBlock Text="Workspace (local development only)"
+                       FontSize="22"
+                       FontWeight="SemiBold" />
+
+            <TextBlock Text="The API requires Development, explicit opt-in and local access."
+                       TextWrapping="Wrap" />
+
+            <TextBlock Text="Workspace name" />
+            <TextBox x:Name="WorkspaceNameInput"
+                     PlaceholderText="Enter a Workspace name (maximum 100 characters)" />
+            <Button x:Name="CreateWorkspaceButton"
+                    Content="Create Workspace"
+                    HorizontalAlignment="Left" />
+
+            <TextBlock Text="Workspace UUID" />
+            <TextBox x:Name="WorkspaceIdInput"
+                     PlaceholderText="Enter the Workspace UUID" />
+            <Button x:Name="GetWorkspaceButton"
+                    Content="Retrieve Workspace"
+                    HorizontalAlignment="Left" />
+
+            <TextBlock x:Name="WorkspaceStatusText"
+                       Text="Ready"
+                       FontWeight="SemiBold" />
+            <TextBlock x:Name="WorkspaceDetailsText"
+                       Text="Create a Workspace or enter an existing UUID."
+                       TextWrapping="Wrap" />
+        </StackPanel>
+    </ScrollViewer>
 </Window>

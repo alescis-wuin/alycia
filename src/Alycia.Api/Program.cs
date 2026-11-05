@@ -1,3 +1,7 @@
+using Alycia.Api.Workspaces;
+using Alycia.Modules.Workspaces.Application;
+using Alycia.Modules.Workspaces.Infrastructure;
+using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using Microsoft.OpenApi;
 using System.Diagnostics;
@@ -88,6 +92,27 @@ builder.Services.AddOpenApi(options =>
 
 builder.Services.AddHealthChecks();
 
+// Temporary S6 exception: routes are absent unless Development and opted in.
+var enableLocalWorkspaces = builder.Environment.IsDevelopment()
+    && builder.Configuration.GetValue<bool>("ALYCIA_ENABLE_LOCAL_WORKSPACES");
+
+if (enableLocalWorkspaces)
+{
+    var connectionString = builder.Configuration["ALYCIA_WORKSPACES_CONNECTION"];
+    if (string.IsNullOrWhiteSpace(connectionString))
+    {
+        throw new InvalidOperationException(
+            "ALYCIA_WORKSPACES_CONNECTION is required when local Workspaces are enabled.");
+    }
+
+    builder.Services.AddDbContext<WorkspacesDbContext>(options =>
+        options.UseNpgsql(connectionString, npgsql =>
+            npgsql.MigrationsHistoryTable("__EFMigrationsHistory", "workspaces")));
+    builder.Services.AddScoped<IWorkspaceRepository, EfWorkspaceRepository>();
+    builder.Services.AddScoped<CreateWorkspaceService>();
+    builder.Services.AddScoped<GetWorkspaceService>();
+}
+
 var app = builder.Build();
 
 app.UseSerilogRequestLogging(options =>
@@ -107,6 +132,25 @@ if (app.Environment.IsDevelopment())
 
     app.MapScalarApiReference(options =>
         options.DisableAgent().DisableDefaultFonts());
+}
+
+if (enableLocalWorkspaces)
+{
+    // Check the actual TCP peer before endpoint parameter binding.
+    // X-Forwarded-For and Host headers are intentionally ignored.
+    app.Use(async (context, next) =>
+    {
+        if (context.Request.Path.StartsWithSegments("/api/workspaces")
+            && !WorkspaceEndpoints.IsLocalConnection(context))
+        {
+            await WorkspaceEndpoints.AccessDenied(context).ExecuteAsync(context);
+            return;
+        }
+
+        await next(context);
+    });
+
+    app.MapWorkspaceEndpoints();
 }
 
 app.MapHealthChecks("/healthz");
