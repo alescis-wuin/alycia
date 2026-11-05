@@ -22,6 +22,10 @@ install-hooks:
 	bash scripts/quality.sh install-hooks
 
 test:
-	dotnet test tests/Alycia.Client.Avalonia.Tests/Alycia.Client.Avalonia.Tests.csproj
+	dotnet test Alycia.slnx
 
 check: lint test
+
+.PHONY: migrate
+migrate:
+	bash scripts/migrate.sh

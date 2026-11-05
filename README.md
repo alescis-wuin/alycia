@@ -19,7 +19,17 @@ The solution currently contains:
 - A technical API health endpoint.
 - An Avalonia desktop client for backend status monitoring.
 
-No business capabilities, authentication, or EF Core migrations are implemented.
+Sprint 6 adds a Development-only, opt-in, local-machine Workspace create/read vertical slice using EF Core and PostgreSQL. No business endpoint is available in Production, and no full MVP capability or authentication is complete.
+
+## Sprint 6 Workspace development slice
+
+Sprint 6 provides persistent Workspace creation and retrieval through Avalonia,
+ASP.NET Core, Workspaces Application/Domain, a dedicated EF Core repository,
+and PostgreSQL. This is not a completed MVP capability.
+
+See [Sprint 6 Workspaces development and migration guide](docs/Alycia-Sprint-6-Workspaces.md)
+for the temporary local-only security exception, opt-in configuration, explicit
+`make migrate` workflow, UI instructions, failures, and limitations.
 
 ## Prerequisites
 
@@ -84,8 +94,7 @@ Run the focused xUnit test suite:
 
     make test
 
-The tests cover the existing Avalonia backend health probe
-without starting the graphical client or Docker.
+The xUnit suite covers the Avalonia health probe, the Workspace HTTP client, and Workspace Domain/Application behavior without starting the graphical client or Docker. Database and UI integration require separate targeted checks.
 
 ### Combined checks
 
@@ -402,9 +411,9 @@ Do not use `docker compose down --volumes` when persistent data must be retained
 ## Known limitations
 
 - The technical health endpoint does not check PostgreSQL.
-- There is no application database schema or EF Core migration.
-- No business endpoints or authentication are implemented.
-- The Avalonia Linux client currently provides backend status only.
+- Sprint 6 includes the Workspaces EF Core migration, applied explicitly with `make migrate`.
+- Workspace create/read endpoints exist only under the Sprint 6 Development/opt-in/loopback exception; no authentication is implemented.
+- The Avalonia Linux client provides backend status and the temporary Development-only Workspace create/read controls.
 - MAUI and Windows client validation remain deferred.
 - Functional parity between Avalonia and MAUI has not been established.
 - Remote HTTPS connectivity has not been validated.
