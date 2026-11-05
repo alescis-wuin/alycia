@@ -3,4 +3,7 @@
     <Project Path="src/Alycia.Api/Alycia.Api.csproj" />
     <Project Path="src/Alycia.Client.Avalonia/Alycia.Client.Avalonia.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Alycia.Client.Avalonia.Tests/Alycia.Client.Avalonia.Tests.csproj" />
+  </Folder>
 </Solution>
