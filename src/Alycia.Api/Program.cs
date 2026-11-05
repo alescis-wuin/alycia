@@ -1,3 +1,5 @@
+using Scalar.AspNetCore;
+using Microsoft.OpenApi;
 using System.Diagnostics;
 using Serilog;
 using Serilog.Events;
@@ -34,6 +36,56 @@ builder.Host.UseSerilog((context, _, logger) =>
             retainedFileCountLimit: retainedFiles);
 });
 
+builder.Services.AddOpenApi(options =>
+{
+    options.AddDocumentTransformer((document, _, _) =>
+    {
+        var healthPath = new OpenApiPathItem();
+
+        healthPath.AddOperation(HttpMethod.Get, new OpenApiOperation
+        {
+            Summary = "Check API health",
+            Description = "Technical health check without a PostgreSQL dependency.",
+            Responses = new OpenApiResponses
+            {
+                ["200"] = new OpenApiResponse
+                {
+                    Description = "Healthy",
+                    Content = new Dictionary<string, OpenApiMediaType>
+                    {
+                        ["text/plain"] = new OpenApiMediaType
+                        {
+                            Schema = new OpenApiSchema
+                            {
+                                Type = JsonSchemaType.String
+                            }
+                        }
+                    }
+                },
+                ["503"] = new OpenApiResponse
+                {
+                    Description = "Unhealthy",
+                    Content = new Dictionary<string, OpenApiMediaType>
+                    {
+                        ["text/plain"] = new OpenApiMediaType
+                        {
+                            Schema = new OpenApiSchema
+                            {
+                                Type = JsonSchemaType.String
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        document.Paths ??= new OpenApiPaths();
+        document.Paths["/healthz"] = healthPath;
+
+        return Task.CompletedTask;
+    });
+});
+
 builder.Services.AddHealthChecks();
 
 var app = builder.Build();
@@ -48,6 +100,14 @@ app.UseSerilogRequestLogging(options =>
                 ?? httpContext.TraceIdentifier);
     };
 });
+
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+
+    app.MapScalarApiReference(options =>
+        options.DisableAgent().DisableDefaultFonts());
+}
 
 app.MapHealthChecks("/healthz");
 
