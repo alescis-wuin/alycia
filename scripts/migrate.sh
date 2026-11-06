@@ -26,6 +26,9 @@ for module in "${modules[@]}"; do
             ;;
     esac
 
+    # dotnet-ef reads project metadata before its build; fresh checkouts have no assets file.
+    dotnet restore "$project"
+
     migration_sql=$(mktemp)
     trap 'rm -f "$migration_sql"' EXIT
 
