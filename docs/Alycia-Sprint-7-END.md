@@ -1,6 +1,6 @@
 # Alycia — Sprint 7: Secure Owner Initialization — Pre-PR End Report
 
-> **Pre-PR evidence snapshot.** This report records observations available before the END commit and pull request. It does not declare Sprint 7 complete. AC07 still requires a targeted runtime envelope check; AC11 depends on the subsequent pull-request review. Do not change either to PASS without the missing evidence.
+> **Pre-PR evidence snapshot.** This report records observations available before the END commit and pull request. It does not declare Sprint 7 complete. The owner reported a successful targeted Production-local HTTP envelope probe on the isolated database before the pull request was opened. AC07 is PASS; AC11 remains PENDING until the live pull-request review.
 
 - **Sprint:** Sprint 7 — Secure Owner Initialization.
 - **Specification:** `docs/Alycia-Sprint-7-SMART.md`; complete French SMART and faithful English translation approved and frozen by the owner on November 5, 2026, including password policy B and the incorrect-secret counter/regeneration refinement.
@@ -45,13 +45,13 @@
 | **AC04** — Atomic owner/backfill | **PASS** | Isolated integration tests exercise rollback, retry and concurrent initialization. In the manual database, one owner was created and both historical Workspaces were linked (`owners=1`, `workspaces=2`, `attached=2`, `distinct_owners=1`). |
 | **AC05** — Temporary secret and retry policy | **PASS** | Dedicated PostgreSQL tests cover 64-hex-character secret generation, expiry, five incorrect presentations only, restart-persistent attempts, regeneration/reset and predecessor invalidation, rollback and consumption. Manual CLI rejected reissuance after initialization. Secret hygiene was screened heuristically, not exhaustively proven. |
 | **AC06** — Local access and permanent closure | **PASS** | Native Production API loopback flow succeeded; Docker peer with spoofed headers was denied HTTP 403. After native API restart, owner status remained initialized; the CLI rejected regeneration and a second POST was rejected HTTP 409 `OWNER_ALREADY_INITIALIZED`. No external/LAN bootstrap access was enabled. |
-| **AC07** — API envelope and `/healthz` | **PENDING** | Actual `/healthz` HTTP 200, bootstrap status and post-init HTTP 409/code were observed. Endpoint source creates `success,status,code,message,data,errors,traceId,timestamp`. A targeted **runtime** assertion of the full envelope, trace ID, sanitized error payload and technical health response has not yet been supplied; see the finalization procedure. |
+| **AC07** — API envelope and `/healthz` | **PASS** | The owner reported that the final isolated Production-local HTTP probe passed: technical `/healthz` HTTP 200 without an application envelope; bootstrap status HTTP 200 with all eight envelope fields, `initialized: true`, trace ID and timestamp; and duplicate initialization HTTP 409 `OWNER_ALREADY_INITIALIZED` with a sanitized application envelope. |
 | **AC08** — Avalonia first-run experience | **PASS** | Owner supplied screenshots of Linux initial-owner UI, a password-validation error and successful initialization with sensitive fields cleared and another initialization disabled. Client tests cover confirmation, Unicode bounds, denial, unavailable/timeout, malformed envelopes and redirects. The observation is not a recorded MAUI test. |
-| **AC09** — End-to-end and security boundary | **PASS** | The isolated `alycia_s7_test_manual` database started with 0 owners and 2 unowned Workspaces; Avalonia → native API → PostgreSQL produced 1 owner and 2/2 attachments. After restart, state persisted, secret was consumed and second initialization rejected. Source review finds no S6 anonymous Workspace route mapping in S7; a direct runtime 404 check is included with the remaining HTTP verification. |
+| **AC09** — End-to-end and security boundary | **PASS** | The isolated `alycia_s7_test_manual` database started with 0 owners and 2 unowned Workspaces; Avalonia → native API → PostgreSQL produced 1 owner and 2/2 attachments. After restart, state persisted, secret was consumed and second initialization rejected. The same targeted HTTP probe tested GET and POST `/api/workspaces` returning HTTP 404 in Production, confirming the S6 anonymous route exception was not inherited. |
 | **AC10** — Tests, quality and documentation | **PASS** | Final owner-run `make check`: lint passed; `dotnet test Alycia.slnx` reported **96 passed, 0 failed, 0 skipped**. The PostgreSQL suite was executed **separately** with **8/8 passing**, not counted within those 96 solution tests. Native API build and live Avalonia flow succeeded; English usage/migration/blocklist documentation is present. Local staged-content and accessible-log heuristic scan passed; this is not a comprehensive secret-leak audit. |
 | **AC11** — Pre-PR documents and PR verification | **PENDING** | The French/English SMART is approved; first SMART-only commit and two implementation commits exist with local signing evidence. This END is awaiting its own signed commit. PR base, document/issue links, every AC checkbox and GitHub `Verified` signatures can only be checked after the PR exists and before merge. |
 
-**Pre-PR tally at this evidence cutoff: 9 PASS / 2 PENDING / 0 FAIL (AC07 and AC11).** Do not count unperformed follow-up checks as already passed. After AC07 is verified, update its row and the tally to **10 PASS / 1 PENDING** before signing the END commit. AC11 must remain PENDING in this versioned pre-PR report.
+**Corrected evidence tally: 10 PASS / 1 PENDING / 0 FAIL.** AC07 is PASS based on the owner-reported targeted HTTP probe. AC11 remains PENDING in this report until the actual PR review, issue/document links, checklist and GitHub signatures are checked.
 
 ## 4. Commands and observations reported by the owner
 
@@ -66,7 +66,7 @@
 | Heuristic security screening and manual diff review | Automated scan reported OK; owner reviewed the staged diff and confirmed `oui`; exactly two GPG-signed implementation commits followed. | AC02, AC05–AC06, AC10 |
 | `git verify-commit HEAD` after each implementation commit | GPG reported a good signature for `aa7daa1` and `f4f8cd0`; `git status` reported a clean worktree and branch ahead by two commits. | AC11 prerequisites |
 
-No actual full runtime envelope output was reported at the cutoff. No secret, password, raw request body or credentials are reproduced here.
+The owner subsequently reported success for the targeted runtime envelope test; its individual console lines were not reproduced in this report. No secret, password, raw request body or credentials are reproduced here.
 
 ## 5. Security and evidence boundaries
 
@@ -78,13 +78,17 @@ No actual full runtime envelope output was reported at the cutoff. No secret, pa
 - The available secret-screening scripts are heuristic. Source inspection and limited log checks do not establish universal absence of sensitive data in every possible diagnostic path.
 - No active-work time log was supplied. Commit timestamps indicate calendar events, not measured working hours.
 
+## Post-PR documentation correction (November 6, 2026)
+
+The original signed pre-PR END snapshot (`86026e2586e37254ed8619c83f5fa43836fda171`) was preserved in Git history. This later documentation-only correction records the owner-reported successful AC07 runtime verification performed before PR #45 was opened. It updates AC07 and the tally without rewriting the earlier commit. AC11 remains PR-dependent and PENDING in the END.
+
 ## 6. Required completion sequence
 
-1. Complete the targeted non-destructive HTTP envelope/technical health/retired Workspace route check on the initialized **isolated** database. If successful, change AC07 to PASS and the tally to `10 PASS / 1 PENDING / 0 FAIL`; if unsuccessful, fix the actual defect and rerun the affected checks before editing this report.
+1. **Verified by owner report:** the targeted non-destructive HTTP envelope, technical health and retired Workspace route checks passed on the initialized **isolated** database; AC07 is PASS. The original console transcript was not supplied.
 2. Review and stage **only** `docs/Alycia-Sprint-7-END.md`, create a separate `git commit -S` on the S7 branch and verify its signature locally. Do not add the draft PR body or a local verification script to the repository unless separately reviewed and deliberately approved.
 3. Owner pushes the sprint branch and opens a PR to `develop`, linking the real parent #39, children #40–#44, signed SMART and END. Record the END commit SHA in the PR, not retroactively in this report.
 4. In the actual PR, verify the base/head, document and issue links, meaningful proof and a checkbox for **each of AC01–AC11**, and GitHub `Verified` status for **all four** S7 commits. Only after the PR-specific checks pass may AC11 be marked PASS **in the PR**; the signed pre-PR END remains an unchanged historical snapshot.
 5. Merge only with all mandatory criteria verified. Verify the resulting merge in `develop`, then the owner manually closes satisfied child issues #40–#44 and parent #39. Do not assume automatic closure from a PR targeting `develop` while `main` is the default branch.
 6. Do not promote `testing` or `main`, create a release, or mark an entire MVP capability complete as a consequence of the S7 merge.
 
-**Status at report authoring:** technically implemented and locally signed; AC07 runtime check, signed END, PR review, merge and manual issue closure remain outstanding. Sprint 7 is **not yet closed**.
+**Status at original report authoring:** implementation locally signed; its separate END commit, PR review, merge and manual issue closure were pending. AC07 was marked PENDING in error and is corrected by the follow-up signed documentation commit. Sprint 7 is not closed at this correction.
