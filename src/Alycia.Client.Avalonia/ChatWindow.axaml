@@ -2,61 +2,130 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="using:Alycia.Client.Avalonia"
         x:Class="Alycia.Client.Avalonia.ChatWindow"
-        Title="Alycia — Chat local"
-        Width="1100" Height="760" MinWidth="820" MinHeight="620">
+        Title="Alycia — Chat local" Background="#10131E" Foreground="#E7EAF5"
+        Width="1140" Height="800" MinWidth="820" MinHeight="660">
+  <Window.Styles>
+    <Style Selector="Button">
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Padding" Value="14,10" />
+      <Setter Property="Background" Value="#23293C" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="Button.primary">
+      <Setter Property="Background" Value="#8875F5" />
+      <Setter Property="Foreground" Value="#FFFFFF" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="Button.quiet">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="#A8B2CC" />
+    </Style>
+    <Style Selector="TextBox">
+      <Setter Property="Background" Value="#191E2D" />
+      <Setter Property="BorderBrush" Value="#30384F" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Padding" Value="12,10" />
+    </Style>
+    <Style Selector="Expander /template/ ToggleButton">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Foreground" Value="#A8B2CC" />
+    </Style>
+    <Style Selector="ComboBox">
+      <Setter Property="Background" Value="#23293C" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Padding" Value="12,10" />
+    </Style>
+    <Style Selector="ListBoxItem">
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Margin" Value="0,3" />
+      <Setter Property="Padding" Value="12,10" />
+    </Style>
+    <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+      <Setter Property="Background" Value="#302B50" />
+      <Setter Property="BorderBrush" Value="#8875F5" />
+    </Style>
+    <Style Selector="Border.message">
+      <Setter Property="Margin" Value="0,0,24,20" />
+      <Setter Property="Background" Value="#1A2030" />
+      <Setter Property="BorderBrush" Value="#3BCEB5" />
+      <Setter Property="BorderThickness" Value="3,0,0,0" />
+    </Style>
+    <Style Selector="Border.message.user">
+      <Setter Property="Background" Value="#25223B" />
+      <Setter Property="BorderBrush" Value="#A493FF" />
+      <Setter Property="Margin" Value="32,0,0,20" />
+    </Style>
+  </Window.Styles>
   <Grid ColumnDefinitions="280,*">
-    <Border Grid.Column="0" BorderBrush="#44808080" BorderThickness="0,0,1,0" Padding="18">
-      <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="16">
-        <StackPanel Spacing="4">
-          <TextBlock Text="Alycia" FontSize="28" FontWeight="SemiBold" />
-          <TextBlock Text="Votre IA, sur votre machine" Opacity="0.7" />
-        </StackPanel>
-        <StackPanel Grid.Row="1" Spacing="8" x:Name="CreationPanel">
-          <TextBox x:Name="NewTitleInput" PlaceholderText="Nouvelle conversation" MaxLength="100" />
-          <TextBlock Text="Modèle Ollama local" FontWeight="SemiBold" />
-          <ComboBox x:Name="ModelSelector" HorizontalAlignment="Stretch" PlaceholderText="Sélectionner un modèle" />
-          <Expander Header="Instruction système" HorizontalAlignment="Stretch">
-            <TextBox x:Name="SystemPromptInput" AcceptsReturn="True" Height="90" TextWrapping="Wrap"
-                     MaxLength="4000" Text="Tu es Alycia, un assistant utile. Réponds en français." />
-          </Expander>
-          <Button x:Name="NewButton" Content="+ Nouvelle conversation" HorizontalAlignment="Stretch" />
-        </StackPanel>
-        <ListBox Grid.Row="2" x:Name="ConversationList">
+    <Border Background="#171B29" Padding="20,28,20,18">
+      <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="22">
+        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+          <Border Width="38" Height="38" CornerRadius="13" Background="#8875F5">
+            <TextBlock Text="a" FontSize="29" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-5,0,0" />
+          </Border>
+          <StackPanel Grid.Column="1" Spacing="2">
+            <TextBlock Text="alycia" FontSize="24" FontWeight="SemiBold" />
+            <TextBlock Text="Un espace pour vos idées" FontSize="11" Foreground="#9EA9C3" />
+          </StackPanel>
+        </Grid>
+        <ScrollViewer Grid.Row="1" MaxHeight="310" HorizontalScrollBarVisibility="Disabled">
+          <StackPanel Spacing="10" x:Name="CreationPanel">
+            <ComboBox x:Name="ModelSelector" HorizontalAlignment="Stretch" PlaceholderText="Choisir un modèle local"
+                      ToolTip.Tip="Modèle utilisé pour les nouvelles conversations" />
+            <Button x:Name="NewButton" Classes="primary" Content="+  Nouvelle conversation" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+            <Expander Header="Personnaliser" HorizontalAlignment="Stretch" Padding="0" BorderThickness="0" Background="Transparent" FontSize="12">
+              <StackPanel Spacing="10" Margin="0,8,0,0">
+                <TextBox x:Name="NewTitleInput" PlaceholderText="Titre de la conversation" MaxLength="100" />
+                <TextBlock Text="Instruction système" Foreground="#A8B2CC" FontSize="12" />
+                <TextBox x:Name="SystemPromptInput" AcceptsReturn="True" Height="90" TextWrapping="Wrap"
+                         MaxLength="4000" Text="Tu es Alycia, un assistant utile. Réponds en français." />
+              </StackPanel>
+            </Expander>
+          </StackPanel>
+        </ScrollViewer>
+        <TextBlock Grid.Row="2" Text="CONVERSATIONS" FontSize="10" LetterSpacing="1.5" Foreground="#818CA9" />
+        <ListBox Grid.Row="3" x:Name="ConversationList" Background="Transparent" BorderThickness="0">
           <ListBox.ItemTemplate>
             <DataTemplate x:DataType="local:ConversationSummary">
-              <StackPanel Margin="0,6" Spacing="4">
-                <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" FontWeight="SemiBold" />
-                <TextBlock Text="{Binding Model}" FontSize="12" Opacity="0.65" TextTrimming="CharacterEllipsis" />
+              <StackPanel Spacing="5">
+                <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" FontWeight="Medium" Foreground="#E7EAF5" />
+                <TextBlock Text="{Binding Model}" FontSize="11" Foreground="#9B91C8" TextTrimming="CharacterEllipsis" />
               </StackPanel>
             </DataTemplate>
           </ListBox.ItemTemplate>
         </ListBox>
-        <StackPanel Grid.Row="3" Spacing="8">
-          <Button x:Name="RefreshButton" Content="Actualiser" HorizontalAlignment="Stretch" />
-          <Button x:Name="DiagnosticsButton" Content="État du backend / Workspaces" HorizontalAlignment="Stretch" />
+        <StackPanel Grid.Row="4" Spacing="4">
+          <Button x:Name="RefreshButton" Classes="quiet" Content="Actualiser" HorizontalAlignment="Stretch" />
+          <Button x:Name="DiagnosticsButton" Classes="quiet" Content="Connexion et diagnostics" FontSize="11" HorizontalAlignment="Stretch" />
         </StackPanel>
       </Grid>
     </Border>
-    <Grid Grid.Column="1" Margin="24" RowDefinitions="Auto,Auto,*,Auto,Auto" RowSpacing="12">
-      <Grid x:Name="ConversationHeader" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
-        <TextBox x:Name="TitleInput" PlaceholderText="Sélectionnez une conversation" MaxLength="100" />
-        <Button Grid.Column="1" x:Name="RenameButton" Content="Renommer" />
-        <Button Grid.Column="2" x:Name="DeleteButton" Content="Supprimer" />
+    <Grid Grid.Column="1" Margin="32,24,32,22" RowDefinitions="Auto,Auto,*,Auto,Auto" RowSpacing="14">
+      <Grid x:Name="ConversationHeader" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="4">
+        <TextBox x:Name="TitleInput" PlaceholderText="Votre prochaine idée commence ici" MaxLength="100"
+                 Background="Transparent" BorderThickness="0" FontSize="20" FontWeight="SemiBold" Padding="0,8" />
+        <Button Grid.Column="1" x:Name="RenameButton" Classes="quiet" Content="Renommer" FontSize="12" />
+        <Button Grid.Column="2" x:Name="DeleteButton" Classes="quiet" Content="Supprimer" FontSize="12" Foreground="#DD9CA9" />
       </Grid>
-      <TextBlock Grid.Row="1" x:Name="ConversationDetails" Text="Créez une conversation pour commencer."
-                 Opacity="0.7" TextWrapping="Wrap" />
+      <TextBlock Grid.Row="1" x:Name="ConversationDetails" Text="Choisissez un modèle, puis créez une conversation."
+                 Foreground="#8F9BB6" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,12" />
       <Grid Grid.Row="2" RowDefinitions="Auto,*">
-        <Button x:Name="OlderButton" Content="Charger les messages précédents" IsVisible="False"
-                HorizontalAlignment="Center" Margin="0,0,0,8" />
+        <Button x:Name="OlderButton" Classes="quiet" Content="Messages précédents" IsVisible="False"
+                HorizontalAlignment="Center" Margin="0,0,0,12" FontSize="12" />
+        <StackPanel Grid.Row="1" x:Name="EmptyState" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="14" IsHitTestVisible="False" Margin="24">
+          <TextBlock Text="Un peu de curiosité. Beaucoup de possibilités." FontSize="23" FontWeight="SemiBold" Foreground="#B7A9FF" TextAlignment="Center" TextWrapping="Wrap" />
+          <TextBlock x:Name="EmptyHint" Text="Choisissez un modèle et créez votre première conversation." FontSize="14" Foreground="#9BA8C2" TextAlignment="Center" TextWrapping="Wrap" />
+        </StackPanel>
         <ScrollViewer Grid.Row="1" x:Name="MessageScroll" HorizontalScrollBarVisibility="Disabled">
-          <ItemsControl x:Name="MessageList">
+          <ItemsControl x:Name="MessageList" Margin="0,0,8,0">
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="local:ChatMessageItem">
-                <Border Margin="0,0,0,14" Padding="16" CornerRadius="8"
-                        BorderBrush="#44808080" BorderThickness="1">
-                  <StackPanel Spacing="8">
-                    <TextBlock Text="{Binding Label}" FontWeight="SemiBold" Opacity="0.7" FontSize="12" />
-                    <SelectableTextBlock Text="{Binding Content}" TextWrapping="Wrap" FontSize="15" />
+                <Border Classes="message" Classes.user="{Binding IsUser}" Padding="20,16" CornerRadius="12">
+                  <StackPanel Spacing="10">
+                    <TextBlock Text="{Binding Label}" FontWeight="SemiBold" Foreground="#B6BED5" FontSize="11" />
+                    <SelectableTextBlock Text="{Binding Content}" TextWrapping="Wrap" FontSize="15" LineHeight="25" Foreground="#E7EAF5" />
                   </StackPanel>
                 </Border>
               </DataTemplate>
@@ -64,20 +133,21 @@
           </ItemsControl>
         </ScrollViewer>
       </Grid>
-      <StackPanel Grid.Row="3" Spacing="6">
-        <ProgressBar x:Name="BusyIndicator" IsIndeterminate="True" IsVisible="False" Height="3" />
-        <TextBlock x:Name="FeedbackText" Text="Connexion au backend…" TextWrapping="Wrap" />
+      <StackPanel Grid.Row="3" Spacing="8">
+        <ProgressBar x:Name="BusyIndicator" IsIndeterminate="True" IsVisible="False" Height="3" Foreground="#8875F5" />
+        <TextBlock x:Name="FeedbackText" Text="Connexion…" TextWrapping="Wrap" FontSize="11" Foreground="#A0AEC8" />
       </StackPanel>
-      <Grid Grid.Row="4" RowDefinitions="Auto,Auto" RowSpacing="8">
-        <TextBox x:Name="MessageInput" PlaceholderText="Votre message…" AcceptsReturn="True"
-                 TextWrapping="Wrap" MinHeight="90" MaxHeight="180" MaxLength="32000" />
-        <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
-          <TextBlock Text="Ctrl+Entrée pour envoyer · Entrée pour une nouvelle ligne"
-                     FontSize="11" Opacity="0.6" VerticalAlignment="Center" TextWrapping="Wrap" />
-          <Button Grid.Column="1" x:Name="CancelButton" Content="Annuler" IsVisible="False" />
-          <Button Grid.Column="2" x:Name="SendButton" Content="Envoyer" />
+      <Border Grid.Row="4" Background="#1A2030" CornerRadius="16" BorderBrush="#333D57" BorderThickness="1" Padding="12">
+        <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
+          <TextBox x:Name="MessageInput" PlaceholderText="Posez une question, explorez une idée…" AcceptsReturn="True"
+                   Background="Transparent" BorderThickness="0" TextWrapping="Wrap" MinHeight="76" MaxHeight="180" MaxLength="32000" />
+          <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+            <TextBlock Text="Ctrl + Entrée pour envoyer" FontSize="11" Foreground="#8F9BB6" VerticalAlignment="Center" Margin="10,0" TextWrapping="Wrap" />
+            <Button Grid.Column="1" x:Name="CancelButton" Classes="quiet" Content="Annuler" IsVisible="False" />
+            <Button Grid.Column="2" x:Name="SendButton" Classes="primary" Content="Envoyer  →" Padding="20,10" />
+          </Grid>
         </Grid>
-      </Grid>
+      </Border>
     </Grid>
   </Grid>
 </Window>

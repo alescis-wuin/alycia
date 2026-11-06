@@ -14,6 +14,7 @@ public sealed record ConversationSummary(Guid Id, string Title, string Model, st
 public sealed record ChatMessageItem(Guid ConversationId, int Sequence, Guid RequestId, string Role,
     string Content, DateTimeOffset CreatedAtUtc)
 {
+    public bool IsUser => Role == "user";
     public string Label => $"{(Role == "user" ? "Vous" : "Alycia")} · {CreatedAtUtc.ToLocalTime():HH:mm}";
 }
 

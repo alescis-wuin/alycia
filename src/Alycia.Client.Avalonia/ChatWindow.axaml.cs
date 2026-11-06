@@ -99,6 +99,10 @@ public partial class ChatWindow : Window
 
     private void UpdateControls()
     {
+        C<StackPanel>("EmptyState").IsVisible = _messages.Count == 0;
+        C<TextBlock>("EmptyHint").Text = _current is null
+            ? "Choisissez un modèle et créez votre première conversation."
+            : "Posez votre première question.";
         C<StackPanel>("CreationPanel").IsEnabled = !_busy;
         C<ListBox>("ConversationList").IsEnabled = !_busy;
         C<Button>("RefreshButton").IsEnabled = !_busy;
@@ -126,7 +130,7 @@ public partial class ChatWindow : Window
         selector.SelectedItem = models.Contains(selected) ? selected : models.FirstOrDefault();
         Feedback(models.Length == 0
             ? "Aucun modèle local. Installez-en un avec ollama pull, puis actualisez."
-            : "Prêt. Les conversations et messages sont enregistrés dans PostgreSQL.");
+            : "Prêt à discuter.");
     }
 
     private async Task RefreshConversationsAsync(Guid? selectId)
