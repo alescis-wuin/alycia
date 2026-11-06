@@ -5,8 +5,12 @@
     <Project Path="src/Alycia.Modules.Workspaces.Application/Alycia.Modules.Workspaces.Application.csproj" />
     <Project Path="src/Alycia.Modules.Workspaces.Domain/Alycia.Modules.Workspaces.Domain.csproj" />
     <Project Path="src/Alycia.Modules.Workspaces.Infrastructure/Alycia.Modules.Workspaces.Infrastructure.csproj" />
+    <Project Path="src/Alycia.Modules.Chat.Domain/Alycia.Modules.Chat.Domain.csproj" />
+    <Project Path="src/Alycia.Modules.Chat.Application/Alycia.Modules.Chat.Application.csproj" />
+    <Project Path="src/Alycia.Modules.Chat.Infrastructure/Alycia.Modules.Chat.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Alycia.Modules.Chat.Tests/Alycia.Modules.Chat.Tests.csproj" />
     <Project Path="tests/Alycia.Client.Avalonia.Tests/Alycia.Client.Avalonia.Tests.csproj" />
     <Project Path="tests/Alycia.Modules.Workspaces.Tests/Alycia.Modules.Workspaces.Tests.csproj" />
   </Folder>

@@ -1,0 +1,6 @@
+# Host-side API + Ollama; expose only PostgreSQL on loopback for the demo.
+# Does not change the normal compose.yaml configuration.
+services:
+  postgres:
+    ports:
+      - "127.0.0.1:${ALYCIA_DEMO_POSTGRES_PORT:-5433}:5432"

@@ -29,3 +29,10 @@ check: lint test
 .PHONY: migrate
 migrate:
 	bash scripts/migrate.sh
+
+.PHONY: demo-api demo-client
+demo-api:
+	bash scripts/demo.sh
+
+demo-client:
+	ALYCIA_API_BASE_URL=http://127.0.0.1:5187 dotnet run --project src/Alycia.Client.Avalonia

@@ -16,5 +16,6 @@
 
   <ItemGroup>
     <ProjectReference Include="../Alycia.Modules.Workspaces.Infrastructure/Alycia.Modules.Workspaces.Infrastructure.csproj" />
+    <ProjectReference Include="../Alycia.Modules.Chat.Infrastructure/Alycia.Modules.Chat.Infrastructure.csproj" />
   </ItemGroup>
 </Project>

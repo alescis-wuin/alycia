@@ -3,6 +3,20 @@
 
 Alycia is a multi-backend generative AI client with a document knowledge hub and retrieval-augmented generation (RAG).
 
+## Local Ollama demo — this prototype branch
+
+This branch adds a working chat flow through **Avalonia → ASP.NET Core → local
+Ollama**, with conversations and messages stored in PostgreSQL. It starts from
+`develop` and is separate from the Sprint 7 authentication work.
+
+After installing a local model and starting Ollama, run `make demo-api` and then
+`make demo-client` in separate terminals. The launcher requires .NET 10, Docker
+Compose, Python 3 and Bash; it preserves existing database volumes and `.env`.
+
+**Start here:** [setup, architecture, demo checklist and verification limits](docs/Local-Ollama-Prototype.md).
+The remaining sprint sections describe the earlier foundation. On this branch,
+chat is the startup window; backend/Workspace diagnostics remain available from it.
+
 ## Current scope
 
 Sprint 1 established the .NET 10 API and infrastructure foundation.
@@ -94,7 +108,11 @@ Run the focused xUnit test suite:
 
     make test
 
-The xUnit suite covers the Avalonia health probe, the Workspace HTTP client, and Workspace Domain/Application behavior without starting the graphical client or Docker. Database and UI integration require separate targeted checks.
+The xUnit suite covers the health probe, Workspace services, chat context and
+Ollama contracts, HTTP client behavior, and the Avalonia chat flow on the headless
+platform. PostgreSQL integration is enabled by `ALYCIA_CHAT_TEST_CONNECTION`;
+without that variable the database test is explicitly skipped. See the prototype
+guide for setup and remaining real-model/native-desktop checks.
 
 ### Combined checks
 

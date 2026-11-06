@@ -1,0 +1,83 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="using:Alycia.Client.Avalonia"
+        x:Class="Alycia.Client.Avalonia.ChatWindow"
+        Title="Alycia — Chat local"
+        Width="1100" Height="760" MinWidth="820" MinHeight="620">
+  <Grid ColumnDefinitions="280,*">
+    <Border Grid.Column="0" BorderBrush="#44808080" BorderThickness="0,0,1,0" Padding="18">
+      <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="16">
+        <StackPanel Spacing="4">
+          <TextBlock Text="Alycia" FontSize="28" FontWeight="SemiBold" />
+          <TextBlock Text="Votre IA, sur votre machine" Opacity="0.7" />
+        </StackPanel>
+        <StackPanel Grid.Row="1" Spacing="8" x:Name="CreationPanel">
+          <TextBox x:Name="NewTitleInput" PlaceholderText="Nouvelle conversation" MaxLength="100" />
+          <TextBlock Text="Modèle Ollama local" FontWeight="SemiBold" />
+          <ComboBox x:Name="ModelSelector" HorizontalAlignment="Stretch" PlaceholderText="Sélectionner un modèle" />
+          <Expander Header="Instruction système" HorizontalAlignment="Stretch">
+            <TextBox x:Name="SystemPromptInput" AcceptsReturn="True" Height="90" TextWrapping="Wrap"
+                     MaxLength="4000" Text="Tu es Alycia, un assistant utile. Réponds en français." />
+          </Expander>
+          <Button x:Name="NewButton" Content="+ Nouvelle conversation" HorizontalAlignment="Stretch" />
+        </StackPanel>
+        <ListBox Grid.Row="2" x:Name="ConversationList">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="local:ConversationSummary">
+              <StackPanel Margin="0,6" Spacing="4">
+                <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding Model}" FontSize="12" Opacity="0.65" TextTrimming="CharacterEllipsis" />
+              </StackPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+        <StackPanel Grid.Row="3" Spacing="8">
+          <Button x:Name="RefreshButton" Content="Actualiser" HorizontalAlignment="Stretch" />
+          <Button x:Name="DiagnosticsButton" Content="État du backend / Workspaces" HorizontalAlignment="Stretch" />
+        </StackPanel>
+      </Grid>
+    </Border>
+    <Grid Grid.Column="1" Margin="24" RowDefinitions="Auto,Auto,*,Auto,Auto" RowSpacing="12">
+      <Grid x:Name="ConversationHeader" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+        <TextBox x:Name="TitleInput" PlaceholderText="Sélectionnez une conversation" MaxLength="100" />
+        <Button Grid.Column="1" x:Name="RenameButton" Content="Renommer" />
+        <Button Grid.Column="2" x:Name="DeleteButton" Content="Supprimer" />
+      </Grid>
+      <TextBlock Grid.Row="1" x:Name="ConversationDetails" Text="Créez une conversation pour commencer."
+                 Opacity="0.7" TextWrapping="Wrap" />
+      <Grid Grid.Row="2" RowDefinitions="Auto,*">
+        <Button x:Name="OlderButton" Content="Charger les messages précédents" IsVisible="False"
+                HorizontalAlignment="Center" Margin="0,0,0,8" />
+        <ScrollViewer Grid.Row="1" x:Name="MessageScroll" HorizontalScrollBarVisibility="Disabled">
+          <ItemsControl x:Name="MessageList">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="local:ChatMessageItem">
+                <Border Margin="0,0,0,14" Padding="16" CornerRadius="8"
+                        BorderBrush="#44808080" BorderThickness="1">
+                  <StackPanel Spacing="8">
+                    <TextBlock Text="{Binding Label}" FontWeight="SemiBold" Opacity="0.7" FontSize="12" />
+                    <SelectableTextBlock Text="{Binding Content}" TextWrapping="Wrap" FontSize="15" />
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </Grid>
+      <StackPanel Grid.Row="3" Spacing="6">
+        <ProgressBar x:Name="BusyIndicator" IsIndeterminate="True" IsVisible="False" Height="3" />
+        <TextBlock x:Name="FeedbackText" Text="Connexion au backend…" TextWrapping="Wrap" />
+      </StackPanel>
+      <Grid Grid.Row="4" RowDefinitions="Auto,Auto" RowSpacing="8">
+        <TextBox x:Name="MessageInput" PlaceholderText="Votre message…" AcceptsReturn="True"
+                 TextWrapping="Wrap" MinHeight="90" MaxHeight="180" MaxLength="32000" />
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+          <TextBlock Text="Ctrl+Entrée pour envoyer · Entrée pour une nouvelle ligne"
+                     FontSize="11" Opacity="0.6" VerticalAlignment="Center" TextWrapping="Wrap" />
+          <Button Grid.Column="1" x:Name="CancelButton" Content="Annuler" IsVisible="False" />
+          <Button Grid.Column="2" x:Name="SendButton" Content="Envoyer" />
+        </Grid>
+      </Grid>
+    </Grid>
+  </Grid>
+</Window>
