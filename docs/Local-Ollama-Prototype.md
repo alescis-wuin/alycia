@@ -1,5 +1,10 @@
 # Local Ollama chat prototype
 
+On `prototype/conversation-files`, follow the
+[file prototype guide](Conversation-Files-Prototype.md) for setup: its launcher
+runs the API in Docker with a persistent file volume. The host API launch details
+below describe the original parent branch.
+
 Branch: `prototype/local-ollama-chat`.
 Base: `develop` at `8179f9d` (Sprint 6), not the older `main` foundation.
 

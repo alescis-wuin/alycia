@@ -52,6 +52,10 @@
       <Setter Property="BorderBrush" Value="#3BCEB5" />
       <Setter Property="BorderThickness" Value="3,0,0,0" />
     </Style>
+    <Style Selector="Border.message.file">
+      <Setter Property="Background" Value="#232B3C" />
+      <Setter Property="BorderBrush" Value="#E5B96B" />
+    </Style>
     <Style Selector="Border.message.user">
       <Setter Property="Background" Value="#25223B" />
       <Setter Property="BorderBrush" Value="#A493FF" />
@@ -122,10 +126,14 @@
           <ItemsControl x:Name="MessageList" Margin="0,0,8,0">
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="local:ChatMessageItem">
-                <Border Classes="message" Classes.user="{Binding IsUser}" Padding="20,16" CornerRadius="12">
+                <Border Classes="message" Classes.user="{Binding IsUser}" Classes.file="{Binding IsFile}" Padding="20,16" CornerRadius="12">
                   <StackPanel Spacing="10">
                     <TextBlock Text="{Binding Label}" FontWeight="SemiBold" Foreground="#B6BED5" FontSize="11" />
                     <SelectableTextBlock Text="{Binding Content}" TextWrapping="Wrap" FontSize="15" LineHeight="25" Foreground="#E7EAF5" />
+                    <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsFile}">
+                      <Button Classes="quiet" Content="Télécharger" CommandParameter="{Binding}" Click="DownloadFileClick" />
+                      <Button Classes="quiet" Content="Retirer" CommandParameter="{Binding}" Click="RemoveFileClick" />
+                    </StackPanel>
                   </StackPanel>
                 </Border>
               </DataTemplate>
@@ -141,10 +149,12 @@
         <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
           <TextBox x:Name="MessageInput" PlaceholderText="Posez une question, explorez une idée…" AcceptsReturn="True"
                    Background="Transparent" BorderThickness="0" TextWrapping="Wrap" MinHeight="76" MaxHeight="180" MaxLength="32000" />
-          <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
-            <TextBlock Text="Ctrl + Entrée pour envoyer" FontSize="11" Foreground="#8F9BB6" VerticalAlignment="Center" Margin="10,0" TextWrapping="Wrap" />
-            <Button Grid.Column="1" x:Name="CancelButton" Classes="quiet" Content="Annuler" IsVisible="False" />
-            <Button Grid.Column="2" x:Name="SendButton" Classes="primary" Content="Envoyer  →" Padding="20,10" />
+          <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto,Auto,Auto" ColumnSpacing="8">
+            <Button Grid.Column="1" x:Name="UploadButton" Classes="quiet" Content="+ Fichiers" ToolTip.Tip="Importer des fichiers ou archives" />
+            <Button Grid.Column="2" x:Name="FolderButton" Classes="quiet" Content="Dossier" />
+            <TextBlock Text="Déposez vos fichiers ici · Ctrl + Entrée" FontSize="11" Foreground="#8F9BB6" VerticalAlignment="Center" Margin="10,0" TextWrapping="Wrap" />
+            <Button Grid.Column="3" x:Name="CancelButton" Classes="quiet" Content="Annuler" IsVisible="False" />
+            <Button Grid.Column="4" x:Name="SendButton" Classes="primary" Content="Envoyer  →" Padding="20,10" />
           </Grid>
         </Grid>
       </Border>

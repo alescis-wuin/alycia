@@ -23,6 +23,55 @@ namespace Alycia.Modules.Chat.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Alycia.Modules.Chat.Domain.Attachment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("AnchorSequence")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("ArchiveId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BatchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ConversationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)");
+
+                    b.Property<string>("Sha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<long>("Size")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConversationId", "BatchId");
+
+                    b.ToTable("attachments", "chat");
+                });
+
             modelBuilder.Entity("Alycia.Modules.Chat.Domain.ChatMessage", b =>
                 {
                     b.Property<Guid>("ConversationId")
@@ -92,6 +141,15 @@ namespace Alycia.Modules.Chat.Infrastructure.Migrations
                     b.HasIndex("UpdatedAtUtc");
 
                     b.ToTable("conversations", "chat");
+                });
+
+            modelBuilder.Entity("Alycia.Modules.Chat.Domain.Attachment", b =>
+                {
+                    b.HasOne("Alycia.Modules.Chat.Domain.Conversation", null)
+                        .WithMany()
+                        .HasForeignKey("ConversationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Alycia.Modules.Chat.Domain.ChatMessage", b =>

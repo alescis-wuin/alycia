@@ -55,6 +55,7 @@ public partial class ChatWindow : Window
                 await RunAsync(SendAsync);
             }
         };
+        InitializeFileControls();
         UpdateControls();
     }
 
@@ -107,6 +108,8 @@ public partial class ChatWindow : Window
         C<ListBox>("ConversationList").IsEnabled = !_busy;
         C<Button>("RefreshButton").IsEnabled = !_busy;
         C<Grid>("ConversationHeader").IsEnabled = !_busy && _current is not null;
+        C<Button>("UploadButton").IsEnabled = !_busy && _current is not null;
+        C<Button>("FolderButton").IsEnabled = !_busy && _current is not null;
         C<Button>("SendButton").IsEnabled = !_busy && _current is not null;
         C<TextBox>("MessageInput").IsEnabled = !_busy && _current is not null;
         C<Button>("OlderButton").IsEnabled = !_busy;
@@ -156,7 +159,7 @@ public partial class ChatWindow : Window
         C<TextBox>("TitleInput").Text = _current.Title;
         C<TextBlock>("ConversationDetails").Text = $"{_current.Model} · {_current.MessageCount} messages enregistrés";
         _messages.Clear();
-        foreach (var message in page.Messages)
+        foreach (var message in Timeline(page))
         {
             _messages.Add(message);
         }
@@ -174,9 +177,10 @@ public partial class ChatWindow : Window
         }
 
         var page = await _client.MessagesAsync(_current.Id, _messages[0].Sequence, _lifetime.Token);
-        for (var index = page.Messages.Length - 1; index >= 0; index--)
+        var timeline = Timeline(page);
+        for (var index = timeline.Length - 1; index >= 0; index--)
         {
-            _messages.Insert(0, page.Messages[index]);
+            _messages.Insert(0, timeline[index]);
         }
 
         C<Button>("OlderButton").IsVisible = page.HasMore;
@@ -239,7 +243,7 @@ public partial class ChatWindow : Window
             Spacing = 20,
             Children =
             {
-                new TextBlock { Text = "La conversation et tous ses messages seront supprimés.", TextWrapping = global::Avalonia.Media.TextWrapping.Wrap },
+                new TextBlock { Text = "La conversation, ses messages et ses fichiers seront supprimés.", TextWrapping = global::Avalonia.Media.TextWrapping.Wrap },
                 new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12, Children = { cancel, confirm } }
             }
         };
@@ -295,7 +299,7 @@ public partial class ChatWindow : Window
             }
 
             Feedback(result.Replayed ? "Échange déjà enregistré : aucun doublon ajouté."
-                : $"Réponse enregistrée · {result.HistoryMessagesIncluded} messages précédents inclus dans le contexte.");
+                : $"Réponse enregistrée · {result.HistoryMessagesIncluded} messages et {result.FilesIncluded} fichiers dans le contexte.");
         }
         finally
         {

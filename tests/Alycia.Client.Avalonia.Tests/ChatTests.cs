@@ -40,6 +40,35 @@ public sealed class ChatTests
     }
 
     [Fact]
+    public async Task UploadsRelativePathsAsMultipartAndDownloadsOriginalBytes()
+    {
+        var conversation = Guid.NewGuid();
+        var batch = Guid.NewGuid();
+        var file = Guid.NewGuid();
+        byte[] payload = [0, 1, 255, 42];
+        using var http = new HttpClient(new Handler(async (request, ct) =>
+        {
+            if (request.Method == HttpMethod.Post)
+            {
+                Assert.EndsWith($"/{conversation}/files/{batch}", request.RequestUri!.AbsolutePath);
+                var multipart = Assert.IsType<MultipartFormDataContent>(request.Content);
+                var part = Assert.Single(multipart);
+                Assert.Equal("folder/file.bin", part.Headers.ContentDisposition!.FileNameStar);
+                Assert.Equal(payload, await part.ReadAsByteArrayAsync(ct));
+                return Json(new[] { new FileItem(file, "folder/file.bin", 4, "Conservé", 1, DateTimeOffset.UtcNow, null, "hash") });
+            }
+            Assert.EndsWith($"/{conversation}/files/{file}", request.RequestUri!.AbsolutePath);
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(payload) };
+        }));
+        var client = new ChatApiClient(http, "http://127.0.0.1:5187", TimeSpan.FromSeconds(2));
+        var imported = await client.UploadAsync(conversation, batch, [new("folder/file.bin", new MemoryStream(payload))], default);
+        Assert.Equal(file, Assert.Single(imported).Id);
+        using var output = new MemoryStream();
+        await client.DownloadAsync(conversation, file, output, default);
+        Assert.Equal(payload, output.ToArray());
+    }
+
+    [Fact]
     public void ChatWindowCreatesRenamesSendsRetainsFailedDraftAndDeletes()
     {
         AppBuilder.Configure<App>().WithInterFont().UseSkia().UseHeadless(new AvaloniaHeadlessPlatformOptions
@@ -48,6 +77,7 @@ public sealed class ChatTests
         }).SetupWithoutStarting();
         ConversationSummary? conversation = null;
         var messages = new List<ChatMessageItem>();
+        FileItem[] files = [];
         var fail = false;
         using var http = new HttpClient(new Handler(async (request, ct) =>
         {
@@ -64,7 +94,7 @@ public sealed class ChatTests
 
             if (request.Method == HttpMethod.Get)
             {
-                return Json(new MessagePage(conversation!, messages.ToArray(), false));
+                return Json(new MessagePage(conversation!, messages.ToArray(), false, files));
             }
 
             if (request.Method == HttpMethod.Delete)
@@ -117,6 +147,13 @@ public sealed class ChatTests
             Assert.Equal(2, messages.Count);
             Assert.Equal("", window.FindControl<TextBox>("MessageInput")!.Text);
             Assert.Equal(2, window.FindControl<ItemsControl>("MessageList")!.ItemCount);
+
+            files = [new(Guid.NewGuid(), "projet/notes.md", 1024, "Texte extrait", 3, DateTimeOffset.UtcNow, null, "hash")];
+            Click(window, "RefreshButton");
+            Assert.Equal(3, window.FindControl<ItemsControl>("MessageList")!.ItemCount);
+            Assert.True(window.FindControl<Button>("UploadButton")!.IsEnabled);
+            Assert.True(window.FindControl<Button>("FolderButton")!.IsEnabled);
+            Assert.Contains(window.GetVisualDescendants().OfType<Button>(), button => Equals(button.Content, "Télécharger") && button.IsVisible);
 
             // Optional visual evidence from the actual Avalonia/Skia rendering.
             if (Environment.GetEnvironmentVariable("ALYCIA_UI_CAPTURE") is { Length: > 0 } screenshot)

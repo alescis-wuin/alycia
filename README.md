@@ -5,6 +5,11 @@ Alycia is a multi-backend generative AI client with a document knowledge hub and
 
 ## Local Ollama demo — this prototype branch
 
+This derived branch, `prototype/conversation-files`, adds file/folder/archive
+imports, attachment actions, a persistent Docker file volume and bounded file
+context. **Start here: [conversation files setup and limits](docs/Conversation-Files-Prototype.md).**
+`make demo-api` now runs the chat API in Docker with Linux host networking.
+
 This branch adds a working chat flow through **Avalonia → ASP.NET Core → local
 Ollama**, with conversations and messages stored in PostgreSQL. It starts from
 `develop` and is separate from the Sprint 7 authentication work.
@@ -13,7 +18,7 @@ After installing a local model and starting Ollama, run `make demo-api` and then
 `make demo-client` in separate terminals. The launcher requires .NET 10, Docker
 Compose, Python 3 and Bash; it preserves existing database volumes and `.env`.
 
-**Start here:** [setup, architecture, demo checklist and verification limits](docs/Local-Ollama-Prototype.md).
+Original chat architecture: [setup, demo checklist and verification limits](docs/Local-Ollama-Prototype.md).
 The remaining sprint sections describe the earlier foundation. On this branch,
 chat is the startup window; backend/Workspace diagnostics remain available from it.
 

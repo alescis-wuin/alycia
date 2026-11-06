@@ -1,6 +1,7 @@
 using System.Data.Common;
 using System.Diagnostics;
 using System.Net;
+using Microsoft.AspNetCore.Http.Features;
 using Alycia.Modules.Chat.Application;
 using Alycia.Modules.Chat.Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -33,6 +34,11 @@ internal static class ChatEndpoints
             provider => provider.MigrationsHistoryTable("__EFMigrationsHistory", "chat")));
         builder.Services.AddScoped<IChatRepository, EfChatRepository>();
         builder.Services.AddScoped<ChatService>();
+        builder.Services.AddSingleton(new FileStorage(builder.Configuration["ALYCIA_FILES_DIRECTORY"]
+            ?? Path.Combine(builder.Environment.ContentRootPath, "data", "files")));
+        builder.Services.AddScoped<FileImport>();
+        builder.Services.Configure<FormOptions>(form => form.MultipartBodyLengthLimit = FileImport.MaxBatchBytes);
+        builder.WebHost.ConfigureKestrel(server => server.Limits.MaxRequestBodySize = FileImport.MaxBatchBytes + 1024 * 1024);
         builder.Services.AddHttpClient<IChatModel, OllamaChatModel>(http =>
         {
             http.BaseAddress = uri;
@@ -80,6 +86,10 @@ internal static class ChatEndpoints
             {
                 return Error(http, 503, "OLLAMA_UNAVAILABLE", exception.Message);
             }
+            catch (BadHttpRequestException exception)
+            {
+                return Error(http, exception.StatusCode, "INVALID_UPLOAD", "Requête invalide ou trop volumineuse.");
+            }
             catch (OperationCanceledException) when (http.RequestAborted.IsCancellationRequested)
             {
                 return Results.StatusCode(499);
@@ -116,7 +126,10 @@ internal static class ChatEndpoints
 
             var conversation = await repository.FindAsync(id, ct) ?? throw new ConversationNotFoundException();
             var messages = await repository.MessagesAsync(id, 100, before, ct);
-            return Results.Ok(new { conversation, messages, hasMore = messages.Count > 0 && messages[0].Sequence > 1 });
+            var minimum = messages.Count == 0 ? 1 : messages[0].Sequence;
+            var files = (await repository.FilesAsync(id, ct)).Where(f => f.AnchorSequence >= minimum
+                && (before == null || f.AnchorSequence < before)).Select(FileImport.Summary);
+            return Results.Ok(new { conversation, messages, files, hasMore = messages.Count > 0 && messages[0].Sequence > 1 });
         });
 
         routes.MapPatch("/conversations/{id:guid}", async (Guid id, RenameConversation request,
@@ -128,10 +141,55 @@ internal static class ChatEndpoints
             return Results.Ok(conversation);
         });
 
-        routes.MapDelete("/conversations/{id:guid}", async (Guid id, IChatRepository repository, CancellationToken ct) =>
+        routes.MapDelete("/conversations/{id:guid}", async (Guid id, IChatRepository repository, FileStorage storage, CancellationToken ct) =>
         {
             var conversation = await repository.FindAsync(id, ct) ?? throw new ConversationNotFoundException();
             await repository.DeleteAsync(conversation, ct);
+            try { storage.DeleteConversation(id); }
+            catch (IOException) { app.Logger.LogWarning("File cleanup pending for deleted conversation {Id}", id); }
+            catch (UnauthorizedAccessException) { app.Logger.LogWarning("File cleanup denied for deleted conversation {Id}", id); }
+            return Results.NoContent();
+        });
+
+        routes.MapPost("/conversations/{id:guid}/files/{batchId:guid}", async (Guid id, Guid batchId,
+            HttpRequest request, FileImport importer, CancellationToken ct) =>
+        {
+            if (!request.HasFormContentType) return Error(request.HttpContext, 415, "INVALID_UPLOAD", "Un formulaire multipart est requis.");
+            IFormCollection form;
+            try { form = await request.ReadFormAsync(ct); }
+            catch (InvalidDataException) { return Error(request.HttpContext, 413, "UPLOAD_TOO_LARGE", "Import limité à 100 Mio."); }
+            var incoming = form.Files.Select(file => new IncomingFile(file.FileName, file.OpenReadStream())).ToArray();
+            try { return Results.Ok(await importer.ImportAsync(id, batchId, incoming, ct)); }
+            finally { foreach (var file in incoming) await file.Content.DisposeAsync(); }
+        });
+
+        routes.MapGet("/conversations/{id:guid}/files/{fileId:guid}", async (Guid id, Guid fileId,
+            ChatDbContext database, FileStorage storage, HttpContext http, CancellationToken ct) =>
+        {
+            var file = await database.Attachments.AsNoTracking().SingleOrDefaultAsync(f => f.Id == fileId && f.ConversationId == id, ct);
+            if (file is null) return Error(http, 404, "FILE_NOT_FOUND", "Fichier introuvable.");
+            var path = storage.PathFor(id, fileId);
+            if (!File.Exists(path)) return Error(http, 503, "FILE_UNAVAILABLE", "Le volume de fichiers est indisponible.");
+            http.Response.Headers["X-Content-Type-Options"] = "nosniff";
+            return Results.File(path, "application/octet-stream", Path.GetFileName(file.Name), enableRangeProcessing: true);
+        });
+
+        routes.MapDelete("/conversations/{id:guid}/files/{fileId:guid}", async (Guid id, Guid fileId,
+            ChatDbContext database, FileStorage storage, HttpContext http, CancellationToken ct) =>
+        {
+            var conversation = await database.Conversations.SingleOrDefaultAsync(c => c.Id == id, ct)
+                ?? throw new ConversationNotFoundException();
+            var files = await database.Attachments.Where(f => f.ConversationId == id && (f.Id == fileId || f.ArchiveId == fileId)).ToListAsync(ct);
+            if (!files.Any(f => f.Id == fileId)) return Error(http, 404, "FILE_NOT_FOUND", "Fichier introuvable.");
+            database.Attachments.RemoveRange(files);
+            conversation.AttachFiles();
+            await new EfChatRepository(database).SaveAsync(ct);
+            foreach (var file in files)
+            {
+                try { File.Delete(storage.PathFor(id, file.Id)); }
+                catch (IOException) { app.Logger.LogWarning("File cleanup pending: {Id}", file.Id); }
+                catch (UnauthorizedAccessException) { app.Logger.LogWarning("File cleanup denied: {Id}", file.Id); }
+            }
             return Results.NoContent();
         });
 

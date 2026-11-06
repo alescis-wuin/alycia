@@ -7,6 +7,10 @@ namespace Alycia.Modules.Chat.Infrastructure;
 
 public sealed class EfChatRepository(ChatDbContext database) : IChatRepository
 {
+    public async Task<IReadOnlyList<Attachment>> FilesAsync(Guid id, CancellationToken cancellationToken) =>
+        await database.Attachments.AsNoTracking().Where(f => f.ConversationId == id)
+            .OrderBy(f => f.CreatedAtUtc).ToListAsync(cancellationToken);
+
     public async Task<IReadOnlyList<Conversation>> ListAsync(CancellationToken cancellationToken) =>
         await database.Conversations.AsNoTracking().OrderByDescending(item => item.UpdatedAtUtc)
             .ThenBy(item => item.Id).ToListAsync(cancellationToken);

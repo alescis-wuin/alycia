@@ -29,6 +29,12 @@ fi
 unset password_state
 
 docker compose -f compose.yaml -f compose.demo.yaml up -d --wait postgres
+# Verify the same TCP password authentication used by the API (local socket migrations do not).
+if ! docker compose exec -T postgres sh -c \
+    'PGPASSWORD="$POSTGRES_PASSWORD" psql -X -h 127.0.0.1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -c "SELECT 1" >/dev/null'; then
+    echo 'PostgreSQL rejected the configured password. Match .env to the existing database password; do not delete the volume.' >&2
+    exit 1
+fi
 dotnet tool restore
 bash scripts/migrate.sh
 
@@ -51,5 +57,5 @@ PY
 export ALYCIA_CHAT_CONNECTION
 export ASPNETCORE_ENVIRONMENT=Development
 export ALYCIA_ENABLE_LOCAL_CHAT=true
-echo 'Starting local chat API on http://127.0.0.1:5187 (Ctrl+C stops the API; PostgreSQL data remains).'
-exec dotnet run --no-launch-profile --project src/Alycia.Api -- --urls http://127.0.0.1:5187
+echo 'Starting chat API with persistent file volume on http://127.0.0.1:5187 (Linux host networking).'
+exec docker compose -f compose.yaml -f compose.demo.yaml --profile files up --build --no-deps chat-api

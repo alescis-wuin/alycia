@@ -39,6 +39,8 @@ public sealed class Conversation
         Touch();
     }
 
+    public void AttachFiles() => Touch();
+
     private void Touch()
     {
         Revision = checked(Revision + 1);

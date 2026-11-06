@@ -1,6 +1,26 @@
-# Host-side API + Ollama; expose only PostgreSQL on loopback for the demo.
-# Does not change the normal compose.yaml configuration.
+# Linux host networking preserves loopback-only API/Ollama access while mounting a named volume.
 services:
   postgres:
     ports:
       - "127.0.0.1:${ALYCIA_DEMO_POSTGRES_PORT:-5433}:5432"
+  chat-api:
+    profiles: [files]
+    build: .
+    network_mode: host
+    command: ["--urls", "http://127.0.0.1:5187"]
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ALYCIA_ENABLE_LOCAL_CHAT: "true"
+      ALYCIA_CHAT_CONNECTION: ${ALYCIA_CHAT_CONNECTION:-}
+      ALYCIA_OLLAMA_BASE_URL: ${ALYCIA_OLLAMA_BASE_URL:-http://127.0.0.1:11434/}
+      ALYCIA_FILES_DIRECTORY: /app/files
+      ALYCIA_LOG_PATH: /app/logs/alycia-.jsonl
+      Chat__MaxHistoryTurns: ${Chat__MaxHistoryTurns:-12}
+      Chat__ContextTokens: ${Chat__ContextTokens:-8192}
+      Chat__MaxOutputTokens: ${Chat__MaxOutputTokens:-1024}
+      Chat__TimeoutSeconds: ${Chat__TimeoutSeconds:-180}
+    volumes:
+      - chat_files:/app/files
+      - api_logs:/app/logs
+volumes:
+  chat_files:

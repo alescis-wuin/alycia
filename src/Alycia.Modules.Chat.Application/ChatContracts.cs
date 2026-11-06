@@ -4,6 +4,7 @@ namespace Alycia.Modules.Chat.Application;
 
 public interface IChatRepository
 {
+    Task<IReadOnlyList<Attachment>> FilesAsync(Guid id, CancellationToken cancellationToken);
     Task<IReadOnlyList<Conversation>> ListAsync(CancellationToken cancellationToken);
     Task<Conversation?> FindAsync(Guid id, CancellationToken cancellationToken);
     Task AddAsync(Conversation conversation, CancellationToken cancellationToken);
@@ -15,8 +16,8 @@ public interface IChatRepository
 }
 
 public sealed record PromptMessage(string Role, string Content);
-public sealed record ContextWindow(IReadOnlyList<PromptMessage> Messages, int HistoryMessagesIncluded, int EstimatedInputTokens);
-public sealed record SendMessageResult(IReadOnlyList<ChatMessage> Messages, int? HistoryMessagesIncluded, bool Replayed);
+public sealed record ContextWindow(IReadOnlyList<PromptMessage> Messages, int HistoryMessagesIncluded, int EstimatedInputTokens, int FilesIncluded = 0);
+public sealed record SendMessageResult(IReadOnlyList<ChatMessage> Messages, int? HistoryMessagesIncluded, bool Replayed, int FilesIncluded = 0);
 
 public interface IChatModel
 {

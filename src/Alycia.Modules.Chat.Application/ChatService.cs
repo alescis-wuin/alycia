@@ -43,7 +43,8 @@ public sealed class ChatService(IChatRepository repository, IChatModel model, Ch
         }
 
         var history = await repository.MessagesAsync(id, options.MaxHistoryTurns * 2, null, cancellationToken);
-        var window = SlidingContext.Build(conversation.SystemPrompt, history, text, options);
+        var files = await repository.FilesAsync(id, cancellationToken);
+        var window = FileContext.Build(conversation.SystemPrompt, history, text, options, files, conversation.MessageCount + 1);
         var reply = await model.GenerateAsync(conversation.Model, window.Messages, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(reply) || reply.Contains('\0'))
@@ -57,6 +58,6 @@ public sealed class ChatService(IChatRepository repository, IChatModel model, Ch
         // One atomic SaveChanges for both messages and the revision. A failed
         // model call/cancellation never leaves an orphan user message in storage.
         await repository.AppendTurnAsync(conversation, user, assistant, cancellationToken);
-        return new([user, assistant], window.HistoryMessagesIncluded, false);
+        return new([user, assistant], window.HistoryMessagesIncluded, false, window.FilesIncluded);
     }
 }

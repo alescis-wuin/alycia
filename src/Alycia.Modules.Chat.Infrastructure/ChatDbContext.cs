@@ -6,12 +6,24 @@ namespace Alycia.Modules.Chat.Infrastructure;
 
 public sealed class ChatDbContext(DbContextOptions<ChatDbContext> options) : DbContext(options)
 {
+    public DbSet<Attachment> Attachments => Set<Attachment>();
     public DbSet<Conversation> Conversations => Set<Conversation>();
     public DbSet<ChatMessage> Messages => Set<ChatMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema("chat");
+        modelBuilder.Entity<Attachment>(entity =>
+        {
+            entity.ToTable("attachments");
+            entity.HasKey(f => f.Id);
+            entity.Property(f => f.Id).ValueGeneratedNever();
+            entity.Property(f => f.Name).HasMaxLength(1024).IsRequired();
+            entity.Property(f => f.Sha256).HasMaxLength(64).IsRequired();
+            entity.Property(f => f.Status).HasMaxLength(100).IsRequired();
+            entity.HasIndex(f => new { f.ConversationId, f.BatchId });
+            entity.HasOne<Conversation>().WithMany().HasForeignKey(f => f.ConversationId).OnDelete(DeleteBehavior.Cascade);
+        });
         modelBuilder.Entity<Conversation>(entity =>
         {
             entity.ToTable("conversations");

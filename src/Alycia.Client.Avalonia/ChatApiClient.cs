@@ -1,5 +1,7 @@
 using System;
 using System.Net;
+using System.IO;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -12,14 +14,23 @@ public sealed record ConversationSummary(Guid Id, string Title, string Model, st
     DateTimeOffset CreatedAtUtc, DateTimeOffset UpdatedAtUtc, int Revision, int MessageCount);
 
 public sealed record ChatMessageItem(Guid ConversationId, int Sequence, Guid RequestId, string Role,
-    string Content, DateTimeOffset CreatedAtUtc)
+    string Content, DateTimeOffset CreatedAtUtc, Guid? AttachmentId = null)
 {
+    public bool IsFile => AttachmentId.HasValue;
     public bool IsUser => Role == "user";
-    public string Label => $"{(Role == "user" ? "Vous" : "Alycia")} · {CreatedAtUtc.ToLocalTime():HH:mm}";
+    public string Label => $"{(IsFile ? "Fichier joint" : Role == "user" ? "Vous" : "Alycia")} · {CreatedAtUtc.ToLocalTime():HH:mm}";
 }
 
-public sealed record MessagePage(ConversationSummary Conversation, ChatMessageItem[] Messages, bool HasMore);
-public sealed record ChatSendResult(ChatMessageItem[] Messages, int? HistoryMessagesIncluded, bool Replayed);
+public sealed record MessagePage(ConversationSummary Conversation, ChatMessageItem[] Messages, bool HasMore, FileItem[]? Files = null);
+public sealed record ChatSendResult(ChatMessageItem[] Messages, int? HistoryMessagesIncluded, bool Replayed, int FilesIncluded = 0);
+public sealed record FileItem(Guid Id, string Name, long Size, string Status, int AnchorSequence,
+    DateTimeOffset CreatedAtUtc, Guid? ArchiveId, string Sha256)
+{
+    public ChatMessageItem ToMessage(Guid conversation) => new(conversation, AnchorSequence, Guid.Empty, "file",
+        $"{Name}\n{Size / 1024.0:N1} Kio · {Status}", CreatedAtUtc, Id);
+}
+public sealed record UploadFile(string Name, Stream Content);
+
 public sealed class ChatApiException(string message) : Exception(message);
 
 public sealed class ChatApiClient
@@ -63,6 +74,22 @@ public sealed class ChatApiClient
     public Task<ChatSendResult> SendMessageAsync(Guid id, Guid requestId, string content, CancellationToken ct) =>
         SendAsync<ChatSendResult>(HttpMethod.Post, $"/conversations/{id}/messages", new { requestId, content }, ct);
 
+    public async Task<FileItem[]> UploadAsync(Guid conversation, Guid batch, IReadOnlyList<UploadFile> files, CancellationToken ct)
+    {
+        using var form = new MultipartFormDataContent();
+        foreach (var file in files) form.Add(new StreamContent(file.Content), "files", file.Name);
+        return await SendAsync<FileItem[]>(HttpMethod.Post, $"/conversations/{conversation}/files/{batch}", form, ct);
+    }
+
+    public Task DeleteFileAsync(Guid conversation, Guid file, CancellationToken ct) =>
+        SendAsync<object>(HttpMethod.Delete, $"/conversations/{conversation}/files/{file}", null, ct);
+
+    public async Task DownloadAsync(Guid conversation, Guid file, Stream destination, CancellationToken ct)
+    {
+        var bytes = await SendAsync<byte[]>(HttpMethod.Get, $"/conversations/{conversation}/files/{file}", null, ct);
+        await destination.WriteAsync(bytes, ct);
+    }
+
     private async Task<T> SendAsync<T>(HttpMethod method, string path, object? body, CancellationToken ct)
     {
         var url = _baseUrl ?? Environment.GetEnvironmentVariable("ALYCIA_API_BASE_URL") ?? "http://127.0.0.1:8080";
@@ -75,12 +102,12 @@ public sealed class ChatApiClient
 
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
         // Short requests fail quickly; inference may need time to load a model.
-        timeout.CancelAfter(method == HttpMethod.Post && path.EndsWith("/messages", StringComparison.Ordinal)
+        timeout.CancelAfter(method == HttpMethod.Post && (path.EndsWith("/messages", StringComparison.Ordinal) || body is MultipartFormDataContent)
             ? _timeout : TimeSpan.FromSeconds(30));
         using var request = new HttpRequestMessage(method, new Uri(origin, "/api/chat" + path));
         if (body is not null)
         {
-            request.Content = JsonContent.Create(body);
+            request.Content = body as HttpContent ?? JsonContent.Create(body);
         }
 
         try
@@ -104,6 +131,8 @@ public sealed class ChatApiClient
             {
                 return default!;
             }
+
+            if (typeof(T) == typeof(byte[])) return (T)(object)await response.Content.ReadAsByteArrayAsync(timeout.Token);
 
             return await response.Content.ReadFromJsonAsync<T>(timeout.Token)
                 ?? throw new ChatApiException("Réponse du backend vide.");
