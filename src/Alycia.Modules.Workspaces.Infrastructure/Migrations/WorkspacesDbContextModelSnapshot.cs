@@ -39,6 +39,10 @@ namespace Alycia.Modules.Workspaces.Infrastructure.Migrations
                         .HasColumnType("citext")
                         .HasColumnName("name");
 
+                    b.Property<Guid?>("OwnerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner_user_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Name")
@@ -52,6 +56,8 @@ namespace Alycia.Modules.Workspaces.Infrastructure.Migrations
                             t.HasCheckConstraint("ck_workspaces_name_length", "char_length(name) BETWEEN 1 AND 100");
 
                             t.HasCheckConstraint("ck_workspaces_name_trimmed", "name = btrim(name)");
+
+                            t.HasCheckConstraint("ck_workspaces_owner_user_id_nonempty", "owner_user_id IS NULL OR owner_user_id <> '00000000-0000-0000-0000-000000000000'::uuid");
                         });
                 });
 #pragma warning restore 612, 618

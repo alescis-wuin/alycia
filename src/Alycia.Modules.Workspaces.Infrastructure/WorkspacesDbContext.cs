@@ -28,6 +28,10 @@ public sealed class WorkspacesDbContext(DbContextOptions<WorkspacesDbContext> op
                 table.HasCheckConstraint(
                     "ck_workspaces_name_length",
                     "char_length(name) BETWEEN 1 AND 100");
+                table.HasCheckConstraint(
+                    "ck_workspaces_owner_user_id_nonempty",
+                    "owner_user_id IS NULL OR " +
+                    "owner_user_id <> '00000000-0000-0000-0000-000000000000'::uuid");
             });
 
             entity.HasKey(workspace => workspace.Id);
@@ -49,6 +53,11 @@ public sealed class WorkspacesDbContext(DbContextOptions<WorkspacesDbContext> op
                 .HasColumnName("created_at_utc")
                 .HasColumnType("timestamp with time zone")
                 .IsRequired();
+
+            // No physical FK to Identity: intermodule ownership is coordinated above the domains.
+            entity.Property(workspace => workspace.OwnerUserId)
+                .HasColumnName("owner_user_id")
+                .HasColumnType("uuid");
         });
     }
 }

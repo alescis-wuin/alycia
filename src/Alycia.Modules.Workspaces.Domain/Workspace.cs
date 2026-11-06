@@ -7,6 +7,8 @@ public sealed class Workspace
     public Guid Id { get; private set; }
     public string Name { get; private set; } = null!;
     public DateTimeOffset CreatedAtUtc { get; private set; }
+    // Nullable only until the first-owner backfill is committed.
+    public Guid? OwnerUserId { get; private set; }
 
     private Workspace() { } // EF Core materialization only.
 
@@ -29,6 +31,21 @@ public sealed class Workspace
 
     public static Workspace Create(string? name) =>
         new(Guid.NewGuid(), name, DateTimeOffset.UtcNow);
+
+    public void AssignOwner(Guid ownerUserId)
+    {
+        if (ownerUserId == Guid.Empty)
+        {
+            throw new ArgumentException("Owner ID must not be empty.", nameof(ownerUserId));
+        }
+
+        if (OwnerUserId is not null && OwnerUserId != ownerUserId)
+        {
+            throw new InvalidOperationException("Workspace ownership cannot be changed.");
+        }
+
+        OwnerUserId = ownerUserId;
+    }
 
     private static string NormalizeName(string? name)
     {

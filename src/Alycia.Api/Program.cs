@@ -1,13 +1,48 @@
-using Alycia.Api.Workspaces;
-using Alycia.Modules.Workspaces.Application;
-using Alycia.Modules.Workspaces.Infrastructure;
-using Microsoft.EntityFrameworkCore;
+using Alycia.Api.OwnerInitialization;
+using Alycia.Modules.Identity.Application;
+using Alycia.Modules.Identity.Infrastructure;
+using Npgsql;
 using Scalar.AspNetCore;
 using Microsoft.OpenApi;
 using System.Diagnostics;
 using Serilog;
 using Serilog.Events;
 using Serilog.Formatting.Compact;
+
+// Administrative CLI runs only with local process/OS access, never via HTTP.
+if (args is ["bootstrap", "generate"])
+{
+    var connectionString = BootstrapConnectionString(
+        Environment.GetEnvironmentVariable("ALYCIA_WORKSPACES_CONNECTION"));
+    if (string.IsNullOrWhiteSpace(connectionString))
+    {
+        Console.Error.WriteLine("A local bootstrap database connection is not configured.");
+        return;
+    }
+
+    try
+    {
+        var secret = await new OwnerBootstrapIssuer(connectionString, TimeProvider.System)
+            .GenerateAsync();
+        Console.Out.WriteLine(secret); // Display once; do not write to log files.
+    }
+    catch (ActiveBootstrapSecretException)
+    {
+        Console.Error.WriteLine("BOOTSTRAP_ACTIVE: a valid secret already exists.");
+        Environment.ExitCode = 1;
+    }
+    catch (BootstrapAlreadyInitializedException)
+    {
+        Console.Error.WriteLine("OWNER_ALREADY_INITIALIZED: generation permanently disabled.");
+        Environment.ExitCode = 1;
+    }
+    catch (Exception exception)
+    {
+        Console.Error.WriteLine($"BOOTSTRAP_GENERATION_FAILED: {exception.GetType().Name}");
+        Environment.ExitCode = 1;
+    }
+    return;
+}
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -92,26 +127,24 @@ builder.Services.AddOpenApi(options =>
 
 builder.Services.AddHealthChecks();
 
-// Temporary S6 exception: routes are absent unless Development and opted in.
-var enableLocalWorkspaces = builder.Environment.IsDevelopment()
-    && builder.Configuration.GetValue<bool>("ALYCIA_ENABLE_LOCAL_WORKSPACES");
-
-if (enableLocalWorkspaces)
+var identityConnection = BootstrapConnectionString(
+    builder.Configuration["ALYCIA_WORKSPACES_CONNECTION"]);
+if (!string.IsNullOrWhiteSpace(identityConnection))
 {
-    var connectionString = builder.Configuration["ALYCIA_WORKSPACES_CONNECTION"];
-    if (string.IsNullOrWhiteSpace(connectionString))
-    {
-        throw new InvalidOperationException(
-            "ALYCIA_WORKSPACES_CONNECTION is required when local Workspaces are enabled.");
-    }
-
-    builder.Services.AddDbContext<WorkspacesDbContext>(options =>
-        options.UseNpgsql(connectionString, npgsql =>
-            npgsql.MigrationsHistoryTable("__EFMigrationsHistory", "workspaces")));
-    builder.Services.AddScoped<IWorkspaceRepository, EfWorkspaceRepository>();
-    builder.Services.AddScoped<CreateWorkspaceService>();
-    builder.Services.AddScoped<GetWorkspaceService>();
+    builder.Services.AddSingleton(new OwnerInitializationPersistence(identityConnection));
+    builder.Services.AddSingleton(LocalBlockedOwnerPasswords.CreatePolicy());
+    builder.Services.AddSingleton<IOwnerPasswordHasher, OwnerPasswordHasher>();
+    builder.Services.AddSingleton(TimeProvider.System);
+    builder.Services.AddSingleton(sp => new BootstrapOwnerService(identityConnection,
+        sp.GetRequiredService<OwnerInitializationPersistence>(),
+        sp.GetRequiredService<OwnerPasswordPolicy>(),
+        sp.GetRequiredService<IOwnerPasswordHasher>(),
+        sp.GetRequiredService<TimeProvider>()));
 }
+
+
+// S7: the S6 anonymous business-route exception is retired.
+// Only the guarded, local owner bootstrap endpoint will be added in issue #42.
 
 var app = builder.Build();
 
@@ -134,25 +167,40 @@ if (app.Environment.IsDevelopment())
         options.DisableAgent().DisableDefaultFonts());
 }
 
-if (enableLocalWorkspaces)
+if (!string.IsNullOrWhiteSpace(identityConnection))
 {
-    // Check the actual TCP peer before endpoint parameter binding.
-    // X-Forwarded-For and Host headers are intentionally ignored.
+    // Early gate: reject Docker peers and remote HTTP before body parsing or DI.
+    // Host/X-Forwarded-For cannot override the actual TCP peer.
     app.Use(async (context, next) =>
     {
-        if (context.Request.Path.StartsWithSegments("/api/workspaces")
-            && !WorkspaceEndpoints.IsLocalConnection(context))
+        if (context.Request.Path.StartsWithSegments("/api/identity/bootstrap")
+            && !BootstrapEndpoints.IsLocalConnection(context))
         {
-            await WorkspaceEndpoints.AccessDenied(context).ExecuteAsync(context);
+            await BootstrapEndpoints.Denied(context).ExecuteAsync(context);
             return;
         }
-
         await next(context);
     });
 
-    app.MapWorkspaceEndpoints();
+    app.MapBootstrapEndpoints();
 }
 
 app.MapHealthChecks("/healthz");
 
 app.Run();
+
+// Docker receives the DB password as a distinct environment variable so
+// arbitrary characters (notably semicolons) remain safe in connection strings.
+static string? BootstrapConnectionString(string? configured)
+{
+    if (!string.IsNullOrWhiteSpace(configured)) return configured;
+    var password = Environment.GetEnvironmentVariable("ALYCIA_POSTGRES_PASSWORD");
+    if (string.IsNullOrEmpty(password)) return null;
+    return new NpgsqlConnectionStringBuilder
+    {
+        Host = "postgres",
+        Database = "alycia",
+        Username = "alycia",
+        Password = password
+    }.ConnectionString;
+}

@@ -41,6 +41,21 @@ public sealed class WorkspaceTests
     }
 
     [Fact]
+    public void AssignOwner_RejectsEmptyIdAndChangesToAnotherOwner()
+    {
+        var workspace = Workspace.Create("Personal");
+        var ownerId = Guid.NewGuid();
+
+        Assert.Null(workspace.OwnerUserId);
+        Assert.Throws<ArgumentException>(() => workspace.AssignOwner(Guid.Empty));
+        workspace.AssignOwner(ownerId);
+        workspace.AssignOwner(ownerId);
+        Assert.Equal(ownerId, workspace.OwnerUserId);
+        Assert.Throws<InvalidOperationException>(() => workspace.AssignOwner(Guid.NewGuid()));
+        Assert.Equal(ownerId, workspace.OwnerUserId);
+    }
+
+    [Fact]
     public void Constructor_RejectsEmptyId()
     {
         Assert.Throws<ArgumentException>(() =>

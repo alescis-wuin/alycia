@@ -1,12 +1,18 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
+COPY src/Alycia.Modules.Identity.Domain/Alycia.Modules.Identity.Domain.csproj src/Alycia.Modules.Identity.Domain/
+COPY src/Alycia.Modules.Identity.Application/Alycia.Modules.Identity.Application.csproj src/Alycia.Modules.Identity.Application/
+COPY src/Alycia.Modules.Identity.Infrastructure/Alycia.Modules.Identity.Infrastructure.csproj src/Alycia.Modules.Identity.Infrastructure/
 COPY src/Alycia.Modules.Workspaces.Domain/Alycia.Modules.Workspaces.Domain.csproj src/Alycia.Modules.Workspaces.Domain/
 COPY src/Alycia.Modules.Workspaces.Application/Alycia.Modules.Workspaces.Application.csproj src/Alycia.Modules.Workspaces.Application/
 COPY src/Alycia.Modules.Workspaces.Infrastructure/Alycia.Modules.Workspaces.Infrastructure.csproj src/Alycia.Modules.Workspaces.Infrastructure/
 COPY src/Alycia.Api/Alycia.Api.csproj src/Alycia.Api/
 RUN dotnet restore src/Alycia.Api/Alycia.Api.csproj
 
+COPY src/Alycia.Modules.Identity.Domain/ src/Alycia.Modules.Identity.Domain/
+COPY src/Alycia.Modules.Identity.Application/ src/Alycia.Modules.Identity.Application/
+COPY src/Alycia.Modules.Identity.Infrastructure/ src/Alycia.Modules.Identity.Infrastructure/
 COPY src/Alycia.Modules.Workspaces.Domain/ src/Alycia.Modules.Workspaces.Domain/
 COPY src/Alycia.Modules.Workspaces.Application/ src/Alycia.Modules.Workspaces.Application/
 COPY src/Alycia.Modules.Workspaces.Infrastructure/ src/Alycia.Modules.Workspaces.Infrastructure/
