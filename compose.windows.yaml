@@ -1,0 +1,36 @@
+# Use with compose.yaml, not compose.demo.yaml. No host networking is required.
+services:
+  ollama:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama_data:/root/.ollama
+    # CPU baseline works without GPU drivers; no host port is published.
+  chat-api:
+    build: .
+    command: ["--urls", "http://0.0.0.0:5187"]
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ALYCIA_ENABLE_LOCAL_CHAT: "true"
+      ALYCIA_CHAT_CONTAINER_MODE: "true"
+      ALYCIA_CHAT_ACCESS_TOKEN: ${ALYCIA_CHAT_ACCESS_TOKEN:-}
+      ALYCIA_CHAT_CONNECTION: ${ALYCIA_CHAT_CONNECTION:-}
+      ALYCIA_OLLAMA_BASE_URL: http://ollama:11434/
+      ALYCIA_FILES_DIRECTORY: /app/files
+      ALYCIA_LOG_PATH: /app/logs/alycia-.jsonl
+      Chat__MaxHistoryTurns: ${Chat__MaxHistoryTurns:-12}
+      Chat__ContextTokens: ${Chat__ContextTokens:-8192}
+      Chat__MaxOutputTokens: ${Chat__MaxOutputTokens:-1024}
+      Chat__TimeoutSeconds: ${Chat__TimeoutSeconds:-300}
+    ports:
+      - "127.0.0.1:5187:5187"
+    volumes:
+      - chat_files:/app/files
+      - api_logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+volumes:
+  chat_files:
+  ollama_data:

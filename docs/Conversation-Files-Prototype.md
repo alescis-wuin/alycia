@@ -31,8 +31,10 @@ port (5433 by default) and Ollama at `127.0.0.1:11434`. This preserves the exist
 Development-only, explicit opt-in and loopback/Origin guards. The regular `api`
 service and its port 8080 are separate from this demonstration.
 
-Docker Desktop requires host networking support to be explicitly enabled;
-that environment has not been tested. Linux Docker Engine is the target.
+For Windows/Docker Desktop, use the separate
+[PowerShell setup and launcher](Windows-Prototype.md). Its bridge network and
+containerized Ollama do not require Docker Desktop host networking. The Linux
+commands in this section continue to target Docker Engine with host networking.
 
 Stop the API with Ctrl+C. For an explicit stop from another terminal:
 

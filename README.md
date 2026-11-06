@@ -5,6 +5,10 @@ Alycia is a multi-backend generative AI client with a document knowledge hub and
 
 ## Local Ollama demo — this prototype branch
 
+**Windows:** [one-command setup, PowerShell launchers and Docker Desktop](docs/Windows-Prototype.md).
+The Windows launcher installs/checks dependencies, initializes persistent services
+and opens the native Avalonia client; it does not require Bash, Python or Make.
+
 This derived branch, `prototype/conversation-files`, adds file/folder/archive
 imports, attachment actions, a persistent Docker file volume and bounded file
 context. **Start here: [conversation files setup and limits](docs/Conversation-Files-Prototype.md).**

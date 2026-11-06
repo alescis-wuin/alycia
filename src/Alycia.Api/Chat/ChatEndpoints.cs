@@ -1,6 +1,5 @@
 using System.Data.Common;
 using System.Diagnostics;
-using System.Net;
 using Microsoft.AspNetCore.Http.Features;
 using Alycia.Modules.Chat.Application;
 using Alycia.Modules.Chat.Infrastructure;
@@ -19,12 +18,9 @@ internal static class ChatEndpoints
         }
 
         var ollamaUrl = builder.Configuration["ALYCIA_OLLAMA_BASE_URL"] ?? "http://127.0.0.1:11434/";
-        if (!Uri.TryCreate(ollamaUrl, UriKind.Absolute, out var uri) || !uri.IsLoopback
-            || uri.Scheme is not ("http" or "https") || uri.AbsolutePath != "/"
-            || uri.UserInfo.Length > 0 || uri.Query.Length > 0 || uri.Fragment.Length > 0)
-        {
-            throw new InvalidOperationException("ALYCIA_OLLAMA_BASE_URL must be a loopback HTTP(S) origin.");
-        }
+        var access = new LocalChatAccess(builder.Configuration);
+        var uri = access.ValidateOllamaUrl(ollamaUrl);
+        builder.Services.AddSingleton(access);
 
         var options = new ChatOptions();
         builder.Configuration.GetSection("Chat").Bind(options);
@@ -49,11 +45,11 @@ internal static class ChatEndpoints
 
     public static void MapLocalChat(this WebApplication app)
     {
+        var access = app.Services.GetRequiredService<LocalChatAccess>();
         app.Use(async (context, next) =>
         {
             if (context.Request.Path.StartsWithSegments("/api/chat")
-                && (context.Connection.RemoteIpAddress is not { } address || !IPAddress.IsLoopback(address)
-                    || context.Request.Headers.ContainsKey("Origin")))
+                && !access.IsAllowed(context))
             {
                 await Error(context, 403, "LOCAL_ONLY", "Le chat est réservé au client local.").ExecuteAsync(context);
                 return;

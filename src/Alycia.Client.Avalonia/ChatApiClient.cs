@@ -4,6 +4,7 @@ using System.IO;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Json;
+using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -42,14 +43,16 @@ public sealed class ChatApiClient
     private readonly HttpClient _http;
     private readonly string? _baseUrl;
     private readonly TimeSpan _timeout;
+    private readonly string? _accessToken;
 
     public ChatApiClient() : this(SharedHttp, null, TimeSpan.FromMinutes(11)) { }
 
-    public ChatApiClient(HttpClient http, string? baseUrl, TimeSpan timeout)
+    public ChatApiClient(HttpClient http, string? baseUrl, TimeSpan timeout, string? accessToken = null)
     {
         _http = http;
         _baseUrl = baseUrl;
         _timeout = timeout;
+        _accessToken = accessToken;
     }
 
     public Task<string[]> ModelsAsync(CancellationToken ct) =>
@@ -105,6 +108,8 @@ public sealed class ChatApiClient
         timeout.CancelAfter(method == HttpMethod.Post && (path.EndsWith("/messages", StringComparison.Ordinal) || body is MultipartFormDataContent)
             ? _timeout : TimeSpan.FromSeconds(30));
         using var request = new HttpRequestMessage(method, new Uri(origin, "/api/chat" + path));
+        var token = _accessToken ?? Environment.GetEnvironmentVariable("ALYCIA_CHAT_ACCESS_TOKEN");
+        if (!string.IsNullOrEmpty(token)) request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         if (body is not null)
         {
             request.Content = body as HttpContent ?? JsonContent.Create(body);

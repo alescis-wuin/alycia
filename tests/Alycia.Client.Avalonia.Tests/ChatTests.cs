@@ -32,6 +32,19 @@ public sealed class ChatTests
     }
 
     [Fact]
+    public async Task SendsContainerTokenToValidatedLocalBackend()
+    {
+        using var http = new HttpClient(new Handler((request, _) =>
+        {
+            Assert.Equal("Bearer", request.Headers.Authorization!.Scheme);
+            Assert.Equal("local-secret", request.Headers.Authorization.Parameter);
+            return Task.FromResult(Json(Array.Empty<ConversationSummary>()));
+        }));
+        var client = new ChatApiClient(http, "http://127.0.0.1:5187", TimeSpan.FromSeconds(2), "local-secret");
+        Assert.Empty(await client.ListAsync(default));
+    }
+
+    [Fact]
     public async Task RejectsNonlocalBackendBeforeSendingAnyMessage()
     {
         using var http = new HttpClient(new Handler((_, _) => throw new InvalidOperationException("Unexpected HTTP")));

@@ -58,7 +58,7 @@ collect_file() {
 
     case "$file" in
         *.cs|*.csproj|*.slnx|*.json|*.md|\
-        *.yml|*.yaml|*.axaml|*.xml|*.sh|\
+        *.yml|*.yaml|*.axaml|*.xml|*.sh|*.ps1|\
         Makefile|.editorconfig|.gitignore|\
         .githooks/pre-commit) ;;
         *) return 0 ;;
