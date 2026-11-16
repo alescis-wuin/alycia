@@ -20,9 +20,17 @@ public sealed partial class ChatService(IChatRepository repository, IChatModel m
         return conversation;
     }
 
-    public async Task<SendMessageResult> SendAsync(Guid id, Guid requestId, string? content,
-        CancellationToken cancellationToken)
+    public Task<SendMessageResult> SendAsync(Guid id, Guid requestId, string? content, CancellationToken cancellationToken)
+        => SendCoreAsync(id, requestId, content, null, null, cancellationToken);
+
+    public Task<SendMessageResult> StreamAsync(Guid id, Guid requestId, string? content, int? revision,
+        Func<ModelDelta, Task> onDelta, CancellationToken ct)
+        => SendCoreAsync(id, requestId, content, revision, onDelta, ct);
+
+    private async Task<SendMessageResult> SendCoreAsync(Guid id, Guid requestId, string? content,
+        int? revision, Func<ModelDelta, Task>? onDelta, CancellationToken cancellationToken)
     {
+        using var lease = GenerationGate.Shared.Enter(id);
         if (requestId == Guid.Empty)
         {
             throw new ArgumentException("Un identifiant de requête est requis.");
@@ -42,11 +50,15 @@ public sealed partial class ChatService(IChatRepository repository, IChatModel m
             return new(previous, null, true);
         }
 
+        if (revision.HasValue) ConversationConfiguration.CheckRevision(conversation, revision.Value);
         var settings = ConversationConfiguration.Options(conversation, options);
         var history = await repository.MessagesAsync(id, settings.MaxHistoryTurns * 2, null, cancellationToken);
         var files = await repository.ContextFilesAsync(id, Math.Max(1, conversation.MessageCount - settings.MaxHistoryTurns * 2 + 1), cancellationToken);
         var window = FileContext.Build(ConversationConfiguration.System(conversation), history, text, settings, files, conversation.MessageCount + 1);
-        var reply = await model.GenerateAsync(conversation.Model, window.Messages, settings, cancellationToken);
+        var generated = onDelta is null
+            ? new GenerationReply(await model.GenerateAsync(conversation.Model, window.Messages, settings, cancellationToken))
+            : await model.StreamAsync(conversation.Model, window.Messages, settings, onDelta, cancellationToken);
+        var reply = generated.Content;
         cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(reply) || reply.Contains('\0'))
         {
@@ -59,6 +71,6 @@ public sealed partial class ChatService(IChatRepository repository, IChatModel m
         // One atomic SaveChanges for both messages and the revision. A failed
         // model call/cancellation never leaves an orphan user message in storage.
         await repository.AppendTurnAsync(conversation, user, assistant, cancellationToken);
-        return new([user, assistant], window.HistoryMessagesIncluded, false, window.FilesIncluded);
+        return new([user, assistant], window.HistoryMessagesIncluded, false, window.FilesIncluded, window.EstimatedInputTokens, generated.Stats);
     }
 }

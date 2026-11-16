@@ -20,7 +20,12 @@ public interface IChatRepository
 
 public sealed record PromptMessage(string Role, string Content);
 public sealed record ContextWindow(IReadOnlyList<PromptMessage> Messages, int HistoryMessagesIncluded, int EstimatedInputTokens, int FilesIncluded = 0);
-public sealed record SendMessageResult(IReadOnlyList<ChatMessage> Messages, int? HistoryMessagesIncluded, bool Replayed, int FilesIncluded = 0);
+public sealed record GenerationStats(int? PromptTokens, int? OutputTokens, long? TotalNanoseconds,
+    long? EvaluationNanoseconds, string? DoneReason);
+public sealed record GenerationReply(string Content, GenerationStats? Stats = null);
+public sealed record ModelDelta(string Content, string? Thinking = null);
+public sealed record SendMessageResult(IReadOnlyList<ChatMessage> Messages, int? HistoryMessagesIncluded,
+    bool Replayed, int FilesIncluded = 0, int? EstimatedInputTokens = null, GenerationStats? Stats = null);
 
 public interface IChatModel
 {
@@ -28,6 +33,13 @@ public interface IChatModel
     Task<string> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages, CancellationToken cancellationToken);
     Task<string> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages, ChatOptions settings, CancellationToken ct)
         => GenerateAsync(model, messages, ct);
+    async Task<GenerationReply> StreamAsync(string model, IReadOnlyList<PromptMessage> messages,
+        ChatOptions settings, Func<ModelDelta, Task> onDelta, CancellationToken ct)
+    {
+        var content = await GenerateAsync(model, messages, settings, ct);
+        await onDelta(new(content));
+        return new(content);
+    }
 }
 
 public sealed class ChatConflictException() : Exception("La conversation a changé. Rechargez-la puis réessayez.");

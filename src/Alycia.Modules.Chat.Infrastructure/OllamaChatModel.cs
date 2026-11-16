@@ -5,7 +5,7 @@ using Alycia.Modules.Chat.Application;
 
 namespace Alycia.Modules.Chat.Infrastructure;
 
-public sealed class OllamaChatModel(HttpClient http, ChatOptions options) : IChatModel
+public sealed partial class OllamaChatModel(HttpClient http, ChatOptions options) : IChatModel
 {
     public async Task<IReadOnlyList<string>> ListModelsAsync(CancellationToken cancellationToken)
     {
@@ -62,7 +62,7 @@ public sealed class OllamaChatModel(HttpClient http, ChatOptions options) : ICha
                 model,
                 messages,
                 stream = false,
-                options = new { num_ctx = settings.ContextTokens, num_predict = settings.MaxOutputTokens, temperature = settings.Temperature, seed = settings.Seed }
+                options = GenerationOptions(settings)
             }, timeout.Token);
             if (!response.IsSuccessStatusCode)
             {
@@ -90,6 +90,17 @@ public sealed class OllamaChatModel(HttpClient http, ChatOptions options) : ICha
         {
             throw new ChatModelException("Réponse Ollama invalide.");
         }
+    }
+
+    private static Dictionary<string, object> GenerationOptions(ChatOptions settings)
+    {
+        var values = new Dictionary<string, object>
+        {
+            ["num_ctx"] = settings.ContextTokens, ["num_predict"] = settings.MaxOutputTokens,
+            ["temperature"] = settings.Temperature
+        };
+        if (settings.Seed.HasValue) values["seed"] = settings.Seed.Value;
+        return values;
     }
 
     private sealed record ModelInfo(string? Name,
