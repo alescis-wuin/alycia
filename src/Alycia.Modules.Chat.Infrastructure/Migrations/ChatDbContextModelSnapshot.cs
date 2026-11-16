@@ -50,6 +50,13 @@ namespace Alycia.Modules.Chat.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("MetadataSource")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasDefaultValue("unknown");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(1024)
@@ -62,6 +69,20 @@ namespace Alycia.Modules.Chat.Infrastructure.Migrations
 
                     b.Property<long>("Size")
                         .HasColumnType("bigint");
+
+                    b.Property<string>("SourceCreatedAt")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasDefaultValue("");
+
+                    b.Property<string>("SourceModifiedAt")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasDefaultValue("");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -186,6 +207,63 @@ namespace Alycia.Modules.Chat.Infrastructure.Migrations
                     b.ToTable("conversations", "chat");
                 });
 
+            modelBuilder.Entity("Alycia.Modules.Chat.Domain.DocumentAnalysis", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ConversationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("FileCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ManifestJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Model")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid?>("ScopeBatchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SourceFingerprint")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<int>("SummaryCalls")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SummaryText")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("TreeText")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("UseInContext")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConversationId", "CreatedAtUtc");
+
+                    b.ToTable("document_analyses", "chat");
+                });
+
             modelBuilder.Entity("Alycia.Modules.Chat.Domain.PromptProfile", b =>
                 {
                     b.Property<Guid>("Id")
@@ -216,6 +294,15 @@ namespace Alycia.Modules.Chat.Infrastructure.Migrations
                 });
 
             modelBuilder.Entity("Alycia.Modules.Chat.Domain.ChatMessage", b =>
+                {
+                    b.HasOne("Alycia.Modules.Chat.Domain.Conversation", null)
+                        .WithMany()
+                        .HasForeignKey("ConversationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Alycia.Modules.Chat.Domain.DocumentAnalysis", b =>
                 {
                     b.HasOne("Alycia.Modules.Chat.Domain.Conversation", null)
                         .WithMany()

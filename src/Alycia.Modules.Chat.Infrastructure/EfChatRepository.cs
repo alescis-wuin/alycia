@@ -11,10 +11,32 @@ public sealed class EfChatRepository(ChatDbContext database) : IChatRepository
         await database.Attachments.AsNoTracking().Where(f => f.ConversationId == id)
             .OrderBy(f => f.CreatedAtUtc).ToListAsync(cancellationToken);
 
-    public async Task<IReadOnlyList<Attachment>> ContextFilesAsync(Guid id, int first, CancellationToken ct) =>
-        await database.Attachments.AsNoTracking().Where(f => f.ConversationId == id && f.ContextMode != "excluded"
+    public async Task<IReadOnlyList<Attachment>> ContextFilesAsync(Guid id, int first, CancellationToken ct)
+    {
+        var files = await database.Attachments.AsNoTracking().Where(f => f.ConversationId == id && f.ContextMode != "excluded"
             && (f.ContextMode == "pinned" || f.AnchorSequence >= first) && f.Text != "")
             .OrderBy(f => f.CreatedAtUtc).ToListAsync(ct);
+        var summaries = await database.DocumentAnalyses.AsNoTracking().Where(a => a.ConversationId == id && a.UseInContext).ToArrayAsync(ct);
+        if (summaries.Length == 0) return files;
+        var metadata = await DocumentAnalysisService.MetadataAsync(database, id, ct);
+        foreach (var summary in summaries)
+        {
+            var scope = metadata.Where(f => !summary.ScopeBatchId.HasValue || f.BatchId == summary.ScopeBatchId);
+            if (ProjectInventory.Fingerprint(scope) != summary.SourceFingerprint) continue;
+            // A summary selected for context replaces raw excerpts from its covered scope.
+            files.RemoveAll(f => !summary.ScopeBatchId.HasValue || f.BatchId == summary.ScopeBatchId);
+            files.Add(new Attachment
+            {
+                Id = summary.Id,
+                Name = "Synthèse du projet · " + summary.Title,
+                Text = "Résumé dérivé ; inventaire et provenance disponibles dans Analyses.\n" + summary.SummaryText,
+                ContextMode = "pinned",
+                AnchorSequence = 1,
+                CreatedAtUtc = summary.CreatedAtUtc
+            });
+        }
+        return files;
+    }
 
     public async Task<IReadOnlyList<ChatMessage>> SummaryRangeAsync(Guid id, int after, int through, CancellationToken ct) =>
         await database.Messages.AsNoTracking().Where(m => m.ConversationId == id && m.Sequence > after && m.Sequence <= through)

@@ -62,7 +62,7 @@ internal static partial class ChatEndpoints
             // Project metadata in SQL: do not load extracted documents for this list.
             return Results.Ok(await database.Attachments.AsNoTracking().Where(f => f.ConversationId == id)
                 .OrderBy(f => f.CreatedAtUtc).Select(f => new FileSummary(f.Id, f.Name, f.Size, f.Status,
-                    f.AnchorSequence, f.CreatedAtUtc, f.ArchiveId, f.Sha256, f.ContextMode)).ToListAsync(ct));
+                    f.AnchorSequence, f.CreatedAtUtc, f.ArchiveId, f.Sha256, f.ContextMode, f.BatchId, f.SourceCreatedAt, f.SourceModifiedAt, f.MetadataSource)).ToListAsync(ct));
         });
 
         routes.MapPatch("/conversations/{id:guid}/files/{fileId:guid}", async (Guid id, Guid fileId,

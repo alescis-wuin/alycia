@@ -88,6 +88,9 @@ internal static partial class ChatEndpoints
                         Sha256 = file.Sha256,
                         CreatedAtUtc = file.CreatedAtUtc,
                         AnchorSequence = file.AnchorSequence,
+                        SourceCreatedAt = file.SourceCreatedAt,
+                        SourceModifiedAt = file.SourceModifiedAt,
+                        MetadataSource = file.MetadataSource,
                         ContextMode = file.ContextMode
                     });
                 }

@@ -1,4 +1,5 @@
 using System.Data.Common;
+using System.Text.Json;
 using System.Diagnostics;
 using Microsoft.AspNetCore.Http.Features;
 using Alycia.Modules.Chat.Application;
@@ -33,6 +34,7 @@ internal static partial class ChatEndpoints
         builder.Services.AddSingleton(new FileStorage(builder.Configuration["ALYCIA_FILES_DIRECTORY"]
             ?? Path.Combine(builder.Environment.ContentRootPath, "data", "files")));
         builder.Services.AddScoped<FileImport>();
+        builder.Services.AddScoped<DocumentAnalysisService>();
         builder.Services.Configure<FormOptions>(form => form.MultipartBodyLengthLimit = FileImport.MaxBatchBytes);
         builder.WebHost.ConfigureKestrel(server => server.Limits.MaxRequestBodySize = FileImport.MaxBatchBytes + 1024 * 1024);
         builder.Services.AddHttpClient<IChatModel, OllamaChatModel>(http =>
@@ -102,6 +104,7 @@ internal static partial class ChatEndpoints
 
         MapConfiguration(routes);
         MapMemory(routes);
+        MapAnalysis(routes);
         MapStreaming(routes);
         MapHistory(routes);
 
@@ -131,7 +134,7 @@ internal static partial class ChatEndpoints
             var files = await database.Attachments.AsNoTracking().Where(f => f.ConversationId == id
                 && f.AnchorSequence >= minimum && (before == null || f.AnchorSequence < before))
                 .Select(f => new FileSummary(f.Id, f.Name, f.Size, f.Status, f.AnchorSequence,
-                    f.CreatedAtUtc, f.ArchiveId, f.Sha256, f.ContextMode)).ToListAsync(ct);
+                    f.CreatedAtUtc, f.ArchiveId, f.Sha256, f.ContextMode, f.BatchId, f.SourceCreatedAt, f.SourceModifiedAt, f.MetadataSource)).ToListAsync(ct);
             return Results.Ok(new { conversation, messages, files, hasMore = messages.Count > 0 && messages[0].Sequence > 1 });
         });
 
@@ -161,7 +164,23 @@ internal static partial class ChatEndpoints
             IFormCollection form;
             try { form = await request.ReadFormAsync(ct); }
             catch (InvalidDataException) { return Error(request.HttpContext, 413, "UPLOAD_TOO_LARGE", "Import limité à 100 Mio."); }
-            var incoming = form.Files.Select(file => new IncomingFile(file.FileName, file.OpenReadStream())).ToArray();
+            SourceFileMetadata[] metadata;
+            try
+            {
+                metadata = form.TryGetValue("metadata", out var raw)
+                ? JsonSerializer.Deserialize<SourceFileMetadata[]>(raw.ToString(), StreamJson) ?? [] : [];
+            }
+            catch (JsonException) { throw new ArgumentException("Métadonnées de fichiers invalides."); }
+            if (metadata.Length > FileImport.MaxEntries || metadata.Any(m => m is null || string.IsNullOrEmpty(m.Name))
+                || metadata.Select(m => m.Name).Distinct(StringComparer.Ordinal).Count() != metadata.Length)
+                throw new ArgumentException("Métadonnées de fichiers invalides.");
+            var lookup = metadata.ToDictionary(m => m.Name, StringComparer.Ordinal);
+            var incoming = form.Files.Select(file =>
+            {
+                lookup.TryGetValue(file.FileName, out var source);
+                return new IncomingFile(file.FileName, file.OpenReadStream(), source?.CreatedAt?.ToUniversalTime().ToString("O") ?? "",
+                    source?.ModifiedAt?.ToUniversalTime().ToString("O") ?? "", source is null ? "unknown" : "Dates rapportées par le système client");
+            }).ToArray();
             try { return Results.Ok(await importer.ImportAsync(id, batchId, incoming, ct)); }
             finally { foreach (var file in incoming) await file.Content.DisposeAsync(); }
         });
@@ -182,8 +201,16 @@ internal static partial class ChatEndpoints
         {
             var conversation = await database.Conversations.SingleOrDefaultAsync(c => c.Id == id, ct)
                 ?? throw new ConversationNotFoundException();
-            var files = await database.Attachments.Where(f => f.ConversationId == id && (f.Id == fileId || f.ArchiveId == fileId)).ToListAsync(ct);
-            if (!files.Any(f => f.Id == fileId)) return Error(http, 404, "FILE_NOT_FOUND", "Fichier introuvable.");
+            var all = await database.Attachments.Where(f => f.ConversationId == id).ToListAsync(ct);
+            if (!all.Any(f => f.Id == fileId)) return Error(http, 404, "FILE_NOT_FOUND", "Fichier introuvable.");
+            var ids = new HashSet<Guid> { fileId };
+            for (var changed = true; changed;)
+            {
+                changed = false;
+                foreach (var file in all)
+                    if (file.ArchiveId.HasValue && ids.Contains(file.ArchiveId.Value)) changed |= ids.Add(file.Id);
+            }
+            var files = all.Where(f => ids.Contains(f.Id)).ToArray();
             database.Attachments.RemoveRange(files);
             conversation.AttachFiles();
             await new EfChatRepository(database).SaveAsync(ct);

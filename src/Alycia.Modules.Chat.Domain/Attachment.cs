@@ -13,5 +13,8 @@ public sealed class Attachment
     public string Text { get; set; } = "";
     public int AnchorSequence { get; set; }
     public DateTimeOffset CreatedAtUtc { get; set; }
+    public string SourceCreatedAt { get; set; } = "";
+    public string SourceModifiedAt { get; set; } = "";
+    public string MetadataSource { get; set; } = "unknown";
     public string ContextMode { get; set; } = "window";
 }

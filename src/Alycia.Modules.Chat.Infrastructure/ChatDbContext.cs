@@ -6,6 +6,7 @@ namespace Alycia.Modules.Chat.Infrastructure;
 
 public sealed class ChatDbContext(DbContextOptions<ChatDbContext> options) : DbContext(options)
 {
+    public DbSet<DocumentAnalysis> DocumentAnalyses => Set<DocumentAnalysis>();
     public DbSet<Attachment> Attachments => Set<Attachment>();
     public DbSet<Conversation> Conversations => Set<Conversation>();
     public DbSet<ChatMessage> Messages => Set<ChatMessage>();
@@ -14,6 +15,17 @@ public sealed class ChatDbContext(DbContextOptions<ChatDbContext> options) : DbC
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema("chat");
+        modelBuilder.Entity<DocumentAnalysis>(entity =>
+        {
+            entity.ToTable("document_analyses");
+            entity.HasKey(a => a.Id);
+            entity.Property(a => a.Id).ValueGeneratedNever();
+            entity.Property(a => a.Title).HasMaxLength(100).IsRequired();
+            entity.Property(a => a.Model).HasMaxLength(200).IsRequired();
+            entity.Property(a => a.SourceFingerprint).HasMaxLength(64).IsRequired();
+            entity.HasIndex(a => new { a.ConversationId, a.CreatedAtUtc });
+            entity.HasOne<Conversation>().WithMany().HasForeignKey(a => a.ConversationId).OnDelete(DeleteBehavior.Cascade);
+        });
         modelBuilder.Entity<PromptProfile>(entity =>
         {
             entity.ToTable("prompt_profiles");
@@ -31,6 +43,9 @@ public sealed class ChatDbContext(DbContextOptions<ChatDbContext> options) : DbC
             entity.Property(f => f.Sha256).HasMaxLength(64).IsRequired();
             entity.Property(f => f.Status).HasMaxLength(100).IsRequired();
             entity.Property(f => f.ContextMode).HasMaxLength(16).HasDefaultValue("window").IsRequired();
+            entity.Property(f => f.SourceCreatedAt).HasMaxLength(64).HasDefaultValue("").IsRequired();
+            entity.Property(f => f.SourceModifiedAt).HasMaxLength(64).HasDefaultValue("").IsRequired();
+            entity.Property(f => f.MetadataSource).HasMaxLength(100).HasDefaultValue("unknown").IsRequired();
             entity.HasIndex(f => new { f.ConversationId, f.BatchId });
             entity.HasOne<Conversation>().WithMany().HasForeignKey(f => f.ConversationId).OnDelete(DeleteBehavior.Cascade);
         });

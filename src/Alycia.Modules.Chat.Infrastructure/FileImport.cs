@@ -1,4 +1,5 @@
 using System.Formats.Tar;
+using System.Globalization;
 using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
@@ -11,9 +12,10 @@ using UglyToad.PdfPig;
 
 namespace Alycia.Modules.Chat.Infrastructure;
 
-public sealed record IncomingFile(string Name, Stream Content);
+public sealed record IncomingFile(string Name, Stream Content, string SourceCreatedAt = "", string SourceModifiedAt = "", string MetadataSource = "unknown");
+public sealed record SourceFileMetadata(string Name, DateTimeOffset? CreatedAt, DateTimeOffset? ModifiedAt);
 public sealed record FileSummary(Guid Id, string Name, long Size, string Status, int AnchorSequence,
-    DateTimeOffset CreatedAtUtc, Guid? ArchiveId, string Sha256, string ContextMode = "window");
+    DateTimeOffset CreatedAtUtc, Guid? ArchiveId, string Sha256, string ContextMode = "window", Guid BatchId = default, string SourceCreatedAt = "", string SourceModifiedAt = "", string MetadataSource = "unknown");
 
 public sealed class FileStorage(string root)
 {
@@ -31,17 +33,18 @@ public sealed class FileImport(ChatDbContext database, FileStorage storage)
 {
     public const int MaxFileBytes = 25 * 1024 * 1024;
     public const int MaxBatchBytes = 100 * 1024 * 1024;
-    public const int MaxEntries = 100;
+    public const int MaxEntries = 500;
+    public const int MaxArchiveDepth = 4;
     public const int MaxTextBytes = 200_000;
 
     public static FileSummary Summary(Attachment f) => new(f.Id, f.Name, f.Size, f.Status,
-        f.AnchorSequence, f.CreatedAtUtc, f.ArchiveId, f.Sha256, f.ContextMode);
+        f.AnchorSequence, f.CreatedAtUtc, f.ArchiveId, f.Sha256, f.ContextMode, f.BatchId, f.SourceCreatedAt, f.SourceModifiedAt, f.MetadataSource);
 
     public async Task<IReadOnlyList<FileSummary>> ImportAsync(Guid conversationId, Guid batchId,
         IReadOnlyList<IncomingFile> incoming, CancellationToken ct)
     {
         if (batchId == Guid.Empty || incoming.Count is < 1 or > MaxEntries)
-            throw new ArgumentException("Import limité à 100 fichiers ; identifiant de lot requis.");
+            throw new ArgumentException("Import limité à 500 fichiers ; identifiant de lot requis.");
         var conversation = await database.Conversations.SingleOrDefaultAsync(c => c.Id == conversationId, ct)
             ?? throw new ConversationNotFoundException();
         var previous = await database.Attachments.AsNoTracking()
@@ -49,11 +52,15 @@ public sealed class FileImport(ChatDbContext database, FileStorage storage)
         var files = new List<Attachment>();
         var payloads = new List<(Attachment File, byte[] Bytes)>();
         long total = 0;
-        async Task AddAsync(string name, Stream content, Guid? archive, bool expand)
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        async Task AddAsync(string name, Stream content, Guid? archive, int depth, string created = "", string modified = "", string source = "unknown")
         {
             ct.ThrowIfCancellationRequested();
-            if (files.Count >= MaxEntries) throw new ArgumentException("Archive ou lot limité à 100 entrées, original compris.");
+            if (files.Count >= MaxEntries) throw new ArgumentException("Archive ou lot limité à 500 entrées, original compris.");
             name = NormalizeName(name);
+            if (!names.Add(name)) throw new ArgumentException("Le lot contient deux chemins identiques : " + name);
+            if (created.Length > 64 || modified.Length > 64 || source.Length > 100)
+                throw new ArgumentException("Métadonnées de source invalides.");
             var bytes = await ReadBoundedAsync(content, MaxFileBytes, ct);
             total += bytes.Length;
             if (total > MaxBatchBytes) throw new ArgumentException("Lot décompressé limité à 100 Mio.");
@@ -67,10 +74,13 @@ public sealed class FileImport(ChatDbContext database, FileStorage storage)
                 Size = bytes.Length,
                 Sha256 = Convert.ToHexString(SHA256.HashData(bytes)),
                 AnchorSequence = conversation.MessageCount + 1,
+                SourceCreatedAt = created,
+                SourceModifiedAt = modified,
+                MetadataSource = source,
                 CreatedAtUtc = DateTimeOffset.UtcNow
             };
             var isArchive = IsArchive(name);
-            (file.Text, file.Status) = isArchive ? ("", expand ? "Archive importée" : "Archive imbriquée conservée sans extraction") : Extract(name, bytes);
+            (file.Text, file.Status) = isArchive ? ("", "Archive importée récursivement") : Extract(name, bytes);
             if (ImportPolicy.Excluded(name))
             {
                 file.Text = "";
@@ -79,14 +89,15 @@ public sealed class FileImport(ChatDbContext database, FileStorage storage)
             }
             files.Add(file);
             payloads.Add((file, bytes));
-            if (!expand || !isArchive) return;
+            if (!isArchive) return;
+            if (depth >= MaxArchiveDepth) throw new ArgumentException("Archives limitées à quatre niveaux imbriqués. Aucun fichier du lot enregistré.");
             try
             {
                 using var input = new MemoryStream(bytes, false);
                 if (name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
                 {
                     using var zip = new ZipArchive(input, ZipArchiveMode.Read);
-                    if (zip.Entries.Count > MaxEntries) throw new ArgumentException("Archive limitée à 100 entrées.");
+                    if (zip.Entries.Count > MaxEntries) throw new ArgumentException("Archive limitée à 500 entrées.");
                     foreach (var entry in zip.Entries)
                     {
                         if (entry.FullName.EndsWith('/')) continue;
@@ -94,37 +105,41 @@ public sealed class FileImport(ChatDbContext database, FileStorage storage)
                             throw new ArgumentException("Les liens symboliques dans les archives ne sont pas importés.");
                         if (entry.Length > MaxFileBytes) throw new ArgumentException("Entrée d’archive supérieure à 25 Mio.");
                         await using var stream = entry.Open();
-                        await AddAsync(name + "!/" + NormalizeName(entry.FullName), stream, file.Id, false);
+                        await AddAsync(name + "!/" + NormalizeName(entry.FullName), stream, file.Id, depth + 1,
+                            modified: entry.LastWriteTime.DateTime.ToString("yyyy-MM-dd'T'HH:mm:ss", CultureInfo.InvariantCulture),
+                            source: "ZIP: heure locale, fuseau non fourni");
                     }
                 }
                 else if (name.EndsWith(".tar", StringComparison.OrdinalIgnoreCase))
-                    await ReadTarAsync(input, name, file.Id);
+                    await ReadTarAsync(input, name, file.Id, depth);
                 else
                 {
                     using var gzip = new GZipStream(input, CompressionMode.Decompress);
                     if (name.EndsWith(".tar.gz", StringComparison.OrdinalIgnoreCase) || name.EndsWith(".tgz", StringComparison.OrdinalIgnoreCase))
-                        await ReadTarAsync(gzip, name, file.Id);
-                    else await AddAsync(name + "!/" + Path.GetFileNameWithoutExtension(name), gzip, file.Id, false);
+                        await ReadTarAsync(gzip, name, file.Id, depth);
+                    else await AddAsync(name + "!/" + Path.GetFileNameWithoutExtension(name), gzip, file.Id, depth + 1);
                 }
             }
             catch (InvalidDataException) { throw new ArgumentException("Archive invalide, chiffrée ou non prise en charge. Aucun fichier de ce lot n’a été enregistré."); }
         }
-        async Task ReadTarAsync(Stream stream, string name, Guid archive)
+        async Task ReadTarAsync(Stream stream, string name, Guid archive, int depth)
         {
             using var tar = new TarReader(stream, leaveOpen: true);
             var entries = 0;
             while (tar.GetNextEntry() is { } entry)
             {
                 ct.ThrowIfCancellationRequested();
-                if (++entries > MaxEntries) throw new ArgumentException("Archive limitée à 100 entrées.");
+                if (++entries > MaxEntries) throw new ArgumentException("Archive limitée à 500 entrées.");
                 if (entry.Length > MaxFileBytes) throw new ArgumentException("Entrée TAR supérieure à 25 Mio.");
                 if (entry.EntryType == TarEntryType.Directory) continue;
                 if (entry.EntryType is not (TarEntryType.RegularFile or TarEntryType.V7RegularFile))
                     throw new ArgumentException("Seuls les fichiers réguliers des archives TAR sont acceptés.");
-                if (entry.DataStream is { } data) await AddAsync(name + "!/" + NormalizeName(entry.Name), data, archive, false);
+                if (entry.DataStream is { } data) await AddAsync(name + "!/" + NormalizeName(entry.Name), data, archive, depth + 1,
+                    modified: entry.ModificationTime.ToUniversalTime().ToString("O"), source: "TAR: UTC");
             }
         }
-        foreach (var file in incoming) await AddAsync(file.Name, file.Content, null, true);
+        foreach (var file in incoming) await AddAsync(file.Name, file.Content, null, 0,
+            file.SourceCreatedAt, file.SourceModifiedAt, file.MetadataSource);
         if (previous.Count > 0)
         {
             var oldRoots = previous.Where(f => f.ArchiveId == null).Select(f => (f.Name, f.Sha256)).Order().ToArray();
