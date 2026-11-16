@@ -23,7 +23,9 @@ public sealed partial class OllamaChatModel
             {
                 Content = JsonContent.Create(new
                 {
-                    model, messages, stream = true,
+                    model,
+                    messages,
+                    stream = true,
                     options = GenerationOptions(settings)
                 })
             };

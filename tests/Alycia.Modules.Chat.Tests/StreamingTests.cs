@@ -24,7 +24,8 @@ public sealed class StreamingTests
                 {"message":{"role":"assistant","content":"Bonjour "},"done":false}
                 {"message":{"role":"assistant","content":"🙂"},"done":true,"eval_count":5,"prompt_eval_count":10,"eval_duration":1000000000,"done_reason":"stop"}
                 """);
-        })) { BaseAddress = new Uri("http://127.0.0.1:11434/") };
+        }))
+        { BaseAddress = new Uri("http://127.0.0.1:11434/") };
         var deltas = new List<ModelDelta>();
         var reply = await new OllamaChatModel(http, new()).StreamAsync("demo", [new("user", "hi")],
             new() { Temperature = 0.1 }, delta => { deltas.Add(delta); return Task.CompletedTask; }, default);

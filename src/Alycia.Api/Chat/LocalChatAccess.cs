@@ -25,6 +25,10 @@ public sealed class LocalChatAccess
     public bool IsAllowed(HttpContext context)
     {
         if (context.Request.Headers.ContainsKey("Origin")) return false;
+        // A loopback peer alone does not prevent browser DNS rebinding.
+        var host = context.Request.Host.Host.Trim('[', ']');
+        if (!host.Equals("localhost", StringComparison.OrdinalIgnoreCase)
+            && !(IPAddress.TryParse(host, out var hostAddress) && IPAddress.IsLoopback(hostAddress))) return false;
         if (!_containerMode)
             return context.Connection.RemoteIpAddress is { } address && IPAddress.IsLoopback(address);
         if (!AuthenticationHeaderValue.TryParse(context.Request.Headers.Authorization, out var auth)

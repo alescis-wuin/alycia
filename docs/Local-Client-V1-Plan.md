@@ -4,6 +4,10 @@
 Branche de travail : `feature/local-client-v1-20261116`.
 Base immuable : `e1c5bc08e7873aa6f43689a91dc09a37da9db75b`.
 
+Les lots P0 à P5 sont implémentés. Le [compte rendu](Local-Client-V1-Report.md)
+donne les contrôles exécutés et les validations matérielles restantes ; le
+[guide](Local-Client-V1-Guide.md) fournit les commandes d'installation et de recette.
+
 ## Comparaison des branches
 
 | Branche | Commit observé | Avance sur main | Fonctionnalités |
@@ -86,6 +90,12 @@ Ces travaux nécessitent leurs propres critères et ne sont pas déclarés livr�
    générations, allocation VRAM et benchmarks sur la RTX 4070 Laptop 8 Go.
 8. Distribution signée Linux/Windows, tests visuels Wayland et accessibilité,
    restauration automatisée sur base isolée, surveillance des dépendances.
+
+La priorité suivante est la recette sur le poste réel : GPU, annulation,
+presse-papiers, restauration Docker et conservation des données après redémarrage.
+Avant d'ajouter de l'autonomie, mesurer la qualité du contexte sur quelques tâches
+de développement fixes et conserver leurs prompts, sources et résultats.
+Le compte rendu ordonne les autres améliorations avec leurs critères de réussite.
 
 ## Sources techniques consultées
 

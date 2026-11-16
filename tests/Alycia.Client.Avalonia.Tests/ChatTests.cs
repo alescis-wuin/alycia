@@ -127,8 +127,12 @@ public sealed class ChatTests
             var root = json.RootElement;
             if (request.Method == HttpMethod.Put && path.EndsWith("/settings"))
             {
-                conversation = conversation! with { SystemPrompt = root.GetProperty("systemPrompt").GetString()!,
-                    ContextNotes = root.GetProperty("contextNotes").GetString()!, Revision = conversation.Revision + 1 };
+                conversation = conversation! with
+                {
+                    SystemPrompt = root.GetProperty("systemPrompt").GetString()!,
+                    ContextNotes = root.GetProperty("contextNotes").GetString()!,
+                    Revision = conversation.Revision + 1
+                };
                 Assert.Equal(0.25, root.GetProperty("options").GetProperty("temperature").GetDouble());
                 return Json(conversation);
             }
@@ -156,9 +160,12 @@ public sealed class ChatTests
             conversation = conversation with { MessageCount = 2 };
             var result = new ChatSendResult(messages.ToArray(), 0, false);
             var settings = new JsonSerializerOptions(JsonSerializerDefaults.Web);
-            return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(
                 JsonSerializer.Serialize(new { type = "delta", content = "Bonjour !" }, settings) + "\n"
-                + JsonSerializer.Serialize(new { type = "done", result }, settings) + "\n", Encoding.UTF8, "application/x-ndjson") };
+                + JsonSerializer.Serialize(new { type = "done", result }, settings) + "\n", Encoding.UTF8, "application/x-ndjson")
+            };
         }));
         var stateDirectory = Path.Combine(Path.GetTempPath(), "alycia-ui-" + Guid.NewGuid().ToString("N"));
         var window = new ChatWindow(new ChatApiClient(http, "http://127.0.0.1:5187", TimeSpan.FromSeconds(2)), new DraftStore(stateDirectory));

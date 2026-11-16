@@ -40,7 +40,7 @@ internal static partial class ChatEndpoints
             http.BaseAddress = uri;
             http.Timeout = Timeout.InfiniteTimeSpan;
             http.MaxResponseContentBufferSize = 4 * 1024 * 1024;
-        }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+        }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false, UseProxy = false });
     }
 
     public static void MapLocalChat(this WebApplication app)

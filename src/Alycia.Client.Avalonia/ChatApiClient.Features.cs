@@ -58,7 +58,7 @@ public sealed partial class ChatApiClient
         SendAsync<byte[]>(HttpMethod.Get, $"/conversations/{id}/export?format={format}", null, ct);
     public Task<ConversationSummary> ImportConversationAsync(byte[] json, CancellationToken ct) =>
         SendAsync<ConversationSummary>(HttpMethod.Post, "/import", new ByteArrayContent(json)
-            { Headers = { ContentType = new MediaTypeHeaderValue("application/json") } }, ct);
+        { Headers = { ContentType = new MediaTypeHeaderValue("application/json") } }, ct);
     public Task<ConversationSummary> ForkAsync(Guid id, int revision, int? through, CancellationToken ct) =>
         SendAsync<ConversationSummary>(HttpMethod.Post, $"/conversations/{id}/fork", new { revision, throughSequence = through }, ct);
 

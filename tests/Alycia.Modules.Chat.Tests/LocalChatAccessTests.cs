@@ -20,6 +20,7 @@ public sealed class LocalChatAccessTests
     public void DefaultModeStillRequiresActualLoopbackPeer()
     {
         var http = new DefaultHttpContext();
+        http.Request.Host = new HostString("127.0.0.1:5187");
         http.Connection.RemoteIpAddress = IPAddress.Parse("172.18.0.1");
         http.Request.Headers.Authorization = "Bearer " + Token;
         http.Request.Headers["X-Forwarded-For"] = "127.0.0.1";
@@ -35,6 +36,7 @@ public sealed class LocalChatAccessTests
     {
         var access = Access(true);
         var http = new DefaultHttpContext();
+        http.Request.Host = new HostString("127.0.0.1:5187");
         http.Connection.RemoteIpAddress = IPAddress.Loopback;
         Assert.False(access.IsAllowed(http));
         http.Request.Headers.Authorization = "Bearer " + new string('f', 64);
@@ -44,6 +46,20 @@ public sealed class LocalChatAccessTests
         Assert.True(access.IsAllowed(http));
         http.Request.Headers.Origin = "null";
         Assert.False(access.IsAllowed(http));
+    }
+
+    [Theory]
+    [InlineData("attacker.example")]
+    [InlineData("127.0.0.1.attacker.example")]
+    [InlineData("192.168.1.10")]
+    public void RejectsUnexpectedHostEvenFromLoopback(string host)
+    {
+        var http = new DefaultHttpContext();
+        http.Request.Host = new HostString(host);
+        http.Connection.RemoteIpAddress = IPAddress.Loopback;
+        http.Request.Headers.Authorization = "Bearer " + Token;
+        Assert.False(Access().IsAllowed(http));
+        Assert.False(Access(true).IsAllowed(http));
     }
 
     [Theory]

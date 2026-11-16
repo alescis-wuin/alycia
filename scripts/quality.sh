@@ -58,7 +58,7 @@ collect_file() {
 
     case "$file" in
         *.cs|*.csproj|*.slnx|*.json|*.md|\
-        *.yml|*.yaml|*.axaml|*.xml|*.sh|*.ps1|\
+        *.yml|*.yaml|*.axaml|*.xml|*.sh|*.ps1|*.py|\
         Makefile|.editorconfig|.gitignore|\
         .githooks/pre-commit) ;;
         *) return 0 ;;
@@ -89,8 +89,7 @@ fi
 
 if [[ "$mode" == "format" ]]; then
     if (( ${#cs_files[@]} > 0 )); then
-        dotnet format whitespace Alycia.slnx \
-            --no-restore \
+        dotnet format whitespace . --folder \
             --include "${cs_files[@]}"
     fi
 
@@ -128,8 +127,7 @@ for file in "${text_files[@]}"; do
 done
 
 if (( ${#cs_files[@]} > 0 )); then
-    dotnet format whitespace Alycia.slnx \
-        --no-restore \
+    dotnet format whitespace . --folder \
         --verify-no-changes \
         --include "${cs_files[@]}" || failed=1
 fi

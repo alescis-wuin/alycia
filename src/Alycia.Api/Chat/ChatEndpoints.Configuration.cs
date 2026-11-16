@@ -41,9 +41,14 @@ internal static partial class ChatEndpoints
             var files = await repository.ContextFilesAsync(id, Math.Max(1, conversation.MessageCount - options.MaxHistoryTurns * 2 + 1), ct);
             var context = FileContext.Build(ConversationConfiguration.System(conversation), history, text,
                 options, files, conversation.MessageCount + 1);
-            return Results.Ok(new { context, options, conversation.Revision,
+            return Results.Ok(new
+            {
+                context,
+                options,
+                conversation.Revision,
                 omittedMessages = conversation.MessageCount - context.HistoryMessagesIncluded,
-                estimator = "UTF-8 conservateur ; estimation, pas un tokenizer du modèle" });
+                estimator = "UTF-8 conservateur ; estimation, pas un tokenizer du modèle"
+            });
         });
 
         routes.MapGet("/conversations/{id:guid}/files", async (Guid id, ChatDbContext database, CancellationToken ct) =>
@@ -74,9 +79,12 @@ internal static partial class ChatEndpoints
             Results.Ok(await database.PromptProfiles.AsNoTracking().OrderBy(p => p.Name).ToListAsync(ct)));
         routes.MapPost("/prompts", async (SavePrompt request, ChatDbContext database, CancellationToken ct) =>
         {
-            var profile = new PromptProfile { Id = Guid.NewGuid(),
+            var profile = new PromptProfile
+            {
+                Id = Guid.NewGuid(),
                 Name = Conversation.RequiredText(request.Name, 100, "Le nom"),
-                SystemPrompt = Conversation.RequiredText(request.SystemPrompt, 4000, "Le prompt") };
+                SystemPrompt = Conversation.RequiredText(request.SystemPrompt, 4000, "Le prompt")
+            };
             if (await database.PromptProfiles.CountAsync(ct) >= 200)
                 throw new ArgumentException("Bibliothèque limitée à 200 profils.");
             database.PromptProfiles.Add(profile);

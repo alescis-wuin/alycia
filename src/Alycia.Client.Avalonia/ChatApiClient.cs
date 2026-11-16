@@ -38,7 +38,7 @@ public sealed class ChatApiException(string message) : Exception(message);
 
 public sealed partial class ChatApiClient
 {
-    private static readonly HttpClient SharedHttp = new(new HttpClientHandler { AllowAutoRedirect = false })
+    private static readonly HttpClient SharedHttp = new(new HttpClientHandler { AllowAutoRedirect = false, UseProxy = false })
     {
         Timeout = Timeout.InfiniteTimeSpan
     };

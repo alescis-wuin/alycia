@@ -48,20 +48,37 @@ public partial class ChatWindow
     private static TextBlock Label(string text) => new() { Text = text, TextWrapping = TextWrapping.Wrap };
     private static TextBox Input(string text, int length, bool multiline = false) => new()
     {
-        Text = text, MaxLength = length, AcceptsReturn = multiline, TextWrapping = TextWrapping.Wrap,
-        MinHeight = multiline ? 90 : 32, MaxHeight = multiline ? 180 : 50
+        Text = text,
+        MaxLength = length,
+        AcceptsReturn = multiline,
+        TextWrapping = TextWrapping.Wrap,
+        MinHeight = multiline ? 90 : 32,
+        MaxHeight = multiline ? 180 : 50
     };
 
     private async Task<bool> EditDialogAsync(string title, Control content, string action = "Enregistrer")
     {
-        var dialog = new Window { Title = title, Width = 700, Height = 680, MinWidth = 500, MinHeight = 400,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner };
+        var dialog = new Window
+        {
+            Title = title,
+            Width = 700,
+            Height = 680,
+            MinWidth = 500,
+            MinHeight = 400,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner
+        };
         var cancel = new Button { Content = "Fermer" };
         var save = new Button { Content = action };
         cancel.Click += (_, _) => dialog.Close(false);
         save.Click += (_, _) => dialog.Close(true);
-        var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12, Margin = new Thickness(0, 16, 0, 0),
-            HorizontalAlignment = HorizontalAlignment.Right, Children = { cancel, save } };
+        var buttons = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 12,
+            Margin = new Thickness(0, 16, 0, 0),
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Children = { cancel, save }
+        };
         var grid = new Grid { RowDefinitions = new RowDefinitions("*,Auto"), Margin = new Thickness(24) };
         grid.Children.Add(new ScrollViewer { Content = content, HorizontalScrollBarVisibility = global::Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled });
         Grid.SetRow(buttons, 1); grid.Children.Add(buttons); dialog.Content = grid;
@@ -84,8 +101,11 @@ public partial class ChatWindow
         var seed = Input(options.Seed?.ToString() ?? "", 12);
         var timeout = Input(options.TimeoutSeconds.ToString(), 3);
         var panel = new StackPanel { Spacing = 10 };
-        var presets = new ComboBox { ItemsSource = BuiltInPrompts.Concat(await _client.PromptsAsync(_lifetime.Token)).ToArray(),
-            PlaceholderText = "Charger un profil de prompt" };
+        var presets = new ComboBox
+        {
+            ItemsSource = BuiltInPrompts.Concat(await _client.PromptsAsync(_lifetime.Token)).ToArray(),
+            PlaceholderText = "Charger un profil de prompt"
+        };
         presets.SelectionChanged += (_, _) => { if (presets.SelectedItem is PromptItem item) system.Text = item.SystemPrompt; };
         panel.Children.Add(presets);
         foreach (var (label, control) in new (string, Control)[] {
@@ -103,9 +123,16 @@ public partial class ChatWindow
             || !double.TryParse(temperature.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out var temperatureValue)
             || !string.IsNullOrWhiteSpace(seed.Text) && !int.TryParse(seed.Text, out _))
             throw new ChatApiException("Un réglage numérique est invalide.");
-        var edited = new ChatOptions { ContextTokens = contextValue, MaxOutputTokens = outputValue,
-            MaxHistoryTurns = turnsValue, TimeoutSeconds = timeoutValue, Temperature = temperatureValue,
-            SafetyTokens = options.SafetyTokens, Seed = string.IsNullOrWhiteSpace(seed.Text) ? null : int.Parse(seed.Text!) };
+        var edited = new ChatOptions
+        {
+            ContextTokens = contextValue,
+            MaxOutputTokens = outputValue,
+            MaxHistoryTurns = turnsValue,
+            TimeoutSeconds = timeoutValue,
+            Temperature = temperatureValue,
+            SafetyTokens = options.SafetyTokens,
+            Seed = string.IsNullOrWhiteSpace(seed.Text) ? null : int.Parse(seed.Text!)
+        };
         _current = await _client.ConfigureAsync(current.Id, current.Revision, model.Text ?? "", system.Text ?? "",
             notes.Text ?? "", edited, _lifetime.Token);
         await RefreshConversationsAsync(_current.Id);
@@ -124,8 +151,12 @@ public partial class ChatWindow
             + $"{preview.Options.ContextTokens - preview.Options.MaxOutputTokens - preview.Options.SafetyTokens} ; "
             + $"{preview.Context.HistoryMessagesIncluded} messages inclus, {preview.OmittedMessages} omis ; "
             + $"{preview.Context.FilesIncluded} documents.\n{preview.Estimator}. Les messages omis restent dans l’historique."));
-        panel.Children.Add(new SelectableTextBlock { Text = string.Join("\n\n", preview.Context.Messages
-            .Select(m => $"[{m.Role}]\n{m.Content}")), TextWrapping = TextWrapping.Wrap });
+        panel.Children.Add(new SelectableTextBlock
+        {
+            Text = string.Join("\n\n", preview.Context.Messages
+            .Select(m => $"[{m.Role}]\n{m.Content}")),
+            TextWrapping = TextWrapping.Wrap
+        });
         await EditDialogAsync("Contexte effectivement préparé", panel, "Fermer");
     }
 
@@ -140,8 +171,11 @@ public partial class ChatWindow
         foreach (var file in files)
         {
             panel.Children.Add(Label(file.Name + " · " + file.Status));
-            var mode = new ComboBox { ItemsSource = new[] { "Fenêtre", "Épinglé", "Exclu" },
-                SelectedIndex = file.ContextMode == "pinned" ? 1 : file.ContextMode == "excluded" ? 2 : 0 };
+            var mode = new ComboBox
+            {
+                ItemsSource = new[] { "Fenêtre", "Épinglé", "Exclu" },
+                SelectedIndex = file.ContextMode == "pinned" ? 1 : file.ContextMode == "excluded" ? 2 : 0
+            };
             controls.Add(file.Id, mode); panel.Children.Add(mode);
         }
         if (!await EditDialogAsync("Documents de la conversation", panel)) return;

@@ -21,11 +21,11 @@ try {
     }
     $files = @($files | Sort-Object -Unique | Where-Object {
         (Test-Path -LiteralPath $_ -PathType Leaf) -and
-        ($_ -match '\.(cs|csproj|slnx|json|md|ya?ml|axaml|xml|sh|ps1)$' -or $_ -in @('Makefile', '.editorconfig', '.gitignore', '.githooks/pre-commit'))
+        ($_ -match '\.(cs|csproj|slnx|json|md|ya?ml|axaml|xml|sh|ps1|py)$' -or $_ -in @('Makefile', '.editorconfig', '.gitignore', '.githooks/pre-commit'))
     })
     $cs = @($files | Where-Object { $_.EndsWith('.cs') })
     if ($cs.Count -gt 0) {
-        $arguments = @('format', 'whitespace', 'Alycia.slnx', '--no-restore')
+        $arguments = @('format', 'whitespace', '.', '--folder')
         if ($Mode -eq 'lint') { $arguments += '--verify-no-changes' }
         Invoke-Checked dotnet ($arguments + @('--include') + $cs)
     }

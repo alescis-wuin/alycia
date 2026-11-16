@@ -1,15 +1,32 @@
 
 # Alycia
 
-Alycia is a multi-backend generative AI client with a document knowledge hub and retrieval-augmented generation (RAG).
+Alycia is a local generative AI client. Multi-backend support and retrieval-augmented generation (RAG) are longer-term goals.
 
-## Local Ollama demo — this prototype branch
+## Local client V1 — this branch
+
+`feature/local-client-v1-20261116` extends the conversation-files prototype with
+streaming, configurable prompts/context, persistent drafts, searchable history,
+JSON/Markdown exports, conversation copies and backup tooling.
+
+- [Installation, usage and tests — Linux/fish and Windows (FR)](docs/Local-Client-V1-Guide.md)
+- [Branch comparison, audit and phased implementation plan (FR)](docs/Local-Client-V1-Plan.md)
+- [Delivered changes, executed checks and remaining limitations (FR)](docs/Local-Client-V1-Report.md)
+
+With .NET 10, Docker Compose, Python 3.11+ and a running local Ollama model:
+run `bash scripts/check.sh`, then `make demo-api` and `make demo-client` in
+separate terminals. The guide explains database tests and the required real-model
+and desktop checks. This is a local single-user client, not a public service.
+
+The sections below document the inherited prototypes and earlier sprints.
+
+## Inherited local Ollama prototype
 
 **Windows:** [one-command setup, PowerShell launchers and Docker Desktop](docs/Windows-Prototype.md).
 The Windows launcher installs/checks dependencies, initializes persistent services
 and opens the native Avalonia client; it does not require Bash, Python or Make.
 
-This derived branch, `prototype/conversation-files`, adds file/folder/archive
+The base branch, `prototype/conversation-files`, adds file/folder/archive
 imports, attachment actions, a persistent Docker file volume and bounded file
 context. **Start here: [conversation files setup and limits](docs/Conversation-Files-Prototype.md).**
 `make demo-api` now runs the chat API in Docker with Linux host networking.

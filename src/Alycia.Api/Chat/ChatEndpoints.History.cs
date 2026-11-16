@@ -75,10 +75,21 @@ internal static partial class ChatEndpoints
                     await using var source = File.OpenRead(storage.PathFor(id, file.Id));
                     await using var target = File.Create(storage.PathFor(restored.Conversation.Id, newId));
                     await source.CopyToAsync(target, ct);
-                    copies.Add(new Attachment { Id = newId, ConversationId = restored.Conversation.Id,
-                        BatchId = restored.Conversation.Id, ArchiveId = file.ArchiveId.HasValue ? ids.GetValueOrDefault(file.ArchiveId.Value) : null,
-                        Name = file.Name, Text = file.Text, Status = file.Status, Size = file.Size, Sha256 = file.Sha256,
-                        CreatedAtUtc = file.CreatedAtUtc, AnchorSequence = file.AnchorSequence, ContextMode = file.ContextMode });
+                    copies.Add(new Attachment
+                    {
+                        Id = newId,
+                        ConversationId = restored.Conversation.Id,
+                        BatchId = restored.Conversation.Id,
+                        ArchiveId = file.ArchiveId.HasValue ? ids.GetValueOrDefault(file.ArchiveId.Value) : null,
+                        Name = file.Name,
+                        Text = file.Text,
+                        Status = file.Status,
+                        Size = file.Size,
+                        Sha256 = file.Sha256,
+                        CreatedAtUtc = file.CreatedAtUtc,
+                        AnchorSequence = file.AnchorSequence,
+                        ContextMode = file.ContextMode
+                    });
                 }
                 // Detect changes while the file copies were being prepared.
                 if (!await database.Conversations.AnyAsync(c => c.Id == id && c.Revision == request.Revision, ct))

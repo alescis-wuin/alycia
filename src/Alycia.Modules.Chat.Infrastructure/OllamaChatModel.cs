@@ -96,7 +96,8 @@ public sealed partial class OllamaChatModel(HttpClient http, ChatOptions options
     {
         var values = new Dictionary<string, object>
         {
-            ["num_ctx"] = settings.ContextTokens, ["num_predict"] = settings.MaxOutputTokens,
+            ["num_ctx"] = settings.ContextTokens,
+            ["num_predict"] = settings.MaxOutputTokens,
             ["temperature"] = settings.Temperature
         };
         if (settings.Seed.HasValue) values["seed"] = settings.Seed.Value;

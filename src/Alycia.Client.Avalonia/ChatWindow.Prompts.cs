@@ -21,15 +21,23 @@ public partial class ChatWindow
         var selector = new ComboBox { ItemsSource = profiles, HorizontalAlignment = global::Avalonia.Layout.HorizontalAlignment.Stretch };
         var name = Input("Mon prompt", 100);
         var prompt = Input(C<TextBox>("SystemPromptInput").Text ?? "", 4000, true);
-        var action = new ComboBox { ItemsSource = new[] { "Appliquer aux nouvelles conversations", "Créer un profil",
-            "Modifier le profil sélectionné", "Supprimer le profil sélectionné" }, SelectedIndex = 0 };
+        var action = new ComboBox
+        {
+            ItemsSource = new[] { "Appliquer aux nouvelles conversations", "Créer un profil",
+            "Modifier le profil sélectionné", "Supprimer le profil sélectionné" },
+            SelectedIndex = 0
+        };
         selector.SelectionChanged += (_, _) =>
         {
             if (selector.SelectedItem is PromptItem selected) { name.Text = selected.Name; prompt.Text = selected.SystemPrompt; }
         };
-        var panel = new StackPanel { Spacing = 12, Children = { Label("Profils intégrés et personnels"), selector,
+        var panel = new StackPanel
+        {
+            Spacing = 12,
+            Children = { Label("Profils intégrés et personnels"), selector,
             Label("Nom"), name, Label("Instruction système"), prompt, Label("Action"), action,
-            Label("Un profil appliqué à une conversation est une copie. Modifier la bibliothèque ne modifie pas ses conversations existantes.") } };
+            Label("Un profil appliqué à une conversation est une copie. Modifier la bibliothèque ne modifie pas ses conversations existantes.") }
+        };
         if (!await EditDialogAsync("Bibliothèque de prompts", panel, "Appliquer l’action")) return;
         var selectedProfile = selector.SelectedItem as PromptItem;
         switch (action.SelectedIndex)
