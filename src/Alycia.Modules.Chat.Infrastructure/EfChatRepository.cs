@@ -11,6 +11,11 @@ public sealed class EfChatRepository(ChatDbContext database) : IChatRepository
         await database.Attachments.AsNoTracking().Where(f => f.ConversationId == id)
             .OrderBy(f => f.CreatedAtUtc).ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<Attachment>> ContextFilesAsync(Guid id, int first, CancellationToken ct) =>
+        await database.Attachments.AsNoTracking().Where(f => f.ConversationId == id && f.ContextMode != "excluded"
+            && (f.ContextMode == "pinned" || f.AnchorSequence >= first) && f.Text != "")
+            .OrderBy(f => f.CreatedAtUtc).ToListAsync(ct);
+
     public async Task<IReadOnlyList<Conversation>> ListAsync(CancellationToken cancellationToken) =>
         await database.Conversations.AsNoTracking().OrderByDescending(item => item.UpdatedAtUtc)
             .ThenBy(item => item.Id).ToListAsync(cancellationToken);

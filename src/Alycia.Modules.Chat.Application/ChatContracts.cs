@@ -5,6 +5,9 @@ namespace Alycia.Modules.Chat.Application;
 public interface IChatRepository
 {
     Task<IReadOnlyList<Attachment>> FilesAsync(Guid id, CancellationToken cancellationToken);
+    async Task<IReadOnlyList<Attachment>> ContextFilesAsync(Guid id, int first, CancellationToken ct) =>
+        (await FilesAsync(id, ct)).Where(f => f.ContextMode != "excluded"
+            && (f.ContextMode == "pinned" || f.AnchorSequence >= first)).ToArray();
     Task<IReadOnlyList<Conversation>> ListAsync(CancellationToken cancellationToken);
     Task<Conversation?> FindAsync(Guid id, CancellationToken cancellationToken);
     Task AddAsync(Conversation conversation, CancellationToken cancellationToken);
@@ -23,6 +26,8 @@ public interface IChatModel
 {
     Task<IReadOnlyList<string>> ListModelsAsync(CancellationToken cancellationToken);
     Task<string> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages, CancellationToken cancellationToken);
+    Task<string> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages, ChatOptions settings, CancellationToken ct)
+        => GenerateAsync(model, messages, ct);
 }
 
 public sealed class ChatConflictException() : Exception("La conversation a changé. Rechargez-la puis réessayez.");
@@ -36,13 +41,16 @@ public sealed class ChatOptions
     public int MaxOutputTokens { get; set; } = 1024;
     public int SafetyTokens { get; set; } = 256;
     public int TimeoutSeconds { get; set; } = 180;
+    public double Temperature { get; set; } = 0.7;
+    public int? Seed { get; set; }
 
     public void Validate()
     {
         if (MaxHistoryTurns is < 0 or > 100 || ContextTokens is < 1024 or > 131072
             || MaxOutputTokens < 1 || SafetyTokens < 128
             || (long)MaxOutputTokens + SafetyTokens >= ContextTokens
-            || TimeoutSeconds is < 1 or > 600)
+            || TimeoutSeconds is < 1 or > 600
+            || !double.IsFinite(Temperature) || Temperature is < 0 or > 2)
         {
             throw new ArgumentException("Configuration Chat invalide : vérifiez fenêtre, contexte, réserve et délai.");
         }

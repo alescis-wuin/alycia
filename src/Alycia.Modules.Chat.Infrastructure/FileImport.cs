@@ -13,7 +13,7 @@ namespace Alycia.Modules.Chat.Infrastructure;
 
 public sealed record IncomingFile(string Name, Stream Content);
 public sealed record FileSummary(Guid Id, string Name, long Size, string Status, int AnchorSequence,
-    DateTimeOffset CreatedAtUtc, Guid? ArchiveId, string Sha256);
+    DateTimeOffset CreatedAtUtc, Guid? ArchiveId, string Sha256, string ContextMode = "window");
 
 public sealed class FileStorage(string root)
 {
@@ -35,7 +35,7 @@ public sealed class FileImport(ChatDbContext database, FileStorage storage)
     public const int MaxTextBytes = 200_000;
 
     public static FileSummary Summary(Attachment f) => new(f.Id, f.Name, f.Size, f.Status,
-        f.AnchorSequence, f.CreatedAtUtc, f.ArchiveId, f.Sha256);
+        f.AnchorSequence, f.CreatedAtUtc, f.ArchiveId, f.Sha256, f.ContextMode);
 
     public async Task<IReadOnlyList<FileSummary>> ImportAsync(Guid conversationId, Guid batchId,
         IReadOnlyList<IncomingFile> incoming, CancellationToken ct)

@@ -10,6 +10,8 @@ public sealed class Conversation
     public DateTimeOffset UpdatedAtUtc { get; private set; }
     public int Revision { get; private set; }
     public int MessageCount { get; private set; }
+    public string SettingsJson { get; private set; } = "{}";
+    public string ContextNotes { get; private set; } = "";
 
     private Conversation() { }
 
@@ -40,6 +42,15 @@ public sealed class Conversation
     }
 
     public void AttachFiles() => Touch();
+
+    public void Configure(string? model, string? systemPrompt, string? notes, string settingsJson)
+    {
+        Model = RequiredText(model, 200, "Le modèle");
+        SystemPrompt = OptionalText(systemPrompt, 4000);
+        ContextNotes = OptionalText(notes, 8000);
+        SettingsJson = settingsJson;
+        Touch();
+    }
 
     private void Touch()
     {

@@ -2,7 +2,7 @@ using Alycia.Modules.Chat.Domain;
 
 namespace Alycia.Modules.Chat.Application;
 
-public sealed class ChatService(IChatRepository repository, IChatModel model, ChatOptions options)
+public sealed partial class ChatService(IChatRepository repository, IChatModel model, ChatOptions options)
 {
     public async Task<Conversation> CreateAsync(string? title, string? modelName, string? systemPrompt,
         CancellationToken cancellationToken)
@@ -42,10 +42,11 @@ public sealed class ChatService(IChatRepository repository, IChatModel model, Ch
             return new(previous, null, true);
         }
 
-        var history = await repository.MessagesAsync(id, options.MaxHistoryTurns * 2, null, cancellationToken);
-        var files = await repository.FilesAsync(id, cancellationToken);
-        var window = FileContext.Build(conversation.SystemPrompt, history, text, options, files, conversation.MessageCount + 1);
-        var reply = await model.GenerateAsync(conversation.Model, window.Messages, cancellationToken);
+        var settings = ConversationConfiguration.Options(conversation, options);
+        var history = await repository.MessagesAsync(id, settings.MaxHistoryTurns * 2, null, cancellationToken);
+        var files = await repository.ContextFilesAsync(id, Math.Max(1, conversation.MessageCount - settings.MaxHistoryTurns * 2 + 1), cancellationToken);
+        var window = FileContext.Build(ConversationConfiguration.System(conversation), history, text, settings, files, conversation.MessageCount + 1);
+        var reply = await model.GenerateAsync(conversation.Model, window.Messages, settings, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(reply) || reply.Contains('\0'))
         {

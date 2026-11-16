@@ -13,6 +13,8 @@ public static class SlidingContext
         string userMessage, ChatOptions options)
     {
         options.Validate();
+        if (history.Count % 2 != 0)
+            throw new InvalidOperationException("Historique de conversation incomplet.");
         var budget = options.ContextTokens - options.MaxOutputTokens - options.SafetyTokens;
         var used = EstimateTokens(userMessage)
             + (systemPrompt.Length == 0 ? 0 : EstimateTokens(systemPrompt));
@@ -30,7 +32,8 @@ public static class SlidingContext
             var user = history[start - 2];
             var assistant = history[start - 1];
             if (user.Role != "user" || assistant.Role != "assistant"
-                || user.RequestId != assistant.RequestId)
+                || user.RequestId != assistant.RequestId || assistant.Sequence != user.Sequence + 1
+                || user.ConversationId != assistant.ConversationId)
             {
                 throw new InvalidOperationException("Historique de conversation incohérent.");
             }

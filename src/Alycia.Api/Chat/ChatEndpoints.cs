@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Alycia.Api.Chat;
 
-internal static class ChatEndpoints
+internal static partial class ChatEndpoints
 {
     public static void AddLocalChat(this WebApplicationBuilder builder)
     {
@@ -100,6 +100,8 @@ internal static class ChatEndpoints
             }
         });
 
+        MapConfiguration(routes);
+
         routes.MapGet("/models", async (IChatModel model, CancellationToken ct) =>
             Results.Ok(await model.ListModelsAsync(ct)));
 
@@ -113,7 +115,7 @@ internal static class ChatEndpoints
         });
 
         routes.MapGet("/conversations/{id:guid}/messages", async (Guid id, int? before,
-            IChatRepository repository, CancellationToken ct) =>
+            IChatRepository repository, ChatDbContext database, CancellationToken ct) =>
         {
             if (before is <= 0)
             {
@@ -123,8 +125,10 @@ internal static class ChatEndpoints
             var conversation = await repository.FindAsync(id, ct) ?? throw new ConversationNotFoundException();
             var messages = await repository.MessagesAsync(id, 100, before, ct);
             var minimum = messages.Count == 0 ? 1 : messages[0].Sequence;
-            var files = (await repository.FilesAsync(id, ct)).Where(f => f.AnchorSequence >= minimum
-                && (before == null || f.AnchorSequence < before)).Select(FileImport.Summary);
+            var files = await database.Attachments.AsNoTracking().Where(f => f.ConversationId == id
+                && f.AnchorSequence >= minimum && (before == null || f.AnchorSequence < before))
+                .Select(f => new FileSummary(f.Id, f.Name, f.Size, f.Status, f.AnchorSequence,
+                    f.CreatedAtUtc, f.ArchiveId, f.Sha256, f.ContextMode)).ToListAsync(ct);
             return Results.Ok(new { conversation, messages, files, hasMore = messages.Count > 0 && messages[0].Sequence > 1 });
         });
 

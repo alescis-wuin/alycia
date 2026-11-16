@@ -9,10 +9,19 @@ public sealed class ChatDbContext(DbContextOptions<ChatDbContext> options) : DbC
     public DbSet<Attachment> Attachments => Set<Attachment>();
     public DbSet<Conversation> Conversations => Set<Conversation>();
     public DbSet<ChatMessage> Messages => Set<ChatMessage>();
+    public DbSet<PromptProfile> PromptProfiles => Set<PromptProfile>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema("chat");
+        modelBuilder.Entity<PromptProfile>(entity =>
+        {
+            entity.ToTable("prompt_profiles");
+            entity.HasKey(p => p.Id);
+            entity.Property(p => p.Id).ValueGeneratedNever();
+            entity.Property(p => p.Name).HasMaxLength(100).IsRequired();
+            entity.Property(p => p.SystemPrompt).HasMaxLength(4000).IsRequired();
+        });
         modelBuilder.Entity<Attachment>(entity =>
         {
             entity.ToTable("attachments");
@@ -21,6 +30,7 @@ public sealed class ChatDbContext(DbContextOptions<ChatDbContext> options) : DbC
             entity.Property(f => f.Name).HasMaxLength(1024).IsRequired();
             entity.Property(f => f.Sha256).HasMaxLength(64).IsRequired();
             entity.Property(f => f.Status).HasMaxLength(100).IsRequired();
+            entity.Property(f => f.ContextMode).HasMaxLength(16).HasDefaultValue("window").IsRequired();
             entity.HasIndex(f => new { f.ConversationId, f.BatchId });
             entity.HasOne<Conversation>().WithMany().HasForeignKey(f => f.ConversationId).OnDelete(DeleteBehavior.Cascade);
         });
@@ -32,6 +42,8 @@ public sealed class ChatDbContext(DbContextOptions<ChatDbContext> options) : DbC
             entity.Property(item => item.Title).HasMaxLength(100).IsRequired();
             entity.Property(item => item.Model).HasMaxLength(200).IsRequired();
             entity.Property(item => item.SystemPrompt).HasMaxLength(4000).IsRequired();
+            entity.Property(item => item.SettingsJson).HasDefaultValue("{}").IsRequired();
+            entity.Property(item => item.ContextNotes).HasMaxLength(8000).HasDefaultValue("").IsRequired();
             entity.Property(item => item.Revision).IsConcurrencyToken();
             entity.HasIndex(item => item.UpdatedAtUtc);
         });

@@ -40,11 +40,15 @@ public sealed class OllamaChatModel(HttpClient http, ChatOptions options) : ICha
         }
     }
 
-    public async Task<string> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages,
+    public Task<string> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages, CancellationToken cancellationToken)
+        => GenerateAsync(model, messages, options, cancellationToken);
+
+    public async Task<string> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages, ChatOptions settings,
         CancellationToken cancellationToken)
     {
+        settings.Validate();
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeout.CancelAfter(TimeSpan.FromSeconds(options.TimeoutSeconds));
+        timeout.CancelAfter(TimeSpan.FromSeconds(settings.TimeoutSeconds));
         try
         {
             // A model may have been replaced by a cloud alias since creation.
@@ -58,7 +62,7 @@ public sealed class OllamaChatModel(HttpClient http, ChatOptions options) : ICha
                 model,
                 messages,
                 stream = false,
-                options = new { num_ctx = options.ContextTokens, num_predict = options.MaxOutputTokens }
+                options = new { num_ctx = settings.ContextTokens, num_predict = settings.MaxOutputTokens, temperature = settings.Temperature, seed = settings.Seed }
             }, timeout.Token);
             if (!response.IsSuccessStatusCode)
             {

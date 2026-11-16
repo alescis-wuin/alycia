@@ -37,6 +37,13 @@ namespace Alycia.Modules.Chat.Infrastructure.Migrations
                     b.Property<Guid>("BatchId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("ContextMode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasDefaultValue("window");
+
                     b.Property<Guid>("ConversationId")
                         .HasColumnType("uuid");
 
@@ -108,6 +115,13 @@ namespace Alycia.Modules.Chat.Infrastructure.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("ContextNotes")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(8000)
+                        .HasColumnType("character varying(8000)")
+                        .HasDefaultValue("");
+
                     b.Property<DateTimeOffset>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
@@ -122,6 +136,12 @@ namespace Alycia.Modules.Chat.Infrastructure.Migrations
                     b.Property<int>("Revision")
                         .IsConcurrencyToken()
                         .HasColumnType("integer");
+
+                    b.Property<string>("SettingsJson")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("{}");
 
                     b.Property<string>("SystemPrompt")
                         .IsRequired()
@@ -141,6 +161,26 @@ namespace Alycia.Modules.Chat.Infrastructure.Migrations
                     b.HasIndex("UpdatedAtUtc");
 
                     b.ToTable("conversations", "chat");
+                });
+
+            modelBuilder.Entity("Alycia.Modules.Chat.Domain.PromptProfile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("SystemPrompt")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("prompt_profiles", "chat");
                 });
 
             modelBuilder.Entity("Alycia.Modules.Chat.Domain.Attachment", b =>
