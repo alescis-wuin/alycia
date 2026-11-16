@@ -32,15 +32,20 @@ internal static partial class ChatEndpoints
         });
 
         routes.MapPost("/conversations/{id:guid}/context", async (Guid id, PreviewContext request,
-            IChatRepository repository, ChatOptions defaults, CancellationToken ct) =>
+            IChatRepository repository, IChatModel model, ChatOptions defaults, CancellationToken ct) =>
         {
             var conversation = await repository.FindAsync(id, ct) ?? throw new ConversationNotFoundException();
             var options = ConversationConfiguration.Options(conversation, defaults);
             var text = Conversation.RequiredText(request.Content, 32000, "Le message");
-            var history = await repository.MessagesAsync(id, options.MaxHistoryTurns * 2, null, ct);
-            var files = await repository.ContextFilesAsync(id, Math.Max(1, conversation.MessageCount - options.MaxHistoryTurns * 2 + 1), ct);
-            var context = FileContext.Build(ConversationConfiguration.System(conversation), history, text,
-                options, files, conversation.MessageCount + 1);
+            ContextWindow context;
+            if (options.AutoSummarize)
+                context = (await RecursiveContext.BuildAsync(repository, model, conversation, text, options, false, null, ct)).Context;
+            else
+            {
+                var history = await repository.MessagesAsync(id, options.MaxHistoryTurns * 2, null, ct);
+                var files = await repository.ContextFilesAsync(id, Math.Max(1, conversation.MessageCount - options.MaxHistoryTurns * 2 + 1), ct);
+                context = FileContext.Build(ConversationConfiguration.System(conversation), history, text, options, files, conversation.MessageCount + 1);
+            }
             return Results.Ok(new
             {
                 context,

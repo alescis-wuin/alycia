@@ -13,6 +13,19 @@ public sealed class Conversation
     public string SettingsJson { get; private set; } = "{}";
     public string ContextNotes { get; private set; } = "";
 
+    public string MemoryText { get; private set; } = "";
+    public int MemoryThroughSequence { get; private set; }
+    public string MemorySourceHash { get; private set; } = "";
+    public string MemoryModel { get; private set; } = "";
+
+    public void SetMemory(string text, int through, string hash, string model)
+    {
+        if (through < 0 || through > MessageCount || through % 2 != 0 || text.Length > 131072)
+            throw new ArgumentException("Mémoire de conversation invalide.");
+        MemoryText = text; MemoryThroughSequence = through; MemorySourceHash = hash; MemoryModel = model;
+        Touch();
+    }
+
     private Conversation() { }
 
     public static Conversation Create(string? title, string? model, string? systemPrompt)
@@ -45,7 +58,9 @@ public sealed class Conversation
 
     public void Configure(string? model, string? systemPrompt, string? notes, string settingsJson)
     {
-        Model = RequiredText(model, 200, "Le modèle");
+        var nextModel = RequiredText(model, 200, "Le modèle");
+        if (nextModel != Model) { MemoryText = ""; MemoryThroughSequence = 0; MemorySourceHash = ""; MemoryModel = ""; }
+        Model = nextModel;
         SystemPrompt = OptionalText(systemPrompt, 4000);
         ContextNotes = OptionalText(notes, 8000);
         SettingsJson = settingsJson;

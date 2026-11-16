@@ -8,6 +8,8 @@ public interface IChatRepository
     async Task<IReadOnlyList<Attachment>> ContextFilesAsync(Guid id, int first, CancellationToken ct) =>
         (await FilesAsync(id, ct)).Where(f => f.ContextMode != "excluded"
             && (f.ContextMode == "pinned" || f.AnchorSequence >= first)).ToArray();
+    async Task<IReadOnlyList<ChatMessage>> SummaryRangeAsync(Guid id, int after, int through, CancellationToken ct) =>
+        (await MessagesAsync(id, through - after, through + 1, ct)).Where(m => m.Sequence > after && m.Sequence <= through).ToArray();
     Task<IReadOnlyList<Conversation>> ListAsync(CancellationToken cancellationToken);
     Task<Conversation?> FindAsync(Guid id, CancellationToken cancellationToken);
     Task AddAsync(Conversation conversation, CancellationToken cancellationToken);
@@ -19,11 +21,11 @@ public interface IChatRepository
 }
 
 public sealed record PromptMessage(string Role, string Content);
-public sealed record ContextWindow(IReadOnlyList<PromptMessage> Messages, int HistoryMessagesIncluded, int EstimatedInputTokens, int FilesIncluded = 0);
+public sealed record ContextWindow(IReadOnlyList<PromptMessage> Messages, int HistoryMessagesIncluded, int EstimatedInputTokens, int FilesIncluded = 0, bool NeedsSummary = false, int SummaryThroughSequence = 0, string SummaryText = "", int SummaryCalls = 0);
 public sealed record GenerationStats(int? PromptTokens, int? OutputTokens, long? TotalNanoseconds,
     long? EvaluationNanoseconds, string? DoneReason);
 public sealed record GenerationReply(string Content, GenerationStats? Stats = null);
-public sealed record ModelDelta(string Content, string? Thinking = null);
+public sealed record ModelDelta(string Content, string? Thinking = null, string? Status = null);
 public sealed record SendMessageResult(IReadOnlyList<ChatMessage> Messages, int? HistoryMessagesIncluded,
     bool Replayed, int FilesIncluded = 0, int? EstimatedInputTokens = null, GenerationStats? Stats = null);
 
@@ -48,6 +50,8 @@ public sealed class ChatModelException(string message) : Exception(message);
 
 public sealed class ChatOptions
 {
+    public bool AutoSummarize { get; set; } = true;
+    public int SummaryMaxCalls { get; set; } = 256;
     public bool GenerateUntilStop { get; set; } = true;
     public int MaxHistoryTurns { get; set; } = 12;
     public int ContextTokens { get; set; } = 8192;
@@ -59,7 +63,7 @@ public sealed class ChatOptions
 
     public void Validate()
     {
-        if (MaxHistoryTurns is < 0 or > 100 || ContextTokens is < 1024 or > 131072
+        if (SummaryMaxCalls is < 8 or > 2048 || MaxHistoryTurns is < 0 or > 100 || ContextTokens is < 1024 or > 131072
             || MaxOutputTokens < 1 || SafetyTokens < 128
             || (long)MaxOutputTokens + SafetyTokens >= ContextTokens
             || TimeoutSeconds is < 1 or > 600

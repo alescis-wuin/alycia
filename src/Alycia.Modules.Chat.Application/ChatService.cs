@@ -52,9 +52,20 @@ public sealed partial class ChatService(IChatRepository repository, IChatModel m
 
         if (revision.HasValue) ConversationConfiguration.CheckRevision(conversation, revision.Value);
         var settings = ConversationConfiguration.Options(conversation, options);
-        var history = await repository.MessagesAsync(id, settings.MaxHistoryTurns * 2, null, cancellationToken);
-        var files = await repository.ContextFilesAsync(id, Math.Max(1, conversation.MessageCount - settings.MaxHistoryTurns * 2 + 1), cancellationToken);
-        var window = FileContext.Build(ConversationConfiguration.System(conversation), history, text, settings, files, conversation.MessageCount + 1);
+        PreparedContext? prepared = null;
+        ContextWindow window;
+        if (settings.AutoSummarize)
+        {
+            prepared = await RecursiveContext.BuildAsync(repository, model, conversation, text, settings, true,
+                onDelta is null ? null : status => onDelta(new("", Status: status)), cancellationToken);
+            window = prepared.Context;
+        }
+        else
+        {
+            var history = await repository.MessagesAsync(id, settings.MaxHistoryTurns * 2, null, cancellationToken);
+            var files = await repository.ContextFilesAsync(id, Math.Max(1, conversation.MessageCount - settings.MaxHistoryTurns * 2 + 1), cancellationToken);
+            window = FileContext.Build(ConversationConfiguration.System(conversation), history, text, settings, files, conversation.MessageCount + 1);
+        }
         var generated = onDelta is null
             ? new GenerationReply(await model.GenerateAsync(conversation.Model, window.Messages, settings, cancellationToken))
             : await model.StreamAsync(conversation.Model, window.Messages, settings, onDelta, cancellationToken);
@@ -67,6 +78,8 @@ public sealed partial class ChatService(IChatRepository repository, IChatModel m
 
         var user = new ChatMessage(id, conversation.MessageCount + 1, requestId, "user", text);
         var assistant = new ChatMessage(id, conversation.MessageCount + 2, requestId, "assistant", reply);
+        if (prepared is { Changed: true })
+            conversation.SetMemory(prepared.Memory, prepared.Through, prepared.SourceHash, conversation.Model);
         conversation.CompleteTurn();
         // One atomic SaveChanges for both messages and the revision. A failed
         // model call/cancellation never leaves an orphan user message in storage.

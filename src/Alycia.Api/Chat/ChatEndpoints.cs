@@ -101,6 +101,7 @@ internal static partial class ChatEndpoints
         });
 
         MapConfiguration(routes);
+        MapMemory(routes);
         MapStreaming(routes);
         MapHistory(routes);
 
