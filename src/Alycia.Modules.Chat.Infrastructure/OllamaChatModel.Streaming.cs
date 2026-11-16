@@ -37,6 +37,7 @@ public sealed partial class OllamaChatModel
             var characters = 0;
             await foreach (var line in BoundedLines.ReadAsync(stream, timeout.Token))
             {
+                timeout.CancelAfter(TimeSpan.FromSeconds(settings.TimeoutSeconds));
                 if (string.IsNullOrWhiteSpace(line)) continue;
                 using var json = JsonDocument.Parse(line);
                 var root = json.RootElement;
@@ -59,6 +60,7 @@ public sealed partial class OllamaChatModel
                 {
                     if (string.IsNullOrWhiteSpace(content.ToString()))
                         throw new ChatModelException("Ollama a terminé sans réponse. Augmentez la réserve de sortie si le modèle raisonne.");
+                    ValidateCompletion(root.TryGetProperty("done_reason", out var finish) ? finish.GetString() : null, settings);
                     return new(content.ToString(), new(Number(root, "prompt_eval_count"), Number(root, "eval_count"),
                         Long(root, "total_duration"), Long(root, "eval_duration"),
                         root.TryGetProperty("done_reason", out var reason) ? reason.GetString() : null));
@@ -68,7 +70,7 @@ public sealed partial class OllamaChatModel
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            throw new ChatModelException("Le délai de génération Ollama est dépassé.");
+            throw new ChatModelException("Ollama est resté inactif trop longtemps. La génération a été interrompue.");
         }
         catch (HttpRequestException) { throw new ChatModelException("La connexion avec Ollama a été interrompue."); }
         catch (IOException) { throw new ChatModelException("Le flux Ollama a été interrompu."); }

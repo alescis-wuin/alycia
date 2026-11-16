@@ -48,6 +48,7 @@ public sealed class ChatModelException(string message) : Exception(message);
 
 public sealed class ChatOptions
 {
+    public bool GenerateUntilStop { get; set; } = true;
     public int MaxHistoryTurns { get; set; } = 12;
     public int ContextTokens { get; set; } = 8192;
     public int MaxOutputTokens { get; set; } = 1024;

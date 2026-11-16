@@ -17,6 +17,7 @@ public sealed class StreamingTests
             if (request.RequestUri!.AbsolutePath == "/api/tags") return Response("{\"models\":[{\"name\":\"demo\"}]}");
             using var body = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(ct));
             Assert.True(body.RootElement.GetProperty("stream").GetBoolean());
+            Assert.Equal(-1, body.RootElement.GetProperty("options").GetProperty("num_predict").GetInt32());
             Assert.False(body.RootElement.GetProperty("options").TryGetProperty("seed", out _));
             Assert.Equal(0.1, body.RootElement.GetProperty("options").GetProperty("temperature").GetDouble());
             return Response("""
@@ -47,6 +48,53 @@ public sealed class StreamingTests
         { BaseAddress = new Uri("http://127.0.0.1:11434/") };
         await Assert.ThrowsAsync<ChatModelException>(() => new OllamaChatModel(http, new())
             .StreamAsync("demo", [], new(), _ => Task.CompletedTask, default));
+    }
+
+    [Theory]
+    [InlineData("length")]
+    [InlineData("unknown")]
+    [InlineData(null)]
+    public async Task ContinuousModeDoesNotTreatATruncatedOrUnknownEndAsSuccess(string? reason)
+    {
+        var payload = JsonSerializer.Serialize(new { message = new { content = "partial" }, done = true, done_reason = reason });
+        using var http = new HttpClient(new Handler((request, _) => Task.FromResult(Response(
+            request.RequestUri!.AbsolutePath == "/api/tags" ? "{\"models\":[{\"name\":\"demo\"}]}" : payload))))
+        { BaseAddress = new Uri("http://127.0.0.1:11434/") };
+        await Assert.ThrowsAsync<ChatModelException>(() => new OllamaChatModel(http, new())
+            .StreamAsync("demo", [], new(), _ => Task.CompletedTask, default));
+        // Explicit bounded mode remains available, including for summarization.
+        var bounded = await new OllamaChatModel(http, new()).StreamAsync("demo", [],
+            new() { GenerateUntilStop = false }, _ => Task.CompletedTask, default);
+        Assert.Equal("partial", bounded.Content);
+    }
+
+    [Fact]
+    public async Task ActiveStreamOutlivesTheConfiguredInactivityTimeout()
+    {
+        using var http = new HttpClient(new Handler((request, _) => Task.FromResult(
+            request.RequestUri!.AbsolutePath == "/api/tags" ? Response("{\"models\":[{\"name\":\"demo\"}]}")
+                : new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(new PacedStream()) })))
+        { BaseAddress = new Uri("http://127.0.0.1:11434/") };
+        var reply = await new OllamaChatModel(http, new()).StreamAsync("demo", [],
+            new() { TimeoutSeconds = 1 }, _ => Task.CompletedTask, default);
+        Assert.Equal("continued", reply.Content);
+    }
+
+    private sealed class PacedStream : MemoryStream
+    {
+        private int _part;
+        public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken ct = default)
+        {
+            if (_part == 3) return 0;
+            await Task.Delay(450, ct);
+            var text = _part++ switch
+            {
+                0 => "{\"message\":{\"content\":\"con\"},\"done\":false}\n",
+                1 => "{\"message\":{\"content\":\"tinued\"},\"done\":false}\n",
+                _ => "{\"done\":true,\"done_reason\":\"stop\"}\n"
+            };
+            return Encoding.UTF8.GetBytes(text, buffer.Span);
+        }
     }
 
     [Fact]

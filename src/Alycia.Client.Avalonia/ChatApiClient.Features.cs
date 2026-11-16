@@ -83,6 +83,7 @@ public sealed partial class ChatApiClient
             // The final event contains the persisted answer, so it can exceed a delta line.
             await foreach (var line in BoundedLines.ReadAsync(stream, timeout.Token, 8 * 1024 * 1024))
             {
+                timeout.CancelAfter(_timeout);
                 if (string.IsNullOrWhiteSpace(line)) continue;
                 using var json = JsonDocument.Parse(line);
                 var root = json.RootElement;

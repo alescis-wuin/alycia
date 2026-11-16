@@ -28,7 +28,7 @@ public sealed class OllamaChatModelTests
             Assert.Equal("system", root.GetProperty("messages")[0].GetProperty("role").GetString());
             return Json("{\"done\":true,\"message\":{\"role\":\"assistant\",\"content\":\"Bonjour\"}}");
         });
-        var model = new OllamaChatModel(http, new ChatOptions());
+        var model = new OllamaChatModel(http, new ChatOptions { GenerateUntilStop = false });
         Assert.Equal("Bonjour", await model.GenerateAsync("demo", [new("system", "system"), new("user", "hello")], default));
     }
 

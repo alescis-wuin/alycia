@@ -76,6 +76,7 @@ public sealed partial class OllamaChatModel(HttpClient http, ChatOptions options
                 throw new ChatModelException("Ollama a renvoyé une réponse vide ou incomplète.");
             }
 
+            ValidateCompletion(payload.DoneReason, settings);
             return payload.Message.Content;
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
@@ -97,7 +98,7 @@ public sealed partial class OllamaChatModel(HttpClient http, ChatOptions options
         var values = new Dictionary<string, object>
         {
             ["num_ctx"] = settings.ContextTokens,
-            ["num_predict"] = settings.MaxOutputTokens,
+            ["num_predict"] = settings.GenerateUntilStop ? -1 : settings.MaxOutputTokens,
             ["temperature"] = settings.Temperature
         };
         if (settings.Seed.HasValue) values["seed"] = settings.Seed.Value;
@@ -108,5 +109,14 @@ public sealed partial class OllamaChatModel(HttpClient http, ChatOptions options
         [property: JsonPropertyName("remote_model")] string? RemoteModel,
         [property: JsonPropertyName("remote_host")] string? RemoteHost);
     private sealed record ModelList(ModelInfo[]? Models);
-    private sealed record ChatReply(bool Done, PromptMessage? Message);
+    private static void ValidateCompletion(string? reason, ChatOptions settings)
+    {
+        if (settings.GenerateUntilStop && reason != "stop")
+            throw new ChatModelException(reason == "length"
+                ? "Ollama a atteint une limite avant son signal d’arrêt. La réponse partielle n’est pas enregistrée."
+                : "Ollama n’a pas confirmé une fin normale (done_reason=stop). Aucun échange enregistré.");
+    }
+
+    private sealed record ChatReply(bool Done, PromptMessage? Message,
+        [property: JsonPropertyName("done_reason")] string? DoneReason);
 }
