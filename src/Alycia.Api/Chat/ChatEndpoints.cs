@@ -102,6 +102,7 @@ internal static partial class ChatEndpoints
 
         MapConfiguration(routes);
         MapStreaming(routes);
+        MapHistory(routes);
 
         routes.MapGet("/models", async (IChatModel model, CancellationToken ct) =>
             Results.Ok(await model.ListModelsAsync(ct)));

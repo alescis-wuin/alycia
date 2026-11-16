@@ -11,6 +11,10 @@ public sealed class ChatMessage
 
     private ChatMessage() { }
 
+    public static ChatMessage Import(Guid conversationId, int sequence, Guid requestId, string role,
+        string content, DateTimeOffset createdAt) => new(conversationId, sequence, requestId, role, content)
+        { CreatedAtUtc = createdAt.ToUniversalTime() };
+
     public ChatMessage(Guid conversationId, int sequence, Guid requestId, string role, string content)
     {
         if (conversationId == Guid.Empty || requestId == Guid.Empty || sequence < 1
