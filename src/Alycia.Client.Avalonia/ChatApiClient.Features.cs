@@ -62,12 +62,15 @@ public sealed partial class ChatApiClient
     public Task<ConversationSummary> ForkAsync(Guid id, int revision, int? through, CancellationToken ct) =>
         SendAsync<ConversationSummary>(HttpMethod.Post, $"/conversations/{id}/fork", new { revision, throughSequence = through }, ct);
 
-    public async Task<ChatSendResult> StreamMessageAsync(Guid id, Guid requestId, string content, int revision,
-        Func<ModelDelta, Task> onDelta, CancellationToken ct)
+    public Task<ChatSendResult> StreamMessageAsync(Guid id, Guid requestId, string content, int revision,
+        Func<ModelDelta, Task> onDelta, CancellationToken ct) =>
+        StreamOperationAsync<ChatSendResult>($"/conversations/{id}/stream", new { requestId, content, revision }, onDelta, ct);
+
+    private async Task<T> StreamOperationAsync<T>(string path, object body, Func<ModelDelta, Task> onDelta, CancellationToken ct)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeout.CancelAfter(_timeout);
-        using var request = CreateRequest(HttpMethod.Post, $"/conversations/{id}/stream", new { requestId, content, revision });
+        using var request = CreateRequest(HttpMethod.Post, path, body);
         try
         {
             using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token);
@@ -96,7 +99,7 @@ public sealed partial class ChatApiClient
                         await onDelta(delta);
                         break;
                     case "done":
-                        return root.GetProperty("result").Deserialize<ChatSendResult>(Json)
+                        return root.GetProperty("result").Deserialize<T>(Json)
                             ?? throw new ChatApiException("Confirmation invalide.");
                     case "error":
                         throw new ChatApiException(root.GetProperty("message").GetString() ?? "Génération interrompue.");

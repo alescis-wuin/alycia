@@ -20,6 +20,7 @@ public partial class ChatWindow
 {
     private void InitializeFeatureControls()
     {
+        C<Button>("AnalysisButton").Click += async (_, _) => await RunAsync(AnalysesAsync);
         C<Button>("SettingsButton").Click += async (_, _) => await RunAsync(SettingsAsync);
         C<Button>("ContextButton").Click += async (_, _) => await RunAsync(PreviewAsync);
         C<Button>("FilesButton").Click += async (_, _) => await RunAsync(ManageFilesAsync);
@@ -56,7 +57,7 @@ public partial class ChatWindow
         MaxHeight = multiline ? 180 : 50
     };
 
-    private async Task<bool> EditDialogAsync(string title, Control content, string action = "Enregistrer")
+    private async Task<bool> EditDialogAsync(string title, Control content, string action = "Enregistrer", Func<string?>? validate = null)
     {
         var dialog = new Window
         {
@@ -70,7 +71,14 @@ public partial class ChatWindow
         var cancel = new Button { Content = "Fermer" };
         var save = new Button { Content = action };
         cancel.Click += (_, _) => dialog.Close(false);
-        save.Click += (_, _) => dialog.Close(true);
+        var error = new TextBlock { Foreground = Brush.Parse("#F2A9B5"), TextWrapping = TextWrapping.Wrap, IsVisible = false };
+        save.Click += (_, _) =>
+        {
+            var message = validate?.Invoke();
+            error.Text = message; error.IsVisible = message is not null;
+            if (message is null) dialog.Close(true);
+        };
+        dialog.KeyDown += (_, e) => { if (e.Key == global::Avalonia.Input.Key.Escape) dialog.Close(false); };
         var buttons = new StackPanel
         {
             Orientation = Orientation.Horizontal,
@@ -79,9 +87,11 @@ public partial class ChatWindow
             HorizontalAlignment = HorizontalAlignment.Right,
             Children = { cancel, save }
         };
-        var grid = new Grid { RowDefinitions = new RowDefinitions("*,Auto"), Margin = new Thickness(24) };
-        grid.Children.Add(new ScrollViewer { Content = content, HorizontalScrollBarVisibility = global::Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled });
-        Grid.SetRow(buttons, 1); grid.Children.Add(buttons); dialog.Content = grid;
+        var grid = new Grid { RowDefinitions = new RowDefinitions("Auto,*,Auto"), Margin = new Thickness(24), RowSpacing = 10 };
+        grid.Children.Add(error);
+        var scroll = new ScrollViewer { Content = content, HorizontalScrollBarVisibility = global::Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled };
+        Grid.SetRow(scroll, 1); grid.Children.Add(scroll);
+        Grid.SetRow(buttons, 2); grid.Children.Add(buttons); dialog.Content = grid;
         return await dialog.ShowDialog<bool>(this);
     }
 
@@ -100,6 +110,11 @@ public partial class ChatWindow
         var temperature = Input(options.Temperature.ToString(CultureInfo.InvariantCulture), 10);
         var seed = Input(options.Seed?.ToString() ?? "", 12);
         var timeout = Input(options.TimeoutSeconds.ToString(), 3);
+        var calls = Input(options.SummaryMaxCalls.ToString(), 4);
+        var continuous = new CheckBox { Content = "Générer jusqu’au signal d’arrêt du modèle", IsChecked = options.GenerateUntilStop };
+        var recursive = new CheckBox { Content = "Résumer les anciens échanges et préserver les deux derniers", IsChecked = options.AutoSummarize };
+        turns.IsEnabled = !options.AutoSummarize;
+        recursive.IsCheckedChanged += (_, _) => turns.IsEnabled = recursive.IsChecked != true;
         var panel = new StackPanel { Spacing = 10 };
         var presets = new ComboBox
         {
@@ -107,58 +122,58 @@ public partial class ChatWindow
             PlaceholderText = "Charger un profil de prompt"
         };
         presets.SelectionChanged += (_, _) => { if (presets.SelectedItem is PromptItem item) system.Text = item.SystemPrompt; };
-        panel.Children.Add(presets);
+        panel.Children.Add(continuous); panel.Children.Add(recursive); panel.Children.Add(presets);
         foreach (var (label, control) in new (string, Control)[] {
             ("Modèle local (nom exact dans Ollama)", model), ("Instruction système", system),
             ("Notes persistantes du projet — toujours incluses dans le budget", notes),
-            ("Fenêtre du modèle (tokens, 1024 à 131072)", context), ("Réserve de sortie (tokens)", output),
-            ("Échanges récents maximum (0 à 100)", turns), ("Température (0 à 2, point décimal)", temperature),
+            ("Fenêtre du modèle (tokens, 1024 à 131072)", context), ("Réserve de contexte pour la sortie (limite de génération seulement si le mode continu est désactivé)", output),
+            ("Fenêtre simple : échanges récents (uniquement sans résumé automatique)", turns), ("Température (0 à 2, virgule ou point)", temperature),
             ("Graine facultative (ne garantit pas un résultat identique sur tous les matériels)", seed),
-            ("Délai de génération (secondes, 1 à 600)", timeout) })
+            ("Inactivité maximale pendant une génération (secondes, 1 à 600)", timeout),
+            ("Nombre maximal d’appels par opération de résumé (8 à 2048)", calls) })
         { panel.Children.Add(Label(label)); panel.Children.Add(control); }
         panel.Children.Add(Label("Les modifications s’appliquent aux prochains échanges. L’historique reste intact. Une grande fenêtre augmente l’usage de mémoire."));
-        if (!await EditDialogAsync("Réglages de la conversation", panel)) return;
-        if (!int.TryParse(context.Text, out var contextValue) || !int.TryParse(output.Text, out var outputValue)
-            || !int.TryParse(turns.Text, out var turnsValue) || !int.TryParse(timeout.Text, out var timeoutValue)
-            || !double.TryParse(temperature.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out var temperatureValue)
-            || !string.IsNullOrWhiteSpace(seed.Text) && !int.TryParse(seed.Text, out _))
-            throw new ChatApiException("Un réglage numérique est invalide.");
-        var edited = new ChatOptions
+        ChatOptions? edited = null;
+        string? Validate()
         {
-            ContextTokens = contextValue,
-            MaxOutputTokens = outputValue,
-            MaxHistoryTurns = turnsValue,
-            TimeoutSeconds = timeoutValue,
-            Temperature = temperatureValue,
-            SafetyTokens = options.SafetyTokens,
-            Seed = string.IsNullOrWhiteSpace(seed.Text) ? null : int.Parse(seed.Text!)
-        };
+            if (!int.TryParse(context.Text, out var contextValue) || !int.TryParse(output.Text, out var outputValue)
+                || !int.TryParse(turns.Text, out var turnsValue) || !int.TryParse(timeout.Text, out var timeoutValue)
+                || !int.TryParse(calls.Text, out var callsValue)
+                || !double.TryParse(temperature.Text?.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out var temperatureValue)
+                || !string.IsNullOrWhiteSpace(seed.Text) && !int.TryParse(seed.Text, out _))
+                return "Un réglage numérique est invalide. Les valeurs saisies sont conservées.";
+            edited = new ChatOptions
+            {
+                ContextTokens = contextValue,
+                MaxOutputTokens = outputValue,
+                MaxHistoryTurns = turnsValue,
+                TimeoutSeconds = timeoutValue,
+                Temperature = temperatureValue,
+                SafetyTokens = options.SafetyTokens,
+                SummaryMaxCalls = callsValue,
+                GenerateUntilStop = continuous.IsChecked == true,
+                AutoSummarize = recursive.IsChecked == true,
+                Seed = string.IsNullOrWhiteSpace(seed.Text) ? null : int.Parse(seed.Text!)
+            };
+            try
+            {
+                edited.Validate();
+                var sample = Alycia.Modules.Chat.Domain.Conversation.Create("test", model.Text, system.Text);
+                sample.Configure(model.Text, system.Text, notes.Text, "{}");
+                SlidingContext.Build(ConversationConfiguration.System(sample), [], "Bonjour", edited);
+                return null;
+            }
+            catch (ArgumentException exception) { return exception.Message; }
+        }
+        if (!await EditDialogAsync("Réglages de la conversation", panel, validate: Validate)) return;
         _current = await _client.ConfigureAsync(current.Id, current.Revision, model.Text ?? "", system.Text ?? "",
-            notes.Text ?? "", edited, _lifetime.Token);
+            notes.Text ?? "", edited!, _lifetime.Token);
         await RefreshConversationsAsync(_current.Id);
         await LoadAsync(_current!);
         Feedback("Réglages enregistrés pour les prochains échanges.");
     }
 
-    private async Task PreviewAsync()
-    {
-        if (_current is null) return;
-        var text = C<TextBox>("MessageInput").Text?.Trim();
-        if (string.IsNullOrEmpty(text)) { Feedback("Saisissez un message pour inspecter son contexte."); return; }
-        var preview = await _client.PreviewAsync(_current.Id, text, _lifetime.Token);
-        var panel = new StackPanel { Spacing = 14 };
-        panel.Children.Add(Label($"Entrée estimée : {preview.Context.EstimatedInputTokens} / "
-            + $"{preview.Options.ContextTokens - preview.Options.MaxOutputTokens - preview.Options.SafetyTokens} ; "
-            + $"{preview.Context.HistoryMessagesIncluded} messages inclus, {preview.OmittedMessages} omis ; "
-            + $"{preview.Context.FilesIncluded} documents.\n{preview.Estimator}. Les messages omis restent dans l’historique."));
-        panel.Children.Add(new SelectableTextBlock
-        {
-            Text = string.Join("\n\n", preview.Context.Messages
-            .Select(m => $"[{m.Role}]\n{m.Content}")),
-            TextWrapping = TextWrapping.Wrap
-        });
-        await EditDialogAsync("Contexte effectivement préparé", panel, "Fermer");
-    }
+    private Task PreviewAsync() => MemoryAsync();
 
     private async Task ManageFilesAsync()
     {

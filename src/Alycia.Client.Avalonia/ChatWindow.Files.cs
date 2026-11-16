@@ -77,12 +77,12 @@ public partial class ChatWindow
             }
             else if (item is IStorageFile file)
             {
-                if (files.Count >= 100) throw new ChatApiException("Import limité à 100 fichiers par lot.");
+                if (files.Count >= 500) throw new ChatApiException("Import limité à 500 fichiers par lot.");
                 var properties = await file.GetBasicPropertiesAsync();
                 if (properties.Size > 25 * 1024 * 1024) throw new ChatApiException($"{file.Name} dépasse la limite de 25 Mio.");
                 totalBytes += properties.Size ?? 0;
                 if (totalBytes > 100 * 1024 * 1024) throw new ChatApiException("Lot limité à 100 Mio.");
-                files.Add(new(path, await file.OpenReadAsync()));
+                files.Add(new(path, await file.OpenReadAsync(), properties.DateCreated, properties.DateModified));
             }
         }
         try
@@ -92,7 +92,7 @@ public partial class ChatWindow
             Feedback($"Import de {files.Count} fichier(s)…");
             var result = await _client.UploadAsync(_current.Id, Guid.NewGuid(), files, _lifetime.Token);
             await LoadAsync(_current);
-            Feedback($"{result.Length} fichier(s) enregistrés · {excluded} élément(s) technique(s) ou sensible(s) écarté(s). Les textes restent soumis au budget de contexte.");
+            Feedback($"{result.Length} fichier(s) enregistrés · {excluded} élément(s) technique(s) ou sensible(s) écarté(s). Ouvrez Synthèses de dossiers pour produire tree.txt et une synthèse récursive.");
         }
         finally
         {

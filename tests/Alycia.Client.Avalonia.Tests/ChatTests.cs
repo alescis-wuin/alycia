@@ -90,6 +90,7 @@ public sealed class ChatTests
         {
             UseHeadlessDrawing = false
         }).SetupWithoutStarting();
+        MarkdownChecks.Verify();
         ConversationSummary? conversation = null;
         var messages = new List<ChatMessageItem>();
         FileItem[] files = [];
@@ -156,7 +157,7 @@ public sealed class ChatTests
 
             var requestId = root.GetProperty("requestId").GetGuid();
             messages.Add(new(conversation!.Id, 1, requestId, "user", root.GetProperty("content").GetString()!, DateTimeOffset.UtcNow));
-            messages.Add(new(conversation.Id, 2, requestId, "assistant", "Bonjour ! Je suis prête pour la démonstration.", DateTimeOffset.UtcNow));
+            messages.Add(new(conversation.Id, 2, requestId, "assistant", "## Une base de travail claire\n\nJe peux vous aider à **concevoir**, tester et améliorer votre projet.\n\n- Contexte protégé et mémoire récursive\n- Inventaire vérifiable des sources\n\n```python\ndef saluer(nom):\n    return f\"Bonjour {nom}\"\n```\n\n| Étape | État |\n|---|---|\n| Sources | Prêtes |\n| Tests | À lancer |", DateTimeOffset.UtcNow));
             conversation = conversation with { MessageCount = 2 };
             var result = new ChatSendResult(messages.ToArray(), 0, false);
             var settings = new JsonSerializerOptions(JsonSerializerDefaults.Web);
@@ -184,7 +185,12 @@ public sealed class ChatTests
             PumpUntil(() => window.OwnedWindows.Count > 0);
             var settingsDialog = window.OwnedWindows.Single();
             var fields = settingsDialog.GetVisualDescendants().OfType<TextBox>().ToArray();
-            fields.Single(field => field.Text == "0.7").Text = "0.25";
+            fields.Single(field => field.Text == "0.7").Text = "invalide";
+            settingsDialog.GetVisualDescendants().OfType<Button>().Single(button => Equals(button.Content, "Enregistrer"))
+                .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Assert.Contains(settingsDialog, window.OwnedWindows);
+            Assert.Contains(settingsDialog.GetVisualDescendants().OfType<TextBlock>(), text => text.Text?.Contains("numérique est invalide") == true);
+            fields.Single(field => field.Text == "invalide").Text = "0,25";
             fields.Single(field => field.Text == "system").Text = "Updated system";
             settingsDialog.GetVisualDescendants().OfType<Button>().Single(button => Equals(button.Content, "Enregistrer"))
                 .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
@@ -193,6 +199,7 @@ public sealed class ChatTests
             window.FindControl<TextBox>("MessageInput")!.Text = "Bonjour Alycia";
             Click(window, "SendButton");
             Assert.Equal(2, messages.Count);
+            Assert.True(window.FindControl<Button>("AnalysisButton")!.IsEnabled);
             Assert.Equal("", window.FindControl<TextBox>("MessageInput")!.Text);
             Assert.Equal(2, window.FindControl<ItemsControl>("MessageList")!.ItemCount);
 
@@ -202,14 +209,30 @@ public sealed class ChatTests
             Assert.True(window.FindControl<Button>("UploadButton")!.IsEnabled);
             Assert.True(window.FindControl<Button>("FolderButton")!.IsEnabled);
             Assert.Contains(window.GetVisualDescendants().OfType<Button>(), button => Equals(button.Content, "Télécharger") && button.IsVisible);
+            // Exercise the real deferred renderer, including controls recreated by a history refresh.
+            PumpUntil(() => window.FindControl<ItemsControl>("MessageList")!.GetVisualDescendants()
+                .OfType<MarkdownView>().Count(view => view.Children.Count > 0) == 3);
+            Assert.Contains(window.FindControl<ItemsControl>("MessageList")!.GetVisualDescendants()
+                .OfType<MarkdownView>(), view => view.IsMarkdown && view.Children.Count >= 5);
 
             // Optional visual evidence from the actual Avalonia/Skia rendering.
             if (Environment.GetEnvironmentVariable("ALYCIA_UI_CAPTURE") is { Length: > 0 } screenshot)
             {
+                window.FindControl<ScrollViewer>("MessageScroll")!.ScrollToHome();
                 Dispatcher.UIThread.RunJobs();
                 using var frame = window.CaptureRenderedFrame();
                 Assert.NotNull(frame);
                 frame.Save(screenshot, global::Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
+            }
+
+            window.Width = 960; window.Height = 700;
+            PumpUntil(() => !window.FindControl<Border>("Sidebar")!.IsVisible);
+            Assert.True(window.FindControl<ScrollViewer>("MessageScroll")!.Bounds.Width > 800);
+            if (Environment.GetEnvironmentVariable("ALYCIA_UI_CAPTURE") is { Length: > 0 } compact)
+            {
+                using var frame = window.CaptureRenderedFrame();
+                Assert.NotNull(frame);
+                frame.Save(Path.ChangeExtension(compact, "compact.png"), global::Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
             }
 
             fail = true;

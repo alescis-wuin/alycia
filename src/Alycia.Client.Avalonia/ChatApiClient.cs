@@ -13,11 +13,14 @@ namespace Alycia.Client.Avalonia;
 
 public sealed record ConversationSummary(Guid Id, string Title, string Model, string SystemPrompt,
     DateTimeOffset CreatedAtUtc, DateTimeOffset UpdatedAtUtc, int Revision, int MessageCount,
-    string ContextNotes = "", string SettingsJson = "{}");
+    string ContextNotes = "", string SettingsJson = "{}", string MemoryText = "", int MemoryThroughSequence = 0,
+    string MemorySourceHash = "", string MemoryModel = "");
 
 public sealed record ChatMessageItem(Guid ConversationId, int Sequence, Guid RequestId, string Role,
     string Content, DateTimeOffset CreatedAtUtc, Guid? AttachmentId = null)
 {
+    public bool IsAssistant => Role == "assistant" && !IsFile;
+    public bool HasCode => IsAssistant && (Content.Contains("```") || Content.Contains("~~~"));
     public bool IsFile => AttachmentId.HasValue;
     public bool IsUser => Role == "user";
     public string Label => $"{(IsFile ? "Fichier joint" : Role == "user" ? "Vous" : "Alycia")} · {CreatedAtUtc.ToLocalTime():HH:mm}";
@@ -27,12 +30,12 @@ public sealed record MessagePage(ConversationSummary Conversation, ChatMessageIt
 public sealed record ChatSendResult(ChatMessageItem[] Messages, int? HistoryMessagesIncluded, bool Replayed, int FilesIncluded = 0,
     int? EstimatedInputTokens = null, Alycia.Modules.Chat.Application.GenerationStats? Stats = null);
 public sealed record FileItem(Guid Id, string Name, long Size, string Status, int AnchorSequence,
-    DateTimeOffset CreatedAtUtc, Guid? ArchiveId, string Sha256, string ContextMode = "window")
+    DateTimeOffset CreatedAtUtc, Guid? ArchiveId, string Sha256, string ContextMode = "window", Guid BatchId = default, string SourceCreatedAt = "", string SourceModifiedAt = "", string MetadataSource = "unknown")
 {
     public ChatMessageItem ToMessage(Guid conversation) => new(conversation, AnchorSequence, Guid.Empty, "file",
         $"{Name}\n{Size / 1024.0:N1} Kio · {Status}", CreatedAtUtc, Id);
 }
-public sealed record UploadFile(string Name, Stream Content);
+public sealed record UploadFile(string Name, Stream Content, DateTimeOffset? CreatedAt = null, DateTimeOffset? ModifiedAt = null);
 
 public sealed class ChatApiException(string message) : Exception(message);
 
@@ -83,6 +86,10 @@ public sealed partial class ChatApiClient
     {
         using var form = new MultipartFormDataContent();
         foreach (var file in files) form.Add(new StreamContent(file.Content), "files", file.Name);
+        var metadata = System.Linq.Enumerable.Where(files, f => f.CreatedAt.HasValue || f.ModifiedAt.HasValue);
+        if (System.Linq.Enumerable.Any(metadata))
+            form.Add(new StringContent(JsonSerializer.Serialize(System.Linq.Enumerable.Select(metadata,
+                f => new { f.Name, f.CreatedAt, f.ModifiedAt }), Json)), "metadata");
         return await SendAsync<FileItem[]>(HttpMethod.Post, $"/conversations/{conversation}/files/{batch}", form, ct);
     }
 

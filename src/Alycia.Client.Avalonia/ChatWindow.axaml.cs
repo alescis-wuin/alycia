@@ -24,6 +24,8 @@ public partial class ChatWindow : Window
     private ConversationSummary? _current;
     private bool _busy;
     private Guid _pendingId;
+    private bool _followOutput = true;
+    private bool _sidebarManual;
 
     public ChatWindow() : this(new ChatApiClient()) { }
 
@@ -39,6 +41,7 @@ public partial class ChatWindow : Window
         C<TextBox>("MessageInput").TextChanged += (_, _) =>
         {
             if (!_loadingDraft) { SaveDraft(); _draftTimer.Stop(); _draftTimer.Start(); }
+            UpdateControls();
         };
         C<Button>("RefreshButton").Click += async (_, _) => await RunAsync(InitializeAsync);
         C<Button>("NewButton").Click += async (_, _) => await RunAsync(CreateAsync);
@@ -65,13 +68,45 @@ public partial class ChatWindow : Window
         };
         InitializeFileControls();
         InitializeFeatureControls();
+        C<MarkdownView>("StreamingText").Rendered += ScrollToEnd;
+        C<ScrollViewer>("MessageScroll").ScrollChanged += (_, e) =>
+        {
+            if (e.OffsetDelta.Y != 0 && e.ExtentDelta.Y == 0)
+            {
+                var scroll = C<ScrollViewer>("MessageScroll");
+                _followOutput = scroll.Extent.Height - scroll.Viewport.Height - scroll.Offset.Y < 70;
+                C<Button>("LatestButton").IsVisible = !_followOutput;
+            }
+        };
+        C<Button>("LatestButton").Click += (_, _) => { _followOutput = true; C<Button>("LatestButton").IsVisible = false; ScrollToEnd(); };
+        C<Button>("SidebarToggle").Click += (_, _) => { _sidebarManual = true; C<Border>("Sidebar").IsVisible = !C<Border>("Sidebar").IsVisible; };
+        SizeChanged += (_, _) => { if (!_sidebarManual) C<Border>("Sidebar").IsVisible = Bounds.Width >= 1040; };
+        C<TextBox>("SearchInput").KeyDown += async (_, e) =>
+        {
+            if (e.Key == Key.Enter)
+            {
+                e.Handled = true; await RunAsync(async () =>
+            { await RefreshConversationsAsync(null); if (_current is not null) await LoadAsync(_current); });
+            }
+        };
+        KeyDown += async (_, e) =>
+        {
+            if (e.Key == Key.Escape && _generation is not null) { _generation.Cancel(); e.Handled = true; }
+            if (!e.KeyModifiers.HasFlag(KeyModifiers.Control)) return;
+            if (e.Key == Key.N) { e.Handled = true; await RunAsync(CreateAsync); }
+            if (e.Key == Key.F) { e.Handled = true; _sidebarManual = true; C<Border>("Sidebar").IsVisible = true; C<TextBox>("SearchInput").Focus(); }
+        };
         UpdateControls();
     }
 
     private T C<T>(string name) where T : Control => this.FindControl<T>(name)
         ?? throw new InvalidOperationException($"Control {name} not found.");
 
-    private void Feedback(string message) => C<TextBlock>("FeedbackText").Text = message;
+    private void Feedback(string message, bool error = false)
+    {
+        C<TextBlock>("FeedbackText").Text = message;
+        C<TextBlock>("FeedbackText").Foreground = global::Avalonia.Media.Brush.Parse(error ? "#F0A9B5" : "#AAB8D0");
+    }
 
     private async Task RunAsync(Func<Task> action)
     {
@@ -89,16 +124,16 @@ public partial class ChatWindow : Window
         }
         catch (OperationCanceledException)
         {
-            Feedback("Envoi interrompu. Votre texte est conservé. Actualisez l’historique avant de réessayer.");
+            Feedback("Opération interrompue. Brouillon et données originales conservés ; rechargez pour vérifier l’état final.", true);
         }
         catch (ChatApiException exception)
         {
-            Feedback(exception.Message);
+            Feedback(exception.Message, true);
         }
         catch (Exception exception)
         {
             Console.Error.WriteLine($"Chat operation failed: {exception.GetType().Name}");
-            Feedback("Une erreur inattendue est survenue. Votre texte est conservé.");
+            Feedback("Une erreur inattendue est survenue. Votre texte est conservé.", true);
         }
         finally
         {
@@ -109,7 +144,7 @@ public partial class ChatWindow : Window
 
     private void UpdateControls()
     {
-        C<StackPanel>("EmptyState").IsVisible = _messages.Count == 0;
+        C<StackPanel>("EmptyState").IsVisible = _messages.Count == 0 && _generation is null;
         C<TextBlock>("EmptyHint").Text = _current is null
             ? "Choisissez un modèle et créez votre première conversation."
             : "Posez votre première question.";
@@ -123,7 +158,7 @@ public partial class ChatWindow : Window
         C<Grid>("ConversationHeader").IsEnabled = !_busy && _current is not null;
         C<Button>("UploadButton").IsEnabled = !_busy && _current is not null;
         C<Button>("FolderButton").IsEnabled = !_busy && _current is not null;
-        C<Button>("SendButton").IsEnabled = !_busy && _current is not null;
+        C<Button>("SendButton").IsEnabled = !_busy && _current is not null && !string.IsNullOrWhiteSpace(C<TextBox>("MessageInput").Text);
         C<TextBox>("MessageInput").IsEnabled = !_busy && _current is not null;
         C<Button>("OlderButton").IsEnabled = !_busy;
         C<ProgressBar>("BusyIndicator").IsVisible = _busy;
@@ -188,8 +223,11 @@ public partial class ChatWindow : Window
         C<TextBox>("MessageInput").Text = _drafts.Get(_current.Id)?.Text ?? "";
         _loadingDraft = false;
         C<Expander>("StreamingPanel").IsVisible = false;
+        C<Border>("PendingUserPanel").IsVisible = false;
+        _followOutput = true; C<Button>("LatestButton").IsVisible = false;
         C<TextBox>("TitleInput").Text = _current.Title;
-        C<TextBlock>("ConversationDetails").Text = $"{_current.Model} · {_current.MessageCount} messages enregistrés";
+        C<TextBlock>("ConversationDetails").Text = $"{_current.Model} · {_current.MessageCount} messages"
+            + (_current.MemoryThroughSequence > 0 ? $" · mémoire : messages 1–{_current.MemoryThroughSequence}" : " · contexte local");
         _messages.Clear();
         foreach (var message in Timeline(page))
         {
@@ -234,7 +272,8 @@ public partial class ChatWindow : Window
         await LoadAsync(conversation);
         C<TextBox>("NewTitleInput").Text = "";
         C<TextBox>("MessageInput").Text = "";
-        Feedback("Conversation créée.");
+        Feedback("Conversation créée. Vous pouvez discuter ou importer vos sources.");
+        Dispatcher.UIThread.Post(() => C<TextBox>("MessageInput").Focus(), DispatcherPriority.Background);
     }
 
     private async Task RenameAsync()
@@ -322,18 +361,25 @@ public partial class ChatWindow : Window
         var hasThinking = false;
         C<Expander>("StreamingPanel").IsVisible = true;
         C<Expander>("StreamingPanel").Header = "Réponse provisoire · en attente d’enregistrement";
-        C<SelectableTextBlock>("StreamingText").Text = "Chargement du modèle…";
+        C<MarkdownView>("StreamingText").Text = "";
+        C<TextBlock>("StreamingStatus").Text = "Préparation du contexte et chargement du modèle…";
+        C<Border>("PendingUserPanel").IsVisible = true;
+        C<SelectableTextBlock>("PendingUserText").Text = text;
+        _followOutput = true; ScrollToEnd();
         try
         {
             var result = await _client.StreamMessageAsync(_current.Id, _pendingId, text, _current.Revision, delta =>
             {
+                if (delta.Status is not null)
+                { Feedback(delta.Status); C<TextBlock>("StreamingStatus").Text = delta.Status; }
                 streamed.Append(delta.Content);
                 hasThinking |= !string.IsNullOrEmpty(delta.Thinking);
                 // Throttle layout work; avoid re-rendering the whole text for every token.
                 if ((DateTime.UtcNow - lastRender).TotalMilliseconds >= 80 || streamed.Length == 0)
                 {
-                    C<SelectableTextBlock>("StreamingText").Text = streamed.Length == 0 && hasThinking
-                        ? "Le modèle réfléchit…" : streamed.ToString();
+                    C<MarkdownView>("StreamingText").Text = streamed.ToString();
+                    if (streamed.Length > 0) C<TextBlock>("StreamingStatus").Text = $"Génération en cours · {streamed.Length:N0} caractères";
+                    else if (hasThinking) C<TextBlock>("StreamingStatus").Text = "Le modèle réfléchit…";
                     lastRender = DateTime.UtcNow;
                 }
                 return Task.CompletedTask;
@@ -361,7 +407,7 @@ public partial class ChatWindow : Window
         {
             if (C<Expander>("StreamingPanel").IsVisible)
             {
-                C<SelectableTextBlock>("StreamingText").Text = streamed.Length > 0 ? streamed.ToString() : "Aucune réponse reçue.";
+                C<MarkdownView>("StreamingText").Text = streamed.Length > 0 ? streamed.ToString() : "Aucune réponse reçue.";
                 C<Expander>("StreamingPanel").Header = "Réponse provisoire · enregistrement non confirmé";
             }
             _generation = null;
@@ -374,6 +420,9 @@ public partial class ChatWindow : Window
             _drafts.Set(_current.Id, C<TextBox>("MessageInput").Text ?? "");
     }
 
-    private void ScrollToEnd() => Dispatcher.UIThread.Post(
-        () => C<ScrollViewer>("MessageScroll").ScrollToEnd(), DispatcherPriority.Background);
+    private void ScrollToEnd()
+    {
+        if (_followOutput) Dispatcher.UIThread.Post(() =>
+        { if (_followOutput) C<ScrollViewer>("MessageScroll").ScrollToEnd(); }, DispatcherPriority.Background);
+    }
 }
