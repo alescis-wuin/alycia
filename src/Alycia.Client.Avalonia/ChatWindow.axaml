@@ -3,7 +3,7 @@
         xmlns:local="using:Alycia.Client.Avalonia"
         x:Class="Alycia.Client.Avalonia.ChatWindow"
         Title="Alycia — Chat local" Background="#10131E" Foreground="#E7EAF5"
-        Width="1140" Height="800" MinWidth="820" MinHeight="660">
+        Width="1240" Height="880" MinWidth="1000" MinHeight="700">
   <Window.Styles>
     <Style Selector="Button">
       <Setter Property="CornerRadius" Value="10" />
@@ -89,7 +89,13 @@
             </Expander>
           </StackPanel>
         </ScrollViewer>
-        <TextBlock Grid.Row="2" Text="CONVERSATIONS" FontSize="10" LetterSpacing="1.5" Foreground="#818CA9" />
+        <StackPanel Grid.Row="2" Spacing="6">
+          <TextBox x:Name="SearchInput" PlaceholderText="Rechercher dans l’historique" MaxLength="200" />
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <Button x:Name="SearchButton" Classes="quiet" Content="Rechercher" FontSize="11" />
+            <Button x:Name="MoreConversationsButton" Classes="quiet" Content="Suivantes" FontSize="11" IsVisible="False" />
+          </StackPanel>
+        </StackPanel>
         <ListBox Grid.Row="3" x:Name="ConversationList" Background="Transparent" BorderThickness="0">
           <ListBox.ItemTemplate>
             <DataTemplate x:DataType="local:ConversationSummary">
@@ -102,6 +108,8 @@
         </ListBox>
         <StackPanel Grid.Row="4" Spacing="4">
           <Button x:Name="RefreshButton" Classes="quiet" Content="Actualiser" HorizontalAlignment="Stretch" />
+          <Button x:Name="ImportConversationButton" Classes="quiet" Content="Importer une conversation JSON" FontSize="11" HorizontalAlignment="Stretch" />
+          <Button x:Name="PromptsButton" Classes="quiet" Content="Bibliothèque de prompts" FontSize="11" HorizontalAlignment="Stretch" />
           <Button x:Name="DiagnosticsButton" Classes="quiet" Content="Connexion et diagnostics" FontSize="11" HorizontalAlignment="Stretch" />
         </StackPanel>
       </Grid>
@@ -113,8 +121,18 @@
         <Button Grid.Column="1" x:Name="RenameButton" Classes="quiet" Content="Renommer" FontSize="12" />
         <Button Grid.Column="2" x:Name="DeleteButton" Classes="quiet" Content="Supprimer" FontSize="12" Foreground="#DD9CA9" />
       </Grid>
-      <TextBlock Grid.Row="1" x:Name="ConversationDetails" Text="Choisissez un modèle, puis créez une conversation."
-                 Foreground="#8F9BB6" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,12" />
+      <StackPanel Grid.Row="1" Spacing="8">
+        <TextBlock x:Name="ConversationDetails" Text="Choisissez un modèle, puis créez une conversation."
+                   Foreground="#8F9BB6" FontSize="12" TextWrapping="Wrap" />
+        <WrapPanel x:Name="ConversationTools" Orientation="Horizontal">
+          <Button x:Name="SettingsButton" Classes="quiet" Content="Réglages" FontSize="12" />
+          <Button x:Name="ContextButton" Classes="quiet" Content="Voir le contexte" FontSize="12" />
+          <Button x:Name="FilesButton" Classes="quiet" Content="Documents" FontSize="12" />
+          <Button x:Name="ForkButton" Classes="quiet" Content="Dupliquer" FontSize="12" />
+          <Button x:Name="RegenerateButton" Classes="quiet" Content="Régénérer une copie" FontSize="12" />
+          <Button x:Name="ExportButton" Classes="quiet" Content="Exporter" FontSize="12" />
+        </WrapPanel>
+      </StackPanel>
       <Grid Grid.Row="2" RowDefinitions="Auto,*">
         <Button x:Name="OlderButton" Classes="quiet" Content="Messages précédents" IsVisible="False"
                 HorizontalAlignment="Center" Margin="0,0,0,12" FontSize="12" />
@@ -130,6 +148,10 @@
                   <StackPanel Spacing="10">
                     <TextBlock Text="{Binding Label}" FontWeight="SemiBold" Foreground="#B6BED5" FontSize="11" />
                     <SelectableTextBlock Text="{Binding Content}" TextWrapping="Wrap" FontSize="15" LineHeight="25" Foreground="#E7EAF5" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <Button Classes="quiet" Content="Copier" CommandParameter="{Binding}" Click="CopyMessageClick" />
+                      <Button Classes="quiet" Content="Copier le code" CommandParameter="{Binding}" Click="CopyCodeClick" />
+                    </StackPanel>
                     <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsFile}">
                       <Button Classes="quiet" Content="Télécharger" CommandParameter="{Binding}" Click="DownloadFileClick" />
                       <Button Classes="quiet" Content="Retirer" CommandParameter="{Binding}" Click="RemoveFileClick" />
@@ -142,6 +164,11 @@
         </ScrollViewer>
       </Grid>
       <StackPanel Grid.Row="3" Spacing="8">
+        <Expander x:Name="StreamingPanel" Header="Réponse provisoire · en attente d’enregistrement" IsVisible="False" IsExpanded="True">
+          <ScrollViewer MaxHeight="220">
+            <SelectableTextBlock x:Name="StreamingText" TextWrapping="Wrap" FontSize="14" />
+          </ScrollViewer>
+        </Expander>
         <ProgressBar x:Name="BusyIndicator" IsIndeterminate="True" IsVisible="False" Height="3" Foreground="#8875F5" />
         <TextBlock x:Name="FeedbackText" Text="Connexion…" TextWrapping="Wrap" FontSize="11" Foreground="#A0AEC8" />
       </StackPanel>

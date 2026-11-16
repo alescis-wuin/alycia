@@ -71,6 +71,12 @@ public sealed class FileImport(ChatDbContext database, FileStorage storage)
             };
             var isArchive = IsArchive(name);
             (file.Text, file.Status) = isArchive ? ("", expand ? "Archive importée" : "Archive imbriquée conservée sans extraction") : Extract(name, bytes);
+            if (ImportPolicy.Excluded(name))
+            {
+                file.Text = "";
+                file.ContextMode = "excluded";
+                file.Status = "Fichier technique ou sensible exclu du contexte";
+            }
             files.Add(file);
             payloads.Add((file, bytes));
             if (!expand || !isArchive) return;

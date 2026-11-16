@@ -16,4 +16,7 @@
       <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
     </PackageReference>
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Alycia.Modules.Chat.Application/Alycia.Modules.Chat.Application.csproj" />
+  </ItemGroup>
 </Project>

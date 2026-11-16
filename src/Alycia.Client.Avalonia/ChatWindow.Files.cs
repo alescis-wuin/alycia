@@ -1,4 +1,5 @@
 using System;
+using Alycia.Modules.Chat.Application;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -57,12 +58,15 @@ public partial class ChatWindow
     {
         if (_current is null) return;
         var files = new List<UploadFile>();
+        var excluded = 0;
+        ulong totalBytes = 0;
         var seenFolders = new HashSet<string>(StringComparer.Ordinal);
         async Task VisitAsync(IStorageItem item, string prefix, int depth)
         {
             _lifetime.Token.ThrowIfCancellationRequested();
             if (depth > 16) throw new ChatApiException("Les dossiers sont limités à 16 niveaux.");
             var path = prefix + item.Name;
+            if (ImportPolicy.Excluded(path)) { excluded++; return; }
             var local = item.TryGetLocalPath();
             if (local is not null && (File.GetAttributes(local) & FileAttributes.ReparsePoint) != 0)
                 throw new ChatApiException("Les liens symboliques ne sont pas importés. Sélectionnez leur cible explicitement.");
@@ -76,6 +80,8 @@ public partial class ChatWindow
                 if (files.Count >= 100) throw new ChatApiException("Import limité à 100 fichiers par lot.");
                 var properties = await file.GetBasicPropertiesAsync();
                 if (properties.Size > 25 * 1024 * 1024) throw new ChatApiException($"{file.Name} dépasse la limite de 25 Mio.");
+                totalBytes += properties.Size ?? 0;
+                if (totalBytes > 100 * 1024 * 1024) throw new ChatApiException("Lot limité à 100 Mio.");
                 files.Add(new(path, await file.OpenReadAsync()));
             }
         }
@@ -86,7 +92,7 @@ public partial class ChatWindow
             Feedback($"Import de {files.Count} fichier(s)…");
             var result = await _client.UploadAsync(_current.Id, Guid.NewGuid(), files, _lifetime.Token);
             await LoadAsync(_current);
-            Feedback($"{result.Length} fichier(s) enregistrés. Les textes extractibles sont disponibles pour les prochains échanges.");
+            Feedback($"{result.Length} fichier(s) enregistrés · {excluded} élément(s) technique(s) ou sensible(s) écarté(s). Les textes restent soumis au budget de contexte.");
         }
         finally
         {
@@ -106,6 +112,7 @@ public partial class ChatWindow
             });
             if (destination is null) { Feedback("Téléchargement annulé."); return; }
             await using var output = await destination.OpenWriteAsync();
+            if (output.CanSeek) output.SetLength(0);
             await _client.DownloadAsync(message.ConversationId, id, output, _lifetime.Token);
             Feedback("Fichier téléchargé.");
         });

@@ -12,7 +12,8 @@ using System.Threading.Tasks;
 namespace Alycia.Client.Avalonia;
 
 public sealed record ConversationSummary(Guid Id, string Title, string Model, string SystemPrompt,
-    DateTimeOffset CreatedAtUtc, DateTimeOffset UpdatedAtUtc, int Revision, int MessageCount);
+    DateTimeOffset CreatedAtUtc, DateTimeOffset UpdatedAtUtc, int Revision, int MessageCount,
+    string ContextNotes = "", string SettingsJson = "{}");
 
 public sealed record ChatMessageItem(Guid ConversationId, int Sequence, Guid RequestId, string Role,
     string Content, DateTimeOffset CreatedAtUtc, Guid? AttachmentId = null)
@@ -23,9 +24,10 @@ public sealed record ChatMessageItem(Guid ConversationId, int Sequence, Guid Req
 }
 
 public sealed record MessagePage(ConversationSummary Conversation, ChatMessageItem[] Messages, bool HasMore, FileItem[]? Files = null);
-public sealed record ChatSendResult(ChatMessageItem[] Messages, int? HistoryMessagesIncluded, bool Replayed, int FilesIncluded = 0);
+public sealed record ChatSendResult(ChatMessageItem[] Messages, int? HistoryMessagesIncluded, bool Replayed, int FilesIncluded = 0,
+    int? EstimatedInputTokens = null, Alycia.Modules.Chat.Application.GenerationStats? Stats = null);
 public sealed record FileItem(Guid Id, string Name, long Size, string Status, int AnchorSequence,
-    DateTimeOffset CreatedAtUtc, Guid? ArchiveId, string Sha256)
+    DateTimeOffset CreatedAtUtc, Guid? ArchiveId, string Sha256, string ContextMode = "window")
 {
     public ChatMessageItem ToMessage(Guid conversation) => new(conversation, AnchorSequence, Guid.Empty, "file",
         $"{Name}\n{Size / 1024.0:N1} Kio · {Status}", CreatedAtUtc, Id);
@@ -34,7 +36,7 @@ public sealed record UploadFile(string Name, Stream Content);
 
 public sealed class ChatApiException(string message) : Exception(message);
 
-public sealed class ChatApiClient
+public sealed partial class ChatApiClient
 {
     private static readonly HttpClient SharedHttp = new(new HttpClientHandler { AllowAutoRedirect = false })
     {
@@ -95,25 +97,10 @@ public sealed class ChatApiClient
 
     private async Task<T> SendAsync<T>(HttpMethod method, string path, object? body, CancellationToken ct)
     {
-        var url = _baseUrl ?? Environment.GetEnvironmentVariable("ALYCIA_API_BASE_URL") ?? "http://127.0.0.1:8080";
-        if (!Uri.TryCreate(url, UriKind.Absolute, out var origin) || !origin.IsLoopback
-            || origin.Scheme is not ("http" or "https") || origin.AbsolutePath != "/"
-            || origin.UserInfo.Length > 0 || origin.Query.Length > 0 || origin.Fragment.Length > 0)
-        {
-            throw new ChatApiException("ALYCIA_API_BASE_URL doit désigner le backend sur cette machine (HTTP ou HTTPS). ");
-        }
-
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        // Short requests fail quickly; inference may need time to load a model.
-        timeout.CancelAfter(method == HttpMethod.Post && (path.EndsWith("/messages", StringComparison.Ordinal) || body is MultipartFormDataContent)
+        timeout.CancelAfter(method == HttpMethod.Post && (path.EndsWith("/messages", StringComparison.Ordinal) || path.EndsWith("/fork", StringComparison.Ordinal) || body is MultipartFormDataContent)
             ? _timeout : TimeSpan.FromSeconds(30));
-        using var request = new HttpRequestMessage(method, new Uri(origin, "/api/chat" + path));
-        var token = _accessToken ?? Environment.GetEnvironmentVariable("ALYCIA_CHAT_ACCESS_TOKEN");
-        if (!string.IsNullOrEmpty(token)) request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        if (body is not null)
-        {
-            request.Content = body as HttpContent ?? JsonContent.Create(body);
-        }
+        using var request = CreateRequest(method, path, body);
 
         try
         {

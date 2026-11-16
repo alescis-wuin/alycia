@@ -1,7 +1,9 @@
 using System.Net;
+using System.Text;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Alycia.Client.Avalonia;
+using Alycia.Modules.Chat.Application;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
@@ -100,11 +102,15 @@ public sealed class ChatTests
                 return Json(new[] { "demo" });
             }
 
-            if (request.Method == HttpMethod.Get && path.EndsWith("/conversations"))
+            if (request.Method == HttpMethod.Get && path.EndsWith("/search"))
             {
-                return Json(conversation is null ? Array.Empty<ConversationSummary>() : [conversation]);
+                return Json(new ConversationSearch(conversation is null ? [] : [conversation], false));
             }
 
+            if (request.Method == HttpMethod.Get && path.EndsWith("/settings"))
+                return Json(new SettingsReply(conversation!, new ChatOptions()));
+            if (request.Method == HttpMethod.Get && path.EndsWith("/prompts"))
+                return Json(Array.Empty<PromptItem>());
             if (request.Method == HttpMethod.Get)
             {
                 return Json(new MessagePage(conversation!, messages.ToArray(), false, files));
@@ -119,6 +125,13 @@ public sealed class ChatTests
 
             using var json = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(ct));
             var root = json.RootElement;
+            if (request.Method == HttpMethod.Put && path.EndsWith("/settings"))
+            {
+                conversation = conversation! with { SystemPrompt = root.GetProperty("systemPrompt").GetString()!,
+                    ContextNotes = root.GetProperty("contextNotes").GetString()!, Revision = conversation.Revision + 1 };
+                Assert.Equal(0.25, root.GetProperty("options").GetProperty("temperature").GetDouble());
+                return Json(conversation);
+            }
             if (request.Method == HttpMethod.Patch)
             {
                 conversation = conversation! with { Title = root.GetProperty("title").GetString()! };
@@ -141,9 +154,14 @@ public sealed class ChatTests
             messages.Add(new(conversation!.Id, 1, requestId, "user", root.GetProperty("content").GetString()!, DateTimeOffset.UtcNow));
             messages.Add(new(conversation.Id, 2, requestId, "assistant", "Bonjour ! Je suis prête pour la démonstration.", DateTimeOffset.UtcNow));
             conversation = conversation with { MessageCount = 2 };
-            return Json(new ChatSendResult(messages.ToArray(), 0, false));
+            var result = new ChatSendResult(messages.ToArray(), 0, false);
+            var settings = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(
+                JsonSerializer.Serialize(new { type = "delta", content = "Bonjour !" }, settings) + "\n"
+                + JsonSerializer.Serialize(new { type = "done", result }, settings) + "\n", Encoding.UTF8, "application/x-ndjson") };
         }));
-        var window = new ChatWindow(new ChatApiClient(http, "http://127.0.0.1:5187", TimeSpan.FromSeconds(2)));
+        var stateDirectory = Path.Combine(Path.GetTempPath(), "alycia-ui-" + Guid.NewGuid().ToString("N"));
+        var window = new ChatWindow(new ChatApiClient(http, "http://127.0.0.1:5187", TimeSpan.FromSeconds(2)), new DraftStore(stateDirectory));
         try
         {
             window.Show();
@@ -155,6 +173,16 @@ public sealed class ChatTests
             window.FindControl<TextBox>("TitleInput")!.Text = "Ma démonstration";
             Click(window, "RenameButton");
             Assert.Equal("Ma démonstration", conversation!.Title);
+            window.FindControl<Button>("SettingsButton")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            PumpUntil(() => window.OwnedWindows.Count > 0);
+            var settingsDialog = window.OwnedWindows.Single();
+            var fields = settingsDialog.GetVisualDescendants().OfType<TextBox>().ToArray();
+            fields.Single(field => field.Text == "0.7").Text = "0.25";
+            fields.Single(field => field.Text == "system").Text = "Updated system";
+            settingsDialog.GetVisualDescendants().OfType<Button>().Single(button => Equals(button.Content, "Enregistrer"))
+                .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            PumpUntil(() => window.FindControl<Button>("RefreshButton")!.IsEnabled);
+            Assert.Equal("Updated system", conversation.SystemPrompt);
             window.FindControl<TextBox>("MessageInput")!.Text = "Bonjour Alycia";
             Click(window, "SendButton");
             Assert.Equal(2, messages.Count);
@@ -195,6 +223,7 @@ public sealed class ChatTests
         finally
         {
             window.Close();
+            if (Directory.Exists(stateDirectory)) Directory.Delete(stateDirectory, true);
         }
     }
 

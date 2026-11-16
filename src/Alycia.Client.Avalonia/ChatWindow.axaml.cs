@@ -14,24 +14,32 @@ namespace Alycia.Client.Avalonia;
 public partial class ChatWindow : Window
 {
     private readonly ChatApiClient _client;
+    private readonly DraftStore _drafts;
+    private readonly DispatcherTimer _draftTimer = new() { Interval = TimeSpan.FromMilliseconds(750) };
+    private bool _loadingDraft;
+    private string _searchQuery = "";
     private readonly CancellationTokenSource _lifetime = new();
     private readonly ObservableCollection<ChatMessageItem> _messages = [];
     private CancellationTokenSource? _generation;
     private ConversationSummary? _current;
     private bool _busy;
     private Guid _pendingId;
-    private Guid _pendingConversation;
-    private string? _pendingText;
 
     public ChatWindow() : this(new ChatApiClient()) { }
 
-    internal ChatWindow(ChatApiClient client)
+    internal ChatWindow(ChatApiClient client, DraftStore? drafts = null)
     {
         _client = client;
+        _drafts = drafts ?? new DraftStore();
         InitializeComponent();
         C<ItemsControl>("MessageList").ItemsSource = _messages;
         Opened += async (_, _) => await RunAsync(InitializeAsync);
-        Closed += (_, _) => _lifetime.Cancel();
+        Closed += (_, _) => { _draftTimer.Stop(); SaveDraft(); _drafts.Save(); _lifetime.Cancel(); };
+        _draftTimer.Tick += (_, _) => { _draftTimer.Stop(); _drafts.Save(); };
+        C<TextBox>("MessageInput").TextChanged += (_, _) =>
+        {
+            if (!_loadingDraft) { SaveDraft(); _draftTimer.Stop(); _draftTimer.Start(); }
+        };
         C<Button>("RefreshButton").Click += async (_, _) => await RunAsync(InitializeAsync);
         C<Button>("NewButton").Click += async (_, _) => await RunAsync(CreateAsync);
         C<Button>("RenameButton").Click += async (_, _) => await RunAsync(RenameAsync);
@@ -56,6 +64,7 @@ public partial class ChatWindow : Window
             }
         };
         InitializeFileControls();
+        InitializeFeatureControls();
         UpdateControls();
     }
 
@@ -105,6 +114,10 @@ public partial class ChatWindow : Window
             ? "Choisissez un modèle et créez votre première conversation."
             : "Posez votre première question.";
         C<StackPanel>("CreationPanel").IsEnabled = !_busy;
+        C<WrapPanel>("ConversationTools").IsEnabled = !_busy && _current is not null;
+        C<Button>("RegenerateButton").IsEnabled = !_busy && _current is { MessageCount: >= 2 };
+        foreach (var name in new[] { "SearchButton", "MoreConversationsButton", "PromptsButton", "ImportConversationButton" })
+            C<Button>(name).IsEnabled = !_busy;
         C<ListBox>("ConversationList").IsEnabled = !_busy;
         C<Button>("RefreshButton").IsEnabled = !_busy;
         C<Grid>("ConversationHeader").IsEnabled = !_busy && _current is not null;
@@ -133,15 +146,29 @@ public partial class ChatWindow : Window
         selector.SelectedItem = models.Contains(selected) ? selected : models.FirstOrDefault();
         Feedback(models.Length == 0
             ? "Aucun modèle local. Installez-en un avec ollama pull, puis actualisez."
-            : "Prêt à discuter.");
+            : "Prêt à discuter." + (_drafts.Error is null ? "" : " " + _drafts.Error));
     }
 
     private async Task RefreshConversationsAsync(Guid? selectId)
     {
-        var conversations = await _client.ListAsync(_lifetime.Token);
+        SaveDraft();
+        _searchQuery = C<TextBox>("SearchInput").Text ?? "";
+        var page = await _client.SearchAsync(_searchQuery, 0, _lifetime.Token);
+        var conversations = page.Items;
+        C<Button>("MoreConversationsButton").IsVisible = page.HasMore;
         var list = C<ListBox>("ConversationList");
         list.ItemsSource = conversations;
-        _current = conversations.FirstOrDefault(item => item.Id == selectId) ?? conversations.FirstOrDefault();
+        var selected = conversations.FirstOrDefault(item => item.Id == selectId) ?? conversations.FirstOrDefault();
+        if (selectId.HasValue && selected?.Id != selectId.Value)
+        {
+            // Keep a newly created or renamed conversation visible even if a search filter excludes it.
+            selected = (await _client.SettingsAsync(selectId.Value, _lifetime.Token)).Conversation;
+            list.ItemsSource = new[] { selected }.Concat(conversations).ToArray();
+        }
+        _current = selected;
+        _loadingDraft = true;
+        C<TextBox>("MessageInput").Text = _current is null ? "" : _drafts.Get(_current.Id)?.Text ?? "";
+        _loadingDraft = false;
         list.SelectedItem = _current;
         if (_current is null)
         {
@@ -154,8 +181,13 @@ public partial class ChatWindow : Window
 
     private async Task LoadAsync(ConversationSummary conversation)
     {
+        SaveDraft();
         var page = await _client.MessagesAsync(conversation.Id, null, _lifetime.Token);
         _current = page.Conversation;
+        _loadingDraft = true;
+        C<TextBox>("MessageInput").Text = _drafts.Get(_current.Id)?.Text ?? "";
+        _loadingDraft = false;
+        C<Expander>("StreamingPanel").IsVisible = false;
         C<TextBox>("TitleInput").Text = _current.Title;
         C<TextBlock>("ConversationDetails").Text = $"{_current.Model} · {_current.MessageCount} messages enregistrés";
         _messages.Clear();
@@ -254,13 +286,18 @@ public partial class ChatWindow : Window
         }
 
         await _client.DeleteAsync(_current.Id, _lifetime.Token);
+        _drafts.Remove(_current.Id);
+        _loadingDraft = true;
+        C<TextBox>("MessageInput").Text = "";
+        _loadingDraft = false;
+        _current = null;
+        _drafts.Save();
         await RefreshConversationsAsync(null);
         if (_current is not null)
         {
             await LoadAsync(_current);
         }
 
-        C<TextBox>("MessageInput").Text = "";
         Feedback("Conversation supprimée.");
     }
 
@@ -273,25 +310,40 @@ public partial class ChatWindow : Window
             return;
         }
 
-        // Keep the same id after ambiguous network failure or cancellation.
-        if (_pendingConversation != _current.Id || _pendingText != text)
-        {
-            _pendingId = Guid.NewGuid();
-            _pendingConversation = _current.Id;
-            _pendingText = text;
-        }
-
+        var pending = _drafts.Set(_current.Id, text);
+        _drafts.Save();
+        _pendingId = pending.RequestId;
         using var generation = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
         _generation = generation;
         UpdateControls();
         Feedback("Ollama prépare la réponse… Le premier chargement du modèle peut prendre du temps.");
+        var streamed = new System.Text.StringBuilder();
+        var lastRender = DateTime.UtcNow;
+        var hasThinking = false;
+        C<Expander>("StreamingPanel").IsVisible = true;
+        C<Expander>("StreamingPanel").Header = "Réponse provisoire · en attente d’enregistrement";
+        C<SelectableTextBlock>("StreamingText").Text = "Chargement du modèle…";
         try
         {
-            var result = await _client.SendMessageAsync(_current.Id, _pendingId, text, generation.Token);
+            var result = await _client.StreamMessageAsync(_current.Id, _pendingId, text, _current.Revision, delta =>
+            {
+                streamed.Append(delta.Content);
+                hasThinking |= !string.IsNullOrEmpty(delta.Thinking);
+                // Throttle layout work; avoid re-rendering the whole text for every token.
+                if ((DateTime.UtcNow - lastRender).TotalMilliseconds >= 80 || streamed.Length == 0)
+                {
+                    C<SelectableTextBlock>("StreamingText").Text = streamed.Length == 0 && hasThinking
+                        ? "Le modèle réfléchit…" : streamed.ToString();
+                    lastRender = DateTime.UtcNow;
+                }
+                return Task.CompletedTask;
+            }, generation.Token);
             // The server has confirmed persistence, so subsequent refresh failure
             // must not invite a duplicate send.
             C<TextBox>("MessageInput").Text = "";
-            _pendingText = null;
+            _drafts.Remove(_current.Id);
+            _drafts.Save();
+            C<Expander>("StreamingPanel").IsVisible = false;
             await RefreshConversationsAsync(_current.Id);
             if (_current is not null)
             {
@@ -299,12 +351,27 @@ public partial class ChatWindow : Window
             }
 
             Feedback(result.Replayed ? "Échange déjà enregistré : aucun doublon ajouté."
-                : $"Réponse enregistrée · {result.HistoryMessagesIncluded} messages et {result.FilesIncluded} fichiers dans le contexte.");
+                : $"Réponse enregistrée · {result.HistoryMessagesIncluded} messages et {result.FilesIncluded} fichiers · "
+                    + $"{result.Stats?.OutputTokens?.ToString() ?? "?"} tokens générés"
+                    + (result.Stats is { EvaluationNanoseconds: > 0, OutputTokens: { } count } stats
+                        ? $" · {count * 1_000_000_000.0 / stats.EvaluationNanoseconds.Value:F1} tok/s" : "")
+                    + (result.Stats?.DoneReason == "length" ? " · limite de sortie atteinte" : ""));
         }
         finally
         {
+            if (C<Expander>("StreamingPanel").IsVisible)
+            {
+                C<SelectableTextBlock>("StreamingText").Text = streamed.Length > 0 ? streamed.ToString() : "Aucune réponse reçue.";
+                C<Expander>("StreamingPanel").Header = "Réponse provisoire · enregistrement non confirmé";
+            }
             _generation = null;
         }
+    }
+
+    private void SaveDraft()
+    {
+        if (_current is not null && !_loadingDraft)
+            _drafts.Set(_current.Id, C<TextBox>("MessageInput").Text ?? "");
     }
 
     private void ScrollToEnd() => Dispatcher.UIThread.Post(
