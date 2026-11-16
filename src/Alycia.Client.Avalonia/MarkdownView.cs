@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -9,6 +10,7 @@ using Avalonia.Controls.Documents;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input.Platform;
 using Avalonia.Layout;
+using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Markdig;
@@ -31,9 +33,10 @@ public sealed class MarkdownView : StackPanel
     public bool IsStreaming { get => GetValue(IsStreamingProperty); set => SetValue(IsStreamingProperty, value); }
     public event Action? Rendered;
     private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder().UsePipeTables()
-        .UseEmphasisExtras().UseTaskLists().DisableHtml().Build();
+        .UseEmphasisExtras().UseTaskLists().UseEmojiAndSmiley(enableSmileys: false).UseAutoLinks().DisableHtml().Build();
     private static readonly IBrush Ink = Brush.Parse("#E3E9F3");
     private static readonly FontFamily Mono = new("Cascadia Code,Consolas,DejaVu Sans Mono,monospace");
+    private static readonly FontFamily EmojiFont = new("Noto Color Emoji,Segoe UI Emoji,Apple Color Emoji,Noto Emoji");
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(120) };
     private readonly List<string> _keys = [];
     private bool _rendering;
@@ -152,7 +155,7 @@ public sealed class MarkdownView : StackPanel
                 DockPanel.SetDock(copy, Dock.Right); header.Children.Add(copy);
                 header.Children.Add(new TextBlock
                 {
-                    Text = code is FencedCodeBlock fenced ? fenced.Info : "code",
+                    Text = code is FencedCodeBlock { Info.Length: > 0 } fenced ? fenced.Info : "code",
                     FontSize = 11,
                     Foreground = Brush.Parse("#A8BCD3"),
                     VerticalAlignment = VerticalAlignment.Center
@@ -188,6 +191,17 @@ public sealed class MarkdownView : StackPanel
                             Child = Block(row[col], source, depth + 1)
                         };
                         Grid.SetRow(cell, rowIndex); Grid.SetColumn(cell, col); grid.Children.Add(cell);
+                        foreach (var cellText in cell.GetLogicalDescendants().OfType<TextBlock>())
+                        {
+                            cellText.FontSize = 14;
+                            if (row.IsHeader) cellText.FontWeight = FontWeight.SemiBold;
+                            cellText.TextAlignment = table.ColumnDefinitions[col].Alignment switch
+                            {
+                                TableColumnAlign.Center => TextAlignment.Center,
+                                TableColumnAlign.Right => TextAlignment.Right,
+                                _ => TextAlignment.Left
+                            };
+                        }
                     }
                 }
                 return new ScrollViewer
@@ -220,7 +234,12 @@ public sealed class MarkdownView : StackPanel
                 var text = Plain(leaf.Inline is null ? leaf.Lines.ToString() : "");
                 if (leaf.Inline is not null) { text.Inlines = new InlineCollection(); Fill(leaf.Inline, text.Inlines); }
                 if (leaf is HeadingBlock heading)
-                { text.FontSize = heading.Level switch { 1 => 25, 2 => 21, 3 => 18, _ => 16 }; text.FontWeight = FontWeight.SemiBold; }
+                {
+                    text.FontSize = heading.Level switch { 1 => 28, 2 => 24, 3 => 20, _ => 17 };
+                    text.LineHeight = Math.Ceiling(text.FontSize * 1.4);
+                    text.FontWeight = FontWeight.SemiBold;
+                    text.Margin = new Thickness(0, 4, 0, 4);
+                }
                 return text;
             case ContainerBlock container: return Container(container, source, depth);
             default: return Plain("");
@@ -240,7 +259,8 @@ public sealed class MarkdownView : StackPanel
         {
             switch (item)
             {
-                case LiteralInline literal: output.Add(new Run(literal.Content.ToString())); break;
+                case LiteralInline literal: AppendText(output, literal.Content.ToString()); break;
+                case HtmlEntityInline entity: AppendText(output, entity.Transcoded.ToString()); break;
                 case CodeInline code: output.Add(new Run(code.Content) { FontFamily = Mono, Foreground = Brush.Parse("#E2C38D") }); break;
                 case LineBreakInline line: if (line.IsHard) output.Add(new LineBreak()); else output.Add(new Run(" ")); break;
                 case EmphasisInline emphasis:
@@ -286,11 +306,38 @@ public sealed class MarkdownView : StackPanel
             text.Append(child switch
             {
                 LiteralInline literal => literal.Content.ToString(),
+                HtmlEntityInline entity => entity.Transcoded.ToString(),
                 CodeInline code => code.Content,
                 ContainerInline nested => InlineText(nested),
                 _ => ""
             });
         return text.ToString();
+    }
+
+    private static void AppendText(InlineCollection output, string value)
+    {
+        if (!value.Any(character => character >= '\u2000')) { output.Add(new Run(value)); return; }
+        // Keep each Unicode grapheme intact: ZWJ families, skin tones, flags and keycaps
+        // must be shaped together, using the emoji font at normal weight/style.
+        var elements = StringInfo.GetTextElementEnumerator(value);
+        var buffer = new StringBuilder();
+        var emoji = false;
+        void Flush()
+        {
+            if (buffer.Length == 0) return;
+            var run = new Run(buffer.ToString());
+            if (emoji) { run.FontFamily = EmojiFont; run.FontWeight = FontWeight.Normal; run.FontStyle = FontStyle.Normal; }
+            output.Add(run); buffer.Clear();
+        }
+        while (elements.MoveNext())
+        {
+            var element = elements.GetTextElement();
+            var isEmoji = !element.Contains('\uFE0E') && (element.Contains('\uFE0F') || element.Contains('\u20E3')
+                || element.EnumerateRunes().Any(rune => rune.Value is >= 0x1F000 and <= 0x1FAFF or >= 0x2600 and <= 0x27BF));
+            if (isEmoji != emoji) { Flush(); emoji = isEmoji; }
+            buffer.Append(element);
+        }
+        Flush();
     }
 
     internal static Uri? SafeLink(string? value) => Uri.TryCreate(value, UriKind.Absolute, out var uri)
@@ -299,8 +346,8 @@ public sealed class MarkdownView : StackPanel
     {
         Text = text,
         TextWrapping = TextWrapping.Wrap,
-        FontSize = 15,
-        LineHeight = 24,
+        FontSize = 16,
+        LineHeight = 27,
         Foreground = Ink
     };
 }

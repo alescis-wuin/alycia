@@ -71,7 +71,8 @@
         </StackPanel>
         <StackPanel Grid.Row="1" Spacing="10" x:Name="CreationPanel">
           <TextBlock Text="Modèle pour une nouvelle conversation" FontSize="11" Foreground="#A8B2CC" />
-          <ComboBox x:Name="ModelSelector" HorizontalAlignment="Stretch" PlaceholderText="Choisir un modèle Ollama" />
+          <ComboBox x:Name="ModelSelector" HorizontalAlignment="Stretch" PlaceholderText="Choisir un modèle génératif"
+                    ToolTip.Tip="Ce choix s’applique à la prochaine conversation. Pour modifier la conversation ouverte, cliquez sur Modèle actif au-dessus du fil." />
           <Button x:Name="NewButton" Classes="primary" Content="+  Nouvelle conversation" HorizontalAlignment="Stretch"
                   HorizontalContentAlignment="Center" ToolTip.Tip="Créer une conversation · Ctrl+N" />
           <Expander Header="Titre et instruction initiale" FontSize="11" BorderThickness="0" Padding="0">
@@ -111,7 +112,7 @@
         </StackPanel>
       </Grid>
     </Border>
-    <Grid Grid.Column="1" Margin="24,20,24,18" RowDefinitions="Auto,Auto,*,Auto,Auto" RowSpacing="12">
+    <Grid Grid.Column="1" Margin="24,20,24,18" MaxWidth="1180" RowDefinitions="Auto,Auto,*,Auto,Auto" RowSpacing="12">
       <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
         <Button x:Name="SidebarToggle" Content="☰" Classes="quiet" ToolTip.Tip="Afficher ou masquer les conversations" />
         <Grid Grid.Column="1" x:Name="ConversationHeader" ColumnDefinitions="*,Auto" ColumnSpacing="6">
@@ -121,8 +122,12 @@
         </Grid>
       </Grid>
       <StackPanel Grid.Row="1" Spacing="6">
-        <TextBlock x:Name="ConversationDetails" Text="Choisissez un modèle, puis créez une conversation."
-                   Foreground="#9DAAC2" FontSize="12" TextWrapping="Wrap" />
+        <WrapPanel Orientation="Horizontal">
+          <Button x:Name="ActiveModelButton" Classes="quiet" Content="Modèle actif" IsVisible="False"
+                  FontSize="13" Padding="0,4,14,4" ToolTip.Tip="Changer le modèle de cette conversation dans Réglages" />
+          <TextBlock x:Name="ConversationDetails" Text="Choisissez un modèle, puis créez une conversation."
+                     Foreground="#9DAAC2" FontSize="12" TextWrapping="Wrap" VerticalAlignment="Center" />
+        </WrapPanel>
         <WrapPanel x:Name="ConversationTools" Orientation="Horizontal">
           <Button x:Name="SettingsButton" Classes="quiet" Content="Réglages" FontSize="12" ToolTip.Tip="Modèle, prompt, contexte et génération" />
           <Button x:Name="ContextButton" Classes="quiet" Content="Mémoire et contexte" FontSize="12" ToolTip.Tip="Voir le contexte, préparer ou réinitialiser le résumé" />
@@ -153,12 +158,14 @@
                 <DataTemplate x:DataType="local:ChatMessageItem">
                   <Border Classes="message" Classes.user="{Binding IsUser}" Classes.file="{Binding IsFile}" Padding="18,16" CornerRadius="12">
                     <StackPanel Spacing="12">
-                      <TextBlock Text="{Binding Label}" FontWeight="SemiBold" Foreground="#ACBBD2" FontSize="11" />
+                      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <TextBlock Text="{Binding Label}" FontWeight="SemiBold" Foreground="#ACBBD2" FontSize="11" VerticalAlignment="Center" />
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+                          <Button Classes="quiet" Content="Copier" CommandParameter="{Binding}" Click="CopyMessageClick" FontSize="11" Padding="8,4" />
+                          <Button Classes="quiet" Content="Tout le code" IsVisible="{Binding HasCode}" CommandParameter="{Binding}" Click="CopyCodeClick" FontSize="11" Padding="8,4" />
+                        </StackPanel>
+                      </Grid>
                       <local:MarkdownView Text="{Binding Content}" IsMarkdown="{Binding IsAssistant}" />
-                      <StackPanel Orientation="Horizontal" Spacing="6">
-                        <Button Classes="quiet" Content="Copier" CommandParameter="{Binding}" Click="CopyMessageClick" FontSize="11" Padding="8,4" />
-                        <Button Classes="quiet" Content="Tout le code" IsVisible="{Binding HasCode}" CommandParameter="{Binding}" Click="CopyCodeClick" FontSize="11" Padding="8,4" />
-                      </StackPanel>
                       <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsFile}">
                         <Button Classes="quiet" Content="Télécharger" CommandParameter="{Binding}" Click="DownloadFileClick" FontSize="11" />
                         <Button Classes="quiet" Content="Retirer" CommandParameter="{Binding}" Click="RemoveFileClick" FontSize="11" />
@@ -170,7 +177,7 @@
             </ItemsControl>
             <Border x:Name="PendingUserPanel" Classes="message user" IsVisible="False" Padding="18,16" CornerRadius="12">
               <StackPanel Spacing="8">
-                <TextBlock Text="Vous · envoi en cours" FontSize="11" Foreground="#ACBBD2" />
+                <TextBlock x:Name="PendingUserLabel" Text="Vous · envoi en cours" FontSize="11" Foreground="#ACBBD2" />
                 <SelectableTextBlock x:Name="PendingUserText" TextWrapping="Wrap" FontSize="15" />
               </StackPanel>
             </Border>

@@ -13,7 +13,7 @@ public sealed partial class ChatService(IChatRepository repository, IChatModel m
         var models = await model.ListModelsAsync(cancellationToken);
         if (!models.Contains(conversation.Model, StringComparer.Ordinal))
         {
-            throw new ArgumentException("Choisissez un modèle local installé dans Ollama, puis actualisez la liste.");
+            throw new ArgumentException("Choisissez un modèle local capable de générer du texte, puis actualisez la liste.");
         }
 
         await repository.AddAsync(conversation, cancellationToken);

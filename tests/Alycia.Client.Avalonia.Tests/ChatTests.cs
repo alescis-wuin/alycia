@@ -113,7 +113,7 @@ public sealed class ChatTests
             var path = request.RequestUri!.AbsolutePath;
             if (path.EndsWith("/models"))
             {
-                return Json(new[] { "demo" });
+                return Json(new[] { "demo", "other" });
             }
 
             if (request.Method == HttpMethod.Get && path.EndsWith("/search"))
@@ -143,6 +143,7 @@ public sealed class ChatTests
             {
                 conversation = conversation! with
                 {
+                    Model = root.GetProperty("model").GetString()!,
                     SystemPrompt = root.GetProperty("systemPrompt").GetString()!,
                     ContextNotes = root.GetProperty("contextNotes").GetString()!,
                     Revision = conversation.Revision + 1
@@ -170,7 +171,7 @@ public sealed class ChatTests
 
             var requestId = root.GetProperty("requestId").GetGuid();
             messages.Add(new(conversation!.Id, 1, requestId, "user", root.GetProperty("content").GetString()!, DateTimeOffset.UtcNow));
-            messages.Add(new(conversation.Id, 2, requestId, "assistant", "## Une base de travail claire\n\nJe peux vous aider à **concevoir**, tester et améliorer votre projet.\n\n- Contexte protégé et mémoire récursive\n- Inventaire vérifiable des sources\n\n```python\ndef saluer(nom):\n    return f\"Bonjour {nom}\"\n```\n\n| Étape | État |\n|---|---|\n| Sources | Prêtes |\n| Tests | À lancer |", DateTimeOffset.UtcNow));
+            messages.Add(new(conversation.Id, 2, requestId, "assistant", "## :rocket: Votre atelier de développement\n\n👩🏽‍💻 🇫🇷 🦊 ❤️ · Je peux vous aider à **concevoir**, tester et améliorer votre projet.\n\n- ✅ Contexte protégé &amp; mémoire récursive\n- 📁 Inventaire vérifiable des sources\n\n```python\ndef saluer(nom):\n    return f\"Bonjour {nom}\"\n```\n\n| Étape | État |\n|---|---|\n| Sources | Prêtes |\n| Tests | À lancer |", DateTimeOffset.UtcNow));
             conversation = conversation with { MessageCount = 2 };
             var result = new ChatSendResult(messages.ToArray(), 0, false);
             var settings = new JsonSerializerOptions(JsonSerializerDefaults.Web);
@@ -194,9 +195,16 @@ public sealed class ChatTests
             window.FindControl<TextBox>("TitleInput")!.Text = "Ma démonstration";
             Click(window, "RenameButton");
             Assert.Equal("Ma démonstration", conversation!.Title);
-            window.FindControl<Button>("SettingsButton")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            window.FindControl<ComboBox>("ModelSelector")!.SelectedItem = "other";
+            Assert.Equal("demo", conversation.Model);
+            Assert.Contains("demo", window.FindControl<Button>("ActiveModelButton")!.Content!.ToString());
+            window.FindControl<Button>("ActiveModelButton")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             PumpUntil(() => window.OwnedWindows.Count > 0);
             var settingsDialog = window.OwnedWindows.Single();
+            var conversationModel = settingsDialog.GetVisualDescendants().OfType<ComboBox>()
+                .Single(box => box.Name == "ConversationModelSelector");
+            Assert.Equal("demo", conversationModel.SelectedItem);
+            conversationModel.SelectedItem = "other";
             var fields = settingsDialog.GetVisualDescendants().OfType<TextBox>().ToArray();
             fields.Single(field => field.Text == "0.7").Text = "invalide";
             settingsDialog.GetVisualDescendants().OfType<Button>().Single(button => Equals(button.Content, "Enregistrer"))
@@ -209,6 +217,8 @@ public sealed class ChatTests
                 .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             PumpUntil(() => window.FindControl<Button>("RefreshButton")!.IsEnabled);
             Assert.Equal("Updated system", conversation.SystemPrompt);
+            Assert.Equal("other", conversation.Model);
+            Assert.Contains("other", window.FindControl<Button>("ActiveModelButton")!.Content!.ToString());
             window.FindControl<TextBox>("MessageInput")!.Text = "Bonjour Alycia";
             Click(window, "SendButton");
             Assert.Equal(2, messages.Count);
@@ -253,6 +263,8 @@ public sealed class ChatTests
             Click(window, "SendButton");
             Assert.Equal("Conserver ce brouillon", window.FindControl<TextBox>("MessageInput")!.Text);
             Assert.Equal("Ollama indisponible", window.FindControl<TextBlock>("FeedbackText")!.Text);
+            Assert.False(window.FindControl<StackPanel>("EmptyState")!.IsVisible);
+            Assert.Equal("Vous · demande non confirmée", window.FindControl<TextBlock>("PendingUserLabel")!.Text);
             window.FindControl<Button>("DeleteButton")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             PumpUntil(() => window.OwnedWindows.Count > 0);
             var dialog = window.OwnedWindows.Single();
@@ -262,6 +274,9 @@ public sealed class ChatTests
             PumpUntil(() => window.FindControl<Button>("RefreshButton")!.IsEnabled);
             Assert.Null(conversation);
             Assert.Equal(0, window.FindControl<ItemsControl>("MessageList")!.ItemCount);
+            Assert.False(window.FindControl<Expander>("StreamingPanel")!.IsVisible);
+            Assert.False(window.FindControl<Border>("PendingUserPanel")!.IsVisible);
+            Assert.True(window.FindControl<StackPanel>("EmptyState")!.IsVisible);
         }
         finally
         {

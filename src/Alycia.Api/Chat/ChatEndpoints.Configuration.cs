@@ -23,7 +23,7 @@ internal static partial class ChatEndpoints
             ConversationConfiguration.CheckRevision(conversation, request.Revision);
             if (request.Options is null) throw new ArgumentException("Réglages requis.");
             if (request.Model != conversation.Model && !(await model.ListModelsAsync(ct)).Contains(request.Model))
-                throw new ArgumentException("Choisissez un modèle local installé.");
+                throw new ArgumentException("Choisissez un modèle local capable de générer du texte.");
             conversation.Configure(request.Model, request.SystemPrompt, request.ContextNotes,
                 ConversationConfiguration.Serialize(request.Options));
             SlidingContext.Build(ConversationConfiguration.System(conversation), [], "Bonjour", request.Options);

@@ -1,5 +1,6 @@
 using Alycia.Client.Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Documents;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
 
@@ -20,8 +21,32 @@ internal static class MarkdownChecks
         Assert.Contains(view.GetLogicalDescendants().OfType<Grid>(), g => g.ColumnDefinitions.Count == 2 && g.RowDefinitions.Count == 2);
         Assert.Single(view.GetLogicalDescendants().OfType<HyperlinkButton>());
         Assert.Empty(view.GetLogicalDescendants().OfType<Image>());
+        view.Text = "## :rocket: Développement\n\nA &amp; B &#x1F98A; 👩🏽‍💻 🇫🇷 ❤️ 1️⃣\n\n```text\n:rocket: &amp;\n```";
+        view.RenderNow();
+        var runs = view.GetLogicalDescendants().OfType<TextBlock>().Where(text => text.Inlines is not null)
+            .SelectMany(text => Runs(text.Inlines!)).ToArray();
+        var rendered = string.Concat(runs.Select(run => run.Text));
+        Assert.Contains("🚀", rendered);
+        Assert.Contains("A & B 🦊", rendered);
+        foreach (var grapheme in new[] { "👩🏽‍💻", "🇫🇷", "❤️", "1️⃣" })
+            Assert.Contains(runs, run => run.Text?.Contains(grapheme) == true && run.FontFamily.Name.Contains("Emoji"));
+        Assert.Contains(view.GetLogicalDescendants().OfType<SelectableTextBlock>(), text => text.Text?.Contains(":rocket: &amp;") == true);
+        view.Text = "En cours :roc"; view.RenderNow();
+        view.Text += "ket:"; view.RenderNow();
+        Assert.Contains(view.GetLogicalDescendants().OfType<TextBlock>().Where(text => text.Inlines is not null)
+            .SelectMany(text => Runs(text.Inlines!)), run => run.Text?.Contains("🚀") == true);
         view.IsMarkdown = false; view.RenderNow();
         Assert.Equal(view.Text, Assert.IsType<SelectableTextBlock>(Assert.Single(view.Children)).Text);
+    }
+
+    private static IEnumerable<Run> Runs(InlineCollection inlines)
+    {
+        foreach (var inline in inlines)
+        {
+            if (inline is Run run) yield return run;
+            else if (inline is Span span)
+                foreach (var child in Runs(span.Inlines)) yield return child;
+        }
     }
 }
 

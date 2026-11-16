@@ -5,18 +5,54 @@ using Alycia.Modules.Chat.Domain;
 using Alycia.Modules.Chat.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using Microsoft.AspNetCore.Http;
 
 namespace Alycia.Modules.Chat.Tests;
 
 public sealed class FileTests
 {
     [Theory]
+    [InlineData("Projet test/src/paramètres.json")]
+    [InlineData("archive (1).zip")]
+    [InlineData("projet/src/data.json")]
+    public async Task MultipartFileNamesSurviveDotnetSerializationAndAspnetParsing(string name)
+    {
+        using var multipart = new MultipartFormDataContent();
+        multipart.Add(new ByteArrayContent("{}"u8.ToArray()), "files", name);
+        await using var body = new MemoryStream();
+        await multipart.CopyToAsync(body);
+        body.Position = 0;
+        var context = new DefaultHttpContext();
+        context.Request.Method = "POST";
+        context.Request.ContentType = multipart.Headers.ContentType!.ToString();
+        context.Request.ContentLength = body.Length;
+        context.Request.Body = body;
+        var form = await context.Request.ReadFormAsync();
+        var file = Assert.Single(form.Files);
+        Assert.Equal(name, file.FileName);
+        Assert.Equal(name, FileImport.NormalizeName(file.FileName));
+    }
+
+    [Theory]
     [InlineData("../secret")]
     [InlineData("a/../../secret")]
     [InlineData("/etc/passwd")]
     [InlineData("C:\\private")]
+    [InlineData("C:relative.txt")]
+    [InlineData("\\\\server\\share\\file.txt")]
+    [InlineData("file:///etc/passwd")]
+    [InlineData("safe/./../secret")]
     [InlineData("a\0b")]
     public void RejectsUnsafePaths(string path) => Assert.Throws<ArgumentException>(() => FileImport.NormalizeName(path));
+
+    [Theory]
+    [InlineData("./projet/src/./data.json", "projet/src/data.json")]
+    [InlineData(".\\projet\\src\\data.json", "projet/src/data.json")]
+    [InlineData("projet//src/data.json", "projet/src/data.json")]
+    [InlineData("projet/rapport:2026-11-16.json", "projet/rapport:2026-11-16.json")]
+    [InlineData("projet/été 🦊.json", "projet/été 🦊.json")]
+    public void CanonicalizesBenignRelativePathsAndPreservesUnicode(string source, string expected) =>
+        Assert.Equal(expected, FileImport.NormalizeName(source));
 
     [Fact]
     public void ReadsUtf8AndDocumentsButNeverImages()
@@ -96,10 +132,11 @@ public sealed class FileTests
                 conversationId = conversation.Id;
                 var importer = new FileImport(db, storage);
                 var batch = Guid.NewGuid();
-                var data = Zip("folder/note.txt", "persistent source");
+                var data = Zip("./folder/./note.txt", "persistent source", windowsDirectory: true);
                 var added = await importer.ImportAsync(conversationId, batch, [new("bundle.zip", new MemoryStream(data))], default);
                 Assert.Equal(2, added.Count);
                 fileId = added.Single(f => f.ArchiveId != null).Id;
+                Assert.Equal("bundle.zip!/folder/note.txt", added.Single(f => f.Id == fileId).Name);
                 Assert.Equal("persistent source", await File.ReadAllTextAsync(storage.PathFor(conversationId, fileId)));
                 var replay = await importer.ImportAsync(conversationId, batch, [new("bundle.zip", new MemoryStream(data))], default);
                 Assert.Equal(added.Select(f => f.Id), replay.Select(f => f.Id));
@@ -108,6 +145,14 @@ public sealed class FileTests
                     [new("other.txt", new MemoryStream("different"u8.ToArray()))], default));
                 await Assert.ThrowsAsync<ArgumentException>(() => importer.ImportAsync(conversationId, Guid.NewGuid(),
                     [new("unsafe.zip", new MemoryStream(Zip("../escape.txt", "no")))], default));
+                using var duplicates = new MemoryStream();
+                using (var zip = new ZipArchive(duplicates, ZipArchiveMode.Create, true))
+                {
+                    zip.CreateEntry("note.json");
+                    zip.CreateEntry("./note.json");
+                }
+                await Assert.ThrowsAsync<ArgumentException>(() => importer.ImportAsync(conversationId, Guid.NewGuid(),
+                    [new("duplicates.zip", new MemoryStream(duplicates.ToArray()))], default));
                 var bomb = Zip("too-large.txt", new string('x', FileImport.MaxFileBytes + 1));
                 await Assert.ThrowsAsync<ArgumentException>(() => importer.ImportAsync(conversationId, Guid.NewGuid(),
                     [new("bomb.zip", new MemoryStream(bomb))], default));
@@ -136,11 +181,15 @@ public sealed class FileTests
         }
     }
 
-    private static byte[] Zip(string name, string text)
+    private static byte[] Zip(string name, string text, bool windowsDirectory = false)
     {
         using var output = new MemoryStream();
         using (var archive = new ZipArchive(output, ZipArchiveMode.Create, true))
-        using (var writer = new StreamWriter(archive.CreateEntry(name).Open(), new UTF8Encoding(false))) writer.Write(text);
+        {
+            if (windowsDirectory) archive.CreateEntry(".\\folder\\");
+            using var writer = new StreamWriter(archive.CreateEntry(name).Open(), new UTF8Encoding(false));
+            writer.Write(text);
+        }
         return output.ToArray();
     }
 

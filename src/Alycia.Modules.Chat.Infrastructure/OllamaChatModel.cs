@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -13,18 +15,16 @@ public sealed partial class OllamaChatModel(HttpClient http, ChatOptions options
         timeout.CancelAfter(TimeSpan.FromSeconds(10));
         try
         {
-            using var response = await http.GetAsync("api/tags", timeout.Token);
-            response.EnsureSuccessStatusCode();
-            var payload = await response.Content.ReadFromJsonAsync<ModelList>(timeout.Token);
-            if (payload?.Models is null)
-            {
-                throw new ChatModelException("La liste des modèles Ollama est invalide.");
-            }
-
-            return payload.Models.Where(item => !string.IsNullOrWhiteSpace(item.Name)
-                    && !item.Name.Contains(":cloud", StringComparison.OrdinalIgnoreCase)
-                    && string.IsNullOrEmpty(item.RemoteModel) && string.IsNullOrEmpty(item.RemoteHost))
-                .Select(item => item.Name!).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
+            var names = await LocalModelNamesAsync(timeout.Token);
+            var available = new ConcurrentBag<string>();
+            // /api/tags includes embeddings. /api/show reports capabilities without generating text.
+            await Parallel.ForEachAsync(names, new ParallelOptions { MaxDegreeOfParallelism = 4, CancellationToken = timeout.Token },
+                async (name, ct) =>
+                {
+                    var details = await ModelDetailsAsync(name, ct);
+                    if (details is not null && details.SupportsChat) available.Add(name);
+                });
+            return available.Order(StringComparer.Ordinal).ToArray();
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
@@ -40,6 +40,44 @@ public sealed partial class OllamaChatModel(HttpClient http, ChatOptions options
         }
     }
 
+    private async Task<string[]> LocalModelNamesAsync(CancellationToken ct)
+    {
+        using var response = await http.GetAsync("api/tags", ct);
+        response.EnsureSuccessStatusCode();
+        var payload = await response.Content.ReadFromJsonAsync<ModelList>(ct);
+        if (payload?.Models is null) throw new ChatModelException("La liste des modèles Ollama est invalide.");
+        return payload.Models.Where(item => !string.IsNullOrWhiteSpace(item.Name)
+                && !item.Name.Contains(":cloud", StringComparison.OrdinalIgnoreCase)
+                && string.IsNullOrEmpty(item.RemoteModel) && string.IsNullOrEmpty(item.RemoteHost))
+            .Select(item => item.Name!).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
+    }
+
+    private async Task<ModelDetails?> ModelDetailsAsync(string model, CancellationToken ct)
+    {
+        using var response = await http.PostAsJsonAsync("api/show", new { model, verbose = false }, ct);
+        if (response.StatusCode == HttpStatusCode.NotFound) return null; // Removed since /api/tags.
+        if (!response.IsSuccessStatusCode)
+            throw new ChatModelException($"Impossible de vérifier les capacités du modèle « {model} » (HTTP {(int)response.StatusCode}). Vérifiez la version d’Ollama.");
+        var details = await response.Content.ReadFromJsonAsync<ModelDetails>(ct);
+        if (details?.Capabilities is null)
+            throw new ChatModelException($"Ollama ne fournit pas les capacités du modèle « {model} ». Actualisez Ollama puis la liste des modèles.");
+        return details;
+    }
+
+    private async Task ValidateChatModelAsync(string model, CancellationToken ct)
+    {
+        // Recheck locality and only this model's capabilities before each generation.
+        if (!(await LocalModelNamesAsync(ct)).Contains(model, StringComparer.Ordinal))
+            throw new ChatModelException($"Le modèle local « {model} » n’est plus disponible. Choisissez un modèle dans Réglages.");
+        var details = await ModelDetailsAsync(model, ct);
+        if (details is null)
+            throw new ChatModelException($"Le modèle « {model} » a été retiré d’Ollama. Choisissez un autre modèle dans Réglages.");
+        if (!details.SupportsChat)
+            throw new ChatModelException(details.Capabilities!.Contains("embedding", StringComparer.Ordinal)
+                ? $"Le modèle « {model} » produit des embeddings et ne peut pas répondre à une conversation. Choisissez un modèle génératif dans Réglages."
+                : $"Le modèle « {model} » ne propose pas de génération textuelle locale. Choisissez un autre modèle dans Réglages.");
+    }
+
     public Task<string> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages, CancellationToken cancellationToken)
         => GenerateAsync(model, messages, options, cancellationToken);
 
@@ -51,11 +89,7 @@ public sealed partial class OllamaChatModel(HttpClient http, ChatOptions options
         timeout.CancelAfter(TimeSpan.FromSeconds(settings.TimeoutSeconds));
         try
         {
-            // A model may have been replaced by a cloud alias since creation.
-            if (!(await ListModelsAsync(timeout.Token)).Contains(model, StringComparer.Ordinal))
-            {
-                throw new ChatModelException("Ce modèle local n’est plus disponible dans Ollama.");
-            }
+            await ValidateChatModelAsync(model, timeout.Token);
 
             using var response = await http.PostAsJsonAsync("api/chat", new
             {
@@ -66,7 +100,7 @@ public sealed partial class OllamaChatModel(HttpClient http, ChatOptions options
             }, timeout.Token);
             if (!response.IsSuccessStatusCode)
             {
-                throw new ChatModelException($"Ollama a refusé la génération (HTTP {(int)response.StatusCode}). Vérifiez le modèle et la mémoire disponible.");
+                throw new ChatModelException($"Ollama a refusé la génération avec « {model} » (HTTP {(int)response.StatusCode}). Vérifiez les réglages de cette conversation et le journal Ollama.");
             }
 
             var payload = await response.Content.ReadFromJsonAsync<ChatReply>(timeout.Token);
@@ -109,6 +143,13 @@ public sealed partial class OllamaChatModel(HttpClient http, ChatOptions options
         [property: JsonPropertyName("remote_model")] string? RemoteModel,
         [property: JsonPropertyName("remote_host")] string? RemoteHost);
     private sealed record ModelList(ModelInfo[]? Models);
+    private sealed record ModelDetails(string[]? Capabilities,
+        [property: JsonPropertyName("remote_model")] string? RemoteModel,
+        [property: JsonPropertyName("remote_host")] string? RemoteHost)
+    {
+        public bool SupportsChat => Capabilities?.Contains("completion", StringComparer.Ordinal) == true
+            && string.IsNullOrEmpty(RemoteModel) && string.IsNullOrEmpty(RemoteHost);
+    }
     private static void ValidateCompletion(string? reason, ChatOptions settings)
     {
         if (settings.GenerateUntilStop && reason != "stop")

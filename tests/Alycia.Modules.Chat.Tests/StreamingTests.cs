@@ -15,6 +15,7 @@ public sealed class StreamingTests
         using var http = new HttpClient(new Handler(async (request, ct) =>
         {
             if (request.RequestUri!.AbsolutePath == "/api/tags") return Response("{\"models\":[{\"name\":\"demo\"}]}");
+            if (request.RequestUri.AbsolutePath == "/api/show") return Response("{\"capabilities\":[\"completion\"]}");
             using var body = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(ct));
             Assert.True(body.RootElement.GetProperty("stream").GetBoolean());
             Assert.Equal(-1, body.RootElement.GetProperty("options").GetProperty("num_predict").GetInt32());
@@ -44,7 +45,8 @@ public sealed class StreamingTests
     public async Task RejectsMissingCompletionAndInvalidStreams(string payload)
     {
         using var http = new HttpClient(new Handler((request, _) => Task.FromResult(Response(
-            request.RequestUri!.AbsolutePath == "/api/tags" ? "{\"models\":[{\"name\":\"demo\"}]}" : payload))))
+            request.RequestUri!.AbsolutePath == "/api/tags" ? "{\"models\":[{\"name\":\"demo\"}]}"
+                : request.RequestUri.AbsolutePath == "/api/show" ? "{\"capabilities\":[\"completion\"]}" : payload))))
         { BaseAddress = new Uri("http://127.0.0.1:11434/") };
         await Assert.ThrowsAsync<ChatModelException>(() => new OllamaChatModel(http, new())
             .StreamAsync("demo", [], new(), _ => Task.CompletedTask, default));
@@ -58,7 +60,8 @@ public sealed class StreamingTests
     {
         var payload = JsonSerializer.Serialize(new { message = new { content = "partial" }, done = true, done_reason = reason });
         using var http = new HttpClient(new Handler((request, _) => Task.FromResult(Response(
-            request.RequestUri!.AbsolutePath == "/api/tags" ? "{\"models\":[{\"name\":\"demo\"}]}" : payload))))
+            request.RequestUri!.AbsolutePath == "/api/tags" ? "{\"models\":[{\"name\":\"demo\"}]}"
+                : request.RequestUri.AbsolutePath == "/api/show" ? "{\"capabilities\":[\"completion\"]}" : payload))))
         { BaseAddress = new Uri("http://127.0.0.1:11434/") };
         await Assert.ThrowsAsync<ChatModelException>(() => new OllamaChatModel(http, new())
             .StreamAsync("demo", [], new(), _ => Task.CompletedTask, default));
@@ -73,6 +76,7 @@ public sealed class StreamingTests
     {
         using var http = new HttpClient(new Handler((request, _) => Task.FromResult(
             request.RequestUri!.AbsolutePath == "/api/tags" ? Response("{\"models\":[{\"name\":\"demo\"}]}")
+                : request.RequestUri.AbsolutePath == "/api/show" ? Response("{\"capabilities\":[\"completion\"]}")
                 : new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(new PacedStream()) })))
         { BaseAddress = new Uri("http://127.0.0.1:11434/") };
         var reply = await new OllamaChatModel(http, new()).StreamAsync("demo", [],

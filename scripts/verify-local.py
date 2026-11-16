@@ -85,11 +85,12 @@ def verify(base_url, model, *, extended=False):
 
         boundary = "alycia-" + uuid.uuid4().hex
         content = b"DOCUMENT_DE_RECETTE"
-        multipart = (f"--{boundary}\r\nContent-Disposition: form-data; name=\"files\"; filename=\"notes.txt\"\r\n"
+        multipart = (f"--{boundary}\r\nContent-Disposition: form-data; name=\"files\"; filename=\"Projet test/./notes.txt\"\r\n"
             "Content-Type: text/plain\r\n\r\n").encode() + content + f"\r\n--{boundary}--\r\n".encode()
         files = call("POST", prefix + "/files/" + str(uuid.uuid4()), raw=multipart,
             headers={"Content-Type": "multipart/form-data; boundary=" + boundary})
         file_id = files[0]["id"]
+        assert files[0]["name"] == "Projet test/notes.txt"
         assert call("GET", prefix + "/files/" + file_id) == content
         revision = call("GET", prefix + "/settings")["conversation"]["revision"]
         call("PATCH", prefix + "/files/" + file_id, {"revision": revision, "mode": "pinned"})
@@ -144,9 +145,10 @@ def verify_recursive(call, done, model, prefix, archive, conversations, checks):
     nested = io.BytesIO()
     source = b"def addition(a, b):\n    return a + b\n"
     with zipfile.ZipFile(nested, "w") as zipped:
-        zipped.writestr(zipfile.ZipInfo("src/addition.py", (2026, 11, 1, 12, 30, 0)), source)
+        zipped.writestr(zipfile.ZipInfo("./src/./addition.py", (2026, 11, 1, 12, 30, 0)), source)
     outer = io.BytesIO()
     with zipfile.ZipFile(outer, "w") as zipped:
+        zipped.writestr(".\\sources\\", b"")
         zipped.writestr("nested.zip", nested.getvalue())
         zipped.writestr("README.md", "# Recette\nUne fonction d’addition locale.")
         zipped.writestr(".env", "SYNTHETIC_SECRET=NE_JAMAIS_RESUMER_CE_CONTENU")

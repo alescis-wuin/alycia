@@ -144,7 +144,10 @@ public partial class ChatWindow : Window
 
     private void UpdateControls()
     {
-        C<StackPanel>("EmptyState").IsVisible = _messages.Count == 0 && _generation is null;
+        C<StackPanel>("EmptyState").IsVisible = _messages.Count == 0 && _generation is null
+            && !C<Expander>("StreamingPanel").IsVisible && !C<Border>("PendingUserPanel").IsVisible;
+        C<Button>("ActiveModelButton").IsVisible = _current is not null;
+        C<Button>("ActiveModelButton").IsEnabled = !_busy && _current is not null;
         C<TextBlock>("EmptyHint").Text = _current is null
             ? "Choisissez un modèle et créez votre première conversation."
             : "Posez votre première question.";
@@ -180,7 +183,7 @@ public partial class ChatWindow : Window
         selector.ItemsSource = models;
         selector.SelectedItem = models.Contains(selected) ? selected : models.FirstOrDefault();
         Feedback(models.Length == 0
-            ? "Aucun modèle local. Installez-en un avec ollama pull, puis actualisez."
+            ? "Aucun modèle génératif local. Les modèles d’embeddings ne peuvent pas discuter. Installez un modèle génératif avec ollama pull, puis actualisez."
             : "Prêt à discuter." + (_drafts.Error is null ? "" : " " + _drafts.Error));
     }
 
@@ -208,6 +211,10 @@ public partial class ChatWindow : Window
         if (_current is null)
         {
             _messages.Clear();
+            C<Expander>("StreamingPanel").IsVisible = false;
+            C<Border>("PendingUserPanel").IsVisible = false;
+            C<MarkdownView>("StreamingText").Text = "";
+            C<SelectableTextBlock>("PendingUserText").Text = "";
             C<TextBox>("TitleInput").Text = "";
             C<TextBlock>("ConversationDetails").Text = "Créez une conversation pour commencer.";
             C<Button>("OlderButton").IsVisible = false;
@@ -226,7 +233,8 @@ public partial class ChatWindow : Window
         C<Border>("PendingUserPanel").IsVisible = false;
         _followOutput = true; C<Button>("LatestButton").IsVisible = false;
         C<TextBox>("TitleInput").Text = _current.Title;
-        C<TextBlock>("ConversationDetails").Text = $"{_current.Model} · {_current.MessageCount} messages"
+        C<Button>("ActiveModelButton").Content = $"Modèle actif : {_current.Model} ▾";
+        C<TextBlock>("ConversationDetails").Text = $"{_current.MessageCount} messages"
             + (_current.MemoryThroughSequence > 0 ? $" · mémoire : messages 1–{_current.MemoryThroughSequence}" : " · contexte local");
         _messages.Clear();
         foreach (var message in Timeline(page))
@@ -355,7 +363,7 @@ public partial class ChatWindow : Window
         using var generation = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
         _generation = generation;
         UpdateControls();
-        Feedback("Ollama prépare la réponse… Le premier chargement du modèle peut prendre du temps.");
+        Feedback($"Ollama prépare la réponse avec {_current.Model}… Le premier chargement peut prendre du temps.");
         var streamed = new System.Text.StringBuilder();
         var lastRender = DateTime.UtcNow;
         var hasThinking = false;
@@ -364,6 +372,7 @@ public partial class ChatWindow : Window
         C<MarkdownView>("StreamingText").Text = "";
         C<TextBlock>("StreamingStatus").Text = "Préparation du contexte et chargement du modèle…";
         C<Border>("PendingUserPanel").IsVisible = true;
+        C<TextBlock>("PendingUserLabel").Text = "Vous · envoi en cours";
         C<SelectableTextBlock>("PendingUserText").Text = text;
         _followOutput = true; ScrollToEnd();
         try
@@ -409,6 +418,8 @@ public partial class ChatWindow : Window
             {
                 C<MarkdownView>("StreamingText").Text = streamed.Length > 0 ? streamed.ToString() : "Aucune réponse reçue.";
                 C<Expander>("StreamingPanel").Header = "Réponse provisoire · enregistrement non confirmé";
+                C<TextBlock>("StreamingStatus").Text = "Génération interrompue · brouillon conservé";
+                C<TextBlock>("PendingUserLabel").Text = "Vous · demande non confirmée";
             }
             _generation = null;
         }

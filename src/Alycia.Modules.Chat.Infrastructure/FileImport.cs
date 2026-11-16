@@ -100,7 +100,7 @@ public sealed class FileImport(ChatDbContext database, FileStorage storage)
                     if (zip.Entries.Count > MaxEntries) throw new ArgumentException("Archive limitée à 500 entrées.");
                     foreach (var entry in zip.Entries)
                     {
-                        if (entry.FullName.EndsWith('/')) continue;
+                        if (entry.FullName.Replace('\\', '/').EndsWith('/')) continue;
                         if (((entry.ExternalAttributes >> 16) & 0xF000) == 0xA000)
                             throw new ArgumentException("Les liens symboliques dans les archives ne sont pas importés.");
                         if (entry.Length > MaxFileBytes) throw new ArgumentException("Entrée d’archive supérieure à 25 Mio.");
@@ -179,12 +179,23 @@ public sealed class FileImport(ChatDbContext database, FileStorage storage)
 
     public static string NormalizeName(string name)
     {
+        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Nom de fichier vide.");
         name = name.Replace('\\', '/');
-        if (string.IsNullOrWhiteSpace(name) || name.Length > 1024 || name.StartsWith('/')
-            || name.Any(char.IsControl) || name.Contains(':')
-            || name.Split('/').Any(part => part is "" or "." or ".."))
-            throw new ArgumentException("Nom de fichier ou chemin relatif invalide.");
-        return name;
+        var display = string.Concat(name.Take(180).Select(c => char.IsControl(c) ? '�' : c));
+        void Reject(string reason) => throw new ArgumentException($"Chemin refusé « {display} » : {reason}.");
+        if (name.Length > 1024) Reject("plus de 1024 caractères");
+        if (name.Any(char.IsControl)) Reject("caractère de contrôle dans le nom");
+        if (name.StartsWith('/') || name.Contains(":/", StringComparison.Ordinal)
+            || name.Length >= 2 && char.IsAsciiLetter(name[0]) && name[1] == ':')
+            Reject("un chemin relatif est requis, sans racine, lecteur ni URI");
+        if (name.EndsWith('/')) Reject("un nom de fichier est requis");
+        var parts = name.Split('/');
+        // ./ and repeated separators are common in ZIP/TAR exports. Never resolve ..,
+        // even when it could be collapsed within a root; names are labels, bytes use GUID paths.
+        if (parts.Contains("..", StringComparer.Ordinal)) Reject("la remontée de répertoire « .. » est interdite");
+        var normalized = string.Join('/', parts.Where(part => part is not ("" or ".")));
+        if (string.IsNullOrWhiteSpace(normalized)) Reject("nom de fichier vide après normalisation");
+        return normalized;
     }
 
     public static async Task<byte[]> ReadBoundedAsync(Stream input, int maximum, CancellationToken ct)

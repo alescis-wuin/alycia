@@ -22,6 +22,7 @@ public partial class ChatWindow
     {
         C<Button>("AnalysisButton").Click += async (_, _) => await RunAsync(AnalysesAsync);
         C<Button>("SettingsButton").Click += async (_, _) => await RunAsync(SettingsAsync);
+        C<Button>("ActiveModelButton").Click += async (_, _) => await RunAsync(SettingsAsync);
         C<Button>("ContextButton").Click += async (_, _) => await RunAsync(PreviewAsync);
         C<Button>("FilesButton").Click += async (_, _) => await RunAsync(ManageFilesAsync);
         C<Button>("ForkButton").Click += async (_, _) => await RunAsync(() => ForkAsync(false));
@@ -100,7 +101,15 @@ public partial class ChatWindow
         if (_current is null) return;
         var settings = await _client.SettingsAsync(_current.Id, _lifetime.Token);
         var current = settings.Conversation;
-        var model = Input(current.Model, 200);
+        var models = await _client.ModelsAsync(_lifetime.Token);
+        var model = new ComboBox
+        {
+            Name = "ConversationModelSelector",
+            ItemsSource = models,
+            SelectedItem = models.Contains(current.Model, StringComparer.Ordinal) ? current.Model : null,
+            PlaceholderText = "Choisir un modèle génératif local",
+            HorizontalAlignment = HorizontalAlignment.Stretch
+        };
         var system = Input(current.SystemPrompt, 4000, true);
         var notes = Input(current.ContextNotes, 8000, true);
         var options = settings.Options;
@@ -122,9 +131,12 @@ public partial class ChatWindow
             PlaceholderText = "Charger un profil de prompt"
         };
         presets.SelectionChanged += (_, _) => { if (presets.SelectedItem is PromptItem item) system.Text = item.SystemPrompt; };
+        panel.Children.Add(Label($"Modèle actuellement enregistré : {current.Model}"));
+        if (!models.Contains(current.Model, StringComparer.Ordinal))
+            panel.Children.Add(Label("Ce modèle n’est pas disponible pour la génération locale. Sélectionnez un modèle ci-dessous pour reprendre cette conversation ; votre brouillon est conservé."));
         panel.Children.Add(continuous); panel.Children.Add(recursive); panel.Children.Add(presets);
         foreach (var (label, control) in new (string, Control)[] {
-            ("Modèle local (nom exact dans Ollama)", model), ("Instruction système", system),
+            ("Modèle génératif pour cette conversation", model), ("Instruction système", system),
             ("Notes persistantes du projet — toujours incluses dans le budget", notes),
             ("Fenêtre du modèle (tokens, 1024 à 131072)", context), ("Réserve de contexte pour la sortie (limite de génération seulement si le mode continu est désactivé)", output),
             ("Fenêtre simple : échanges récents (uniquement sans résumé automatique)", turns), ("Température (0 à 2, virgule ou point)", temperature),
@@ -136,6 +148,8 @@ public partial class ChatWindow
         ChatOptions? edited = null;
         string? Validate()
         {
+            if (model.SelectedItem is not string modelName || !models.Contains(modelName, StringComparer.Ordinal))
+                return "Choisissez un modèle génératif local disponible.";
             if (!int.TryParse(context.Text, out var contextValue) || !int.TryParse(output.Text, out var outputValue)
                 || !int.TryParse(turns.Text, out var turnsValue) || !int.TryParse(timeout.Text, out var timeoutValue)
                 || !int.TryParse(calls.Text, out var callsValue)
@@ -158,15 +172,15 @@ public partial class ChatWindow
             try
             {
                 edited.Validate();
-                var sample = Alycia.Modules.Chat.Domain.Conversation.Create("test", model.Text, system.Text);
-                sample.Configure(model.Text, system.Text, notes.Text, "{}");
+                var sample = Alycia.Modules.Chat.Domain.Conversation.Create("test", modelName, system.Text);
+                sample.Configure(modelName, system.Text, notes.Text, "{}");
                 SlidingContext.Build(ConversationConfiguration.System(sample), [], "Bonjour", edited);
                 return null;
             }
             catch (ArgumentException exception) { return exception.Message; }
         }
         if (!await EditDialogAsync("Réglages de la conversation", panel, validate: Validate)) return;
-        _current = await _client.ConfigureAsync(current.Id, current.Revision, model.Text ?? "", system.Text ?? "",
+        _current = await _client.ConfigureAsync(current.Id, current.Revision, (string)model.SelectedItem!, system.Text ?? "",
             notes.Text ?? "", edited!, _lifetime.Token);
         await RefreshConversationsAsync(_current.Id);
         await LoadAsync(_current!);

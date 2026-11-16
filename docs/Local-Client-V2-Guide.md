@@ -5,6 +5,8 @@ Cette version ajoute l’interface réorganisée, le Markdown progressif, la gé
 jusqu’au signal d’arrêt, la mémoire récursive et les synthèses de dossiers/archives.
 Le [plan](Local-Client-V2-Plan.md) décrit les lots ; le
 [compte rendu](Local-Client-V2-Report.md) distingue les essais réalisés et restants.
+Les [correctifs de sélection, d’import et de rendu](Local-Client-V2-Fixes.md)
+complètent cette version, sans migration supplémentaire.
 
 ## 1. Mettre à jour l’installation V1 fonctionnelle
 
@@ -16,7 +18,7 @@ le client. Avec PostgreSQL démarré, sauvegarder avant les migrations :
 git status --short
 python3 scripts/backup.py create
 git switch feature/local-client-v1-20261116
-git pull --ff-only origin feature/local-client-v1-20261116
+git pull --no-rebase --ff-only origin feature/local-client-v1-20261116
 bash scripts/check.sh
 ```
 
@@ -56,15 +58,21 @@ Le [guide Windows](Windows-Prototype.md) reste applicable au lancement.
 
 1. Choisir le modèle, puis **Nouvelle conversation**. Le titre et l’instruction
    initiale sont dans le volet dépliable juste dessous.
-2. **Réglages** contient le modèle, le système, les notes persistantes et les
+2. **Modèle actif**, au-dessus du fil, indique le modèle de la conversation ouverte
+   et ouvre ses **Réglages**. Le sélecteur de gauche sert uniquement à créer la
+   prochaine conversation. Les listes proposent les modèles locaux annonçant la
+   capacité Ollama `completion` ; les modèles réservés aux embeddings sont exclus.
+   Les réglages contiennent aussi le système, les notes persistantes et les
    paramètres. La bibliothèque de prompts se trouve dans **Prompts et outils**.
 3. Saisir la demande ; **Ctrl+Entrée** envoie. **Ctrl+N** crée une conversation,
    **Ctrl+F** place le curseur dans la recherche, **Échap** interrompt l’opération.
 4. La réponse se construit dans le fil. Titres, emphase, listes, citations, code
    et tableaux sont interprétés pendant la réception. Un bloc de code incomplet
-   reste lisible avant la réception de sa clôture Markdown.
+   reste lisible avant la réception de sa clôture Markdown. Les réponses ont une
+   largeur de lecture limitée ; les tableaux suivent l’alignement de leurs colonnes.
 5. **Copier le code** copie le bloc concerné ; **Tout le code** copie les blocs
-   du message ; **Copier** conserve le texte source, avec son Markdown.
+   du message ; **Copier** conserve le texte source, avec son Markdown. Les actions
+   du message sont accessibles dans son en-tête.
 6. Remonter dans le fil suspend le suivi automatique. **Revenir à la réponse**
    revient en bas. Le bouton **☰** affiche/masque l’historique, automatiquement
    replié lorsque la fenêtre devient étroite.
@@ -230,7 +238,8 @@ set -e ALYCIA_CHAT_TEST_CONNECTION
 Sous Bash, saisir la variable avec `read -r -s`, puis `export`, et la retirer avec
 `unset`. Ne pas la placer en clair dans l’historique. La recette HTTP isolée
 applique les migrations, lance une vraie API et simule Ollama ; elle attend
-**8 groupes réussis** puis nettoie ses bases/données de test. Vérifier aussi son
+**9 groupes réussis** puis nettoie ses bases/données de test, dont le parcours de
+réparation d’une ancienne conversation avec modèle d’embeddings. Vérifier aussi son
 code de sortie pour confirmer le nettoyage.
 
 Avec l’installation démarrée et un **vrai modèle Ollama** déjà présent :
@@ -242,6 +251,8 @@ python3 scripts/verify-local.py --model "NOM_EXACT_DU_MODELE" --extended
 
 Cette commande crée uniquement des données synthétiques, effectue plusieurs
 générations locales et supprime ses propres conversations/profils à la fin.
+La recette avec un vrai modèle conserve huit groupes ; le neuvième groupe de la
+recette isolée utilise un modèle d’embeddings simulé.
 Le nombre d’appels dépend du modèle et de sa capacité à réduire les textes.
 Sans `--extended`, la recette V1 à cinq groupes reste disponible. Un échec de
 convergence peut révéler un modèle peu adapté au résumé ou un budget trop serré.
@@ -253,6 +264,7 @@ Recette manuelle complémentaire :
 | Parcours | Résultat attendu |
 |---|---|
 | Demander titres, liste, tableau et code | Mise en forme pendant le flux ; copie de chaque bloc correcte |
+| Demander `:rocket:`, `👩🏽‍💻`, `🇫🇷`, `❤️`, `1️⃣` et `&amp;` | Émojis et entité interprétés hors code ; séquences composées intactes |
 | Remonter pendant une longue réponse | Position de lecture conservée ; bouton de retour disponible |
 | Réduire la fenêtre à environ 960 px | Historique replié ; saisie et actions accessibles |
 | Générer longtemps puis interrompre | Arrêt explicite, brouillon conservé, aucun faux échange terminé |
@@ -266,3 +278,90 @@ de conversation et la duplication ne transfèrent pas les analyses dérivées ; 
 recréer dans la nouvelle conversation. Les originaux joints ne font toujours pas
 partie de l’export JSON. Voir la procédure de sauvegarde/restauration isolée du
 [guide V1](Local-Client-V1-Guide.md#4-export-sauvegarde-et-restauration-isolée).
+
+## 7. Ollama répond en terminal mais Alycia reçoit HTTP 400
+
+Comparer le modèle indiqué dans **Modèle actif** avec celui de `ollama run`.
+La sélection de gauche ne modifie pas une conversation déjà créée. Dans le cas
+signalé, la conversation utilisait `embeddinggemma:latest`, tandis que l’essai
+réussi en terminal utilisait `qwen3:4b-instruct`. EmbeddingGemma produit des vecteurs
+via l’API d’embeddings et ne peut pas générer une réponse conversationnelle.
+
+Pour reprendre une conversation existante : ouvrir **Modèle actif** ou **Réglages**,
+choisir `qwen3:4b-instruct` s’il est installé, enregistrer puis renvoyer le brouillon.
+Le correctif vérifie `/api/show` avant chaque génération, y compris pour les résumés
+et les anciennes conversations. Les noms seuls ne servent pas à classifier les
+modèles : un modèle d’embeddings renommé reste exclu. Si Ollama ne fournit pas les
+capacités, une erreur demande de mettre Ollama à jour, sans supposer la compatibilité.
+
+Pour récupérer le correctif dans le clone existant :
+
+```sh
+git status --short
+git pull --no-rebase --ff-only origin feature/local-client-v1-20261116
+```
+
+`--no-rebase` neutralise une éventuelle configuration Git imposant le rebasage.
+Si des modifications locales empêchent l’intégration, les conserver et examiner
+le conflit ; ne pas employer `reset --hard`. Relancer ensuite `make demo-api`
+et `make demo-client` dans deux terminaux après avoir arrêté leurs anciens processus.
+Ce correctif ne comporte pas de nouvelle migration.
+
+Si HTTP 400 persiste avec **le même modèle génératif actif**, relever le refus
+exact d’Ollama avec cette requête locale :
+
+```sh
+curl --fail-with-body http://127.0.0.1:11434/api/chat \
+  -H 'Content-Type: application/json' \
+  -d '{"model":"qwen3:4b-instruct","messages":[{"role":"user","content":"Bonjour"}],"stream":false}'
+```
+
+Un autre refus peut venir des paramètres du modèle ; ce test sert alors à séparer
+la sélection du modèle de la configuration de génération. Le journal transmis
+pour le défaut initial montrait des réponses HTTP d’Ollama, mais pas le corps JSON
+de son erreur : aucun contenu de ce corps n’a été supposé ou reconstitué.
+
+Références : [EmbeddingGemma dans Ollama](https://ollama.com/library/embeddinggemma),
+[capacité des modèles via `/api/show`](https://github.com/ollama/ollama/blob/main/docs/api.md#show-model-information).
+
+## 8. Import de dossier ou ZIP refusé
+
+Le validateur accepte désormais les chemins relatifs tels que
+`./projet/src/./notes.json`, `projet//src/notes.json` et les séparateurs Windows.
+Ils deviennent `projet/src/notes.json`. Les espaces, accents et émojis des noms
+restent conservés. Les entrées de répertoire ZIP utilisant `\` sont ignorées
+comme les autres répertoires vides.
+
+Les chemins absolus, lecteurs Windows, URI, caractères de contrôle et segments
+`..` restent refusés. Deux entrées devenant identiques après normalisation font
+échouer le lot entier. Les limites de taille et de profondeur restent applicables.
+
+En cas de refus, le message précise le chemin concerné et la règle en cause.
+Réessayer **+ Dossier** et **+ Fichiers / ZIP** après avoir relancé **l’API et le
+client**. Le test HTTP couvre des chemins relatifs et des ZIP imbriqués, mais pas
+les archives originales du signalement : si le problème persiste, conserver le
+message complet et préparer une petite archive reproductible sans contenu privé.
+
+## 9. Émojis et lisibilité des réponses
+
+Le rendu reconnaît les codes d’émojis connus de Markdig, par exemple `:rocket:`
+et `:smile:`, ainsi que les entités `&amp;` et `&#x1F98A;`. La ponctuation des
+smileys comme `:)` n’est pas transformée automatiquement. Le contenu du code et
+la copie du message restent fidèles au texte source.
+
+Les émojis Unicode composés sont conservés en un seul groupe de caractères :
+couleurs de peau, personnes avec métier, drapeaux, cœurs et touches chiffrées.
+Les codes Markdown incomplets sont réinterprétés à mesure que le flux arrive.
+Le rendu utilise les polices d’émojis présentes sur le poste ; aucune police
+n’est téléchargée à l’ouverture d’une conversation.
+
+Sous CachyOS/Arch, si les émojis apparaissent comme des carrés ou sont absents :
+
+```sh
+fc-match emoji
+sudo pacman -S --needed noto-fonts-emoji
+```
+
+Relancer le client après installation. La couleur et les séquences Unicode
+récentes dépendent de la version de la police. Référence du paquet :
+[noto-fonts-emoji](https://archlinux.org/packages/extra/any/noto-fonts-emoji/).
