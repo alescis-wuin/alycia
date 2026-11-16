@@ -57,6 +57,24 @@ public partial class ChatWindow
     private async Task ImportItemsAsync(IEnumerable<IStorageItem> items)
     {
         if (_current is null) return;
+        var selected = items.ToArray();
+        var includeExcluded = false;
+        if (selected.Any(item => item is IStorageFolder))
+        {
+            var choice = await ActionDialogAsync("Périmètre du dossier", new TextBlock
+            {
+                Text = "Inventaire complet : importer tous les fichiers réguliers du dossier, y compris les fichiers techniques et sensibles. "
+                    + "Leurs originaux restent stockés localement et leurs métadonnées figurent dans tree.txt ; leur contenu reste exclu de l’IA.\n\n"
+                    + "Sources utiles : ignorer avant import les chemins techniques ou sensibles habituels (.git, .venv, node_modules, .env…). "
+                    + "L’arbre couvrira seulement les fichiers retenus.\n\n"
+                    + "Dans les deux cas : 500 fichiers / 100 Mio maximum, 25 Mio par fichier et aucun lien symbolique. "
+                    + "Choisissez des sous-dossiers si le projet dépasse ces limites.",
+                TextWrapping = global::Avalonia.Media.TextWrapping.Wrap,
+                FontSize = 15
+            }, [("Inventaire complet", "complete"), ("Sources utiles", "filtered")]);
+            if (choice is not ("complete" or "filtered")) { Feedback("Import annulé."); return; }
+            includeExcluded = choice == "complete";
+        }
         var files = new List<UploadFile>();
         var excluded = 0;
         ulong totalBytes = 0;
@@ -66,7 +84,7 @@ public partial class ChatWindow
             _lifetime.Token.ThrowIfCancellationRequested();
             if (depth > 16) throw new ChatApiException("Les dossiers sont limités à 16 niveaux.");
             var path = prefix + item.Name;
-            if (ImportPolicy.Excluded(path)) { excluded++; return; }
+            if (!includeExcluded && ImportPolicy.Excluded(path)) { excluded++; return; }
             var local = item.TryGetLocalPath();
             if (local is not null && (File.GetAttributes(local) & FileAttributes.ReparsePoint) != 0)
                 throw new ChatApiException("Les liens symboliques ne sont pas importés. Sélectionnez leur cible explicitement.");
@@ -87,12 +105,14 @@ public partial class ChatWindow
         }
         try
         {
-            foreach (var item in items) await VisitAsync(item, "", 0);
+            foreach (var item in selected) await VisitAsync(item, "", 0);
             if (files.Count == 0) { Feedback("Aucun fichier sélectionné (les dossiers vides ne sont pas importés)."); return; }
             Feedback($"Import de {files.Count} fichier(s)…");
             var result = await _client.UploadAsync(_current.Id, Guid.NewGuid(), files, _lifetime.Token);
             await LoadAsync(_current);
-            Feedback($"{result.Length} fichier(s) enregistrés · {excluded} élément(s) technique(s) ou sensible(s) écarté(s). Ouvrez Synthèses de dossiers pour produire tree.txt et une synthèse récursive.");
+            Feedback($"{result.Length} fichier(s) enregistrés · {excluded} élément(s) écarté(s) avant import · "
+                + $"{result.Count(file => file.ContextMode == "excluded")} contenu(s) exclu(s) de l’IA. "
+                + "Ouvrez Synthèses de dossiers pour produire tree.txt et une synthèse récursive.");
         }
         finally
         {

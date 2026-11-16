@@ -17,6 +17,9 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class Ollama(BaseHTTPRequestHandler):
+    chat_calls = 0
+    summary_calls = 0
+
     def log_message(self, *_):
         pass
 
@@ -41,8 +44,16 @@ class Ollama(BaseHTTPRequestHandler):
         else:
             body = self.rfile.read(int(self.headers["Content-Length"]))
         request = json.loads(body)
+        prompt = json.dumps(request["messages"], ensure_ascii=False)
+        assert "NE_JAMAIS_RESUMER_CE_CONTENU" not in prompt, "Un contenu exclu a été envoyé au modèle"
+        if request.get("stream"):
+            assert request["options"]["num_predict"] == -1
+            Ollama.chat_calls += 1
+        else:
+            assert request["options"]["num_predict"] > 0
+            Ollama.summary_calls += 1
         self.send_response(200)
-        self.send_header("Content-Type", "application/x-ndjson")
+        self.send_header("Content-Type", "application/x-ndjson" if request.get("stream") else "application/json")
         self.end_headers()
         reply = {"message": {"role": "assistant", "content": "Réponse de recette."}, "done": True,
             "prompt_eval_count": 20, "eval_count": 5, "eval_duration": 100000000, "done_reason": "stop"}
@@ -100,9 +111,11 @@ def main():
                 spec = importlib.util.spec_from_file_location("verify_local", ROOT / "scripts/verify-local.py")
                 module = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(module)
-                checks = module.verify(f"http://127.0.0.1:{port}", "demo")
+                checks = module.verify(f"http://127.0.0.1:{port}", "demo", extended=True)
+                assert Ollama.chat_calls == 2 and Ollama.summary_calls >= 5
                 print(json.dumps({"passed": len(checks), "checks": checks, "provider": "mock",
-                    "database": "isolated PostgreSQL", "test_data_cleaned": True}, indent=2))
+                    "database": "isolated PostgreSQL", "test_data_cleaned": True,
+                    "continuous_chat_calls": Ollama.chat_calls, "bounded_summary_calls": Ollama.summary_calls}, indent=2))
             except Exception:
                 log.flush()
                 log.seek(0)

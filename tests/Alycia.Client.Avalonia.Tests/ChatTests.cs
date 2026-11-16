@@ -54,8 +54,10 @@ public sealed class ChatTests
         await Assert.ThrowsAsync<ChatApiException>(() => client.ListAsync(default));
     }
 
-    [Fact]
-    public async Task UploadsRelativePathsAsMultipartAndDownloadsOriginalBytes()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task UploadsRelativePathsAsMultipartAndDownloadsOriginalBytes(bool withMetadata)
     {
         var conversation = Guid.NewGuid();
         var batch = Guid.NewGuid();
@@ -67,16 +69,27 @@ public sealed class ChatTests
             {
                 Assert.EndsWith($"/{conversation}/files/{batch}", request.RequestUri!.AbsolutePath);
                 var multipart = Assert.IsType<MultipartFormDataContent>(request.Content);
-                var part = Assert.Single(multipart);
+                Assert.Equal(withMetadata ? 2 : 1, multipart.Count());
+                var part = Assert.Single(multipart, p => p.Headers.ContentDisposition!.FileNameStar is not null);
                 Assert.Equal("folder/file.bin", part.Headers.ContentDisposition!.FileNameStar);
                 Assert.Equal(payload, await part.ReadAsByteArrayAsync(ct));
+                if (withMetadata)
+                {
+                    var metadata = Assert.Single(multipart, p => p.Headers.ContentDisposition!.FileNameStar is null);
+                    using var json = JsonDocument.Parse(await metadata.ReadAsStringAsync(ct));
+                    var item = Assert.Single(json.RootElement.EnumerateArray());
+                    Assert.Equal("folder/file.bin", item.GetProperty("name").GetString());
+                    Assert.Equal(new DateTimeOffset(2026, 11, 1, 12, 0, 0, TimeSpan.Zero), item.GetProperty("createdAt").GetDateTimeOffset());
+                    Assert.Equal(JsonValueKind.Null, item.GetProperty("modifiedAt").ValueKind);
+                }
                 return Json(new[] { new FileItem(file, "folder/file.bin", 4, "Conservé", 1, DateTimeOffset.UtcNow, null, "hash") });
             }
             Assert.EndsWith($"/{conversation}/files/{file}", request.RequestUri!.AbsolutePath);
             return new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(payload) };
         }));
         var client = new ChatApiClient(http, "http://127.0.0.1:5187", TimeSpan.FromSeconds(2));
-        var imported = await client.UploadAsync(conversation, batch, [new("folder/file.bin", new MemoryStream(payload))], default);
+        var imported = await client.UploadAsync(conversation, batch, [new("folder/file.bin", new MemoryStream(payload),
+            withMetadata ? new DateTimeOffset(2026, 11, 1, 12, 0, 0, TimeSpan.Zero) : null)], default);
         Assert.Equal(file, Assert.Single(imported).Id);
         using var output = new MemoryStream();
         await client.DownloadAsync(conversation, file, output, default);

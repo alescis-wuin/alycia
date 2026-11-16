@@ -3,6 +3,10 @@
 Base : `ec56cc29af111def6de76b2df2da9f30b45292ba`, validée fonctionnelle par l'utilisateur.
 Branche conservée : `feature/local-client-v1-20261116`. Aucun changement de branche principale.
 
+État au 16 novembre 2026 : **Q0 à Q5 réalisés**. Voir le
+[compte rendu et les preuves de vérification](Local-Client-V2-Report.md) et le
+[guide de mise à jour et d’utilisation](Local-Client-V2-Guide.md).
+
 | Phase / lot | Étapes successives | Critère de sortie |
 |---|---|---|
 | Q0 — cadrage | Examiner la V1 ; préciser fin de flux, budget et métadonnées ; versionner ce plan | Contraintes explicites et base figée |
@@ -27,7 +31,9 @@ Branche conservée : `feature/local-client-v1-20261116`. Aucun changement de bra
   couverture et réinitialisation doivent être visibles. Les réductions ont un
   nombre d'appels borné et doivent effectivement diminuer le texte.
 - L'inventaire porte sur le périmètre réellement importé. Les exclusions usuelles
-  et limites sont signalées. SHA-256 est calculé sur les octets reçus ; une date
+  et limites sont signalées. L’import de dossier propose un inventaire complet
+  ou un parcours limité aux sources utiles ; les contenus sensibles/techniques
+  restent exclus du résumé même dans l’inventaire complet. SHA-256 est calculé sur les octets reçus ; une date
   indisponible reste inconnue. Les dates ZIP sont souvent sans fuseau et sans
   date de création ; aucune conversion prétendument certaine vers UTC.
 - Un gros arbre est fourni au modèle par fragments, avec les sources associées,
