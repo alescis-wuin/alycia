@@ -5,6 +5,7 @@ import hashlib
 import importlib.util
 import io
 import json
+import math
 import re
 import time
 import uuid
@@ -46,6 +47,22 @@ def indicators(case, answer):
             "humanReview": {"correctFacts": None, "missingFacts": None, "unsupportedClaims": None, "notes": ""}}
 
 
+def retrieval_metrics(case, sources, k=5):
+    """File-level relevance, not proof of factual correctness or passage recall."""
+    expected = set(case["expectedSources"])
+    ranked = list(dict.fromkeys(s["path"].split("!/")[-1] for s in sources))[:k]
+    hits = [path in expected for path in ranked]
+    found = sum(hits)
+    dcg = sum(int(hit) / math.log2(i + 2) for i, hit in enumerate(hits))
+    ideal = sum(1 / math.log2(i + 2) for i in range(min(k, len(expected))))
+    return {"status": "measured", "unit": "file", "k": k, "retrieved": len(ranked),
+            "expected": len(expected), "relevantRetrieved": found,
+            "recall": found / len(expected) if expected else None,
+            "precision": found / len(ranked) if ranked else None,
+            "ndcg": dcg / ideal if ideal else None,
+            "noAnswerCorrectlyEmpty": not ranked if not expected else None}
+
+
 def compare(left, right):
     keys = ("suiteSha256", "model", "contextTokens", "maxOutputTokens", "toolMaxCalls", "tools", "seed", "repeats", "split")
     mismatch = [k for k in keys if left.get(k) != right.get(k)]
@@ -57,6 +74,10 @@ def compare(left, right):
     b = {(r["id"], r["repeat"]): r for r in right["results"]}
     if a.keys() != b.keys():
         raise ValueError("Questions manquantes dans un run")
+    if len(a) != len(left["results"]) or len(b) != len(right["results"]):
+        raise ValueError("Résultats dupliqués")
+    if not a or any(r.get("error") for r in [*a.values(), *b.values()]):
+        raise ValueError("Run vide ou incomplet")
     return {"labels": [left["label"], right["label"]], "sameProtocol": True,
             "modelIdentityRequiresReview": left.get("modelIdentity") is None or right.get("modelIdentity") is None,
             "rows": [{"id": key[0], "repeat": key[1], "elapsedSeconds": [a[key]["elapsedSeconds"], b[key]["elapsedSeconds"]],
@@ -64,12 +85,14 @@ def compare(left, right):
                       "usage": [a[key].get("usage"), b[key].get("usage")],
                       "previewUsage": [a[key].get("previewUsage"), b[key].get("previewUsage")],
                       "options": [a[key].get("options"), b[key].get("options")],
+                      "retrieval": [a[key].get("retrieval"), b[key].get("retrieval")],
+                      "answers": [a[key].get("answer"), b[key].get("answer")],
                       "errors": [a[key].get("error"), b[key].get("error")]} for key in sorted(a)],
             "notice": "Examiner les réponses et les preuves ; aucune hausse de qualité n’est inférée des seuls motifs lexicaux."}
 
 
 def run(args):
-    files, cases, fingerprint = load_suite()
+    files, cases, fingerprint = load_suite(args.suite)
     selected = [c for c in cases if args.split == "all" or c["split"] == args.split]
     spec = importlib.util.spec_from_file_location("verify_local", ROOT / "scripts/verify-local.py")
     module = importlib.util.module_from_spec(spec)
@@ -124,8 +147,16 @@ def run(args):
                             'Content-Type: application/zip\r\n\r\n').encode() + archive.getvalue() + f'\r\n--{boundary}--\r\n'.encode()
                     call("POST", prefix + "/files/" + str(uuid.uuid4()), raw=body,
                          headers={"Content-Type": "multipart/form-data; boundary=" + boundary})
+                    row["historyTurns"] = []
+                    for turn in case.get("turns", []):
+                        revision = call("GET", prefix + "/settings")["conversation"]["revision"]
+                        events = call("POST", prefix + "/stream", {"requestId": str(uuid.uuid4()), "revision": revision, "content": turn})
+                        if not events or events[-1]["type"] != "done":
+                            raise RuntimeError("Historique interrompu avant la question de rappel")
+                        row["historyTurns"].append(events[-1]["result"].get("usage"))
                     preview = call("POST", prefix + "/context", {"content": case["question"]})
                     row["preview"] = preview["context"]
+                    row["retrieval"] = retrieval_metrics(case, row["preview"].get("sources") or [])
                     row["previewUsage"] = preview.get("usage")
                     revision = call("GET", prefix + "/settings")["conversation"]["revision"]
                     events = call("POST", prefix + "/stream", {"requestId": str(uuid.uuid4()), "revision": revision, "content": case["question"]})
@@ -136,6 +167,8 @@ def run(args):
                                usage=result.get("usage"), lastCallStats=result.get("stats"),
                                diagnostics=result["messages"][-1].get("diagnosticsJson"))
                     row["indicators"] = indicators(case, row["answer"])
+                    if case.get("requireRecallPatterns") and not all(row["indicators"]["factPatternHits"]):
+                        raise RuntimeError("Rappel historique attendu absent ; revue humaine nécessaire")
                     if row["usage"]:
                         identity = row["usage"].get("modelIdentity")
                         if identity:
@@ -169,9 +202,11 @@ def run(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="action", required=True)
-    sub.add_parser("validate")
+    v = sub.add_parser("validate")
+    v.add_argument("--suite", type=Path, default=DATA)
     r = sub.add_parser("run")
     r.add_argument("--url", default="http://127.0.0.1:5187")
+    r.add_argument("--suite", type=Path, default=DATA)
     r.add_argument("--model", required=True)
     r.add_argument("--label", required=True)
     r.add_argument("--output", type=Path, required=True)
@@ -191,7 +226,7 @@ if __name__ == "__main__":
     c.add_argument("candidate", type=Path)
     args = parser.parse_args()
     if args.action == "validate":
-        files, cases, fingerprint = load_suite()
+        files, cases, fingerprint = load_suite(args.suite)
         print(json.dumps({"files": len(files), "cases": len(cases), "sha256": fingerprint}))
     elif args.action == "run":
         run(args)

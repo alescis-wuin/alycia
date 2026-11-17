@@ -1,0 +1,55 @@
+{
+  "phase": "01",
+  "startCommit": "0b31f13c76a8e8075d798f76c30cc2f3438e9b0e",
+  "status": "PARTIEL",
+  "checks": [
+    {
+      "command": "python3 -m unittest discover -s scripts/tests -p '*_tests.py' -v",
+      "status": "passed",
+      "tests": 10
+    },
+    {
+      "command": "python3 scripts/evaluate-context.py validate",
+      "status": "passed",
+      "files": 8,
+      "cases": 36
+    },
+    {
+      "command": "python3 scripts/evaluate-context.py validate --suite evaluation/context-v2",
+      "status": "passed",
+      "files": 70,
+      "cases": 16
+    },
+    {
+      "command": "dotnet build src/Alycia.Modules.Chat.Application -m:1 -p:UseSharedCompilation=false",
+      "status": "passed",
+      "warnings": 0,
+      "errors": 0
+    },
+    {
+      "command": "dotnet build Alycia.slnx --no-restore -m:1 -p:UseSharedCompilation=false",
+      "status": "passed"
+    },
+    {
+      "command": "bash scripts/quality.sh lint",
+      "status": "passed"
+    },
+    {
+      "command": "dotnet tool run dotnet-ef migrations has-pending-model-changes --project src/Alycia.Modules.Chat.Infrastructure --context ChatDbContext --no-build",
+      "status": "passed"
+    },
+    {
+      "command": "dotnet test Alycia.slnx --no-build --no-restore -m:1",
+      "status": "passed",
+      "passed": 178,
+      "skipped": 4
+    }
+  ],
+  "notExecuted": [
+    "Ollama et RTX 4070",
+    "PostgreSQL",
+    "recette interface"
+  ],
+  "pending": [],
+  "qualityGain": null
+}

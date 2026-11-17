@@ -11,6 +11,23 @@ spec.loader.exec_module(evaluation)
 
 
 class EvaluationTests(unittest.TestCase):
+    def test_v2_manifest_and_metric_denominators(self):
+        files, cases, _ = evaluation.load_suite(evaluation.ROOT / "evaluation/context-v2")
+        self.assertGreaterEqual(len(files), 60)
+        self.assertEqual(5, len({c["suite"] for c in cases}))
+        result = evaluation.retrieval_metrics({"expectedSources": ["a", "b"]},
+                                             [{"path": "import.zip!/a"}, {"path": "a"}, {"path": "wrong"}])
+        self.assertEqual((2, 2, 1), (result["retrieved"], result["expected"], result["relevantRetrieved"]))
+        self.assertEqual(.5, result["recall"])
+        self.assertEqual(.5, result["precision"])
+        self.assertTrue(evaluation.retrieval_metrics({"expectedSources": []}, [])["noAnswerCorrectlyEmpty"])
+
+    def test_incomplete_and_duplicate_runs_fail_closed(self):
+        row = {"id": "q", "repeat": 0, "elapsedSeconds": 1}
+        for rows in ([], [dict(row, error="model failed")], [row, row]):
+            with self.assertRaises(ValueError):
+                evaluation.compare({"results": rows}, {"results": rows})
+
     def test_corpus_and_disjoint_questions(self):
         files, cases, _ = evaluation.load_suite()
         self.assertEqual(8, len(files))

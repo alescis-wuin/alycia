@@ -5,7 +5,10 @@ using Alycia.Modules.Chat.Domain;
 
 namespace Alycia.Modules.Chat.Application;
 
-public sealed record RetrievalReport(string Mode, int CandidateChunks, int IndexedFiles, int EligibleFiles, IReadOnlyList<string> Omissions);
+public sealed record RetrievalDecision(string Reference, Guid FileId, string Sha256, int Start, int End, double LexicalScore, string Reason);
+public sealed record RetrievalReport(string Mode, int CandidateChunks, int IndexedFiles, int EligibleFiles, IReadOnlyList<string> Omissions,
+    int ZeroScoreChunks = 0, double IndexMilliseconds = 0, double RankingMilliseconds = 0,
+    IReadOnlyList<RetrievalDecision>? Decisions = null, int UnreportedDecisions = 0);
 public sealed record RetrievalPreparation(IReadOnlyList<SourceChunk> Chunks, RetrievalReport Report, IReadOnlyList<ModelCallUsage> Calls);
 public interface IProjectRetrieval
 {

@@ -10,7 +10,9 @@ public sealed class ProjectRetrievalService(IProjectIndex index, ILocalEmbedding
     private sealed record VectorCache(string Identity, Dictionary<string, float[]> Vectors);
     public async Task<RetrievalPreparation> PrepareAsync(Guid conversation, string query, ChatOptions settings, CancellationToken ct)
     {
+        var timer = System.Diagnostics.Stopwatch.StartNew();
         var snapshot = await index.BuildAsync(conversation, ct);
+        var indexMilliseconds = timer.Elapsed.TotalMilliseconds;
         var calls = new List<ModelCallUsage>();
         double[]? similarities = null;
         if (settings.RetrievalMode == "hybrid" && snapshot.Chunks.Count > 0)
@@ -48,8 +50,15 @@ public sealed class ProjectRetrievalService(IProjectIndex index, ILocalEmbedding
             try { await File.WriteAllTextAsync(temp, JsonSerializer.Serialize(new VectorCache(identity, vectors), ProjectToolCatalog.Json), ct); File.Move(temp, path, true); }
             finally { if (File.Exists(temp)) File.Delete(temp); }
         }
-        return new(ProjectRetrieval.Rank(snapshot.Chunks, query, similarities),
-            new(settings.RetrievalMode, snapshot.Chunks.Count, snapshot.IndexedFiles, snapshot.EligibleFiles, snapshot.Omissions), calls);
+        timer.Restart();
+        var lexical = ProjectRetrieval.Bm25(snapshot.Chunks, query);
+        var ranked = ProjectRetrieval.Rank(snapshot.Chunks, query, similarities);
+        var decisions = snapshot.Chunks.Select((c, i) => new RetrievalDecision(ProjectRetrieval.Reference(c), c.FileId,
+            c.Sha256, c.Start, c.End, lexical[i], lexical[i] > 0 ? "lexical_match" : "zero_lexical_score")).Take(256).ToArray();
+        return new(ranked,
+            new(settings.RetrievalMode, snapshot.Chunks.Count, snapshot.IndexedFiles, snapshot.EligibleFiles, snapshot.Omissions,
+                lexical.Count(s => s == 0), indexMilliseconds, timer.Elapsed.TotalMilliseconds, decisions,
+                Math.Max(0, snapshot.Chunks.Count - decisions.Length)), calls);
     }
     public static double Cosine(float[] a, float[] b)
     {
