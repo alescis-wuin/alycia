@@ -127,6 +127,7 @@ public partial class ChatWindow
         var tokenizer = new CheckBox { Content = "Utiliser le tokenizer compatible du modèle quand disponible", IsChecked = options.TokenCounting == "auto" };
         var tools = new CheckBox { Content = "Autoriser les outils de lecture des sources importées", IsChecked = options.UseProjectTools };
         var continuous = new CheckBox { Content = "Générer jusqu’au signal d’arrêt du modèle", IsChecked = options.GenerateUntilStop };
+        var structured = new CheckBox { Content = "Mémoire structurée : citations, décisions et contraintes", IsChecked = options.StructuredMemory };
         var recursive = new CheckBox { Content = "Résumer les anciens échanges et préserver les deux derniers", IsChecked = options.AutoSummarize };
         turns.IsEnabled = !options.AutoSummarize;
         recursive.IsCheckedChanged += (_, _) => turns.IsEnabled = recursive.IsChecked != true;
@@ -143,6 +144,7 @@ public partial class ChatWindow
         panel.Children.Add(continuous); panel.Children.Add(recursive); panel.Children.Add(tools); panel.Children.Add(tokenizer); panel.Children.Add(presets);
         foreach (var (label, control) in new (string, Control)[] {
             ("Modèle génératif pour cette conversation", model),
+            ("Mémoire des échanges anciens", structured),
             ("Recherche : lexical = BM25 ; hybrid = BM25 + embeddings locaux ; legacy = V3", retrieval),
             ("Modèle d’embeddings installé (hybrid uniquement, nom exact)", embedding), ("Instruction système", system),
             ("Notes persistantes du projet — toujours incluses dans le budget", notes),
@@ -181,6 +183,7 @@ public partial class ChatWindow
                 UseProjectTools = tools.IsChecked == true,
                 GenerateUntilStop = continuous.IsChecked == true,
                 AutoSummarize = recursive.IsChecked == true,
+                StructuredMemory = structured.IsChecked == true,
                 Seed = string.IsNullOrWhiteSpace(seed.Text) ? null : int.Parse(seed.Text!)
             };
             try

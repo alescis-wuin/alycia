@@ -1,0 +1,132 @@
+using System.Text.Json;
+using Alycia.Modules.Chat.Application;
+using Alycia.Modules.Chat.Domain;
+
+namespace Alycia.Modules.Chat.Tests;
+
+public sealed class StructuredMemoryTests
+{
+    [Fact]
+    public void RejectsFabricatedQuotesAndKeepsContradictionsUntilUserCorrection()
+    {
+        var id = Guid.NewGuid();
+        var source = new ChatMessage(id, 1, Guid.NewGuid(), "user", "La base est SQLite.");
+        var entries = StructuredMemory.Validate("""
+            {"entries":[{"key":"base","kind":"fact","sequence":1,"quote":"La base est SQLite."},
+            {"key":"base","kind":"fact","sequence":1,"quote":"La base est PostgreSQL."}]}
+            """, [(source, source.Content)]);
+        Assert.Single(entries);
+        Assert.Equal(StructuredMemory.Hash(source.Content), entries[0].SourceHash);
+        var other = new MemoryEntry("base", "fact", "La base est PostgreSQL.", 3, "user", "hash");
+        var ledger = new MemoryLedger(1, 4, "hash", [entries[0], other]);
+        var selected = StructuredMemory.Select(ledger, "base", [], 2000, new());
+        Assert.Equal(1, selected.Report.Conflicts);
+        Assert.Contains("SQLite", selected.Text); Assert.Contains("PostgreSQL", selected.Text);
+        Assert.Equal(0, StructuredMemory.Select(ledger, "base", [], 100, new()).Report.Selected);
+        var assistant = new ChatMessage(id, 6, Guid.NewGuid(), "assistant", "Correction [base]: MySQL");
+        Assert.Equal(1, StructuredMemory.Select(ledger, "base", [assistant], 2000, new()).Report.Conflicts);
+        var corrected = StructuredMemory.Select(ledger, "Correction [base]: MariaDB", [], 2000, new());
+        Assert.Equal(0, corrected.Report.Selected);
+        Assert.DoesNotContain("SQLite", corrected.Text);
+    }
+
+    [Fact]
+    public async Task ExtractsOnlyUnderPressurePreservesProtectedBlockAndReusesQuotedMemory()
+    {
+        var repo = new Repository(12); var model = new Model();
+        var options = new ChatOptions { ContextTokens = 4096, MaxOutputTokens = 512 };
+        var preview = await ConversationContext.BuildAsync(repo, model, repo.Conversation, "budget", options, false, null, default);
+        Assert.True(preview.Context.NeedsSummary); Assert.Equal(0, model.Calls);
+        var result = await ConversationContext.BuildAsync(repo, model, repo.Conversation, "budget", options, true, null, default);
+        Assert.True(result.Changed); Assert.NotNull(result.LedgerJson);
+        Assert.Equal(20, result.Through);
+        Assert.InRange(result.Context.EstimatedInputTokens, 1, 4096 - 512 - 256);
+        Assert.Equal("SYSTEM", result.Context.Messages[0].Content);
+        Assert.Equal(repo.Messages.TakeLast(4).Select(m => m.Content), result.Context.Messages.TakeLast(5).Take(4).Select(m => m.Content));
+        Assert.Equal("budget", result.Context.Messages[^1].Content);
+        var ledger = StructuredMemory.Read(result.LedgerJson!);
+        Assert.All(ledger.Entries, e => Assert.Contains(e.Quote, repo.Messages.Single(m => m.Sequence == e.Sequence).Content));
+        repo.Conversation.SetMemoryLedger(result.LedgerJson!);
+        var calls = model.Calls;
+        var again = await ConversationContext.BuildAsync(repo, model, repo.Conversation, "budget", options, true, null, default);
+        Assert.False(again.Changed); Assert.Equal(calls, model.Calls);
+        Assert.Equal(24, repo.Messages.Count);
+    }
+
+    [Fact]
+    public async Task InvalidExtractionUsesLabelledOriginalExcerptsAndFailedTurnDoesNotSaveLedger()
+    {
+        var repo = new Repository(12); var model = new Model { Malformed = true };
+        var options = new ChatOptions { ContextTokens = 4096, MaxOutputTokens = 512 };
+        var result = await ConversationContext.BuildAsync(repo, model, repo.Conversation, "budget", options, true, null, default);
+        Assert.True(result.Context.Memory!.FallbackSegments > 0);
+        Assert.All(StructuredMemory.Read(result.LedgerJson!).Entries, e => Assert.True(e.Fallback));
+        Assert.Equal("{}", repo.Conversation.MemoryLedgerJson);
+        model.FailAnswer = true;
+        await Assert.ThrowsAsync<ChatModelException>(() => new ChatService(repo, model, options).SendAsync(repo.Conversation.Id, Guid.NewGuid(), "budget", default));
+        Assert.Equal("{}", repo.Conversation.MemoryLedgerJson); Assert.Equal(24, repo.Messages.Count);
+    }
+
+    [Fact]
+    public async Task SmallHistoryNeedsNoExtractionAndCancellationNeverPersistsPartialMemory()
+    {
+        var model = new Model(); var small = new Repository(3);
+        var result = await ConversationContext.BuildAsync(small, model, small.Conversation, "question", new(), true, null, default);
+        Assert.Equal(6, result.Context.HistoryMessagesIncluded); Assert.Equal(0, model.Calls);
+        var large = new Repository(12); using var cancel = new CancellationTokenSource();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => ConversationContext.BuildAsync(large, model, large.Conversation,
+            "budget", new() { ContextTokens = 4096, MaxOutputTokens = 512 }, true, _ => { cancel.Cancel(); return Task.CompletedTask; }, cancel.Token));
+        Assert.Equal("{}", large.Conversation.MemoryLedgerJson);
+    }
+
+    private sealed class Model : IChatModel
+    {
+        public int Calls; public bool Malformed; public bool FailAnswer;
+        public Task<IReadOnlyList<string>> ListModelsAsync(CancellationToken ct) => Task.FromResult<IReadOnlyList<string>>(["demo"]);
+        public Task<string> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages, CancellationToken ct) => throw new NotSupportedException();
+        public Task<string> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages, ChatOptions options, CancellationToken ct)
+        {
+            ct.ThrowIfCancellationRequested();
+            if (options.CallPurpose != "memory") return FailAnswer ? Task.FromException<string>(new ChatModelException("fail")) : Task.FromResult("réponse");
+            Calls++; Assert.NotNull(options.ResponseSchema); Assert.False(options.GenerateUntilStop);
+            Assert.True(messages.Sum(m => TokenBudget.Count(m.Content, options)) <= options.ContextTokens - options.MaxOutputTokens - options.SafetyTokens);
+            if (Malformed) return Task.FromResult("pas du JSON");
+            using var input = JsonDocument.Parse(messages[^1].Content);
+            return Task.FromResult(JsonSerializer.Serialize(new
+            {
+                entries = input.RootElement.GetProperty("messages").EnumerateArray().Select(m => new
+                {
+                    key = "budget",
+                    kind = "constraint",
+                    sequence = m.GetProperty("sequence").GetInt32(),
+                    quote = m.GetProperty("content").GetString()![..20]
+                })
+            }));
+        }
+    }
+    private sealed class Repository : IChatRepository
+    {
+        public Conversation Conversation { get; } = Conversation.Create("test", "demo", "SYSTEM");
+        public List<ChatMessage> Messages { get; } = [];
+        public Repository(int turns)
+        {
+            for (var i = 0; i < turns; i++)
+            {
+                var request = Guid.NewGuid();
+                Messages.Add(new(Conversation.Id, i * 2 + 1, request, "user", $"Budget demandé {i:00} : " + new string('u', 240)));
+                Messages.Add(new(Conversation.Id, i * 2 + 2, request, "assistant", $"Budget proposé {i:00} : " + new string('a', 240)));
+                Conversation.CompleteTurn();
+            }
+        }
+        public Task<IReadOnlyList<Attachment>> FilesAsync(Guid id, CancellationToken ct) => Task.FromResult<IReadOnlyList<Attachment>>([]);
+        public Task<IReadOnlyList<Conversation>> ListAsync(CancellationToken ct) => Task.FromResult<IReadOnlyList<Conversation>>([Conversation]);
+        public Task<Conversation?> FindAsync(Guid id, CancellationToken ct) => Task.FromResult<Conversation?>(Conversation);
+        public Task AddAsync(Conversation c, CancellationToken ct) => Task.CompletedTask;
+        public Task SaveAsync(CancellationToken ct) => Task.CompletedTask;
+        public Task DeleteAsync(Conversation c, CancellationToken ct) => Task.CompletedTask;
+        public Task<IReadOnlyList<ChatMessage>> MessagesAsync(Guid id, int limit, int? before, CancellationToken ct) =>
+            Task.FromResult<IReadOnlyList<ChatMessage>>(Messages.Where(m => before == null || m.Sequence < before).TakeLast(limit).ToArray());
+        public Task<IReadOnlyList<ChatMessage>> FindTurnAsync(Guid id, Guid request, CancellationToken ct) => Task.FromResult<IReadOnlyList<ChatMessage>>([]);
+        public Task AppendTurnAsync(Conversation c, ChatMessage u, ChatMessage a, CancellationToken ct) { Messages.Add(u); Messages.Add(a); return Task.CompletedTask; }
+    }
+}

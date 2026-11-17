@@ -15,6 +15,7 @@ internal static partial class ChatEndpoints
             var conversation = await repository.FindAsync(id, ct) ?? throw new ConversationNotFoundException();
             ConversationConfiguration.CheckRevision(conversation, request.Revision);
             conversation.SetMemory("", 0, "", "");
+            conversation.SetMemoryLedger("{}");
             await repository.SaveAsync(ct);
             return Results.Ok(conversation);
         });
@@ -44,11 +45,12 @@ internal static partial class ChatEndpoints
             }
             try
             {
-                var result = await RecursiveContext.BuildAsync(repository, measured, conversation, text, contextOptions, true,
+                var result = await ConversationContext.BuildAsync(repository, measured, conversation, text, contextOptions, true,
                     status => WriteAsync(new { type = "delta", content = "", status }), ct);
                 if (result.Changed)
                 {
-                    conversation.SetMemory(result.Memory, result.Through, result.SourceHash, conversation.Model);
+                    if (result.LedgerJson is not null) conversation.SetMemoryLedger(result.LedgerJson);
+                    else conversation.SetMemory(result.Memory, result.Through, result.SourceHash, conversation.Model);
                     await repository.SaveAsync(ct);
                 }
                 await WriteAsync(new

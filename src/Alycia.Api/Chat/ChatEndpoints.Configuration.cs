@@ -47,7 +47,7 @@ internal static partial class ChatEndpoints
             var contextOptions = useTools ? ProjectAgent.ContextOptions(options) : options;
             ContextWindow context;
             if (options.AutoSummarize)
-                context = (await RecursiveContext.BuildAsync(repository, model, conversation, text, contextOptions, false, null, ct)).Context;
+                context = (await ConversationContext.BuildAsync(repository, model, conversation, text, contextOptions, false, null, ct)).Context;
             else
             {
                 var history = await repository.MessagesAsync(id, options.MaxHistoryTurns * 2, null, ct);

@@ -67,7 +67,7 @@ public sealed partial class ChatService(IChatRepository repository, IChatModel m
         ContextWindow window;
         if (settings.AutoSummarize)
         {
-            prepared = await RecursiveContext.BuildAsync(repository, measured, conversation, text, contextSettings, true,
+            prepared = await ConversationContext.BuildAsync(repository, measured, conversation, text, contextSettings, true,
                 onDelta is null ? null : status => onDelta(new("", Status: status)), cancellationToken);
             window = prepared.Context;
         }
@@ -93,9 +93,12 @@ public sealed partial class ChatService(IChatRepository repository, IChatModel m
         var assistant = new ChatMessage(id, conversation.MessageCount + 2, requestId, "assistant", reply);
         if (generated.Tools is { Count: > 0 }) assistant.SetToolTrace(System.Text.Json.JsonSerializer.Serialize(generated.Tools, ProjectToolCatalog.Json));
         if (prepared is { Changed: true })
-            conversation.SetMemory(prepared.Memory, prepared.Through, prepared.SourceHash, conversation.Model);
+        {
+            if (prepared.LedgerJson is not null) conversation.SetMemoryLedger(prepared.LedgerJson);
+            else conversation.SetMemory(prepared.Memory, prepared.Through, prepared.SourceHash, conversation.Model);
+        }
         var usage = measured.Snapshot(settings);
-        assistant.SetDiagnostics(System.Text.Json.JsonSerializer.Serialize(new { usage, retrieval = settings.RetrievalReport }, ProjectToolCatalog.Json));
+        assistant.SetDiagnostics(System.Text.Json.JsonSerializer.Serialize(new { usage, retrieval = settings.RetrievalReport, memory = window.Memory }, ProjectToolCatalog.Json));
         conversation.CompleteTurn();
         // One atomic SaveChanges for both messages and the revision. A failed
         // model call/cancellation never leaves an orphan user message in storage.

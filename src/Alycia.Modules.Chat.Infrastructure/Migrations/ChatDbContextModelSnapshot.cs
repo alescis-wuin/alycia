@@ -158,6 +158,12 @@ namespace Alycia.Modules.Chat.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("MemoryLedgerJson")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("{}");
+
                     b.Property<string>("MemoryModel")
                         .IsRequired()
                         .ValueGeneratedOnAdd()

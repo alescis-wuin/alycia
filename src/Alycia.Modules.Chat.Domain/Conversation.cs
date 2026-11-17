@@ -17,6 +17,15 @@ public sealed class Conversation
     public int MemoryThroughSequence { get; private set; }
     public string MemorySourceHash { get; private set; } = "";
     public string MemoryModel { get; private set; } = "";
+    public string MemoryLedgerJson { get; private set; } = "{}";
+
+    public void SetMemoryLedger(string json)
+    {
+        if (json.Length > 1_048_576) throw new ArgumentException("Mémoire structurée trop volumineuse.");
+        using var document = System.Text.Json.JsonDocument.Parse(json);
+        if (document.RootElement.ValueKind != System.Text.Json.JsonValueKind.Object) throw new ArgumentException("Mémoire structurée invalide.");
+        MemoryLedgerJson = json; Touch();
+    }
 
     public void SetMemory(string text, int through, string hash, string model)
     {

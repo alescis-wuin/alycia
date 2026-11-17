@@ -99,10 +99,27 @@ public partial class ChatWindow
                 panel.Children.Add(Label($"{source.Path} · {source.Utf8Bytes} octets · {(source.Partial ? "extrait partiel" : "texte disponible complet")} · {source.Reason}"));
             panel.Children.Add(Label(preview.Context.NeedsSummary
                 ? "Un résumé doit être préparé. Cet aperçu est incomplet ; l’envoi effectuera la réduction automatiquement."
-                : "Le contexte courant respecte le budget estimé. L’aperçu ne déclenche aucune génération."));
+                : "Le contexte courant respecte le budget estimé. L’aperçu ne génère pas de réponse ; le mode hybride peut calculer des embeddings."));
         }
         else if (previewError is not null) panel.Children.Add(Label(previewError));
         else panel.Children.Add(Label("Saisissez votre prochaine demande dans la zone de message pour inspecter ou préparer son contexte."));
+        if (settings.Options.StructuredMemory)
+        {
+            var ledger = StructuredMemory.Read(conversation.MemoryLedgerJson);
+            panel.Children.Add(Label($"Mémoire structurée : {ledger.Entries.Length} citations, messages parcourus jusqu’à {ledger.Through}. "
+                + $"{ledger.Omitted} entrées écartées du cache ; {ledger.FallbackSegments} fragments en repli. Les originaux restent conservés."));
+            panel.Children.Add(Label("Pour corriger une clé affichée : Correction [clé]: nouvelle information. Les autres variantes restent signalées, sans résolution automatique."));
+            if (preview?.Context.Memory is { } report) panel.Children.Add(Label($"Contexte courant : {report.Selected}/{report.Stored} citations, {report.Conflicts} groupes de variantes non résolues."));
+            panel.Children.Add(new Expander
+            {
+                Header = "Citations et provenance",
+                Content = new MarkdownView
+                {
+                    IsMarkdown = false,
+                    Text = string.Join("\n\n", ledger.Entries.Select(e => $"[M{e.Sequence}:{e.Key}] {e.Kind} · {e.Role} · SHA-256 {e.SourceHash}\n{e.Quote}"))
+                }
+            });
+        }
         panel.Children.Add(Label(conversation.MemoryThroughSequence > 0
             ? $"Mémoire enregistrée : messages 1 à {conversation.MemoryThroughSequence} · modèle {conversation.MemoryModel}\nEmpreinte de provenance : {conversation.MemorySourceHash}"
             : "Aucun résumé de conversation enregistré."));
@@ -112,7 +129,7 @@ public partial class ChatWindow
             action => action is "preview" or "prepare" && draft.Length == 0 ? "Saisissez d’abord votre demande dans la conversation."
                 : action == "prepare" && !settings.Options.AutoSummarize ? "Activez le résumé automatique dans Réglages." : null);
         if (choice == "preview" && preview is not null)
-            await ActionDialogAsync("Messages préparés — estimation UTF-8", new StackPanel
+            await ActionDialogAsync("Messages préparés — budget estimé", new StackPanel
             {
                 Spacing = 12,
                 Children =

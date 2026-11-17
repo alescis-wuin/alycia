@@ -60,6 +60,7 @@ public sealed class ChatDbContext(DbContextOptions<ChatDbContext> options) : DbC
             entity.Property(item => item.SettingsJson).HasDefaultValue("{}").IsRequired();
             entity.Property(item => item.ContextNotes).HasMaxLength(8000).HasDefaultValue("").IsRequired();
             entity.Property(item => item.MemoryText).HasDefaultValue("").IsRequired();
+            entity.Property(item => item.MemoryLedgerJson).HasDefaultValue("{}").IsRequired();
             entity.Property(item => item.MemorySourceHash).HasMaxLength(64).HasDefaultValue("").IsRequired();
             entity.Property(item => item.MemoryModel).HasMaxLength(200).HasDefaultValue("").IsRequired();
             entity.Property(item => item.Revision).IsConcurrencyToken();

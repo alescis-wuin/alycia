@@ -20,6 +20,7 @@ class Ollama(BaseHTTPRequestHandler):
     chat_calls = 0
     summary_calls = 0
     tool_rounds = 0
+    memory_calls = 0
 
     def log_message(self, *_):
         pass
@@ -90,6 +91,12 @@ class Ollama(BaseHTTPRequestHandler):
         self.end_headers()
         reply = {"message": {"role": "assistant", "content": "Réponse de recette."}, "done": True,
             "prompt_eval_count": 20, "eval_count": 5, "eval_duration": 100000000, "done_reason": "stop"}
+        if request.get("format"):
+            assert not request["stream"] and request["format"]["type"] == "object"
+            Ollama.memory_calls += 1
+            original = json.loads(request["messages"][-1]["content"])["messages"]
+            reply["message"]["content"] = json.dumps({"entries": [{"sequence": m["sequence"],
+                "kind": "constraint", "key": "budget", "quote": m["content"][:100]} for m in original]})
         if request.get("stream"):
             self.wfile.write(b'{"message":{"role":"assistant","thinking":"thinking","content":""},"done":false}\n')
             self.wfile.flush()
@@ -128,6 +135,39 @@ def verify_model_selection(port):
         assert fixed["id"] == old["id"] and fixed["model"] == "demo"
         events = call("POST", prefix + "/stream", dict(request, revision=fixed["revision"]))
         assert events[-1]["type"] == "done" and len(events[-1]["result"]["messages"]) == 2
+    finally:
+        call("DELETE", prefix, expected=204)
+
+
+def verify_structured_memory(call, checks):
+    originals = [{"role": "user" if i % 2 == 0 else "assistant", "content": "Contrainte de budget. " + "texte " * 60,
+        "createdAtUtc": "2026-11-17T00:00:00Z"} for i in range(40)]
+    conv = call("POST", "/import", {"schemaVersion": 1, "title": "Mémoire structurée V4", "model": "demo",
+        "systemPrompt": "SYSTEM_PROTECTED", "contextNotes": "", "options": {"contextTokens": 4096,
+        "maxOutputTokens": 512, "useProjectTools": False, "structuredMemory": True}, "messages": originals}, expected=201)
+    prefix = "/conversations/" + conv["id"]
+    try:
+        request = {"revision": conv["revision"], "content": "Quel budget ?"}
+        preview = call("POST", prefix + "/context", request)
+        assert preview["context"]["needsSummary"] and Ollama.memory_calls == 0
+        events = call("POST", prefix + "/context/prepare", request)
+        assert events[-1]["type"] == "done", events[-1]
+        prepared = events[-1]["result"]
+        assert prepared["context"]["memory"]["through"] == 36 and Ollama.memory_calls > 0
+        assert all(c["purpose"] == "memory" for c in prepared["usage"]["calls"])
+        stored = call("GET", prefix + "/settings")["conversation"]
+        ledger = json.loads(stored["memoryLedgerJson"])
+        assert ledger["through"] == 36 and ledger["fallbackSegments"] == 0
+        for entry in ledger["entries"]:
+            assert entry["quote"] in originals[entry["sequence"] - 1]["content"]
+        before = Ollama.memory_calls
+        cached = call("POST", prefix + "/context/prepare", dict(request, revision=stored["revision"]))[-1]
+        assert cached["type"] == "done" and Ollama.memory_calls == before
+        assert cached["result"]["context"]["messages"][0]["content"] == "SYSTEM_PROTECTED"
+        assert [m["content"] for m in cached["result"]["context"]["messages"][-5:-1]] == [m["content"] for m in originals[-4:]]
+        cleared = call("POST", prefix + "/memory/reset", {"revision": stored["revision"]})
+        assert cleared["memoryLedgerJson"] == "{}" and cleared["messageCount"] == 40
+        checks.append("structured_memory_quotes_provenance_cache_reset_and_protection")
     finally:
         call("DELETE", prefix, expected=204)
 
@@ -192,6 +232,7 @@ def main():
                 finally:
                     for conversation in owned:
                         client("DELETE", "/conversations/" + conversation, expected=204)
+                verify_structured_memory(client, checks)
                 print(json.dumps({"passed": len(checks), "checks": checks, "provider": "mock",
                     "database": "isolated PostgreSQL", "test_data_cleaned": True,
                     "continuous_chat_calls": Ollama.chat_calls, "tool_rounds": Ollama.tool_rounds, "bounded_summary_calls": Ollama.summary_calls}, indent=2))

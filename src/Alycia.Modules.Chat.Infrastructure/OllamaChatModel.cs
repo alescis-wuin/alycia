@@ -105,13 +105,15 @@ public sealed partial class OllamaChatModel(HttpClient http, ChatOptions options
         {
             await ValidateChatModelAsync(model, timeout.Token);
 
-            using var response = await http.PostAsJsonAsync("api/chat", new
+            var request = new Dictionary<string, object>
             {
-                model,
-                messages,
-                stream = false,
-                options = GenerationOptions(settings)
-            }, timeout.Token);
+                ["model"] = model,
+                ["messages"] = messages,
+                ["stream"] = false,
+                ["options"] = GenerationOptions(settings)
+            };
+            if (settings.ResponseSchema is { } schema) request["format"] = schema;
+            using var response = await http.PostAsJsonAsync("api/chat", request, timeout.Token);
             if (!response.IsSuccessStatusCode)
             {
                 throw new ChatModelException($"Ollama a refusé la génération avec « {model} » (HTTP {(int)response.StatusCode}). Vérifiez les réglages de cette conversation et le journal Ollama.");

@@ -25,13 +25,16 @@ public sealed class ProjectToolStorageTests
         try
         {
             await using var db = new ChatDbContext(options);
-            await db.GetService<IMigrator>().MigrateAsync(db.Database.GetMigrations().Take(5).Last());
+            await db.Database.MigrateAsync();
             var conversation = Conversation.Create("Projet", "demo", "system");
             var other = Conversation.Create("Autre", "demo", "");
             db.Conversations.AddRange(conversation, other); await db.SaveChangesAsync();
             var original = "🙂\n" + new string('x', 200100) + "\nclass HiddenAtEnd { int Value => 42; }\n";
             var added = await new FileImport(db, storage).ImportAsync(conversation.Id, Guid.NewGuid(),
                 [new("src/A.cs", new MemoryStream(Encoding.UTF8.GetBytes(original))), new(".env", new MemoryStream("SECRET_NEVER_READ"u8.ToArray()))], default);
+            // Seed through the current importer, then exercise the upgrade from the old schema.
+            // No current EF conversation mapping is used while the new column is absent.
+            await db.GetService<IMigrator>().MigrateAsync(db.Database.GetMigrations().Take(5).Last());
             await db.Database.ExecuteSqlRawAsync("UPDATE chat.attachments SET \"ContextMode\" = 'window' WHERE \"Name\" = 'src/A.cs'");
             await db.Database.MigrateAsync(); db.ChangeTracker.Clear();
             conversation = await db.Conversations.SingleAsync(c => c.Id == conversation.Id);

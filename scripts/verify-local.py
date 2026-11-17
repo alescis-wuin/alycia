@@ -205,7 +205,7 @@ def verify_recursive(call, done, model, prefix, archive, conversations, checks):
         "createdAtUtc": "2026-11-16T12:00:00+00:00"} for i in range(40)]
     imported = call("POST", "/import", dict(archive, title="Recette mémoire " + uuid.uuid4().hex[:8],
         model=model, systemPrompt="SYSTEME_PROTEGE : réponds brièvement en français.", contextNotes="NOTES_PROTEGEES",
-        options=dict(archive["options"], autoSummarize=True, generateUntilStop=True), messages=original), expected=201)
+        options=dict(archive["options"], autoSummarize=True, generateUntilStop=True, structuredMemory=False), messages=original), expected=201)
     conversations.append(imported["id"])
     path = "/conversations/" + imported["id"]
     question = "DEMANDE_PROTEGEE : quelles décisions retenir ?"
