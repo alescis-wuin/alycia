@@ -41,6 +41,17 @@ public sealed class ProjectToolStorageTests
             Assert.DoesNotContain("HiddenAtEnd", file.Text);
             Assert.Single(await new EfChatRepository(db).ContextFilesAsync(conversation.Id, 99, default));
             var reader = new ProjectSourceReader(storage);
+            var index = new ProjectIndexService(db, storage, reader);
+            var indexed = await index.BuildAsync(conversation.Id, default);
+            Assert.Equal(1, indexed.IndexedFiles);
+            Assert.Contains(indexed.Chunks, c => c.Symbol.Contains("HiddenAtEnd"));
+            Assert.DoesNotContain(indexed.Chunks, c => c.Text.Contains("SECRET_NEVER_READ"));
+            Assert.Equal(1, (await index.BuildAsync(conversation.Id, default)).ReusedFiles);
+            Assert.Empty((await index.BuildAsync(other.Id, default)).Chunks);
+            file.ContextMode = "excluded"; await db.SaveChangesAsync();
+            Assert.Empty((await index.BuildAsync(conversation.Id, default)).Chunks);
+            file.ContextMode = "project"; await db.SaveChangesAsync();
+            Assert.Equal(0, (await index.BuildAsync(conversation.Id, default)).ReusedFiles);
             var tools = new ProjectToolService(db, reader, new());
             Task<ProjectToolResult> Call(string tool, object args, Guid? scope = null, int budget = 2048) =>
                 tools.CallAsync(scope ?? conversation.Id, tool, JsonSerializer.SerializeToElement(args), budget, default);

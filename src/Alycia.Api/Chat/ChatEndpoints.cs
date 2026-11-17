@@ -36,6 +36,7 @@ internal static partial class ChatEndpoints
         builder.Services.AddScoped<FileImport>();
         builder.Services.AddScoped<DocumentAnalysisService>();
         builder.Services.AddScoped<ProjectSourceReader>();
+        builder.Services.AddScoped<IProjectIndex, ProjectIndexService>();
         builder.Services.AddScoped<ProjectToolService>();
         builder.Services.AddHttpClient<IProjectTools, ProjectMcpClient>(http => http.Timeout = Timeout.InfiniteTimeSpan)
             .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false, UseProxy = false });
@@ -112,6 +113,7 @@ internal static partial class ChatEndpoints
         MapStreaming(routes);
         MapHistory(routes);
         MapMcp(routes);
+        MapIndex(routes);
 
         routes.MapGet("/models", async (IChatModel model, CancellationToken ct) =>
             Results.Ok(await model.ListModelsAsync(ct)));
