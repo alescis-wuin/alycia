@@ -32,23 +32,25 @@ internal static partial class ChatEndpoints
         });
 
         routes.MapPost("/conversations/{id:guid}/context", async (Guid id, PreviewContext request,
-            IChatRepository repository, IChatModel model, ChatOptions defaults, CancellationToken ct) =>
+            IChatRepository repository, IChatModel model, IProjectTools tools, ChatOptions defaults, CancellationToken ct) =>
         {
             var conversation = await repository.FindAsync(id, ct) ?? throw new ConversationNotFoundException();
             var options = ConversationConfiguration.Options(conversation, defaults);
             var text = Conversation.RequiredText(request.Content, 32000, "Le message");
+            var useTools = options.UseProjectTools && await tools.HasSourcesAsync(id, ct) && await model.SupportsToolsAsync(conversation.Model, ct);
+            var contextOptions = useTools ? ProjectAgent.ContextOptions(options) : options;
             ContextWindow context;
             if (options.AutoSummarize)
-                context = (await RecursiveContext.BuildAsync(repository, model, conversation, text, options, false, null, ct)).Context;
+                context = (await RecursiveContext.BuildAsync(repository, model, conversation, text, contextOptions, false, null, ct)).Context;
             else
             {
                 var history = await repository.MessagesAsync(id, options.MaxHistoryTurns * 2, null, ct);
                 var files = await repository.ContextFilesAsync(id, Math.Max(1, conversation.MessageCount - options.MaxHistoryTurns * 2 + 1), ct);
-                context = FileContext.Build(ConversationConfiguration.System(conversation), history, text, options, files, conversation.MessageCount + 1);
+                context = FileContext.Build(ConversationConfiguration.System(conversation), history, text, contextOptions, files, conversation.MessageCount + 1);
             }
             return Results.Ok(new
             {
-                context,
+                context = context with { ToolReserve = useTools ? ProjectAgent.Reserve(options) : 0 },
                 options,
                 conversation.Revision,
                 omittedMessages = conversation.MessageCount - context.HistoryMessagesIncluded,

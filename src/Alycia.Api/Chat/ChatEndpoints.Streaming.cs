@@ -23,7 +23,7 @@ internal static partial class ChatEndpoints
             try
             {
                 var result = await service.StreamAsync(id, request.RequestId, request.Content, request.Revision,
-                    delta => WriteAsync(new { type = "delta", delta.Content, delta.Thinking, delta.Status }), ct);
+                    delta => WriteAsync(new { type = "delta", delta.Content, delta.Thinking, delta.Status, delta.Tool }), ct);
                 // Only this final event acknowledges the atomic database commit.
                 await WriteAsync(new { type = "done", result });
             }

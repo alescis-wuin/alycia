@@ -120,10 +120,10 @@ internal static partial class ChatEndpoints
         var limit = through ?? conversation.MessageCount;
         if (limit > ConversationTransfer.MaxMessages) throw new ArgumentException("Export limité à 2000 messages : utilisez la sauvegarde complète.");
         var query = database.Messages.AsNoTracking().Where(m => m.ConversationId == id && m.Sequence <= limit);
-        if (await query.SumAsync(m => (long)m.Content.Length, ct) > ConversationTransfer.MaxBytes)
+        if (await query.SumAsync(m => (long)m.Content.Length + m.ToolTraceJson.Length, ct) > ConversationTransfer.MaxBytes)
             throw new ArgumentException("Export trop volumineux : utilisez la sauvegarde complète.");
         var messages = await query.OrderBy(m => m.Sequence)
-            .Select(m => new ArchivedMessage(m.Role, m.Content, m.CreatedAtUtc)).ToArrayAsync(ct);
+            .Select(m => new ArchivedMessage(m.Role, m.Content, m.CreatedAtUtc, m.ToolTraceJson)).ToArrayAsync(ct);
         if (messages.Length != limit) throw new ChatConflictException();
         return new(1, conversation.Title, conversation.Model, conversation.SystemPrompt, conversation.ContextNotes,
             ConversationConfiguration.Options(conversation, defaults), messages);

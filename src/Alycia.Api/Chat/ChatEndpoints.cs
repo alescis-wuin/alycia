@@ -35,6 +35,10 @@ internal static partial class ChatEndpoints
             ?? Path.Combine(builder.Environment.ContentRootPath, "data", "files")));
         builder.Services.AddScoped<FileImport>();
         builder.Services.AddScoped<DocumentAnalysisService>();
+        builder.Services.AddScoped<ProjectSourceReader>();
+        builder.Services.AddScoped<ProjectToolService>();
+        builder.Services.AddHttpClient<IProjectTools, ProjectMcpClient>(http => http.Timeout = Timeout.InfiniteTimeSpan)
+            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false, UseProxy = false });
         builder.Services.Configure<FormOptions>(form => form.MultipartBodyLengthLimit = FileImport.MaxBatchBytes);
         builder.WebHost.ConfigureKestrel(server => server.Limits.MaxRequestBodySize = FileImport.MaxBatchBytes + 1024 * 1024);
         builder.Services.AddHttpClient<IChatModel, OllamaChatModel>(http =>
@@ -107,6 +111,7 @@ internal static partial class ChatEndpoints
         MapAnalysis(routes);
         MapStreaming(routes);
         MapHistory(routes);
+        MapMcp(routes);
 
         routes.MapGet("/models", async (IChatModel model, CancellationToken ct) =>
             Results.Ok(await model.ListModelsAsync(ct)));

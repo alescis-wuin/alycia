@@ -20,13 +20,15 @@ internal static partial class ChatEndpoints
         });
 
         routes.MapPost("/conversations/{id:guid}/context/prepare", async (Guid id, MemoryRequest request,
-            IChatRepository repository, IChatModel model, ChatOptions defaults, HttpContext http, CancellationToken ct) =>
+            IChatRepository repository, IChatModel model, IProjectTools tools, ChatOptions defaults, HttpContext http, CancellationToken ct) =>
         {
             using var lease = GenerationGate.Shared.Enter(id);
             var conversation = await repository.FindAsync(id, ct) ?? throw new ConversationNotFoundException();
             ConversationConfiguration.CheckRevision(conversation, request.Revision);
             var text = Conversation.RequiredText(request.Content, 32000, "La demande");
             var options = ConversationConfiguration.Options(conversation, defaults);
+            var useTools = options.UseProjectTools && await tools.HasSourcesAsync(id, ct) && await model.SupportsToolsAsync(conversation.Model, ct);
+            var contextOptions = useTools ? ProjectAgent.ContextOptions(options) : options;
             http.Response.ContentType = "application/x-ndjson; charset=utf-8";
             http.Response.Headers.CacheControl = "no-store";
             async Task WriteAsync(object item)
@@ -36,7 +38,7 @@ internal static partial class ChatEndpoints
             }
             try
             {
-                var result = await RecursiveContext.BuildAsync(repository, model, conversation, text, options, true,
+                var result = await RecursiveContext.BuildAsync(repository, model, conversation, text, contextOptions, true,
                     status => WriteAsync(new { type = "delta", content = "", status }), ct);
                 if (result.Changed)
                 {
@@ -48,7 +50,7 @@ internal static partial class ChatEndpoints
                     type = "done",
                     result = new
                     {
-                        result.Context,
+                        context = result.Context with { ToolReserve = useTools ? ProjectAgent.Reserve(options) : 0 },
                         options,
                         conversation.Revision,
                         omittedMessages = conversation.MessageCount - result.Context.HistoryMessagesIncluded,
