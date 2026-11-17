@@ -64,7 +64,7 @@ public sealed partial class OllamaChatModel(HttpClient http, ChatOptions options
         return details;
     }
 
-    private async Task ValidateChatModelAsync(string model, CancellationToken ct)
+    private async Task<ModelDetails> ValidateChatModelAsync(string model, CancellationToken ct)
     {
         // Recheck locality and only this model's capabilities before each generation.
         if (!(await LocalModelNamesAsync(ct)).Contains(model, StringComparer.Ordinal))
@@ -76,6 +76,17 @@ public sealed partial class OllamaChatModel(HttpClient http, ChatOptions options
             throw new ChatModelException(details.Capabilities!.Contains("embedding", StringComparer.Ordinal)
                 ? $"Le modèle « {model} » produit des embeddings et ne peut pas répondre à une conversation. Choisissez un modèle génératif dans Réglages."
                 : $"Le modèle « {model} » ne propose pas de génération textuelle locale. Choisissez un autre modèle dans Réglages.");
+        return details;
+    }
+
+    public async Task<bool> SupportsToolsAsync(string model, CancellationToken ct)
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeout.CancelAfter(TimeSpan.FromSeconds(10));
+        try { return (await ValidateChatModelAsync(model, timeout.Token)).Capabilities!.Contains("tools", StringComparer.Ordinal); }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested) { throw new ChatModelException("Vérification des outils Ollama expirée."); }
+        catch (HttpRequestException) { throw new ChatModelException("Ollama est inaccessible."); }
+        catch (JsonException) { throw new ChatModelException("Capacités Ollama invalides."); }
     }
 
     public Task<string> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages, CancellationToken cancellationToken)

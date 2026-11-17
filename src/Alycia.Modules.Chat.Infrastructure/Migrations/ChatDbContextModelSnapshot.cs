@@ -123,6 +123,12 @@ namespace Alycia.Modules.Chat.Infrastructure.Migrations
                         .HasMaxLength(16)
                         .HasColumnType("character varying(16)");
 
+                    b.Property<string>("ToolTraceJson")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("[]");
+
                     b.HasKey("ConversationId", "Sequence");
 
                     b.HasIndex("ConversationId", "RequestId", "Role")

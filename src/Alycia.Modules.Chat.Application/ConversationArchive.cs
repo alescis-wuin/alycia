@@ -4,7 +4,7 @@ using Alycia.Modules.Chat.Domain;
 
 namespace Alycia.Modules.Chat.Application;
 
-public sealed record ArchivedMessage(string Role, string Content, DateTimeOffset CreatedAtUtc);
+public sealed record ArchivedMessage(string Role, string Content, DateTimeOffset CreatedAtUtc, string ToolTraceJson = "[]");
 public sealed record ConversationArchive(int SchemaVersion, string Title, string Model, string SystemPrompt,
     string ContextNotes, ChatOptions Options, ArchivedMessage[] Messages);
 
@@ -43,6 +43,14 @@ public static class ConversationTransfer
                 || string.IsNullOrWhiteSpace(message.Content) || message.Content.Contains('\0')
                 || message.Content.Length > (i % 2 == 0 ? 32000 : 1_000_000))
                 throw new ArgumentException("L’archive doit contenir des échanges user/assistant complets et bornés.");
+            if (message.ToolTraceJson is null || message.ToolTraceJson.Length > 512000) throw new ArgumentException("Trace d’outils trop volumineuse.");
+            try
+            {
+                var trace = JsonSerializer.Deserialize<ToolObservation[]>(message.ToolTraceJson, ProjectToolCatalog.Json);
+                if (trace is null || trace.Length > 128 || trace.Any(t => t is null) || message.Role == "user" && trace.Length > 0)
+                    throw new ArgumentException("Trace d’outils invalide.");
+            }
+            catch (JsonException) { throw new ArgumentException("Trace d’outils JSON invalide."); }
         }
     }
 
@@ -59,7 +67,9 @@ public static class ConversationTransfer
             for (var j = i; j < i + 2; j++)
             {
                 var m = archive.Messages[j];
-                messages.Add(ChatMessage.Import(conversation.Id, j + 1, request, m.Role, m.Content, m.CreatedAtUtc));
+                var message = ChatMessage.Import(conversation.Id, j + 1, request, m.Role, m.Content, m.CreatedAtUtc);
+                if (m.Role == "assistant") message.SetToolTrace(m.ToolTraceJson);
+                messages.Add(message);
             }
             conversation.CompleteTurn();
         }

@@ -40,7 +40,7 @@ public sealed class PostgresChatTests
             {
                 await schema.Database.MigrateAsync();
                 await schema.Database.MigrateAsync();
-                Assert.Equal(5, (await schema.Database.GetAppliedMigrationsAsync()).Count());
+                Assert.Equal(6, (await schema.Database.GetAppliedMigrationsAsync()).Count());
             }
 
             Guid id;

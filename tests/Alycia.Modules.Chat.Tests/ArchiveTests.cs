@@ -28,6 +28,21 @@ public sealed class ArchiveTests
     }
 
     [Fact]
+    public void ToolEvidenceSurvivesRestoreAndCannotBeAttachedToUserMessages()
+    {
+        var trace = System.Text.Json.JsonSerializer.Serialize(new[] { new ToolObservation(1, "project_read", "{}", true, 50,
+            new("src/A.cs", new string('a', 64), 200001, null, true)) }, ProjectToolCatalog.Json);
+        var archive = Example();
+        archive = archive with { Messages = [archive.Messages[0], archive.Messages[1] with { ToolTraceJson = trace }] };
+        var restored = ConversationTransfer.Restore(ConversationTransfer.Parse(ConversationTransfer.ExportJson(archive)));
+        Assert.Equal(trace, restored.Messages[1].ToolTraceJson);
+        Assert.Throws<ArgumentException>(() => ConversationTransfer.Validate(archive with
+        { Messages = [archive.Messages[0] with { ToolTraceJson = trace }, archive.Messages[1]] }));
+        Assert.Throws<ArgumentException>(() => ConversationTransfer.Validate(archive with
+        { Messages = [archive.Messages[0], archive.Messages[1] with { ToolTraceJson = "[null]" }] }));
+    }
+
+    [Fact]
     public void RejectsUnsupportedVersionOrIncompleteOrInvalidTurns()
     {
         var archive = Example();

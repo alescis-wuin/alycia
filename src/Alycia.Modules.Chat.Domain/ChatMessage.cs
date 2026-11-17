@@ -9,6 +9,12 @@ public sealed class ChatMessage
     public string Content { get; private set; } = null!;
     public DateTimeOffset CreatedAtUtc { get; private set; }
 
+    public string ToolTraceJson { get; private set; } = "[]";
+    public void SetToolTrace(string json)
+    {
+        if (Role != "assistant" || json.Length > 512000) throw new ArgumentException("Trace d’outils invalide ou trop volumineuse.");
+        ToolTraceJson = json;
+    }
     private ChatMessage() { }
 
     public static ChatMessage Import(Guid conversationId, int sequence, Guid requestId, string role,
