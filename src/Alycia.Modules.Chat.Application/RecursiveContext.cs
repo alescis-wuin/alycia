@@ -75,12 +75,12 @@ public static class RecursiveContext
         messages.Add(new("user", question));
         var used = messages.Sum(m => TokenBudget.Count(m.Content, options));
         var documentBudget = Math.Min(4096, budget - used);
-        var excerpts = ProjectContext.Select(files, question, documentBudget);
+        var excerpts = ProjectContext.Select(files, question, documentBudget, options);
         messages[^1] = new("user", question + excerpts.Text);
         used = messages.Sum(m => TokenBudget.Count(m.Content, options));
         if (used > budget) throw new InvalidOperationException("Le contexte préparé dépasse son budget.");
         return new(new(messages, pending.Count + recent.Length, used, excerpts.Sources.Count, needsSummary,
-            through, memory, reducer.Calls, excerpts.Sources, excerpts.Available), memory, through, hash, changed);
+            through, memory, reducer.Calls, excerpts.Sources, excerpts.Available, Retrieval: options.RetrievalReport), memory, through, hash, changed);
     }
 
     private static void ValidatePair(ChatMessage user, ChatMessage assistant)

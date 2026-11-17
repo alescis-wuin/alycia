@@ -24,13 +24,13 @@ public static class FileContext
         var window = SlidingContext.Build(system, history, question, reduced);
         var earliest = window.HistoryMessagesIncluded == 0 ? currentSequence
             : history[history.Count - window.HistoryMessagesIncluded].Sequence;
-        var excerpts = ProjectContext.Select(files.Where(f => ProjectContext.Eligible(f, earliest, currentSequence)), question, reserve);
+        var excerpts = ProjectContext.Select(files.Where(f => ProjectContext.Eligible(f, earliest, currentSequence)), question, reserve, options);
         if (excerpts.Sources.Count == 0) return original with { FilesAvailable = excerpts.Available };
         var messages = window.Messages.ToList();
         messages[^1] = messages[^1] with { Content = question + excerpts.Text };
         return new(messages, window.HistoryMessagesIncluded,
-            window.EstimatedInputTokens + Encoding.UTF8.GetByteCount(excerpts.Text), excerpts.Sources.Count,
-            Sources: excerpts.Sources, FilesAvailable: excerpts.Available);
+            messages.Sum(m => TokenBudget.Count(m.Content, options)), excerpts.Sources.Count,
+            Sources: excerpts.Sources, FilesAvailable: excerpts.Available, Retrieval: options.RetrievalReport);
     }
 
     public static string Utf8Prefix(string text, int bytes)

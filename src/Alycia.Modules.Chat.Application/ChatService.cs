@@ -2,7 +2,7 @@ using Alycia.Modules.Chat.Domain;
 
 namespace Alycia.Modules.Chat.Application;
 
-public sealed partial class ChatService(IChatRepository repository, IChatModel model, ChatOptions options, IProjectTools? projectTools = null)
+public sealed partial class ChatService(IChatRepository repository, IChatModel model, ChatOptions options, IProjectTools? projectTools = null, IProjectRetrieval? retrieval = null)
 {
     public async Task<Conversation> CreateAsync(string? title, string? modelName, string? systemPrompt,
         CancellationToken cancellationToken)
@@ -53,6 +53,13 @@ public sealed partial class ChatService(IChatRepository repository, IChatModel m
         if (revision.HasValue) ConversationConfiguration.CheckRevision(conversation, revision.Value);
         var settings = await model.PrepareOptionsAsync(conversation.Model, ConversationConfiguration.Options(conversation, options), cancellationToken);
         var measured = new MeteredChatModel(model);
+        if (retrieval is not null && settings.RetrievalMode != "legacy")
+        {
+            if (onDelta is not null) await onDelta(new("", Status: "Recherche des sources pertinentes…"));
+            var sources = await retrieval.PrepareAsync(id, text, settings, cancellationToken);
+            settings.SourceCandidates = sources.Chunks; settings.RetrievalReport = sources.Report;
+            measured.AddCalls(sources.Calls);
+        }
         var useTools = settings.UseProjectTools && projectTools is not null && await projectTools.HasSourcesAsync(id, cancellationToken)
             && await model.SupportsToolsAsync(conversation.Model, cancellationToken);
         var contextSettings = useTools ? ProjectAgent.ContextOptions(settings) : settings;
@@ -88,7 +95,7 @@ public sealed partial class ChatService(IChatRepository repository, IChatModel m
         if (prepared is { Changed: true })
             conversation.SetMemory(prepared.Memory, prepared.Through, prepared.SourceHash, conversation.Model);
         var usage = measured.Snapshot(settings);
-        assistant.SetDiagnostics(System.Text.Json.JsonSerializer.Serialize(new { usage }, ProjectToolCatalog.Json));
+        assistant.SetDiagnostics(System.Text.Json.JsonSerializer.Serialize(new { usage, retrieval = settings.RetrievalReport }, ProjectToolCatalog.Json));
         conversation.CompleteTurn();
         // One atomic SaveChanges for both messages and the revision. A failed
         // model call/cancellation never leaves an orphan user message in storage.

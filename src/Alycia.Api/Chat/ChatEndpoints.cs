@@ -37,6 +37,10 @@ internal static partial class ChatEndpoints
         builder.Services.AddScoped<DocumentAnalysisService>();
         builder.Services.AddScoped<ProjectSourceReader>();
         builder.Services.AddScoped<IProjectIndex, ProjectIndexService>();
+        builder.Services.AddScoped<IProjectRetrieval, ProjectRetrievalService>();
+        builder.Services.AddHttpClient<ILocalEmbeddings, OllamaEmbeddings>(http =>
+        { http.BaseAddress = uri; http.Timeout = Timeout.InfiniteTimeSpan; http.MaxResponseContentBufferSize = 8 * 1024 * 1024; })
+            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false, UseProxy = false });
         builder.Services.AddScoped<ProjectToolService>();
         builder.Services.AddHttpClient<IProjectTools, ProjectMcpClient>(http => http.Timeout = Timeout.InfiniteTimeSpan)
             .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false, UseProxy = false });

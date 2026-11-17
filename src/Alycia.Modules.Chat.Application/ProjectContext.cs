@@ -4,7 +4,7 @@ using Alycia.Modules.Chat.Domain;
 
 namespace Alycia.Modules.Chat.Application;
 
-public sealed record SourceExcerpt(Guid Id, string Path, int Utf8Bytes, bool Partial, string Reason);
+public sealed record SourceExcerpt(Guid Id, string Path, int Utf8Bytes, bool Partial, string Reason, string? Reference = null, int? StartLine = null, int? EndLine = null, string? Sha256 = null, int? Start = null, int? End = null);
 public sealed record ProjectExcerpts(string Text, IReadOnlyList<SourceExcerpt> Sources, int Available);
 
 public static class ProjectContext
@@ -17,9 +17,10 @@ public static class ProjectContext
         && file.ContextMode != "excluded" && file.AnchorSequence <= last
         && (file.ContextMode is "pinned" or "project" || file.AnchorSequence >= first);
 
-    public static ProjectExcerpts Select(IEnumerable<Attachment> input, string question, int budget)
+    public static ProjectExcerpts Select(IEnumerable<Attachment> input, string question, int budget, ChatOptions? options = null)
     {
         var files = input.Where(f => f.ContextMode != "excluded" && f.Text.Length > 0).ToArray();
+        if (options?.SourceCandidates is { } candidates) return ProjectRetrieval.Pack(candidates, files, budget, options);
         var words = Regex.Matches(question, @"[\p{L}\p{N}_./-]{4,}").Select(m => m.Value)
             .Distinct(StringComparer.OrdinalIgnoreCase).Take(16).ToArray();
         int Score(Attachment file) => (file.ContextMode == "pinned" ? 1000 : 0) + (IsCode(file.Name) ? 20 : 0)

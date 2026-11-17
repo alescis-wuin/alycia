@@ -90,6 +90,11 @@ public partial class ChatWindow
                 + $"{preview.Options.ContextTokens - preview.Options.MaxOutputTokens - preview.Options.SafetyTokens} · "
                 + $"{preview.Context.HistoryMessagesIncluded} messages bruts · {preview.Context.FilesIncluded}/{preview.Context.FilesAvailable} sources en extraits · réserve outils {preview.Context.ToolReserve}"));
             panel.Children.Add(Label("Comptage : " + preview.Estimator));
+            if (preview.Context.Retrieval is { } retrieval)
+            {
+                panel.Children.Add(Label($"Recherche {retrieval.Mode} · {retrieval.CandidateChunks} passages · {retrieval.IndexedFiles}/{retrieval.EligibleFiles} fichiers indexés"));
+                foreach (var omission in retrieval.Omissions) panel.Children.Add(Label(omission));
+            }
             foreach (var source in preview.Context.Sources ?? [])
                 panel.Children.Add(Label($"{source.Path} · {source.Utf8Bytes} octets · {(source.Partial ? "extrait partiel" : "texte disponible complet")} · {source.Reason}"));
             panel.Children.Add(Label(preview.Context.NeedsSummary

@@ -25,7 +25,7 @@ public sealed record PromptMessage(string Role, string Content,
     [property: JsonPropertyName("tool_calls"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<ModelToolCall>? ToolCalls = null,
     [property: JsonPropertyName("tool_name"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? ToolName = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Thinking = null);
-public sealed record ContextWindow(IReadOnlyList<PromptMessage> Messages, int HistoryMessagesIncluded, int EstimatedInputTokens, int FilesIncluded = 0, bool NeedsSummary = false, int SummaryThroughSequence = 0, string SummaryText = "", int SummaryCalls = 0, IReadOnlyList<SourceExcerpt>? Sources = null, int FilesAvailable = 0, int ToolReserve = 0);
+public sealed record ContextWindow(IReadOnlyList<PromptMessage> Messages, int HistoryMessagesIncluded, int EstimatedInputTokens, int FilesIncluded = 0, bool NeedsSummary = false, int SummaryThroughSequence = 0, string SummaryText = "", int SummaryCalls = 0, IReadOnlyList<SourceExcerpt>? Sources = null, int FilesAvailable = 0, int ToolReserve = 0, RetrievalReport? Retrieval = null);
 public sealed record GenerationStats(int? PromptTokens, int? OutputTokens, long? TotalNanoseconds,
     long? EvaluationNanoseconds, string? DoneReason, long? PromptEvaluationNanoseconds = null, long? LoadNanoseconds = null, int? CachedPromptTokens = null);
 public sealed record GenerationReply(string Content, GenerationStats? Stats = null, IReadOnlyList<ModelToolCall>? ToolCalls = null, string? Thinking = null, IReadOnlyList<ToolObservation>? Tools = null);
@@ -60,6 +60,10 @@ public sealed class ChatModelException(string message) : Exception(message);
 
 public sealed class ChatOptions
 {
+    public string RetrievalMode { get; set; } = "lexical";
+    public string EmbeddingModel { get; set; } = "";
+    [JsonIgnore] public IReadOnlyList<SourceChunk>? SourceCandidates { get; set; }
+    [JsonIgnore] public RetrievalReport? RetrievalReport { get; set; }
     public string TokenCounting { get; set; } = "auto";
     [JsonIgnore] public ITextTokenCounter? TokenCounter { get; set; }
     [JsonIgnore] public string? ModelIdentity { get; set; }
@@ -80,7 +84,7 @@ public sealed class ChatOptions
 
     public void Validate()
     {
-        if (TokenCounting is not ("auto" or "conservative") || ToolMaxCalls is < 1 or > 128 || SummaryMaxCalls is < 8 or > 2048 || MaxHistoryTurns is < 0 or > 100 || ContextTokens is < 1024 or > 131072
+        if (RetrievalMode is not ("legacy" or "lexical" or "hybrid") || EmbeddingModel is null || EmbeddingModel.Length > 200 || TokenCounting is not ("auto" or "conservative") || ToolMaxCalls is < 1 or > 128 || SummaryMaxCalls is < 8 or > 2048 || MaxHistoryTurns is < 0 or > 100 || ContextTokens is < 1024 or > 131072
             || MaxOutputTokens < 1 || SafetyTokens < 128
             || (long)MaxOutputTokens + SafetyTokens >= ContextTokens
             || TimeoutSeconds is < 1 or > 600

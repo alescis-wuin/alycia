@@ -36,6 +36,7 @@ public sealed record GenerationUsage(IReadOnlyList<ModelCallUsage> Calls, string
 public sealed class MeteredChatModel(IChatModel inner) : IChatModel
 {
     private readonly List<ModelCallUsage> _calls = [];
+    public void AddCalls(IEnumerable<ModelCallUsage> calls) => _calls.AddRange(calls);
     public GenerationUsage Snapshot(ChatOptions options) => new(_calls.ToArray(), options.ModelIdentity, TokenBudget.Description(options),
         _calls.All(c => c.Stats?.PromptTokens is not null) ? _calls.Sum(c => (long)c.Stats!.PromptTokens!.Value) : null,
         _calls.All(c => c.Stats?.OutputTokens is not null) ? _calls.Sum(c => (long)c.Stats!.OutputTokens!.Value) : null,

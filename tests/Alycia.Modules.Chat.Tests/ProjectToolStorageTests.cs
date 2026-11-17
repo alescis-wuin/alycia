@@ -47,6 +47,10 @@ public sealed class ProjectToolStorageTests
             Assert.Contains(indexed.Chunks, c => c.Symbol.Contains("HiddenAtEnd"));
             Assert.DoesNotContain(indexed.Chunks, c => c.Text.Contains("SECRET_NEVER_READ"));
             Assert.Equal(1, (await index.BuildAsync(conversation.Id, default)).ReusedFiles);
+            var selected = ProjectRetrieval.Rank(indexed.Chunks, "HiddenAtEnd Value");
+            var context = FileContext.Build("system", [], "HiddenAtEnd Value", new() { SourceCandidates = selected }, [file], 1);
+            Assert.Contains("HiddenAtEnd", context.Messages[^1].Content);
+            Assert.Contains(context.Sources!, s => s.Start > 200000 && s.Reference is not null);
             Assert.Empty((await index.BuildAsync(other.Id, default)).Chunks);
             file.ContextMode = "excluded"; await db.SaveChangesAsync();
             Assert.Empty((await index.BuildAsync(conversation.Id, default)).Chunks);

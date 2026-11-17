@@ -20,13 +20,19 @@ internal static partial class ChatEndpoints
         });
 
         routes.MapPost("/conversations/{id:guid}/context/prepare", async (Guid id, MemoryRequest request,
-            IChatRepository repository, IChatModel model, IProjectTools tools, ChatOptions defaults, HttpContext http, CancellationToken ct) =>
+            IChatRepository repository, IChatModel model, IProjectTools tools, IProjectRetrieval retrieval, ChatOptions defaults, HttpContext http, CancellationToken ct) =>
         {
             using var lease = GenerationGate.Shared.Enter(id);
             var conversation = await repository.FindAsync(id, ct) ?? throw new ConversationNotFoundException();
             ConversationConfiguration.CheckRevision(conversation, request.Revision);
             var text = Conversation.RequiredText(request.Content, 32000, "La demande");
             var options = await model.PrepareOptionsAsync(conversation.Model, ConversationConfiguration.Options(conversation, defaults), ct);
+            var measured = new MeteredChatModel(model);
+            if (options.RetrievalMode != "legacy")
+            {
+                var selected = await retrieval.PrepareAsync(id, text, options, ct);
+                options.SourceCandidates = selected.Chunks; options.RetrievalReport = selected.Report; measured.AddCalls(selected.Calls);
+            }
             var useTools = options.UseProjectTools && await tools.HasSourcesAsync(id, ct) && await model.SupportsToolsAsync(conversation.Model, ct);
             var contextOptions = useTools ? ProjectAgent.ContextOptions(options) : options;
             http.Response.ContentType = "application/x-ndjson; charset=utf-8";
@@ -38,7 +44,6 @@ internal static partial class ChatEndpoints
             }
             try
             {
-                var measured = new MeteredChatModel(model);
                 var result = await RecursiveContext.BuildAsync(repository, measured, conversation, text, contextOptions, true,
                     status => WriteAsync(new { type = "delta", content = "", status }), ct);
                 if (result.Changed)

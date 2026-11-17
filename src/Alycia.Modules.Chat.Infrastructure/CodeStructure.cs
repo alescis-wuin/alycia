@@ -8,14 +8,14 @@ namespace Alycia.Modules.Chat.Infrastructure;
 
 public static class CodeStructure
 {
-    public const int Version = 1;
+    public const int Version = 2;
     public static IReadOnlyList<SourceChunk> Split(Guid id, string path, string sha, string text, CancellationToken ct = default)
     {
         var source = SourceText.From(text);
         var units = new List<SourceChunk>();
-        void Add(int start, int end, string symbol, string kind, string[] references)
+        void Add(int start, int end, string symbol, string kind, string[] references, bool complete = true)
         {
-            var whole = end - start <= 3200;
+            var whole = complete && end - start <= 3200;
             for (var at = start; at < end;)
             {
                 ct.ThrowIfCancellationRequested();
@@ -58,7 +58,7 @@ public static class CodeStructure
                 var end = node is TypeDeclarationSyntax type && !type.OpenBraceToken.IsMissing ? type.OpenBraceToken.Span.End : node.Span.End;
                 var refs = node.DescendantNodes().OfType<IdentifierNameSyntax>().Select(n => n.Identifier.ValueText)
                     .Distinct(StringComparer.Ordinal).Take(64).ToArray();
-                Add(node.SpanStart, end, symbol, node.Kind().ToString(), refs);
+                Add(node.SpanStart, end, symbol, end < node.Span.End ? "type_header" : node.Kind().ToString(), refs, end == node.Span.End);
             }
             // Cover comments/imports/top-level statements and malformed/incomplete code too.
             var spans = units.OrderBy(u => u.Start).ToArray();

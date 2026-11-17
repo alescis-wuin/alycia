@@ -122,6 +122,8 @@ public partial class ChatWindow
         var timeout = Input(options.TimeoutSeconds.ToString(), 3);
         var calls = Input(options.SummaryMaxCalls.ToString(), 4);
         var toolCalls = Input(options.ToolMaxCalls.ToString(), 3);
+        var retrieval = new ComboBox { ItemsSource = new[] { "legacy", "lexical", "hybrid" }, SelectedItem = options.RetrievalMode };
+        var embedding = Input(options.EmbeddingModel, 200);
         var tokenizer = new CheckBox { Content = "Utiliser le tokenizer compatible du modèle quand disponible", IsChecked = options.TokenCounting == "auto" };
         var tools = new CheckBox { Content = "Autoriser les outils de lecture des sources importées", IsChecked = options.UseProjectTools };
         var continuous = new CheckBox { Content = "Générer jusqu’au signal d’arrêt du modèle", IsChecked = options.GenerateUntilStop };
@@ -140,7 +142,9 @@ public partial class ChatWindow
             panel.Children.Add(Label("Ce modèle n’est pas disponible pour la génération locale. Sélectionnez un modèle ci-dessous pour reprendre cette conversation ; votre brouillon est conservé."));
         panel.Children.Add(continuous); panel.Children.Add(recursive); panel.Children.Add(tools); panel.Children.Add(tokenizer); panel.Children.Add(presets);
         foreach (var (label, control) in new (string, Control)[] {
-            ("Modèle génératif pour cette conversation", model), ("Instruction système", system),
+            ("Modèle génératif pour cette conversation", model),
+            ("Recherche : lexical = BM25 ; hybrid = BM25 + embeddings locaux ; legacy = V3", retrieval),
+            ("Modèle d’embeddings installé (hybrid uniquement, nom exact)", embedding), ("Instruction système", system),
             ("Notes persistantes du projet — toujours incluses dans le budget", notes),
             ("Fenêtre du modèle (tokens, 1024 à 131072)", context), ("Réserve de contexte pour la sortie (limite de génération seulement si le mode continu est désactivé)", output),
             ("Fenêtre simple : échanges récents (uniquement sans résumé automatique)", turns), ("Température (0 à 2, virgule ou point)", temperature),
@@ -163,6 +167,8 @@ public partial class ChatWindow
                 return "Un réglage numérique est invalide. Les valeurs saisies sont conservées.";
             edited = new ChatOptions
             {
+                RetrievalMode = retrieval.SelectedItem as string ?? "lexical",
+                EmbeddingModel = embedding.Text?.Trim() ?? "",
                 TokenCounting = tokenizer.IsChecked == true ? "auto" : "conservative",
                 ContextTokens = contextValue,
                 MaxOutputTokens = outputValue,

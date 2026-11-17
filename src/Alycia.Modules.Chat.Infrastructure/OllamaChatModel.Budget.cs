@@ -11,6 +11,8 @@ public sealed partial class OllamaChatModel
     private static readonly ConcurrentDictionary<string, ITextTokenCounter> Counters = new();
     public async Task<ChatOptions> PrepareOptionsAsync(string model, ChatOptions settings, CancellationToken ct)
     {
+        // Fail before progress events start the HTTP stream, including with conservative counting.
+        await SupportsToolsAsync(model, ct);
         var result = settings.Copy();
         if (settings.TokenCounting == "conservative") return result;
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);

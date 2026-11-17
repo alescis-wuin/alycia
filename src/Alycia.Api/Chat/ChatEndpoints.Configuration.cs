@@ -32,11 +32,17 @@ internal static partial class ChatEndpoints
         });
 
         routes.MapPost("/conversations/{id:guid}/context", async (Guid id, PreviewContext request,
-            IChatRepository repository, IChatModel model, IProjectTools tools, ChatOptions defaults, CancellationToken ct) =>
+            IChatRepository repository, IChatModel model, IProjectTools tools, IProjectRetrieval retrieval, ChatOptions defaults, CancellationToken ct) =>
         {
             var conversation = await repository.FindAsync(id, ct) ?? throw new ConversationNotFoundException();
             var options = await model.PrepareOptionsAsync(conversation.Model, ConversationConfiguration.Options(conversation, defaults), ct);
             var text = Conversation.RequiredText(request.Content, 32000, "Le message");
+            var measurements = new MeteredChatModel(model);
+            if (options.RetrievalMode != "legacy")
+            {
+                var selected = await retrieval.PrepareAsync(id, text, options, ct);
+                options.SourceCandidates = selected.Chunks; options.RetrievalReport = selected.Report; measurements.AddCalls(selected.Calls);
+            }
             var useTools = options.UseProjectTools && await tools.HasSourcesAsync(id, ct) && await model.SupportsToolsAsync(conversation.Model, ct);
             var contextOptions = useTools ? ProjectAgent.ContextOptions(options) : options;
             ContextWindow context;
@@ -54,6 +60,7 @@ internal static partial class ChatEndpoints
                 options,
                 conversation.Revision,
                 omittedMessages = conversation.MessageCount - context.HistoryMessagesIncluded,
+                usage = measurements.Snapshot(options),
                 estimator = TokenBudget.Description(options)
             });
         });
