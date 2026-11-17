@@ -16,8 +16,8 @@ public static class SlidingContext
         if (history.Count % 2 != 0)
             throw new InvalidOperationException("Historique de conversation incomplet.");
         var budget = options.ContextTokens - options.MaxOutputTokens - options.SafetyTokens;
-        var used = EstimateTokens(userMessage)
-            + (systemPrompt.Length == 0 ? 0 : EstimateTokens(systemPrompt));
+        var used = TokenBudget.Count(userMessage, options)
+            + (systemPrompt.Length == 0 ? 0 : TokenBudget.Count(systemPrompt, options));
         if (used > budget)
         {
             throw new ArgumentException("Le message et l’instruction système dépassent le budget de contexte. Raccourcissez-les.");
@@ -38,7 +38,7 @@ public static class SlidingContext
                 throw new InvalidOperationException("Historique de conversation incohérent.");
             }
 
-            var cost = EstimateTokens(user.Content) + EstimateTokens(assistant.Content);
+            var cost = TokenBudget.Count(user.Content, options) + TokenBudget.Count(assistant.Content, options);
             if (used + cost > budget)
             {
                 break;

@@ -47,11 +47,12 @@ public sealed partial class ChatService(IChatRepository repository, IChatModel m
                 throw new ChatConflictException();
             }
 
-            return new(previous, null, true);
+            return new(previous, null, true, Usage: TokenBudget.ReadUsage(previous[1].DiagnosticsJson));
         }
 
         if (revision.HasValue) ConversationConfiguration.CheckRevision(conversation, revision.Value);
-        var settings = ConversationConfiguration.Options(conversation, options);
+        var settings = await model.PrepareOptionsAsync(conversation.Model, ConversationConfiguration.Options(conversation, options), cancellationToken);
+        var measured = new MeteredChatModel(model);
         var useTools = settings.UseProjectTools && projectTools is not null && await projectTools.HasSourcesAsync(id, cancellationToken)
             && await model.SupportsToolsAsync(conversation.Model, cancellationToken);
         var contextSettings = useTools ? ProjectAgent.ContextOptions(settings) : settings;
@@ -59,7 +60,7 @@ public sealed partial class ChatService(IChatRepository repository, IChatModel m
         ContextWindow window;
         if (settings.AutoSummarize)
         {
-            prepared = await RecursiveContext.BuildAsync(repository, model, conversation, text, contextSettings, true,
+            prepared = await RecursiveContext.BuildAsync(repository, measured, conversation, text, contextSettings, true,
                 onDelta is null ? null : status => onDelta(new("", Status: status)), cancellationToken);
             window = prepared.Context;
         }
@@ -70,10 +71,10 @@ public sealed partial class ChatService(IChatRepository repository, IChatModel m
             window = FileContext.Build(ConversationConfiguration.System(conversation), history, text, contextSettings, files, conversation.MessageCount + 1);
         }
         if (useTools) window = window with { ToolReserve = ProjectAgent.Reserve(settings) };
-        var generated = useTools ? await ProjectAgent.RunAsync(model, projectTools!, id, conversation.Model, window, settings, onDelta, cancellationToken)
+        var generated = useTools ? await ProjectAgent.RunAsync(measured, projectTools!, id, conversation.Model, window, settings, onDelta, cancellationToken)
             : onDelta is null
-            ? new GenerationReply(await model.GenerateAsync(conversation.Model, window.Messages, settings, cancellationToken))
-            : await model.StreamAsync(conversation.Model, window.Messages, settings, onDelta, cancellationToken);
+            ? new GenerationReply(await measured.GenerateAsync(conversation.Model, window.Messages, settings, cancellationToken))
+            : await measured.StreamAsync(conversation.Model, window.Messages, settings, onDelta, cancellationToken);
         var reply = generated.Content;
         cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(reply) || reply.Contains('\0'))
@@ -86,10 +87,12 @@ public sealed partial class ChatService(IChatRepository repository, IChatModel m
         if (generated.Tools is { Count: > 0 }) assistant.SetToolTrace(System.Text.Json.JsonSerializer.Serialize(generated.Tools, ProjectToolCatalog.Json));
         if (prepared is { Changed: true })
             conversation.SetMemory(prepared.Memory, prepared.Through, prepared.SourceHash, conversation.Model);
+        var usage = measured.Snapshot(settings);
+        assistant.SetDiagnostics(System.Text.Json.JsonSerializer.Serialize(new { usage }, ProjectToolCatalog.Json));
         conversation.CompleteTurn();
         // One atomic SaveChanges for both messages and the revision. A failed
         // model call/cancellation never leaves an orphan user message in storage.
         await repository.AppendTurnAsync(conversation, user, assistant, cancellationToken);
-        return new([user, assistant], window.HistoryMessagesIncluded, false, window.FilesIncluded, window.EstimatedInputTokens, generated.Stats);
+        return new([user, assistant], window.HistoryMessagesIncluded, false, window.FilesIncluded, window.EstimatedInputTokens, generated.Stats, usage);
     }
 }

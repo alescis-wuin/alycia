@@ -35,7 +35,7 @@ internal static partial class ChatEndpoints
             IChatRepository repository, IChatModel model, IProjectTools tools, ChatOptions defaults, CancellationToken ct) =>
         {
             var conversation = await repository.FindAsync(id, ct) ?? throw new ConversationNotFoundException();
-            var options = ConversationConfiguration.Options(conversation, defaults);
+            var options = await model.PrepareOptionsAsync(conversation.Model, ConversationConfiguration.Options(conversation, defaults), ct);
             var text = Conversation.RequiredText(request.Content, 32000, "Le message");
             var useTools = options.UseProjectTools && await tools.HasSourcesAsync(id, ct) && await model.SupportsToolsAsync(conversation.Model, ct);
             var contextOptions = useTools ? ProjectAgent.ContextOptions(options) : options;
@@ -54,7 +54,7 @@ internal static partial class ChatEndpoints
                 options,
                 conversation.Revision,
                 omittedMessages = conversation.MessageCount - context.HistoryMessagesIncluded,
-                estimator = "UTF-8 conservateur ; estimation, pas un tokenizer du modèle"
+                estimator = TokenBudget.Description(options)
             });
         });
 

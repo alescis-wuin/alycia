@@ -59,6 +59,10 @@ public sealed class RecursiveSummarizer(IChatModel model, string modelName, Chat
             if (progress is not null) await progress($"Résumé récursif · appel {Calls}/{settings.SummaryMaxCalls}");
             var options = new ChatOptions
             {
+                CallPurpose = "summary",
+                TokenCounter = settings.TokenCounter,
+                TokenCounting = settings.TokenCounting,
+                ModelIdentity = settings.ModelIdentity,
                 GenerateUntilStop = false,
                 AutoSummarize = false,
                 ContextTokens = settings.ContextTokens,

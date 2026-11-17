@@ -26,7 +26,7 @@ internal static partial class ChatEndpoints
             var conversation = await repository.FindAsync(id, ct) ?? throw new ConversationNotFoundException();
             ConversationConfiguration.CheckRevision(conversation, request.Revision);
             var text = Conversation.RequiredText(request.Content, 32000, "La demande");
-            var options = ConversationConfiguration.Options(conversation, defaults);
+            var options = await model.PrepareOptionsAsync(conversation.Model, ConversationConfiguration.Options(conversation, defaults), ct);
             var useTools = options.UseProjectTools && await tools.HasSourcesAsync(id, ct) && await model.SupportsToolsAsync(conversation.Model, ct);
             var contextOptions = useTools ? ProjectAgent.ContextOptions(options) : options;
             http.Response.ContentType = "application/x-ndjson; charset=utf-8";
@@ -38,7 +38,8 @@ internal static partial class ChatEndpoints
             }
             try
             {
-                var result = await RecursiveContext.BuildAsync(repository, model, conversation, text, contextOptions, true,
+                var measured = new MeteredChatModel(model);
+                var result = await RecursiveContext.BuildAsync(repository, measured, conversation, text, contextOptions, true,
                     status => WriteAsync(new { type = "delta", content = "", status }), ct);
                 if (result.Changed)
                 {
@@ -52,9 +53,10 @@ internal static partial class ChatEndpoints
                     {
                         context = result.Context with { ToolReserve = useTools ? ProjectAgent.Reserve(options) : 0 },
                         options,
+                        usage = measured.Snapshot(options),
                         conversation.Revision,
                         omittedMessages = conversation.MessageCount - result.Context.HistoryMessagesIncluded,
-                        estimator = "UTF-8 conservateur ; mémoire récursive + deux derniers échanges protégés"
+                        estimator = TokenBudget.Description(options)
                     }
                 });
             }

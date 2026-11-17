@@ -71,6 +71,7 @@ public sealed class ChatDbContext(DbContextOptions<ChatDbContext> options) : DbC
             entity.HasKey(item => new { item.ConversationId, item.Sequence });
             entity.Property(item => item.Role).HasMaxLength(16).IsRequired();
             entity.Property(item => item.Content).IsRequired();
+            entity.Property(item => item.DiagnosticsJson).HasDefaultValue("{}").IsRequired();
             entity.Property(item => item.ToolTraceJson).HasDefaultValue("[]").IsRequired();
             entity.HasIndex(item => new { item.ConversationId, item.RequestId, item.Role }).IsUnique();
             entity.HasOne<Conversation>().WithMany().HasForeignKey(item => item.ConversationId)

@@ -122,6 +122,7 @@ public partial class ChatWindow
         var timeout = Input(options.TimeoutSeconds.ToString(), 3);
         var calls = Input(options.SummaryMaxCalls.ToString(), 4);
         var toolCalls = Input(options.ToolMaxCalls.ToString(), 3);
+        var tokenizer = new CheckBox { Content = "Utiliser le tokenizer compatible du modèle quand disponible", IsChecked = options.TokenCounting == "auto" };
         var tools = new CheckBox { Content = "Autoriser les outils de lecture des sources importées", IsChecked = options.UseProjectTools };
         var continuous = new CheckBox { Content = "Générer jusqu’au signal d’arrêt du modèle", IsChecked = options.GenerateUntilStop };
         var recursive = new CheckBox { Content = "Résumer les anciens échanges et préserver les deux derniers", IsChecked = options.AutoSummarize };
@@ -137,7 +138,7 @@ public partial class ChatWindow
         panel.Children.Add(Label($"Modèle actuellement enregistré : {current.Model}"));
         if (!models.Contains(current.Model, StringComparer.Ordinal))
             panel.Children.Add(Label("Ce modèle n’est pas disponible pour la génération locale. Sélectionnez un modèle ci-dessous pour reprendre cette conversation ; votre brouillon est conservé."));
-        panel.Children.Add(continuous); panel.Children.Add(recursive); panel.Children.Add(tools); panel.Children.Add(presets);
+        panel.Children.Add(continuous); panel.Children.Add(recursive); panel.Children.Add(tools); panel.Children.Add(tokenizer); panel.Children.Add(presets);
         foreach (var (label, control) in new (string, Control)[] {
             ("Modèle génératif pour cette conversation", model), ("Instruction système", system),
             ("Notes persistantes du projet — toujours incluses dans le budget", notes),
@@ -162,6 +163,7 @@ public partial class ChatWindow
                 return "Un réglage numérique est invalide. Les valeurs saisies sont conservées.";
             edited = new ChatOptions
             {
+                TokenCounting = tokenizer.IsChecked == true ? "auto" : "conservative",
                 ContextTokens = contextValue,
                 MaxOutputTokens = outputValue,
                 MaxHistoryTurns = turnsValue,

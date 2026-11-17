@@ -40,7 +40,7 @@ public sealed class PostgresChatTests
             {
                 await schema.Database.MigrateAsync();
                 await schema.Database.MigrateAsync();
-                Assert.Equal(6, (await schema.Database.GetAppliedMigrationsAsync()).Count());
+                Assert.Equal(7, (await schema.Database.GetAppliedMigrationsAsync()).Count());
             }
 
             Guid id;
@@ -56,6 +56,9 @@ public sealed class PostgresChatTests
                 Assert.Equal(2, result.Messages.Count);
                 var replay = await service.SendAsync(id, requestId, "Bonjour", default);
                 Assert.True(replay.Replayed);
+                Assert.Single(result.Usage!.Calls);
+                Assert.Equal(result.Usage.Calls.Count, replay.Usage!.Calls.Count);
+                Assert.False(replay.Usage.Complete);
                 Assert.Equal(2, await database.Messages.CountAsync());
                 await Assert.ThrowsAsync<ChatConflictException>(() => service.SendAsync(id, requestId, "different", default));
                 var failed = new ChatService(repository, new FakeModel(fail: true), new());

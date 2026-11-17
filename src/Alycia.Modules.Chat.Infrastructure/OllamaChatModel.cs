@@ -94,6 +94,9 @@ public sealed partial class OllamaChatModel(HttpClient http, ChatOptions options
 
     public async Task<string> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages, ChatOptions settings,
         CancellationToken cancellationToken)
+        => (await GenerateReplyAsync(model, messages, settings, cancellationToken)).Content;
+
+    public async Task<GenerationReply> GenerateReplyAsync(string model, IReadOnlyList<PromptMessage> messages, ChatOptions settings, CancellationToken cancellationToken)
     {
         settings.Validate();
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -122,7 +125,7 @@ public sealed partial class OllamaChatModel(HttpClient http, ChatOptions options
             }
 
             ValidateCompletion(payload.DoneReason, settings);
-            return payload.Message.Content;
+            return new(payload.Message.Content, new(payload.PromptTokens, payload.OutputTokens, payload.TotalDuration, payload.EvaluationDuration, payload.DoneReason, payload.PromptDuration, payload.LoadDuration, payload.CachedTokens));
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
@@ -170,5 +173,12 @@ public sealed partial class OllamaChatModel(HttpClient http, ChatOptions options
     }
 
     private sealed record ChatReply(bool Done, PromptMessage? Message,
-        [property: JsonPropertyName("done_reason")] string? DoneReason);
+        [property: JsonPropertyName("done_reason")] string? DoneReason,
+        [property: JsonPropertyName("prompt_eval_count")] int? PromptTokens,
+        [property: JsonPropertyName("eval_count")] int? OutputTokens,
+        [property: JsonPropertyName("total_duration")] long? TotalDuration,
+        [property: JsonPropertyName("eval_duration")] long? EvaluationDuration,
+        [property: JsonPropertyName("prompt_eval_duration")] long? PromptDuration,
+        [property: JsonPropertyName("load_duration")] long? LoadDuration,
+        [property: JsonPropertyName("prompt_eval_cached_count")] int? CachedTokens);
 }

@@ -22,14 +22,15 @@ public sealed class DocumentAnalysisService(ChatDbContext database, IChatModel m
         var files = await database.Attachments.AsNoTracking().Where(f => f.ConversationId == id
             && (!batch.HasValue || f.BatchId == batch)).OrderBy(f => f.Name).ThenBy(f => f.Id).ToArrayAsync(ct);
         if (files.Length == 0) throw new ArgumentException("Aucun fichier dans ce périmètre. Importez un dossier ou une archive.");
-        var options = ConversationConfiguration.Options(conversation, defaults);
+        var options = await model.PrepareOptionsAsync(conversation.Model, ConversationConfiguration.Options(conversation, defaults), ct);
+        var measured = new MeteredChatModel(model);
         var eligible = files.Where(f => f.Text.Length > 0 && f.ContextMode != "excluded").ToArray();
         if (eligible.Length + 2 > options.SummaryMaxCalls)
             throw new ArgumentException("Le nombre de fichiers dépasse le budget d’appels de résumé. Choisissez un lot plus petit ou augmentez ce budget dans Réglages.");
         var inventory = ProjectInventory.Describe(files);
         var tree = ProjectInventory.Tree(inventory);
         var fingerprint = ProjectInventory.Fingerprint(inventory);
-        var reducer = new RecursiveSummarizer(model, conversation.Model, options, progress);
+        var reducer = new RecursiveSummarizer(measured, conversation.Model, options, progress);
         var leaves = new List<SummarySource>();
         if (progress is not null) await progress("Lecture de tree.txt par fragments · " + files.Length + " fichiers inventoriés");
         var overview = await reducer.ReduceAsync([new("tree.txt intégral", tree)], Math.Min(2048, budget), ct);
@@ -104,6 +105,7 @@ public sealed class DocumentAnalysisService(ChatDbContext database, IChatModel m
             analysis.ScopeBatchId,
             analysis.SummaryCalls,
             targetBytes = budget,
+            usage = measured.Snapshot(options),
             coverage = new
             {
                 inventoriedFiles = files.Length,

@@ -27,14 +27,16 @@ public sealed record PromptMessage(string Role, string Content,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Thinking = null);
 public sealed record ContextWindow(IReadOnlyList<PromptMessage> Messages, int HistoryMessagesIncluded, int EstimatedInputTokens, int FilesIncluded = 0, bool NeedsSummary = false, int SummaryThroughSequence = 0, string SummaryText = "", int SummaryCalls = 0, IReadOnlyList<SourceExcerpt>? Sources = null, int FilesAvailable = 0, int ToolReserve = 0);
 public sealed record GenerationStats(int? PromptTokens, int? OutputTokens, long? TotalNanoseconds,
-    long? EvaluationNanoseconds, string? DoneReason);
+    long? EvaluationNanoseconds, string? DoneReason, long? PromptEvaluationNanoseconds = null, long? LoadNanoseconds = null, int? CachedPromptTokens = null);
 public sealed record GenerationReply(string Content, GenerationStats? Stats = null, IReadOnlyList<ModelToolCall>? ToolCalls = null, string? Thinking = null, IReadOnlyList<ToolObservation>? Tools = null);
 public sealed record ModelDelta(string Content, string? Thinking = null, string? Status = null, ToolObservation? Tool = null);
 public sealed record SendMessageResult(IReadOnlyList<ChatMessage> Messages, int? HistoryMessagesIncluded,
-    bool Replayed, int FilesIncluded = 0, int? EstimatedInputTokens = null, GenerationStats? Stats = null);
+    bool Replayed, int FilesIncluded = 0, int? EstimatedInputTokens = null, GenerationStats? Stats = null, GenerationUsage? Usage = null);
 
 public interface IChatModel
 {
+    Task<ChatOptions> PrepareOptionsAsync(string model, ChatOptions options, CancellationToken ct) => Task.FromResult(options.Copy());
+    async Task<GenerationReply> GenerateReplyAsync(string model, IReadOnlyList<PromptMessage> messages, ChatOptions options, CancellationToken ct) => new(await GenerateAsync(model, messages, options, ct));
     Task<bool> SupportsToolsAsync(string model, CancellationToken ct) => Task.FromResult(false);
     Task<GenerationReply> StreamWithToolsAsync(string model, IReadOnlyList<PromptMessage> messages,
         ChatOptions settings, Func<ModelDelta, Task> onDelta, CancellationToken ct) =>
@@ -58,6 +60,10 @@ public sealed class ChatModelException(string message) : Exception(message);
 
 public sealed class ChatOptions
 {
+    public string TokenCounting { get; set; } = "auto";
+    [JsonIgnore] public ITextTokenCounter? TokenCounter { get; set; }
+    [JsonIgnore] public string? ModelIdentity { get; set; }
+    [JsonIgnore] public string CallPurpose { get; set; } = "chat";
     public bool UseProjectTools { get; set; } = true;
     public int ToolMaxCalls { get; set; } = 24;
     public ChatOptions Copy() => (ChatOptions)MemberwiseClone();
@@ -74,7 +80,7 @@ public sealed class ChatOptions
 
     public void Validate()
     {
-        if (ToolMaxCalls is < 1 or > 128 || SummaryMaxCalls is < 8 or > 2048 || MaxHistoryTurns is < 0 or > 100 || ContextTokens is < 1024 or > 131072
+        if (TokenCounting is not ("auto" or "conservative") || ToolMaxCalls is < 1 or > 128 || SummaryMaxCalls is < 8 or > 2048 || MaxHistoryTurns is < 0 or > 100 || ContextTokens is < 1024 or > 131072
             || MaxOutputTokens < 1 || SafetyTokens < 128
             || (long)MaxOutputTokens + SafetyTokens >= ContextTokens
             || TimeoutSeconds is < 1 or > 600

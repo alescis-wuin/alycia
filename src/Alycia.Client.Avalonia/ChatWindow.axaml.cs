@@ -416,7 +416,7 @@ public partial class ChatWindow : Window
 
             Feedback(result.Replayed ? "Échange déjà enregistré : aucun doublon ajouté."
                 : $"Réponse enregistrée · {result.HistoryMessagesIncluded} messages et {result.FilesIncluded} extraits initiaux · "
-                    + $"{result.Stats?.OutputTokens?.ToString() ?? "?"} tokens (dernier appel)"
+                    + (result.Usage is { } usage ? $"{usage.Calls.Count} appels · {usage.InputTokens?.ToString() ?? "?"} tokens entrants cumulés · {usage.OutputTokens?.ToString() ?? "?"} sortants cumulés" : $"{result.Stats?.OutputTokens?.ToString() ?? "?"} tokens (dernier appel)")
                     + (result.Stats is { EvaluationNanoseconds: > 0, OutputTokens: { } count } stats
                         ? $" · {count * 1_000_000_000.0 / stats.EvaluationNanoseconds.Value:F1} tok/s" : "")
                     + (result.Stats?.DoneReason == "length" ? " · limite de sortie atteinte" : ""));

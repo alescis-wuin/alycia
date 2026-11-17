@@ -115,6 +115,12 @@ namespace Alycia.Modules.Chat.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("DiagnosticsJson")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("{}");
+
                     b.Property<Guid>("RequestId")
                         .HasColumnType("uuid");
 

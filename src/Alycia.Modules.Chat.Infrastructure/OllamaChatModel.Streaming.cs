@@ -80,7 +80,8 @@ public sealed partial class OllamaChatModel
                     ValidateCompletion(root.TryGetProperty("done_reason", out var finish) ? finish.GetString() : null, settings);
                     return new(content.ToString(), new(Number(root, "prompt_eval_count"), Number(root, "eval_count"),
                         Long(root, "total_duration"), Long(root, "eval_duration"),
-                        root.TryGetProperty("done_reason", out var reason) ? reason.GetString() : null),
+                        root.TryGetProperty("done_reason", out var reason) ? reason.GetString() : null,
+                        Long(root, "prompt_eval_duration"), Long(root, "load_duration"), Number(root, "prompt_eval_cached_count")),
                         calls.Count == 0 ? null : calls, useTools ? thoughts.ToString() : null);
                 }
             }

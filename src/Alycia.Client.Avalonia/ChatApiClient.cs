@@ -19,7 +19,7 @@ public sealed record ConversationSummary(Guid Id, string Title, string Model, st
     string MemorySourceHash = "", string MemoryModel = "");
 
 public sealed record ChatMessageItem(Guid ConversationId, int Sequence, Guid RequestId, string Role,
-    string Content, DateTimeOffset CreatedAtUtc, Guid? AttachmentId = null, string ToolTraceJson = "[]")
+    string Content, DateTimeOffset CreatedAtUtc, Guid? AttachmentId = null, string ToolTraceJson = "[]", string DiagnosticsJson = "{}")
 {
     public bool HasToolTrace => IsAssistant && !string.IsNullOrWhiteSpace(ToolTraceJson) && ToolTraceJson != "[]";
     public string ToolTraceText
@@ -40,7 +40,7 @@ public sealed record ChatMessageItem(Guid ConversationId, int Sequence, Guid Req
 
 public sealed record MessagePage(ConversationSummary Conversation, ChatMessageItem[] Messages, bool HasMore, FileItem[]? Files = null);
 public sealed record ChatSendResult(ChatMessageItem[] Messages, int? HistoryMessagesIncluded, bool Replayed, int FilesIncluded = 0,
-    int? EstimatedInputTokens = null, Alycia.Modules.Chat.Application.GenerationStats? Stats = null);
+    int? EstimatedInputTokens = null, Alycia.Modules.Chat.Application.GenerationStats? Stats = null, GenerationUsage? Usage = null);
 public sealed record FileItem(Guid Id, string Name, long Size, string Status, int AnchorSequence,
     DateTimeOffset CreatedAtUtc, Guid? ArchiveId, string Sha256, string ContextMode = "window", Guid BatchId = default, string SourceCreatedAt = "", string SourceModifiedAt = "", string MetadataSource = "unknown")
 {

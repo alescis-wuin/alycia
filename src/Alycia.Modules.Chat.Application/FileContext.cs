@@ -15,20 +15,12 @@ public static class FileContext
             return original;
 
         var available = options.ContextTokens - options.MaxOutputTokens - options.SafetyTokens
-            - SlidingContext.EstimateTokens(question) - (system.Length == 0 ? 0 : SlidingContext.EstimateTokens(system));
+            - TokenBudget.Count(question, options) - (system.Length == 0 ? 0 : TokenBudget.Count(system, options));
         if (available < 256) return original;
         var reserve = Math.Min(available / 2, 4096);
         // Use the original configured context but reserve part of its input budget for files.
-        var reduced = new ChatOptions
-        {
-            ContextTokens = options.ContextTokens,
-            MaxOutputTokens = options.MaxOutputTokens,
-            SafetyTokens = options.SafetyTokens + reserve,
-            MaxHistoryTurns = options.MaxHistoryTurns,
-            TimeoutSeconds = options.TimeoutSeconds,
-            Temperature = options.Temperature,
-            Seed = options.Seed
-        };
+        var reduced = options.Copy();
+        reduced.SafetyTokens += reserve;
         var window = SlidingContext.Build(system, history, question, reduced);
         var earliest = window.HistoryMessagesIncluded == 0 ? currentSequence
             : history[history.Count - window.HistoryMessagesIncluded].Sequence;

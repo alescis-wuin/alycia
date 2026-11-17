@@ -4,7 +4,7 @@ using Alycia.Modules.Chat.Domain;
 
 namespace Alycia.Modules.Chat.Application;
 
-public sealed record ArchivedMessage(string Role, string Content, DateTimeOffset CreatedAtUtc, string ToolTraceJson = "[]");
+public sealed record ArchivedMessage(string Role, string Content, DateTimeOffset CreatedAtUtc, string ToolTraceJson = "[]", string DiagnosticsJson = "{}");
 public sealed record ConversationArchive(int SchemaVersion, string Title, string Model, string SystemPrompt,
     string ContextNotes, ChatOptions Options, ArchivedMessage[] Messages);
 
@@ -43,6 +43,9 @@ public static class ConversationTransfer
                 || string.IsNullOrWhiteSpace(message.Content) || message.Content.Contains('\0')
                 || message.Content.Length > (i % 2 == 0 ? 32000 : 1_000_000))
                 throw new ArgumentException("L’archive doit contenir des échanges user/assistant complets et bornés.");
+            if (message.DiagnosticsJson is null || message.DiagnosticsJson.Length > 512000) throw new ArgumentException("Diagnostic invalide.");
+            try { using var diagnostic = JsonDocument.Parse(message.DiagnosticsJson); if (diagnostic.RootElement.ValueKind != JsonValueKind.Object || (message.Role == "user" && message.DiagnosticsJson != "{}")) throw new ArgumentException("Diagnostic invalide."); }
+            catch (JsonException) { throw new ArgumentException("Diagnostic invalide."); }
             if (message.ToolTraceJson is null || message.ToolTraceJson.Length > 512000) throw new ArgumentException("Trace d’outils trop volumineuse.");
             try
             {
@@ -68,7 +71,7 @@ public static class ConversationTransfer
             {
                 var m = archive.Messages[j];
                 var message = ChatMessage.Import(conversation.Id, j + 1, request, m.Role, m.Content, m.CreatedAtUtc);
-                if (m.Role == "assistant") message.SetToolTrace(m.ToolTraceJson);
+                if (m.Role == "assistant") { message.SetToolTrace(m.ToolTraceJson); message.SetDiagnostics(m.DiagnosticsJson); }
                 messages.Add(message);
             }
             conversation.CompleteTurn();

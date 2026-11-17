@@ -17,8 +17,8 @@ public static class RecursiveContext
         var system = ConversationConfiguration.System(conversation);
         var recent = (await repository.MessagesAsync(conversation.Id, 4, null, ct)).TakeLast(4).ToArray();
         var budget = options.ContextTokens - options.MaxOutputTokens - options.SafetyTokens;
-        var fixedCost = SlidingContext.EstimateTokens(question) + recent.Sum(m => SlidingContext.EstimateTokens(m.Content))
-            + (system.Length == 0 ? 0 : SlidingContext.EstimateTokens(system));
+        var fixedCost = TokenBudget.Count(question, options) + recent.Sum(m => TokenBudget.Count(m.Content, options))
+            + (system.Length == 0 ? 0 : TokenBudget.Count(system, options));
         if (fixedCost > budget)
             throw new ArgumentException("Le système, les notes, les deux derniers échanges et la demande dépassent seuls le budget. "
                 + "Augmentez la fenêtre, réduisez la réserve/les notes ou démarrez une nouvelle conversation. Aucun message protégé n’a été tronqué.");
@@ -38,9 +38,9 @@ public static class RecursiveContext
         var needsSummary = false;
         var pending = new List<ChatMessage>();
         var reducer = new RecursiveSummarizer(model, conversation.Model, options, progress);
-        int MemoryCost() => memory.Length == 0 ? 0 : SlidingContext.EstimateTokens(MemoryLabel + memory);
-        int PendingCost() => pending.Sum(m => SlidingContext.EstimateTokens(m.Content));
-        int Target() => memoryBudget - SlidingContext.EstimateTokens(MemoryLabel);
+        int MemoryCost() => memory.Length == 0 ? 0 : TokenBudget.Count(MemoryLabel + memory, options);
+        int PendingCost() => pending.Sum(m => TokenBudget.Count(m.Content, options));
+        int Target() => memoryBudget - TokenBudget.Count(MemoryLabel, options);
         if (MemoryCost() > memoryBudget)
         {
             if (!summarize) { needsSummary = true; memory = ""; }
@@ -73,11 +73,11 @@ public static class RecursiveContext
         if (memory.Length > 0) messages.Add(new("user", MemoryLabel + memory));
         messages.AddRange(pending.Concat(recent).Select(m => new PromptMessage(m.Role, m.Content)));
         messages.Add(new("user", question));
-        var used = messages.Sum(m => SlidingContext.EstimateTokens(m.Content));
+        var used = messages.Sum(m => TokenBudget.Count(m.Content, options));
         var documentBudget = Math.Min(4096, budget - used);
         var excerpts = ProjectContext.Select(files, question, documentBudget);
         messages[^1] = new("user", question + excerpts.Text);
-        used = messages.Sum(m => SlidingContext.EstimateTokens(m.Content));
+        used = messages.Sum(m => TokenBudget.Count(m.Content, options));
         if (used > budget) throw new InvalidOperationException("Le contexte préparé dépasse son budget.");
         return new(new(messages, pending.Count + recent.Length, used, excerpts.Sources.Count, needsSummary,
             through, memory, reducer.Calls, excerpts.Sources, excerpts.Available), memory, through, hash, changed);

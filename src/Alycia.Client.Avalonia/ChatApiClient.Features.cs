@@ -11,7 +11,7 @@ using Alycia.Modules.Chat.Application;
 namespace Alycia.Client.Avalonia;
 
 public sealed record SettingsReply(ConversationSummary Conversation, ChatOptions Options);
-public sealed record ContextPreview(ContextWindow Context, ChatOptions Options, int Revision, int OmittedMessages, string Estimator);
+public sealed record ContextPreview(ContextWindow Context, ChatOptions Options, int Revision, int OmittedMessages, string Estimator, GenerationUsage? Usage = null);
 public sealed record PromptItem(Guid Id, string Name, string SystemPrompt)
 {
     public override string ToString() => Name;
