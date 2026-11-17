@@ -14,7 +14,7 @@ public sealed class EfChatRepository(ChatDbContext database) : IChatRepository
     public async Task<IReadOnlyList<Attachment>> ContextFilesAsync(Guid id, int first, CancellationToken ct)
     {
         var files = await database.Attachments.AsNoTracking().Where(f => f.ConversationId == id && f.ContextMode != "excluded"
-            && (f.ContextMode == "pinned" || f.AnchorSequence >= first) && f.Text != "")
+            && ((f.ContextMode == "pinned" || f.ContextMode == "project") || f.AnchorSequence >= first) && f.Text != "")
             .OrderBy(f => f.CreatedAtUtc).ToListAsync(ct);
         var summaries = await database.DocumentAnalyses.AsNoTracking().Where(a => a.ConversationId == id && a.UseInContext).ToArrayAsync(ct);
         if (summaries.Length == 0) return files;

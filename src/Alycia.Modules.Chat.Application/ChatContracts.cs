@@ -7,7 +7,7 @@ public interface IChatRepository
     Task<IReadOnlyList<Attachment>> FilesAsync(Guid id, CancellationToken cancellationToken);
     async Task<IReadOnlyList<Attachment>> ContextFilesAsync(Guid id, int first, CancellationToken ct) =>
         (await FilesAsync(id, ct)).Where(f => f.ContextMode != "excluded"
-            && (f.ContextMode == "pinned" || f.AnchorSequence >= first)).ToArray();
+            && ((f.ContextMode == "pinned" || f.ContextMode == "project") || f.AnchorSequence >= first)).ToArray();
     async Task<IReadOnlyList<ChatMessage>> SummaryRangeAsync(Guid id, int after, int through, CancellationToken ct) =>
         (await MessagesAsync(id, through - after, through + 1, ct)).Where(m => m.Sequence > after && m.Sequence <= through).ToArray();
     Task<IReadOnlyList<Conversation>> ListAsync(CancellationToken cancellationToken);
@@ -21,7 +21,7 @@ public interface IChatRepository
 }
 
 public sealed record PromptMessage(string Role, string Content);
-public sealed record ContextWindow(IReadOnlyList<PromptMessage> Messages, int HistoryMessagesIncluded, int EstimatedInputTokens, int FilesIncluded = 0, bool NeedsSummary = false, int SummaryThroughSequence = 0, string SummaryText = "", int SummaryCalls = 0);
+public sealed record ContextWindow(IReadOnlyList<PromptMessage> Messages, int HistoryMessagesIncluded, int EstimatedInputTokens, int FilesIncluded = 0, bool NeedsSummary = false, int SummaryThroughSequence = 0, string SummaryText = "", int SummaryCalls = 0, IReadOnlyList<SourceExcerpt>? Sources = null, int FilesAvailable = 0, int ToolReserve = 0);
 public sealed record GenerationStats(int? PromptTokens, int? OutputTokens, long? TotalNanoseconds,
     long? EvaluationNanoseconds, string? DoneReason);
 public sealed record GenerationReply(string Content, GenerationStats? Stats = null);

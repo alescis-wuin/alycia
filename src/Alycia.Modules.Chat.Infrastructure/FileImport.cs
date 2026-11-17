@@ -70,6 +70,7 @@ public sealed class FileImport(ChatDbContext database, FileStorage storage)
                 ConversationId = conversationId,
                 BatchId = batchId,
                 ArchiveId = archive,
+                ContextMode = archive.HasValue || name.Contains('/') ? "project" : "window",
                 Name = name,
                 Size = bytes.Length,
                 Sha256 = Convert.ToHexString(SHA256.HashData(bytes)),

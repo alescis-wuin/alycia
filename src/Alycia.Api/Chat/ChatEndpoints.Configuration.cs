@@ -68,7 +68,7 @@ internal static partial class ChatEndpoints
         routes.MapPatch("/conversations/{id:guid}/files/{fileId:guid}", async (Guid id, Guid fileId,
             ConfigureFile request, ChatDbContext database, IChatRepository repository, CancellationToken ct) =>
         {
-            if (request.Mode is not ("window" or "pinned" or "excluded"))
+            if (request.Mode is not ("window" or "pinned" or "excluded" or "project"))
                 throw new ArgumentException("Mode documentaire invalide.");
             var conversation = await repository.FindAsync(id, ct) ?? throw new ConversationNotFoundException();
             ConversationConfiguration.CheckRevision(conversation, request.Revision);
