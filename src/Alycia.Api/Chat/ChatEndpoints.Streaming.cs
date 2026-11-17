@@ -10,7 +10,7 @@ internal static partial class ChatEndpoints
     private static void MapStreaming(RouteGroupBuilder routes)
     {
         routes.MapPost("/conversations/{id:guid}/stream", async (Guid id, StreamMessage request,
-            ChatService service, HttpContext http, CancellationToken ct) =>
+            ChatService service, HttpContext http, ILogger<ChatService> logger, CancellationToken ct) =>
         {
             http.Response.ContentType = "application/x-ndjson; charset=utf-8";
             http.Response.Headers.CacheControl = "no-store";
@@ -30,9 +30,11 @@ internal static partial class ChatEndpoints
             catch (OperationCanceledException) when (ct.IsCancellationRequested) { }
             catch (Exception exception) when (http.Response.HasStarted && !ct.IsCancellationRequested)
             {
+                // Do not log source/prompt text carried by exception messages.
+                logger.LogWarning("Flux interrompu : {ExceptionType} ; {StackTrace}", exception.GetType().Name, exception.StackTrace);
                 var message = exception switch
                 {
-                    ChatModelException or ChatConflictException => exception.Message,
+                    ChatModelException or ChatConflictException or ArgumentException => exception.Message,
                     _ => "L’enregistrement n’a pas été confirmé. Actualisez l’historique avant de réessayer."
                 };
                 await WriteAsync(new { type = "error", message });

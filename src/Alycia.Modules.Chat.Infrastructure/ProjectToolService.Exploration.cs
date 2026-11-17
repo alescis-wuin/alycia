@@ -13,7 +13,7 @@ public sealed partial class ProjectToolService
         var snapshot = await (index ?? new ProjectIndexService(database, reader.Storage, reader)).BuildAsync(conversation, ct);
         var lexical = ProjectRetrieval.Bm25(snapshot.Chunks, query);
         var scores = snapshot.Chunks.Select((c, i) => (c, score: lexical[i])).ToDictionary(x => ProjectRetrieval.Reference(x.c), x => x.score);
-        var ranked = tool == "project_search_passages" ? ProjectRetrieval.Rank(snapshot.Chunks, query)
+        var ranked = tool == "project_search_passages" ? ProjectRetrieval.Rank(snapshot.Chunks, query, lexicalScores: lexical)
             : snapshot.Chunks.Where(c => c.Kind != "text" && (tool == "project_find_symbols"
                 ? c.Symbol.Contains(query, StringComparison.OrdinalIgnoreCase) : c.References.Contains(query, StringComparer.Ordinal))).ToArray();
         var results = new List<object>(); var evidence = new List<ToolEvidence>();

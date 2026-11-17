@@ -50,6 +50,13 @@ public sealed class ProjectToolStorageTests
             Assert.Contains(indexed.Chunks, c => c.Symbol.Contains("HiddenAtEnd"));
             Assert.DoesNotContain(indexed.Chunks, c => c.Text.Contains("SECRET_NEVER_READ"));
             Assert.Equal(1, (await index.BuildAsync(conversation.Id, default)).ReusedFiles);
+            var cachePath = Path.Combine(storage.DirectoryFor(conversation.Id), "index-v1", file.Id.ToString("N") + ".json");
+            var cacheJson = System.Text.Json.Nodes.JsonNode.Parse(await File.ReadAllTextAsync(cachePath))!;
+            cacheJson["chunks"] = null;
+            await File.WriteAllTextAsync(cachePath, cacheJson.ToJsonString());
+            var repaired = await index.BuildAsync(conversation.Id, default);
+            Assert.Equal(0, repaired.ReusedFiles);
+            Assert.Contains(repaired.Chunks, c => c.Symbol.Contains("HiddenAtEnd"));
             var selected = ProjectRetrieval.Rank(indexed.Chunks, "HiddenAtEnd Value");
             var context = FileContext.Build("system", [], "HiddenAtEnd Value", new() { SourceCandidates = selected }, [file], 1);
             Assert.Contains("HiddenAtEnd", context.Messages[^1].Content);

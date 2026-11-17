@@ -145,8 +145,10 @@ def run(args):
                     boundary = "evaluation-" + uuid.uuid4().hex
                     body = (f'--{boundary}\r\nContent-Disposition: form-data; name="files"; filename="corpus.zip"\r\n'
                             'Content-Type: application/zip\r\n\r\n').encode() + archive.getvalue() + f'\r\n--{boundary}--\r\n'.encode()
+                    importing = time.monotonic()
                     call("POST", prefix + "/files/" + str(uuid.uuid4()), raw=body,
                          headers={"Content-Type": "multipart/form-data; boundary=" + boundary})
+                    row["importMilliseconds"] = (time.monotonic() - importing) * 1000
                     row["historyTurns"] = []
                     for turn in case.get("turns", []):
                         revision = call("GET", prefix + "/settings")["conversation"]["revision"]
@@ -154,7 +156,9 @@ def run(args):
                         if not events or events[-1]["type"] != "done":
                             raise RuntimeError("Historique interrompu avant la question de rappel")
                         row["historyTurns"].append(events[-1]["result"].get("usage"))
+                    preparing = time.monotonic()
                     preview = call("POST", prefix + "/context", {"content": case["question"]})
+                    row["previewMilliseconds"] = (time.monotonic() - preparing) * 1000
                     row["preview"] = preview["context"]
                     row["retrieval"] = retrieval_metrics(case, row["preview"].get("sources") or [])
                     row["previewUsage"] = preview.get("usage")

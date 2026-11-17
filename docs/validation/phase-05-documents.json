@@ -1,0 +1,66 @@
+{
+  "measured_at_utc": "2026-11-17T11:16:10.327199+00:00",
+  "scope": "Warm CPU extraction/segmentation on frozen synthetic documents, bytes already in memory; no database, upload, OCR or model inference.",
+  "rows": [
+    {
+      "path": "docs/formulas.xlsx",
+      "bytes": 4871,
+      "characters": 204,
+      "complete": false,
+      "repeats": 24,
+      "extraction": {
+        "p50_ms": 0.0485,
+        "p95_ms": 0.1513
+      },
+      "segmentation": {
+        "p50_ms": 0.0065,
+        "p95_ms": 0.0375
+      }
+    },
+    {
+      "path": "docs/pages.pdf",
+      "bytes": 1822,
+      "characters": 62,
+      "complete": true,
+      "repeats": 24,
+      "extraction": {
+        "p50_ms": 0.4734,
+        "p95_ms": 0.9417
+      },
+      "segmentation": {
+        "p50_ms": 0.0121,
+        "p95_ms": 0.0431
+      }
+    },
+    {
+      "path": "docs/slides.pptx",
+      "bytes": 29137,
+      "characters": 128,
+      "complete": false,
+      "repeats": 24,
+      "extraction": {
+        "p50_ms": 0.1071,
+        "p95_ms": 0.1321
+      },
+      "segmentation": {
+        "p50_ms": 0.0068,
+        "p95_ms": 0.012
+      }
+    },
+    {
+      "path": "docs/structured.docx",
+      "bytes": 36805,
+      "characters": 224,
+      "complete": false,
+      "repeats": 24,
+      "extraction": {
+        "p50_ms": 0.0856,
+        "p95_ms": 0.1236
+      },
+      "segmentation": {
+        "p50_ms": 0.0087,
+        "p95_ms": 0.0111
+      }
+    }
+  ]
+}

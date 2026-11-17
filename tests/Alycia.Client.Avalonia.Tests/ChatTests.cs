@@ -8,6 +8,8 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Interactivity;
+using Avalonia.Input;
+using Avalonia.Input.Raw;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
@@ -127,6 +129,9 @@ public sealed class ChatTests
             if (request.Method == HttpMethod.Get && path.EndsWith("/tools"))
                 return Json(new ProjectToolsInfo(true, true, 24, ["project_list", "project_read", "project_search"], "2025-11-25"));
             if (request.Method == HttpMethod.Get && path.EndsWith("/files")) return Json(files);
+            if (request.Method == HttpMethod.Get && path.EndsWith("/analyses")) return Json(Array.Empty<AnalysisItem>());
+            if (request.Method == HttpMethod.Get && path.EndsWith("/analysis-runs"))
+                return Json(new[] { new AnalysisRunItem(Guid.NewGuid(), null, 2048, "cancelled", 4, 2, 0, DateTimeOffset.UtcNow) });
             if (request.Method == HttpMethod.Get && path.EndsWith("/prompts"))
                 return Json(Array.Empty<PromptItem>());
             if (request.Method == HttpMethod.Get)
@@ -286,6 +291,27 @@ public sealed class ChatTests
                 Assert.NotNull(frame);
                 frame.Save(Path.ChangeExtension(compact, "compact.png"), global::Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
             }
+
+            window.FindControl<Button>("AnalysisButton")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            PumpUntil(() => window.OwnedWindows.Count > 0);
+            var analysisDialog = window.OwnedWindows.Single();
+            Assert.True(analysisDialog.Bounds.Height <= window.Bounds.Height - 32);
+            Assert.True(analysisDialog.Bounds.Width <= window.Bounds.Width - 32);
+            Assert.Contains(analysisDialog.GetVisualDescendants().OfType<ComboBox>(), box => box.SelectedItem is AnalysisRunItem { CompletedUnits: 4, ReusedUnits: 2 });
+            var resumeButton = analysisDialog.GetVisualDescendants().OfType<Button>().Single(b => Equals(b.Content, "Reprendre"));
+            Assert.True(resumeButton.IsVisible && resumeButton.Focusable);
+            if (Environment.GetEnvironmentVariable("ALYCIA_UI_CAPTURE") is { Length: > 0 } analysisImage)
+            {
+                using var frame = analysisDialog.CaptureRenderedFrame();
+                Assert.NotNull(frame);
+                frame.Save(Path.ChangeExtension(analysisImage, "analysis.png"), global::Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
+            }
+            analysisDialog.KeyPress(Key.Tab, RawInputModifiers.None, PhysicalKey.Tab, null);
+            analysisDialog.KeyRelease(Key.Tab, RawInputModifiers.None, PhysicalKey.Tab, null);
+            analysisDialog.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
+            // Escape closes and disposes the dialog synchronously; key-up belongs to the owner.
+            window.KeyRelease(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
+            PumpUntil(() => window.OwnedWindows.Count == 0 && window.FindControl<Button>("RefreshButton")!.IsEnabled);
 
             fail = true;
             window.FindControl<TextBox>("MessageInput")!.Text = "Conserver ce brouillon";

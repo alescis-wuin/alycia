@@ -9,6 +9,14 @@ namespace Alycia.Modules.Chat.Tests;
 public sealed class ToolCallingTests
 {
     [Fact]
+    public void DefaultWindowReservesAllNineToolsAndStillFitsTheProtectedQuestion()
+    {
+        var options = ProjectAgent.ContextOptions(new());
+        var context = SlidingContext.Build("Réponds brièvement en français.", [], "Cherche le symbole ReadAsync puis lis son implémentation.", options);
+        Assert.True(context.EstimatedInputTokens + options.MaxOutputTokens + options.SafetyTokens <= options.ContextTokens);
+    }
+
+    [Fact]
     public async Task NativeToolOnlyTurnPreservesThinkingAndStructuredArguments()
     {
         using var http = Http("""

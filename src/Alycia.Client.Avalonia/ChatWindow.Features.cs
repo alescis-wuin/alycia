@@ -64,10 +64,10 @@ public partial class ChatWindow
         var dialog = new Window
         {
             Title = title,
-            Width = 700,
-            Height = 680,
-            MinWidth = 500,
-            MinHeight = 400,
+            Width = Math.Clamp(Bounds.Width - 48, 360, 700),
+            Height = Math.Clamp(Bounds.Height - 48, 320, 680),
+            MinWidth = 360,
+            MinHeight = 320,
             WindowStartupLocation = WindowStartupLocation.CenterOwner
         };
         var cancel = new Button { Content = "Fermer" };

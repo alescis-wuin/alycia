@@ -8,6 +8,30 @@ namespace Alycia.Modules.Chat.Tests;
 
 public sealed class OllamaChatModelTests
 {
+    [Fact]
+    public async Task GenerationsAndEmbeddingsShareTheLocalInferenceLimit()
+    {
+        var active = 0; var maximum = 0;
+        using var http = Client(async (request, ct) =>
+        {
+            var path = request.RequestUri!.AbsolutePath;
+            if (path == "/api/tags") return Json("{\"models\":[{\"name\":\"demo\"}]}");
+            if (path == "/api/show") return Json("{\"capabilities\":[\"completion\"]}");
+            var current = Interlocked.Increment(ref active); maximum = Math.Max(maximum, current);
+            try
+            {
+                await Task.Delay(15, ct);
+                return Json(path == "/api/embed" ? "{\"embeddings\":[[1,0]]}"
+                    : "{\"done\":true,\"done_reason\":\"stop\",\"message\":{\"role\":\"assistant\",\"content\":\"ok\"}}");
+            }
+            finally { Interlocked.Decrement(ref active); }
+        });
+        var model = new OllamaChatModel(http, new());
+        var embeddings = new OllamaEmbeddings(http);
+        await Task.WhenAll(model.GenerateAsync("demo", [], default), embeddings.EmbedAsync("embed", ["source"], default), model.GenerateAsync("demo", [], default));
+        Assert.Equal(1, maximum);
+    }
+
     [Theory]
     [InlineData("chat", "la génération")]
     [InlineData("summary", "le résumé interne")]

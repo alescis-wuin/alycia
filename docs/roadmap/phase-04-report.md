@@ -35,3 +35,10 @@ Aucun juge cloud, nouvel appel de modèle, mémoire entre conversations ou réso
 sémantique automatique des contradictions. Les synonymes non explicitement reliés
 restent séparés. État **PARTIEL** pour l'évaluation qualitative Ollama et la recette
 PostgreSQL ; résultats déterministes dans `docs/validation/phase-04-results.json`.
+
+Commit de livraison : `cdb5feef53ef0651bc3e8847506ce03edef9fe3e`.
+
+Consolidation ultérieure : la phase 05 a exécuté les quatre tests PostgreSQL et
+la recette HTTP/API/MCP réelle (fournisseur simulé). Les résultats ci-dessus
+décrivent le checkpoint initial ; voir `phase-05-results.json` dans `docs/validation`
+pour la validation cumulée. La campagne qualitative Ollama reste non exécutée.

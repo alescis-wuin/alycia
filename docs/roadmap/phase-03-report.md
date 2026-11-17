@@ -44,3 +44,10 @@ pages. Test PostgreSQL de reprise/idempotence ajouté au scénario existant.
 exécutées. Aucun gain de qualité ni de temps d'inférence annoncé.
 
 Les identifiants de passage utilisent désormais `coordinates-v2` pour éviter de réutiliser une ancienne identité après changement d’extraction. Les diagnostics déjà enregistrés restent lisibles. Les contrôles ont détecté puis corrigé deux incompatibilités d’extraction : repli DOCX atypique et libellé historique des cellules XLSX, sans changer leurs assertions.
+
+Commit de livraison : `09203f1dcb4717d61168e72f4dde1fef4267d366`.
+
+Consolidation ultérieure : la phase 05 a exécuté les quatre tests PostgreSQL et
+la recette HTTP/API/MCP réelle (fournisseur simulé). Les résultats ci-dessus
+décrivent le checkpoint initial ; voir `phase-05-results.json` dans `docs/validation`
+pour la validation cumulée. La campagne qualitative Ollama reste non exécutée.

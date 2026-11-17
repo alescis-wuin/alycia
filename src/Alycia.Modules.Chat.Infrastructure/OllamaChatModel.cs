@@ -103,6 +103,7 @@ public sealed partial class OllamaChatModel(HttpClient http, ChatOptions options
         timeout.CancelAfter(TimeSpan.FromSeconds(settings.TimeoutSeconds));
         try
         {
+            using var inference = await OllamaInferenceGate.EnterAsync(timeout.Token);
             await ValidateChatModelAsync(model, timeout.Token);
 
             var request = new Dictionary<string, object>

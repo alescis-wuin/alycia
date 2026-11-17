@@ -21,10 +21,10 @@ public partial class ChatWindow
         var dialog = new Window
         {
             Title = title,
-            Width = 820,
-            Height = 700,
-            MinWidth = 600,
-            MinHeight = 400,
+            Width = Math.Clamp(Bounds.Width - 48, 360, 820),
+            Height = Math.Clamp(Bounds.Height - 48, 320, 700),
+            MinWidth = 360,
+            MinHeight = 320,
             WindowStartupLocation = WindowStartupLocation.CenterOwner
         };
         var buttons = new WrapPanel { HorizontalAlignment = HorizontalAlignment.Right };

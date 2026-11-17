@@ -6,9 +6,10 @@ using Alycia.Modules.Chat.Domain;
 namespace Alycia.Modules.Chat.Application;
 
 public sealed record RetrievalDecision(string Reference, Guid FileId, string Sha256, int Start, int End, double LexicalScore, string Reason);
+public sealed record RetrievalCacheReport(bool LexicalHit, int VectorHits, int VectorMisses, bool VectorWritten);
 public sealed record RetrievalReport(string Mode, int CandidateChunks, int IndexedFiles, int EligibleFiles, IReadOnlyList<string> Omissions,
     int ZeroScoreChunks = 0, double IndexMilliseconds = 0, double RankingMilliseconds = 0,
-    IReadOnlyList<RetrievalDecision>? Decisions = null, int UnreportedDecisions = 0);
+    IReadOnlyList<RetrievalDecision>? Decisions = null, int UnreportedDecisions = 0, RetrievalCacheReport? Cache = null);
 public sealed record RetrievalPreparation(IReadOnlyList<SourceChunk> Chunks, RetrievalReport Report, IReadOnlyList<ModelCallUsage> Calls);
 public interface IProjectRetrieval
 {
@@ -32,27 +33,12 @@ public static class ProjectRetrieval
     // Version the coordinate system when extraction changes; old diagnostics keep their recorded IDs.
     public static string Reference(Guid fileId, string sha, int start, int end) => "S" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"coordinates-v2:{fileId}:{sha}:{start}:{end}")))[..12];
 
-    public static double[] Bm25(IReadOnlyList<SourceChunk> chunks, string query)
-    {
-        var terms = Tokens(query).Distinct().Take(32).ToArray();
-        var documents = chunks.Select(c => Tokens(c.Text + " " + c.Path + " " + c.Symbol + " " + c.Symbol + " " + c.Symbol)
-            .GroupBy(t => t).ToDictionary(g => g.Key, g => g.Count())).ToArray();
-        var lengths = documents.Select(d => d.Values.Sum()).ToArray();
-        var average = Math.Max(1, lengths.Length == 0 ? 1 : lengths.Average());
-        var scores = new double[chunks.Count];
-        foreach (var term in terms)
-        {
-            var frequency = documents.Count(d => d.ContainsKey(term));
-            var idf = Math.Log(1 + (chunks.Count - frequency + .5) / (frequency + .5));
-            for (var i = 0; i < chunks.Count; i++)
-                if (documents[i].TryGetValue(term, out var count)) scores[i] += idf * count * 2.2 / (count + 1.2 * (.25 + .75 * lengths[i] / average));
-        }
-        return scores;
-    }
+    public static double[] Bm25(IReadOnlyList<SourceChunk> chunks, string query) => new LexicalIndex(chunks).Score(query);
 
-    public static IReadOnlyList<SourceChunk> Rank(IReadOnlyList<SourceChunk> chunks, string query, double[]? similarities = null)
+    public static IReadOnlyList<SourceChunk> Rank(IReadOnlyList<SourceChunk> chunks, string query, double[]? similarities = null, double[]? lexicalScores = null)
     {
-        var lexical = Bm25(chunks, query);
+        var lexical = lexicalScores ?? Bm25(chunks, query);
+        if (lexical.Length != chunks.Count) throw new ArgumentException("Dimensions lexicales invalides.");
         var score = lexical.ToArray();
         if (similarities is not null)
         {
@@ -68,19 +54,30 @@ public static class ProjectRetrieval
         var related = seeds.SelectMany(i => chunks[i].References).Where(s => s.Length >= 4).ToHashSet(StringComparer.Ordinal);
         // Small structural tie-breaker, not a learned reranker or a semantic call graph.
         var boost = similarities is null ? .15 : .001;
-        var remaining = Enumerable.Range(0, chunks.Count).Where(i => score[i] > 0).ToList();
-        var ordered = new List<SourceChunk>();
-        var counts = new Dictionary<Guid, int>();
-        var seen = new HashSet<string>(StringComparer.Ordinal);
-        while (remaining.Count > 0)
+        var baseScores = score.Select((s, i) => s + (related.Any(r => chunks[i].Symbol.Contains(r, StringComparison.Ordinal)) ? boost : 0)).ToArray();
+        var queues = Enumerable.Range(0, chunks.Count).Where(i => score[i] > 0).GroupBy(i => chunks[i].FileId)
+            .ToDictionary(g => g.Key, g => new Queue<int>(g.OrderByDescending(i => baseScores[i])
+                .ThenBy(i => chunks[i].Path, StringComparer.Ordinal).ThenBy(i => chunks[i].Start).ThenBy(i => i)));
+        var priority = Comparer<(double Score, string Path, int Start, int Index)>.Create((a, b) =>
         {
-            var i = remaining.OrderByDescending(i => (score[i]
-                + (related.Any(r => chunks[i].Symbol.Contains(r, StringComparison.Ordinal)) ? boost : 0))
-                / (1 + .6 * counts.GetValueOrDefault(chunks[i].FileId)))
-                .ThenBy(i => chunks[i].Path, StringComparer.Ordinal).ThenBy(i => chunks[i].Start).First();
-            remaining.Remove(i);
-            if (!seen.Add(StructuredMemory.Hash(chunks[i].Text.Trim()))) continue;
-            ordered.Add(chunks[i]); counts[chunks[i].FileId] = counts.GetValueOrDefault(chunks[i].FileId) + 1;
+            var compare = a.Score.CompareTo(b.Score); if (compare != 0) return compare;
+            compare = StringComparer.Ordinal.Compare(a.Path, b.Path); if (compare != 0) return compare;
+            compare = a.Start.CompareTo(b.Start); return compare != 0 ? compare : a.Index.CompareTo(b.Index);
+        });
+        var heap = new PriorityQueue<int, (double Score, string Path, int Start, int Index)>(priority);
+        var counts = new Dictionary<Guid, int>(); var ordered = new List<SourceChunk>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        void Enqueue(Guid file)
+        {
+            if (!queues[file].TryDequeue(out var i)) return;
+            heap.Enqueue(i, (-baseScores[i] / (1 + .6 * counts.GetValueOrDefault(file)), chunks[i].Path, chunks[i].Start, i));
+        }
+        foreach (var file in queues.Keys) Enqueue(file);
+        while (heap.TryDequeue(out var i, out _))
+        {
+            if (seen.Add(StructuredMemory.Hash(chunks[i].Text.Trim())))
+            { ordered.Add(chunks[i]); counts[chunks[i].FileId] = counts.GetValueOrDefault(chunks[i].FileId) + 1; }
+            Enqueue(chunks[i].FileId);
         }
         return ordered;
     }

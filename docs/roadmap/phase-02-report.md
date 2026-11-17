@@ -34,3 +34,10 @@ Ollama. Le corpus de validation n'a pas été modifié après la phase 01.
 `docs/validation/phase-02-results.json` pour les contrôles effectivement exécutés.
 
 Compilation complète et lint réussis. Tests concernés : 125 Chat et 44 client réussis, quatre PostgreSQL ignorés. Les 11 tests Workspaces avaient réussi avant la correction du contrat du catalogue.
+
+Commit de livraison : `614bb0b05c57a2e9bc4636ef7583543876640e2e`.
+
+Consolidation ultérieure : la phase 05 a exécuté les quatre tests PostgreSQL et
+la recette HTTP/API/MCP réelle (fournisseur simulé). Les résultats ci-dessus
+décrivent le checkpoint initial ; voir `phase-05-results.json` dans `docs/validation`
+pour la validation cumulée. La campagne qualitative Ollama reste non exécutée.

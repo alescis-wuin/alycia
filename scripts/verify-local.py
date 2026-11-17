@@ -264,7 +264,7 @@ def verify_tools(call, model, conversations, checks):
     assert result["result"]["protocolVersion"] == "2025-11-25"
     call("POST", prefix + "/mcp", {"jsonrpc": "2.0", "method": "notifications/initialized"}, headers=headers, expected=202)
     catalog = rpc("tools/list")["result"]["tools"]
-    assert {t["name"] for t in catalog} == {"project_list", "project_read", "project_search"}
+    assert {t["name"] for t in catalog} == {"project_list", "project_read", "project_search", "project_search_passages", "project_find_symbols", "project_find_references", "project_read_many", "history_search", "history_read"}
     assert all(t["annotations"]["readOnlyHint"] for t in catalog)
     call("GET", prefix + "/mcp", expected=405)
     call("POST", prefix + "/mcp", {"jsonrpc": "2.0", "id": 1, "method": "ping"}, headers=dict(headers, Origin="https://example.invalid"), expected=403)
@@ -286,6 +286,21 @@ def verify_tools(call, model, conversations, checks):
     result = rpc("tools/call", {"name": "project_read", "arguments": {"fileId": code["id"], "offset": len(source.decode()) - 60}})["result"]
     assert not result["isError"] and "CODE_SENTINEL_END" in result["content"][0]["text"]
     checks.append("original_read_beyond_import_excerpt")
+    for tool in ("project_search_passages", "project_find_symbols"):
+        found = rpc("tools/call", {"name": tool, "arguments": {"query": "CODE_SENTINEL_END", "limit": 1}})["result"]
+        assert not found["isError"]
+        matches = json.loads(found["content"][0]["text"])["results"]
+        assert matches and matches[0]["fileId"] == code["id"]
+        assert matches[0]["reference"] and matches[0]["sha256"] == code["sha256"]
+    refs = rpc("tools/call", {"name": "project_find_references", "arguments": {"query": "NOT_A_SYMBOL"}})["result"]
+    assert not refs["isError"] and json.loads(refs["content"][0]["text"])["syntaxOnly"]
+    grouped = rpc("tools/call", {"name": "project_read_many", "arguments": {"reads": [
+        {"fileId": code["id"], "symbol": "CODE_SENTINEL_END.Value"}, {"fileId": excluded["id"]}]}})["result"]
+    assert not grouped["isError"]
+    reads = json.loads(grouped["content"][0]["text"])["results"]
+    assert not reads[0]["isError"] and reads[1]["isError"]
+    assert "NE_JAMAIS_RESUMER_CE_CONTENU" not in grouped["content"][0]["text"]
+    checks.append("ranked_symbols_references_and_grouped_read_contracts")
     revision = call("GET", prefix + "/settings")["conversation"]["revision"]
     request = {"requestId": str(uuid.uuid4()), "revision": revision,
         "content": "Utilise project_search pour chercher CODE_SENTINEL_END, puis project_read pour lire le code correspondant. Explique sa valeur."}
@@ -308,6 +323,16 @@ def verify_tools(call, model, conversations, checks):
         if "[S" in reply["messages"][-1]["content"]:
             assert citations["recognized"], "Référence émise mais non reconnue"
     checks.append("native_tool_loop_trace_persistence_export_and_replay")
+    history = rpc("tools/call", {"name": "history_search", "arguments": {"query": "CODE_SENTINEL_END", "limit": 1}})["result"]
+    assert not history["isError"]
+    hits = json.loads(history["content"][0]["text"])["matches"]
+    assert hits
+    historical = rpc("tools/call", {"name": "history_read", "arguments": {"sequence": hits[0]["matchedSequence"]}})["result"]
+    pair = json.loads(historical["content"][0]["text"])["messages"]
+    assert [item["role"] for item in pair] == ["user", "assistant"]
+    assert [item["nature"] for item in pair] == ["user_declaration", "assistant_proposal"]
+    assert all(item["reference"].startswith("H") and item["sha256"] for item in pair)
+    checks.append("historical_search_read_and_role_provenance")
     current = call("GET", prefix + "/settings")["conversation"]
     options["useProjectTools"] = False
     call("PUT", prefix + "/settings", {"revision": current["revision"], "model": model,

@@ -7,7 +7,7 @@ namespace Alycia.Modules.Chat.Infrastructure;
 public sealed class ProjectIndexService(ChatDbContext database, FileStorage storage, ProjectSourceReader reader) : IProjectIndex
 {
     public const int MaxCharacters = 8_000_000;
-    private sealed record Cached(int Version, string Sha256, string Path, string Status, SourceChunk[] Chunks);
+    private sealed record Cached(int Version, string Sha256, string Path, string Status, SourceChunk[] Chunks, int ExtractorVersion = 0);
     public async Task<ProjectIndexSnapshot> BuildAsync(Guid conversation, CancellationToken ct)
     {
         if (!await database.Conversations.AnyAsync(c => c.Id == conversation, ct)) throw new ConversationNotFoundException();
@@ -26,13 +26,15 @@ public sealed class ProjectIndexService(ChatDbContext database, FileStorage stor
                 if (File.Exists(cachePath) && new FileInfo(cachePath).Length <= 64 * 1024 * 1024)
                 {
                     try { cache = JsonSerializer.Deserialize<Cached>(await File.ReadAllTextAsync(cachePath, ct), ProjectToolCatalog.Json); }
-                    catch (JsonException) { }
+                    catch (Exception e) when (e is JsonException or IOException or UnauthorizedAccessException) { }
                 }
-                var valid = cache is not null && cache.Version == CodeStructure.Version && cache.Sha256 == file.Sha256
+                var valid = cache is not null && cache.Version == CodeStructure.Version && cache.ExtractorVersion == StructuredDocuments.Version && cache.Sha256 == file.Sha256
                     && cache.Path == file.Name && cache.Status == file.Status
-                    && cache.Chunks.All(c => c.FileId == file.Id && c.Sha256 == file.Sha256 && c.Path == file.Name);
+                    && cache.Chunks is not null && cache.Chunks.All(c => c is not null && c.FileId == file.Id
+                        && c.Sha256 == file.Sha256 && c.Path == file.Name && c.Text is not null && c.Symbol is not null
+                        && c.References is not null && c.Start >= 0 && c.End - c.Start == c.Text.Length);
                 SourceChunk[] parts;
-                if (valid) { parts = cache!.Chunks; }
+                if (valid) { parts = cache!.Chunks!; }
                 else
                 {
                     var original = await reader.ReadAsync(file, ct);
@@ -42,7 +44,7 @@ public sealed class ProjectIndexService(ChatDbContext database, FileStorage stor
                     var temp = cachePath + "." + Guid.NewGuid().ToString("N");
                     try
                     {
-                        await File.WriteAllTextAsync(temp, JsonSerializer.Serialize(new Cached(CodeStructure.Version, file.Sha256, file.Name, file.Status, parts), ProjectToolCatalog.Json), ct);
+                        await File.WriteAllTextAsync(temp, JsonSerializer.Serialize(new Cached(CodeStructure.Version, file.Sha256, file.Name, file.Status, parts, StructuredDocuments.Version), ProjectToolCatalog.Json), ct);
                         ct.ThrowIfCancellationRequested(); File.Move(temp, cachePath, true);
                     }
                     finally { if (File.Exists(temp)) File.Delete(temp); }

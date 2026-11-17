@@ -470,3 +470,7 @@ Do not use `docker compose down --volumes` when persistent data must be retained
 - API access through Docker Compose is restricted to the host loopback interface.
 - Full backup and restore procedures are not implemented.
 - No CI/CD pipeline is configured.
+
+## Programme contexte et preuves — novembre 2026
+
+[Compte rendu des cinq phases](docs/roadmap/program-report.md) · [Installation et utilisation CachyOS/fish](docs/roadmap/local-execution-guide.md) · [Résultats vérifiés et limites](docs/validation/phase-05-results.json).

@@ -26,12 +26,20 @@ internal static class ResponseDiagnostics
             text.AppendLine($"Durée des appels : {usage.ElapsedMilliseconds / 1000:F1} s · {(usage.Complete ? "comptes fournis par Ollama" : "mesures incomplètes du fournisseur")}");
             text.AppendLine("Comptage préparatoire : " + usage.Counter);
             text.AppendLine("Identité du modèle : " + (usage.ModelIdentity ?? "non disponible"));
+            foreach (var call in usage.Calls.Where(c => c.FirstContentMilliseconds is not null))
+                text.AppendLine($"Premier fragment de réponse ({call.Purpose}) : {call.FirstContentMilliseconds / 1000:F2} s après le début de cet appel.");
             foreach (var group in usage.Calls.GroupBy(c => c.Purpose))
                 text.AppendLine($"  {group.Key} : {group.Count()} appel(s), {group.Sum(c => c.ElapsedMilliseconds) / 1000:F1} s");
         }
         if (report.Retrieval is { } retrieval)
         {
             text.AppendLine($"\nRecherche {retrieval.Mode} : {retrieval.IndexedFiles}/{retrieval.EligibleFiles} fichiers indexés, {retrieval.CandidateChunks} passages candidats.");
+            text.AppendLine($"Index : {retrieval.IndexMilliseconds:F1} ms · classement : {retrieval.RankingMilliseconds:F1} ms · {retrieval.ZeroScoreChunks} scores lexicaux nuls.");
+            if (retrieval.Cache is { } cache)
+                text.AppendLine($"Cache lexical : {(cache.LexicalHit ? "réutilisé" : "construit")} · vecteurs : {cache.VectorHits} réutilisés, {cache.VectorMisses} calculés · {(cache.VectorWritten ? "cache écrit" : "aucune écriture vectorielle")}.");
+            foreach (var group in (retrieval.Decisions ?? []).GroupBy(d => d.Reason))
+                text.AppendLine($"  {group.Key} : {group.Count()} passage(s)");
+            if (retrieval.UnreportedDecisions > 0) text.AppendLine($"{retrieval.UnreportedDecisions} décisions supplémentaires non détaillées.");
             foreach (var omission in retrieval.Omissions) text.AppendLine(omission);
         }
         if (report.Memory is { } memory)

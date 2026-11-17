@@ -23,3 +23,10 @@ Les essais simulés ne constituent pas une baseline de qualité du modèle.
 Ollama, PostgreSQL, Windows, KDE et RTX 4070 : **NON EXÉCUTÉ** à ce checkpoint.
 L'absence de ces environnements n'empêche pas le développement des lots suivants,
 mais interdit de déclarer un gain réel ou une validation de production.
+
+Commit de livraison : `4700bfef005e7010106817fb36c3b8afd9033462`.
+
+Consolidation ultérieure : la phase 05 a exécuté les quatre tests PostgreSQL et
+la recette HTTP/API/MCP réelle (fournisseur simulé). Les résultats ci-dessus
+décrivent le checkpoint initial ; voir `phase-05-results.json` dans `docs/validation`
+pour la validation cumulée. La campagne qualitative Ollama reste non exécutée.

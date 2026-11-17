@@ -47,6 +47,9 @@ public sealed class TokenBudgetTests
         Assert.Equal(20, usage.InputTokens);
         Assert.Equal(4, usage.OutputTokens);
         Assert.True(usage.Complete);
+        Assert.Null(usage.Calls[0].FirstContentMilliseconds);
+        Assert.NotNull(usage.Calls[1].FirstContentMilliseconds);
+        Assert.InRange(usage.Calls[1].FirstContentMilliseconds!.Value, 0, usage.Calls[1].ElapsedMilliseconds + 1);
         var unknown = new MeteredChatModel(new Measured(missing: true));
         await unknown.GenerateAsync("demo", [], settings, default);
         Assert.Null(unknown.Snapshot(settings).InputTokens);
@@ -59,7 +62,11 @@ public sealed class TokenBudgetTests
         public Task<string> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages, CancellationToken ct) => Task.FromResult("résumé");
         public Task<GenerationReply> GenerateReplyAsync(string model, IReadOnlyList<PromptMessage> messages, ChatOptions options, CancellationToken ct) =>
             Task.FromResult(new GenerationReply("résumé", missing ? null : new(10, 2, 100, 50, "stop")));
-        public Task<GenerationReply> StreamWithToolsAsync(string model, IReadOnlyList<PromptMessage> messages, ChatOptions options, Func<ModelDelta, Task> delta, CancellationToken ct) =>
-            GenerateReplyAsync(model, messages, options, ct);
+        public async Task<GenerationReply> StreamWithToolsAsync(string model, IReadOnlyList<PromptMessage> messages, ChatOptions options, Func<ModelDelta, Task> delta, CancellationToken ct)
+        {
+            await delta(new("", Status: "préparation"));
+            await delta(new("résumé"));
+            return await GenerateReplyAsync(model, messages, options, ct);
+        }
     }
 }

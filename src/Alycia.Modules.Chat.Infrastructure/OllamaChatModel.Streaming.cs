@@ -23,6 +23,7 @@ public sealed partial class OllamaChatModel
         timeout.CancelAfter(TimeSpan.FromSeconds(settings.TimeoutSeconds));
         try
         {
+            using var inference = await OllamaInferenceGate.EnterAsync(timeout.Token);
             var details = await ValidateChatModelAsync(model, timeout.Token);
             if (useTools && !details.Capabilities!.Contains("tools", StringComparer.Ordinal))
                 throw new ChatModelException("Ce modèle n’annonce pas la capacité tools. Choisissez un modèle compatible ou désactivez les outils.");
