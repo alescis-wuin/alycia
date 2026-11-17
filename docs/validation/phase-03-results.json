@@ -1,0 +1,38 @@
+{
+  "phase": "03",
+  "startCommit": "614bb0b05c57a2e9bc4636ef7583543876640e2e",
+  "status": "PARTIEL",
+  "build": "passed",
+  "lint": "passed",
+  "schema": "no pending changes",
+  "checks": [
+    {
+      "scope": "Chat suite before compatibility fixes",
+      "passed": 128,
+      "failed": 1,
+      "skipped": 4
+    },
+    {
+      "scope": "FileTests, StructuredDocumentsTests, DocumentAnalysisTests after compatibility fixes",
+      "passed": 22,
+      "failed": 0,
+      "skipped": 2
+    },
+    {
+      "scope": "Avalonia client",
+      "passed": 44,
+      "failed": 0
+    },
+    {
+      "scope": "CitationAuditTests, ProjectRetrievalTests, ProjectMcpClientTests with versioned coordinates",
+      "passed": 14,
+      "failed": 0
+    }
+  ],
+  "notExecuted": [
+    "PostgreSQL resume and HTTP integration",
+    "Ollama",
+    "visual modal review (planned phase 05)"
+  ],
+  "changesToTests": "Only analyzer syntax in Assert.Single; legacy extraction assertions retained."
+}

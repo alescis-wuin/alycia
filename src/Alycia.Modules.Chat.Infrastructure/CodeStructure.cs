@@ -8,7 +8,7 @@ namespace Alycia.Modules.Chat.Infrastructure;
 
 public static class CodeStructure
 {
-    public const int Version = 2;
+    public const int Version = 3;
     public static IReadOnlyList<SourceChunk> Split(Guid id, string path, string sha, string text, CancellationToken ct = default)
     {
         var source = SourceText.From(text);

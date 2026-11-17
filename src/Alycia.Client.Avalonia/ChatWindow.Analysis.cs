@@ -159,6 +159,15 @@ public partial class ChatWindow
         var conversation = settings.Conversation;
         var files = await _client.FilesAsync(conversation.Id, _lifetime.Token);
         var reports = await _client.AnalysesAsync(conversation.Id, _lifetime.Token);
+        var runs = await _client.AnalysisRunsAsync(conversation.Id, _lifetime.Token);
+        var resumable = runs.Where(r => r.State != "completed").ToArray();
+        var resume = new ComboBox
+        {
+            ItemsSource = resumable,
+            SelectedIndex = resumable.Length > 0 ? 0 : -1,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            PlaceholderText = "Aucune analyse à reprendre"
+        };
         var scopes = new[] { new ScopeChoice(null, $"Tous les documents · {files.Length} fichiers") }
             .Concat(files.GroupBy(f => f.BatchId).Select(g => new ScopeChoice(g.Key,
                 $"Import du {g.Min(f => f.CreatedAtUtc).ToLocalTime():dd/MM HH:mm} · {g.Count()} fichiers · {g.First().Name}"))).ToArray();
@@ -178,19 +187,23 @@ public partial class ChatWindow
         panel.Children.Add(Label($"Budget d’appels : {settings.Options.SummaryMaxCalls}. L’opération peut être longue et reste annulable. "
             + "Les fichiers sans texte et les exclusions figurent dans le manifeste. Les dossiers exclus avant import ne sont pas parcourus."));
         panel.Children.Add(Label("Analyses enregistrées")); panel.Children.Add(selected);
+        panel.Children.Add(Label("Exécutions interrompues — les unités compatibles sont conservées après chaque fichier")); panel.Children.Add(resume);
         panel.Children.Add(Label("La synthèse guide la recherche ; les extraits originaux pertinents restent disponibles dans le contexte. Une analyse périmée est ignorée automatiquement."));
         var action = await ActionDialogAsync("Analyse du projet et couverture", panel,
-            [("Analyser tous les fichiers", "create"), ("Télécharger tree.txt", "tree"), ("Ouvrir l’analyse", "view"),
+            [("Analyser tous les fichiers", "create"), ("Reprendre", "resume"), ("Télécharger tree.txt", "tree"), ("Ouvrir l’analyse", "view"),
              ("Activer / désactiver", "toggle"), ("Supprimer l’analyse", "delete")], key =>
-            key == "create" && files.Length == 0 ? "Importez d’abord un dossier ou une archive."
+            key == "resume" && resume.SelectedItem is null ? "Choisissez une exécution interrompue."
+            : key == "create" && files.Length == 0 ? "Importez d’abord un dossier ou une archive."
             : key == "create" && (!int.TryParse(budget.Text, out var value) || value is < 512 or > 16384) ? "Budget attendu : 512 à 16384."
             : key is "view" or "toggle" or "delete" && selected.SelectedItem is null ? "Choisissez une analyse enregistrée." : null);
         if (action == "tree")
             await SaveBytesAsync("tree.txt", await _client.InventoryAsync(conversation.Id, ((ScopeChoice)scope.SelectedItem!).Id, _lifetime.Token));
-        else if (action == "create")
+        else if (action is "create" or "resume")
         {
+            var previous = action == "resume" ? (AnalysisRunItem?)resume.SelectedItem : null;
             var created = await WithProgressAsync("Analyse des documents…", (progress, ct) => _client.AnalyzeAsync(conversation.Id,
-                conversation.Revision, ((ScopeChoice)scope.SelectedItem!).Id, int.Parse(budget.Text!), progress, ct));
+                conversation.Revision, previous is null ? ((ScopeChoice)scope.SelectedItem!).Id : previous.ScopeBatchId,
+                previous?.Budget ?? int.Parse(budget.Text!), progress, ct, previous?.Id));
             await ReloadCurrentAsync();
             Feedback($"Synthèse enregistrée · {created.FileCount} fichiers inventoriés · {created.SummaryCalls} appels au modèle.");
             await ShowAnalysisAsync(conversation.Id, created.Id);

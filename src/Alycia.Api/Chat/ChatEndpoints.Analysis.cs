@@ -20,6 +20,16 @@ internal static partial class ChatEndpoints
         });
         routes.MapGet("/conversations/{id:guid}/analyses", async (Guid id, DocumentAnalysisService service, CancellationToken ct) =>
             Results.Ok(await service.ListAsync(id, ct)));
+        routes.MapGet("/conversations/{id:guid}/analysis-runs", async (Guid id, DocumentAnalysisService service, CancellationToken ct) =>
+            Results.Ok(await service.RunsAsync(id, ct)));
+        routes.MapDelete("/conversations/{id:guid}/analysis-runs/{runId:guid}", async (Guid id, Guid runId,
+            IChatRepository repository, FileStorage storage, CancellationToken ct) =>
+        {
+            using var lease = GenerationGate.Shared.Enter(id);
+            if (await repository.FindAsync(id, ct) is null) throw new ConversationNotFoundException();
+            new AnalysisCheckpoints(storage).DeleteRun(id, runId);
+            return Results.NoContent();
+        });
         routes.MapGet("/conversations/{id:guid}/analyses/{analysisId:guid}", async (Guid id, Guid analysisId,
             string? format, ChatDbContext database, HttpContext http, CancellationToken ct) =>
         {
@@ -49,7 +59,7 @@ internal static partial class ChatEndpoints
             try
             {
                 var report = await service.AnalyzeAsync(id, request.Revision, request.BatchId, request.Budget,
-                    status => WriteAsync(new { type = "delta", content = "", status }), ct);
+                    status => WriteAsync(new { type = "delta", content = "", status }), ct, request.ResumeRunId);
                 await WriteAsync(new { type = "done", result = new { report.Id, report.Title, report.FileCount, report.SummaryCalls } });
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested) { }
@@ -102,6 +112,6 @@ internal static partial class ChatEndpoints
         });
     }
 
-    private sealed record AnalyzeRequest(int Revision, Guid? BatchId, int Budget = 2048);
+    private sealed record AnalyzeRequest(int Revision, Guid? BatchId, int Budget = 2048, Guid? ResumeRunId = null);
     private sealed record SelectAnalysis(int Revision, bool UseInContext);
 }

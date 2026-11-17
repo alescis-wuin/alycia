@@ -13,6 +13,10 @@ public sealed record AnalysisItem(Guid Id, string Title, DateTimeOffset CreatedA
         + (IsStale ? "À recalculer" : UseInContext ? "Dans le contexte" : "Archivée");
 }
 public sealed record AnalysisCreated(Guid Id, string Title, int FileCount, int SummaryCalls);
+public sealed record AnalysisRunItem(Guid Id, Guid? ScopeBatchId, int Budget, string State, int CompletedUnits, int ReusedUnits, int FailedUnits, DateTimeOffset UpdatedAtUtc)
+{
+    public override string ToString() => $"{UpdatedAtUtc.ToLocalTime():dd/MM HH:mm} · {State} · {CompletedUnits} fichiers · {ReusedUnits} réutilisés";
+}
 public sealed record AnalysisDetails(Guid Id, string Title, string Model, int FileCount, int SummaryCalls,
     string TreeText, string SummaryText, string ManifestJson, string SourceFingerprint);
 
@@ -25,11 +29,13 @@ public sealed partial class ChatApiClient
         SendAsync<ConversationSummary>(HttpMethod.Post, $"/conversations/{id}/memory/reset", new { revision }, ct);
     public Task<AnalysisItem[]> AnalysesAsync(Guid id, CancellationToken ct) =>
         SendAsync<AnalysisItem[]>(HttpMethod.Get, $"/conversations/{id}/analyses", null, ct);
+    public Task<AnalysisRunItem[]> AnalysisRunsAsync(Guid id, CancellationToken ct) =>
+        SendAsync<AnalysisRunItem[]>(HttpMethod.Get, $"/conversations/{id}/analysis-runs", null, ct);
     public Task<AnalysisDetails> AnalysisAsync(Guid id, Guid analysis, CancellationToken ct) =>
         SendAsync<AnalysisDetails>(HttpMethod.Get, $"/conversations/{id}/analyses/{analysis}", null, ct);
     public Task<AnalysisCreated> AnalyzeAsync(Guid id, int revision, Guid? batchId, int budget,
-        Func<ModelDelta, Task> progress, CancellationToken ct) => StreamOperationAsync<AnalysisCreated>(
-            $"/conversations/{id}/analyses", new { revision, batchId, budget }, progress, ct);
+        Func<ModelDelta, Task> progress, CancellationToken ct, Guid? resumeRunId = null) => StreamOperationAsync<AnalysisCreated>(
+            $"/conversations/{id}/analyses", new { revision, batchId, budget, resumeRunId }, progress, ct);
     public Task<byte[]> InventoryAsync(Guid id, Guid? batchId, CancellationToken ct) =>
         SendAsync<byte[]>(HttpMethod.Get, $"/conversations/{id}/inventory" + (batchId.HasValue ? "?batchId=" + batchId : ""), null, ct);
     public Task<byte[]> DownloadAnalysisAsync(Guid id, Guid analysis, string format, CancellationToken ct) =>

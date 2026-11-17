@@ -8,7 +8,6 @@ using System.Xml.Linq;
 using Alycia.Modules.Chat.Application;
 using Alycia.Modules.Chat.Domain;
 using Microsoft.EntityFrameworkCore;
-using UglyToad.PdfPig;
 
 namespace Alycia.Modules.Chat.Infrastructure;
 
@@ -224,69 +223,22 @@ public sealed class FileImport(ChatDbContext database, FileStorage storage)
         var partial = false;
         try
         {
-            if (ext == ".pdf")
+            if (StructuredDocuments.Supports(name))
             {
-                using var pdf = PdfDocument.Open(bytes);
-                var builder = new StringBuilder();
-                foreach (var page in pdf.GetPages().Take(200))
-                {
-                    builder.AppendLine(page.Text);
-                    if (builder.Length > MaxTextBytes) break;
-                }
-                text = builder.ToString();
-                // Page count is also bounded; mark excerpts rather than claiming completeness.
-                partial = pdf.NumberOfPages > 200;
+                var document = StructuredDocuments.Extract(name, bytes);
+                return (document.Text, document.Text.Length == 0 ? "Aucun texte extractible · sans OCR"
+                    : document.Complete ? "Texte extrait avec coordonnées" : "Texte extrait partiellement · coordonnées conservées, structure non exhaustive");
             }
-            else if (ext is ".docx" or ".odt" or ".pptx" or ".xlsx")
+            if (ext == ".odt")
             {
                 using var zip = new ZipArchive(new MemoryStream(bytes), ZipArchiveMode.Read);
-                var builder = new StringBuilder();
-                var sharedStrings = Array.Empty<string>();
-                long expanded = 0;
-                var entries = zip.Entries.Where(e => e.FullName == "word/document.xml" || e.FullName == "content.xml"
-                    || e.FullName.StartsWith("ppt/slides/slide") && e.FullName.EndsWith(".xml")
-                    || e.FullName == "xl/sharedStrings.xml" || e.FullName.StartsWith("xl/worksheets/sheet") && e.FullName.EndsWith(".xml"))
-                    .OrderBy(e => e.FullName, StringComparer.Ordinal).ToArray();
-                partial = entries.Length > 100;
-                foreach (var entry in entries.Take(100))
-                {
-                    expanded += entry.Length;
-                    if (entry.Length > 4 * 1024 * 1024 || expanded > 16 * 1024 * 1024) return ("", "Document trop volumineux pour l’extraction");
-                    using var stream = entry.Open();
-                    using var reader = XmlReader.Create(stream, new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = 4 * 1024 * 1024 });
-                    var xml = XDocument.Load(reader);
-                    if (ext == ".xlsx")
-                    {
-                        XNamespace ns = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
-                        if (entry.FullName == "xl/sharedStrings.xml")
-                        {
-                            sharedStrings = xml.Descendants(ns + "si")
-                                .Select(si => string.Concat(si.Descendants(ns + "t").Select(t => t.Value))).ToArray();
-                            continue;
-                        }
-                        builder.AppendLine(entry.FullName);
-                        foreach (var cell in xml.Descendants(ns + "c"))
-                        {
-                            var value = cell.Element(ns + "v")?.Value ?? "";
-                            if ((string?)cell.Attribute("t") == "s")
-                                value = int.TryParse(value, out var index) && index >= 0 && index < sharedStrings.Length
-                                    ? sharedStrings[index] : "[référence indisponible]";
-                            else if ((string?)cell.Attribute("t") == "inlineStr")
-                                value = string.Concat(cell.Descendants(ns + "t").Select(t => t.Value));
-                            builder.Append(cell.Attribute("r")?.Value).Append(": ").AppendLine(value);
-                            if (builder.Length > MaxTextBytes) break;
-                        }
-                        if (builder.Length > MaxTextBytes) break;
-                        continue;
-                    }
-                    foreach (var node in xml.DescendantNodes().OfType<XText>())
-                    {
-                        builder.Append(node.Value).Append(' ');
-                        if (builder.Length > MaxTextBytes) break;
-                    }
-                    if (builder.Length > MaxTextBytes) break;
-                }
-                text = builder.ToString();
+                var entry = zip.GetEntry("content.xml") ?? throw new InvalidDataException("Contenu ODT absent.");
+                if (entry.Length > 4 * 1024 * 1024) throw new InvalidDataException("Document trop volumineux.");
+                using var stream = entry.Open();
+                using var reader = XmlReader.Create(stream, new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = 4 * 1024 * 1024 });
+                var xml = XDocument.Load(reader);
+                text = string.Join(" ", xml.DescendantNodes().OfType<XText>().Select(t => t.Value));
+                partial = true;
             }
             else
             {

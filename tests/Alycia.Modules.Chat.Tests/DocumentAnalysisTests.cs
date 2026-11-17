@@ -55,9 +55,17 @@ public sealed class DocumentAnalysisTests
             Assert.Contains(context, f => f.Id == code.Id);
             Assert.EndsWith(report.SummaryText, Assert.Single(context, f => f.Id == report.Id).Text);
             Assert.False((await service.ListAsync(conversation.Id, default)).Single().IsStale);
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.AnalyzeAsync(conversation.Id,
+                conversation.Revision, null, 1024, status => status.StartsWith("Réduction hiérarchique", StringComparison.Ordinal)
+                    ? Task.FromException(new OperationCanceledException()) : Task.CompletedTask, default));
+            var interrupted = Assert.Single(await service.RunsAsync(conversation.Id, default), r => r.State == "cancelled");
+            Assert.Equal(1, interrupted.CompletedUnits);
+            var resumed = await service.AnalyzeAsync(conversation.Id, conversation.Revision, null, 1024, null, default, interrupted.Id);
+            Assert.Equal(1, (await service.RunsAsync(conversation.Id, default)).Single(r => r.Id == interrupted.Id).ReusedUnits);
+            Assert.Equal(resumed.Id, (await service.AnalyzeAsync(conversation.Id, conversation.Revision, null, 1024, null, default, interrupted.Id)).Id);
             code.ContextMode = "excluded"; conversation.AttachFiles();
             await database.SaveChangesAsync();
-            Assert.True((await service.ListAsync(conversation.Id, default)).Single().IsStale);
+            Assert.All(await service.ListAsync(conversation.Id, default), a => Assert.True(a.IsStale));
             Assert.Empty(await new EfChatRepository(database).ContextFilesAsync(conversation.Id, 1, default));
 
             var unsafeArchive = Zip(("nested.zip", Zip(("../escape.txt", "no"u8.ToArray()))));
@@ -71,7 +79,7 @@ public sealed class DocumentAnalysisTests
             model.Fail = true;
             await Assert.ThrowsAsync<ChatModelException>(() => service.AnalyzeAsync(conversation.Id,
                 conversation.Revision, null, 1024, null, default));
-            Assert.Equal(1, await database.DocumentAnalyses.CountAsync());
+            Assert.Equal(2, await database.DocumentAnalyses.CountAsync());
         }
         finally
         {
@@ -97,6 +105,10 @@ public sealed class DocumentAnalysisTests
     {
         public List<string> Inputs { get; } = [];
         public bool Fail;
+        public Task<ChatOptions> PrepareOptionsAsync(string model, ChatOptions options, CancellationToken ct)
+        {
+            var copy = options.Copy(); copy.ModelIdentity = "synthetic:digest-v1"; return Task.FromResult(copy);
+        }
         public Task<IReadOnlyList<string>> ListModelsAsync(CancellationToken ct) => Task.FromResult<IReadOnlyList<string>>(["demo"]);
         public Task<string> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages, CancellationToken ct)
         {
