@@ -54,7 +54,8 @@ public sealed class ProjectRetrievalService(IProjectIndex index, ILocalEmbedding
         var lexical = ProjectRetrieval.Bm25(snapshot.Chunks, query);
         var ranked = ProjectRetrieval.Rank(snapshot.Chunks, query, similarities);
         var decisions = snapshot.Chunks.Select((c, i) => new RetrievalDecision(ProjectRetrieval.Reference(c), c.FileId,
-            c.Sha256, c.Start, c.End, lexical[i], lexical[i] > 0 ? "lexical_match" : "zero_lexical_score")).Take(256).ToArray();
+            c.Sha256, c.Start, c.End, lexical[i], ranked.Contains(c) ? lexical[i] > 0 ? "lexical_match" : "semantic_match"
+                : lexical[i] > 0 ? "duplicate_filtered" : "no_match_filtered")).Take(256).ToArray();
         return new(ranked,
             new(settings.RetrievalMode, snapshot.Chunks.Count, snapshot.IndexedFiles, snapshot.EligibleFiles, snapshot.Omissions,
                 lexical.Count(s => s == 0), indexMilliseconds, timer.Elapsed.TotalMilliseconds, decisions,

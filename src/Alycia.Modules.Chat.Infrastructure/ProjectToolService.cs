@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Alycia.Modules.Chat.Infrastructure;
 
-public sealed class ProjectToolService(ChatDbContext database, ProjectSourceReader reader, ChatOptions defaults) : IProjectTools
+public sealed partial class ProjectToolService(ChatDbContext database, ProjectSourceReader reader, ChatOptions defaults, IProjectIndex? index = null) : IProjectTools
 {
     public Task<bool> HasSourcesAsync(Guid id, CancellationToken ct) => database.Attachments
         .AnyAsync(f => f.ConversationId == id && f.ContextMode != "excluded" && f.Text != "", ct);
@@ -27,6 +27,8 @@ public sealed class ProjectToolService(ChatDbContext database, ProjectSourceRead
                 "project_list" => ["offset", "limit", "codeOnly"],
                 "project_read" => ["fileId", "offset", "maxBytes", "symbol"],
                 "project_search" => ["query", "offset", "limit"],
+                "project_search_passages" or "project_find_symbols" or "project_find_references" => ["query", "offset", "limit"],
+                "project_read_many" => ["reads"],
                 _ => throw new ArgumentException("Outil inconnu.")
             };
             var keys = arguments.EnumerateObject().Select(p => p.Name).ToArray();
@@ -36,6 +38,8 @@ public sealed class ProjectToolService(ChatDbContext database, ProjectSourceRead
             {
                 "project_list" => await ListAsync(id, arguments, maxResultBytes, ct),
                 "project_read" => await ReadAsync(id, arguments, maxResultBytes, ct),
+                "project_read_many" => await ReadManyAsync(id, arguments, maxResultBytes, ct),
+                "project_search_passages" or "project_find_symbols" or "project_find_references" => await ExploreAsync(id, name, arguments, maxResultBytes, ct),
                 _ => await SearchAsync(id, arguments, maxResultBytes, ct)
             };
         }

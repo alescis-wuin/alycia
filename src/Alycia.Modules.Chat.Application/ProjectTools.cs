@@ -6,8 +6,9 @@ public sealed record ToolFunction(string Name, JsonElement Arguments);
 public sealed record ModelToolCall(ToolFunction Function);
 public sealed record ProjectTool(string Name, string Description, JsonElement InputSchema);
 public sealed record ToolEvidence(string Path, string Sha256, int Offset, int? NextOffset, bool CompleteSource, string? Reference = null, Guid? FileId = null, int? End = null, int? StartLine = null, int? EndLine = null);
-public sealed record ProjectToolResult(string Text, bool IsError = false, ToolEvidence? Evidence = null);
-public sealed record ToolObservation(int Number, string Name, string Arguments, bool Succeeded, int ResultBytes, ToolEvidence? Evidence = null, bool RepeatSuppressed = false, string? Error = null);
+public sealed record ProjectToolResult(string Text, bool IsError = false, ToolEvidence? Evidence = null, IReadOnlyList<ToolEvidence>? EvidenceItems = null);
+public sealed record ToolObservation(int Number, string Name, string Arguments, bool Succeeded, int ResultBytes, ToolEvidence? Evidence = null, bool RepeatSuppressed = false, string? Error = null,
+    IReadOnlyList<ToolEvidence>? EvidenceItems = null, double ElapsedMilliseconds = 0);
 public interface IProjectTools
 {
     Task<bool> HasSourcesAsync(Guid conversation, CancellationToken ct);
@@ -27,6 +28,18 @@ public static class ProjectToolCatalog
             """)),
         new("project_search", "Recherche littérale dans les originaux, première occurrence par fichier. Pagination par fichier ; suivre nextOffset même sans résultat.", Schema("""
             {"type":"object","properties":{"query":{"type":"string","minLength":2,"maxLength":120},"offset":{"type":"integer","minimum":0},"limit":{"type":"integer","minimum":1,"maximum":20}},"required":["query"],"additionalProperties":false}
+            """)),
+        new("project_search_passages", "Passages classés BM25, sans score nul. Pagination par résultat.", Schema("""
+            {"type":"object","properties":{"query":{"type":"string"},"offset":{"type":"integer"},"limit":{"type":"integer"}},"required":["query"],"additionalProperties":false}
+            """)),
+        new("project_find_symbols", "Déclarations syntaxiques C# ; query filtre le nom. Pas de résolution sémantique.", Schema("""
+            {"type":"object","properties":{"query":{"type":"string"},"offset":{"type":"integer"},"limit":{"type":"integer"}},"required":["query"],"additionalProperties":false}
+            """)),
+        new("project_find_references", "Usages syntaxiques C# d’un identifiant exact ; homonymes possibles.", Schema("""
+            {"type":"object","properties":{"query":{"type":"string"},"offset":{"type":"integer"},"limit":{"type":"integer"}},"required":["query"],"additionalProperties":false}
+            """)),
+        new("project_read_many", "Lit 1 à 4 unités par identifiant ; erreurs par entrée et budget global.", Schema("""
+            {"type":"object","properties":{"reads":{"type":"array","minItems":1,"maxItems":4,"items":{"type":"object","properties":{"fileId":{"type":"string"},"offset":{"type":"integer"},"symbol":{"type":"string"}},"required":["fileId"],"additionalProperties":false}}},"required":["reads"],"additionalProperties":false}
             """))
     ];
     public static object[] OllamaTools() => All.Select(t => (object)new

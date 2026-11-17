@@ -178,7 +178,7 @@ public partial class ChatWindow
         panel.Children.Add(Label($"Budget d’appels : {settings.Options.SummaryMaxCalls}. L’opération peut être longue et reste annulable. "
             + "Les fichiers sans texte et les exclusions figurent dans le manifeste. Les dossiers exclus avant import ne sont pas parcourus."));
         panel.Children.Add(Label("Analyses enregistrées")); panel.Children.Add(selected);
-        panel.Children.Add(Label("Une nouvelle synthèse remplace les extraits bruts de son périmètre dans le contexte. Une analyse périmée est ignorée automatiquement. Les originaux restent disponibles."));
+        panel.Children.Add(Label("La synthèse guide la recherche ; les extraits originaux pertinents restent disponibles dans le contexte. Une analyse périmée est ignorée automatiquement."));
         var action = await ActionDialogAsync("Analyse du projet et couverture", panel,
             [("Analyser tous les fichiers", "create"), ("Télécharger tree.txt", "tree"), ("Ouvrir l’analyse", "view"),
              ("Activer / désactiver", "toggle"), ("Supprimer l’analyse", "delete")], key =>

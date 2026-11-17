@@ -4,7 +4,8 @@ using Alycia.Modules.Chat.Domain;
 
 namespace Alycia.Modules.Chat.Application;
 
-public sealed record SourceExcerpt(Guid Id, string Path, int Utf8Bytes, bool Partial, string Reason, string? Reference = null, int? StartLine = null, int? EndLine = null, string? Sha256 = null, int? Start = null, int? End = null);
+public sealed record SourceExcerpt(Guid Id, string Path, int Utf8Bytes, bool Partial, string Reason, string? Reference = null, int? StartLine = null, int? EndLine = null, string? Sha256 = null, int? Start = null, int? End = null,
+    double? Score = null, string ScoreKind = "unavailable", string SourceType = "text", bool? CompleteSource = null);
 public sealed record ProjectExcerpts(string Text, IReadOnlyList<SourceExcerpt> Sources, int Available);
 
 public static class ProjectContext

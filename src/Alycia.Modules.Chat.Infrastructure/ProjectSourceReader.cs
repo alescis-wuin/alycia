@@ -8,6 +8,7 @@ public sealed record ProjectSource(string Text, bool Complete, string Origin);
 // Only storage IDs can address originals; model-supplied paths never reach the filesystem.
 public sealed class ProjectSourceReader(FileStorage storage)
 {
+    internal FileStorage Storage => storage;
     private static readonly HashSet<string> ExtractedFormats = new(StringComparer.OrdinalIgnoreCase)
         { ".pdf", ".docx", ".odt", ".pptx", ".xlsx" };
     public async Task<ProjectSource> ReadAsync(Attachment file, CancellationToken ct)

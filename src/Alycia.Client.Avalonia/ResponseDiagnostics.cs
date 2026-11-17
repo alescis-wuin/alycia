@@ -39,6 +39,7 @@ internal static class ResponseDiagnostics
         if (report.Citations is { } citations)
         {
             text.AppendLine($"\n{citations.Recognized.Length} référence(s) reconnue(s) · {citations.Unknown.Length} inconnue(s).");
+            text.AppendLine($"Couverture fournie : {citations.Supplied.Select(s => s.FileId).Distinct().Count()} source(s), {citations.Supplied.Length} passage(s). Compréhension et exhaustivité non établies.");
             text.AppendLine("Ce contrôle relie les identifiants aux passages fournis. Il ne vérifie pas la vérité des affirmations ni la couverture de tout le projet.");
             if (citations.Unknown.Length > 0) text.AppendLine("Inconnues : " + string.Join(", ", citations.Unknown));
             foreach (var source in citations.Supplied)

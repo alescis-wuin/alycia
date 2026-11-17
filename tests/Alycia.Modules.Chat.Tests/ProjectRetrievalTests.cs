@@ -6,6 +6,30 @@ namespace Alycia.Modules.Chat.Tests;
 
 public sealed class ProjectRetrievalTests
 {
+    [Fact]
+    public void NoMatchStaysEmptyUnlessExplicitlyPinned()
+    {
+        var c = Chunk("data.txt", "data", "orion quota");
+        var file = new Attachment { Id = c.FileId, Name = c.Path, Text = c.Text, Sha256 = c.Sha256, ContextMode = "project" };
+        var ranked = ProjectRetrieval.Rank([c], "badminton Neptune");
+        Assert.Empty(ranked);
+        Assert.Empty(ProjectRetrieval.Pack(ranked, [file], 1000, new()).Sources);
+        file.ContextMode = "pinned";
+        Assert.Equal("épinglé explicitement", Assert.Single(ProjectRetrieval.Pack(ranked, [file], 1000, new()).Sources).Reason);
+    }
+
+    [Fact]
+    public void CompositeContextKeepsOriginalEvidenceBesideBoundedOrientation()
+    {
+        var c = Chunk("code.cs", "Store", "orion quota 37");
+        var file = new Attachment { Id = c.FileId, Name = c.Path, Text = c.Text, Sha256 = c.Sha256, ContextMode = "project" };
+        var summary = new Attachment { Id = Guid.NewGuid(), Name = "Synthèse", Text = new string('x', 5000), Sha256 = "derived", ContextMode = "pinned", Status = "derived_summary" };
+        var result = ProjectRetrieval.Pack([c], [file, summary], 2000, new());
+        Assert.Contains(result.Sources, s => s.Id == file.Id);
+        Assert.InRange(result.Sources.Single(s => s.Id == summary.Id).Utf8Bytes, 1, 500);
+        Assert.True(TokenBudget.Count(result.Text, new()) <= 2000);
+    }
+
     private static SourceChunk Chunk(string path, string symbol, string text) => new(Guid.NewGuid(), path, "hash", symbol, "method", 0, text.Length, 1, 1, text, [], true);
     [Fact]
     public void ExactSymbolRanksAboveUnrelatedDocumentationAndPackingDeduplicates()

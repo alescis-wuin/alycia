@@ -98,7 +98,7 @@ internal static partial class ChatEndpoints
                         {
                             content = new[] { new { type = "text", text = result.Text } },
                             isError = result.IsError,
-                            _meta = new Dictionary<string, object?> { ["io.alycia/evidence"] = result.Evidence }
+                            _meta = new Dictionary<string, object?> { ["io.alycia/evidence"] = result.Evidence, ["io.alycia/evidenceItems"] = result.EvidenceItems }
                         });
                     default: return Error(-32601, "Méthode non prise en charge.");
                 }

@@ -51,8 +51,9 @@ public sealed class DocumentAnalysisTests
             Assert.Contains("sourceFingerprint", report.ManifestJson);
             Assert.Contains("2025-01-02T03:04:05Z", report.TreeText);
             var context = await new EfChatRepository(database).ContextFilesAsync(conversation.Id, 1, default);
-            Assert.Single(context);
-            Assert.EndsWith(report.SummaryText, context[0].Text);
+            Assert.Equal(2, context.Count);
+            Assert.Contains(context, f => f.Id == code.Id);
+            Assert.EndsWith(report.SummaryText, Assert.Single(context, f => f.Id == report.Id).Text);
             Assert.False((await service.ListAsync(conversation.Id, default)).Single().IsStale);
             code.ContextMode = "excluded"; conversation.AttachFiles();
             await database.SaveChangesAsync();

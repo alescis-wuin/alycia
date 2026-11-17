@@ -1,0 +1,19 @@
+{
+  "phase": "02",
+  "startCommit": "4700bfef005e7010106817fb36c3b8afd9033462",
+  "status": "PARTIEL",
+  "build": "passed, 0 warnings, 0 errors",
+  "lint": "passed",
+  "tests": {
+    "chat": 125,
+    "client": 44,
+    "workspaces_previous_pass": 11,
+    "postgresSkipped": 4
+  },
+  "correctedFailure": "Trois tests du transport attendaient exactement trois outils ; assertion alignée sur le catalogue étendu, contrôles de décodage conservés.",
+  "notExecuted": [
+    "PostgreSQL",
+    "Ollama A/B"
+  ],
+  "qualityGain": null
+}

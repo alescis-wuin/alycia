@@ -23,13 +23,14 @@ public sealed class EfChatRepository(ChatDbContext database) : IChatRepository
         {
             var scope = metadata.Where(f => !summary.ScopeBatchId.HasValue || f.BatchId == summary.ScopeBatchId);
             if (ProjectInventory.Fingerprint(scope) != summary.SourceFingerprint) continue;
-            // A summary selected for context replaces raw excerpts from its covered scope.
-            files.RemoveAll(f => !summary.ScopeBatchId.HasValue || f.BatchId == summary.ScopeBatchId);
+            // Summaries orient the response; original evidence remains eligible for retrieval.
             files.Add(new Attachment
             {
                 Id = summary.Id,
                 Name = "Synthèse du projet · " + summary.Title,
                 Text = "Résumé dérivé ; inventaire et provenance disponibles dans Analyses.\n" + summary.SummaryText,
+                Sha256 = StructuredMemory.Hash(summary.SummaryText),
+                Status = "derived_summary",
                 ContextMode = "pinned",
                 AnchorSequence = 1,
                 CreatedAtUtc = summary.CreatedAtUtc

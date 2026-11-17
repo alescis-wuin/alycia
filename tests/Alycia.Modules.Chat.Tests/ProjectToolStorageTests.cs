@@ -67,6 +67,15 @@ public sealed class ProjectToolStorageTests
             using var foundJson = JsonDocument.Parse(found.Text);
             var offset = foundJson.RootElement.GetProperty("matches")[0].GetProperty("offset").GetInt32();
             var read = await Call("project_read", new { fileId = file.Id, offset });
+            var passages = await Call("project_search_passages", new { query = "HiddenAtEnd" }, budget: 8192);
+            Assert.False(passages.IsError); Assert.Contains("HiddenAtEnd", passages.Text);
+            Assert.NotEmpty(passages.EvidenceItems!);
+            var declarations = await Call("project_find_symbols", new { query = "HiddenAtEnd.Value" }, budget: 8192);
+            Assert.False(declarations.IsError);
+            var many = await Call("project_read_many", new { reads = new[] { new { fileId = file.Id, offset }, new { fileId = excluded.Id, offset = 0 } } }, budget: 8192);
+            Assert.False(many.IsError); Assert.Single(many.EvidenceItems!);
+            Assert.DoesNotContain("SECRET_NEVER_READ", many.Text);
+            Assert.Empty((await Call("project_search_passages", new { query = "HiddenAtEnd" }, other.Id)).EvidenceItems!);
             Assert.False(read.IsError); Assert.Contains("HiddenAtEnd", read.Text); Assert.True(read.Evidence!.CompleteSource);
             Assert.Equal(file.Sha256, read.Evidence.Sha256);
             Assert.InRange(Encoding.UTF8.GetByteCount(read.Text), 1, 2048);

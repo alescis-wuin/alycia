@@ -112,7 +112,8 @@ public sealed class ToolCallingTests
             {
                 Assert.True(supports);
                 using var body = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(ct));
-                Assert.Equal(3, body.RootElement.GetProperty("tools").GetArrayLength());
+                Assert.Equal(ProjectToolCatalog.All.Select(t => t.Name).Order(), body.RootElement.GetProperty("tools")
+                    .EnumerateArray().Select(t => t.GetProperty("function").GetProperty("name").GetString()).Order());
                 text = reply;
             }
             return new(HttpStatusCode.OK) { Content = new StringContent(text, Encoding.UTF8, "application/json") };

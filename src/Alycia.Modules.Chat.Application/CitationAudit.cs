@@ -32,8 +32,9 @@ public static class CitationAudit
             if (source is { Reference: not null, Sha256: not null, StartLine: { } first, EndLine: { } last, Start: { } start, End: { } end })
                 supplied.Add(new(source.Reference, source.Id, source.Path, source.Sha256, first, last, start, end, "initial", source.Partial));
         foreach (var observation in tools ?? [])
-            if (observation.Succeeded && observation.Evidence is { Reference: not null, FileId: { } id, End: { } end, StartLine: { } first, EndLine: { } last } source)
-                supplied.Add(new(source.Reference, id, source.Path, source.Sha256, first, last, source.Offset, end, "tool", !source.CompleteSource));
+            foreach (var item in (observation.EvidenceItems ?? []).Concat(observation.Evidence is null ? [] : new[] { observation.Evidence }))
+                if (observation.Succeeded && item is { Reference: not null, FileId: { } id, End: { } end, StartLine: { } first, EndLine: { } last } source)
+                    supplied.Add(new(source.Reference, id, source.Path, source.Sha256, first, last, source.Offset, end, "tool", true));
         var unique = supplied.DistinctBy(s => s.Reference).ToArray();
         var known = unique.Select(s => s.Reference).ToHashSet(StringComparer.Ordinal);
         var markers = Markers.Matches(answer).Select(m => m.Groups[1].Value.ToUpperInvariant()).Distinct(StringComparer.Ordinal).ToArray();
