@@ -5,8 +5,8 @@ namespace Alycia.Modules.Chat.Application;
 
 public sealed record SuppliedSource(string Reference, Guid FileId, string Path, string Sha256, int StartLine, int EndLine,
     int Start, int End, string Origin, bool Partial);
-public sealed record CitationReport(string Status, SuppliedSource[] Supplied, string[] Recognized, string[] Unknown);
-public sealed record TurnDiagnostics(GenerationUsage? Usage = null, RetrievalReport? Retrieval = null, MemoryReport? Memory = null, CitationReport? Citations = null, IReadOnlyList<string>? Warnings = null)
+public sealed record CitationReport(string Status, SuppliedSource[] Supplied, string[] Recognized, string[] Unknown, HistoryEvidence[]? Historical = null);
+public sealed record TurnDiagnostics(GenerationUsage? Usage = null, RetrievalReport? Retrieval = null, MemoryReport? Memory = null, CitationReport? Citations = null, IReadOnlyList<string>? Warnings = null, ClaimReport? Claims = null)
 {
     public static TurnDiagnostics? Read(string json)
     {
@@ -17,6 +17,8 @@ public sealed record TurnDiagnostics(GenerationUsage? Usage = null, RetrievalRep
             if (report?.Citations is { } citations && (citations.Supplied is null || citations.Recognized is null || citations.Unknown is null
                 || citations.Supplied.Any(c => c is null))) return null;
             if (report?.Retrieval is { Omissions: null }) return null;
+            if (report?.Citations?.Historical?.Any(h => h is null) == true) return null;
+            if (report?.Claims is { } claims && (claims.Findings is null || claims.Findings.Any(f => f is null || f.References is null))) return null;
             return report;
         }
         catch (JsonException) { return null; }
@@ -24,7 +26,7 @@ public sealed record TurnDiagnostics(GenerationUsage? Usage = null, RetrievalRep
 }
 public static class CitationAudit
 {
-    private static readonly Regex Markers = new(@"\[(S[0-9a-f]{12})\]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
+    private static readonly Regex Markers = new(@"\[(S[0-9a-f]{12}|H[0-9]+:[0-9a-f]{12})\]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
     public static CitationReport Check(string answer, IReadOnlyList<SourceExcerpt>? excerpts, IReadOnlyList<ToolObservation>? tools)
     {
         var supplied = new List<SuppliedSource>();
@@ -37,9 +39,11 @@ public static class CitationAudit
                     supplied.Add(new(source.Reference, id, source.Path, source.Sha256, first, last, source.Offset, end, "tool", true));
         var unique = supplied.DistinctBy(s => s.Reference).ToArray();
         var known = unique.Select(s => s.Reference).ToHashSet(StringComparer.Ordinal);
+        var historical = (tools ?? []).Where(t => t.Succeeded).SelectMany(t => t.History ?? []).Distinct().ToArray();
+        known.UnionWith(historical.Select(h => h.Reference));
         var markers = Markers.Matches(answer).Select(m => m.Groups[1].Value.ToUpperInvariant()).Distinct(StringComparer.Ordinal).ToArray();
         var unknown = markers.Where(m => !known.Contains(m)).ToArray();
-        return new(unknown.Length > 0 ? "unknown_references" : markers.Length > 0 ? "references_recognized" : unique.Length > 0 ? "sources_uncited" : "no_sources",
-            unique, markers.Where(known.Contains).ToArray(), unknown);
+        return new(unknown.Length > 0 ? "unknown_references" : markers.Length > 0 ? "references_recognized" : known.Count > 0 ? "sources_uncited" : "no_sources",
+            unique, markers.Where(known.Contains).ToArray(), unknown, historical);
     }
 }

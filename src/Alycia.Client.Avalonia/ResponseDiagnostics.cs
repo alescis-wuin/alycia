@@ -45,6 +45,15 @@ internal static class ResponseDiagnostics
             foreach (var source in citations.Supplied)
                 text.AppendLine($"\n[{source.Reference}] {source.Path}:L{source.StartLine}–L{source.EndLine} · {(citations.Recognized.Contains(source.Reference) ? "cité" : "fourni, non cité")}"
                     + $"\nCaractères UTF-16 [{source.Start}, {source.End}[ · fichier {source.FileId}\nSHA-256 : {source.Sha256}");
+            foreach (var source in citations.Historical ?? [])
+                text.AppendLine($"\n[{source.Reference}] message {source.Sequence} · {source.Role} · {source.CreatedAtUtc:O} · {(source.Partial ? "extrait" : "message complet")}\nSHA-256 : {source.Sha256}");
+        }
+        if (report.Claims is { } claims)
+        {
+            text.AppendLine("\nAffirmations — contrôle heuristique non bloquant, pas une validation de vérité.");
+            foreach (var finding in claims.Findings)
+                text.AppendLine($"{finding.Status} · {finding.Text}\n{finding.Reason}");
+            if (claims.Omitted > 0) text.AppendLine($"{claims.Omitted} blocs non évalués.");
         }
         return text.ToString().Trim();
     }

@@ -79,7 +79,7 @@ class Ollama(BaseHTTPRequestHandler):
             return
         if request.get("tools"):
             assert request["model"] == "tool-demo" and request["stream"]
-            assert {t["function"]["name"] for t in request["tools"]} == {"project_list", "project_read", "project_search", "project_search_passages", "project_find_symbols", "project_find_references", "project_read_many"}
+            assert {t["function"]["name"] for t in request["tools"]} == {"project_list", "project_read", "project_search", "project_search_passages", "project_find_symbols", "project_find_references", "project_read_many", "history_search", "history_read"}
             Ollama.tool_rounds += 1
             last = request["messages"][-1]
             if last.get("tool_name") == "project_read":

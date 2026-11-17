@@ -129,7 +129,7 @@ public static class ProjectRetrieval
                     : "BM25 / diversité" + (options.RetrievalMode == "hybrid" ? " / sémantique" : ""), reference, chunk.StartLine,
                 Math.Min(endLine, chunk.EndLine), chunk.Sha256, chunk.Start, chunk.Start + value.Length,
                 options.RetrievalReport?.Decisions?.FirstOrDefault(d => d.Reference == Reference(chunk))?.LexicalScore,
-                "BM25 (composante lexicale)", chunk.Kind, chunk.CompleteSource));
+                "BM25 (composante lexicale)", chunk.Kind, chunk.CompleteSource, value));
         }
         return new(chosen.Count == 0 ? "" : text.ToString(), chosen, files.Count);
     }

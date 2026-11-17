@@ -7,8 +7,9 @@ namespace Alycia.Modules.Chat.Infrastructure;
 
 public sealed partial class ProjectToolService(ChatDbContext database, ProjectSourceReader reader, ChatOptions defaults, IProjectIndex? index = null) : IProjectTools
 {
-    public Task<bool> HasSourcesAsync(Guid id, CancellationToken ct) => database.Attachments
-        .AnyAsync(f => f.ConversationId == id && f.ContextMode != "excluded" && f.Text != "", ct);
+    public async Task<bool> HasSourcesAsync(Guid id, CancellationToken ct) => await database.Attachments
+        .AnyAsync(f => f.ConversationId == id && f.ContextMode != "excluded" && f.Text != "", ct)
+        || await database.Messages.AnyAsync(m => m.ConversationId == id, ct);
 
     public async Task<ProjectToolResult> CallAsync(Guid id, string name, JsonElement arguments, int maxResultBytes, CancellationToken ct)
     {
@@ -29,6 +30,8 @@ public sealed partial class ProjectToolService(ChatDbContext database, ProjectSo
                 "project_search" => ["query", "offset", "limit"],
                 "project_search_passages" or "project_find_symbols" or "project_find_references" => ["query", "offset", "limit"],
                 "project_read_many" => ["reads"],
+                "history_search" => ["query", "before", "offset", "limit"],
+                "history_read" => ["sequence", "userOffset", "assistantOffset", "maxBytes"],
                 _ => throw new ArgumentException("Outil inconnu.")
             };
             var keys = arguments.EnumerateObject().Select(p => p.Name).ToArray();
@@ -39,6 +42,7 @@ public sealed partial class ProjectToolService(ChatDbContext database, ProjectSo
                 "project_list" => await ListAsync(id, arguments, maxResultBytes, ct),
                 "project_read" => await ReadAsync(id, arguments, maxResultBytes, ct),
                 "project_read_many" => await ReadManyAsync(id, arguments, maxResultBytes, ct),
+                "history_search" or "history_read" => await new HistoryTools(new EfChatRepository(database)).CallAsync(id, name, arguments, maxResultBytes, ct),
                 "project_search_passages" or "project_find_symbols" or "project_find_references" => await ExploreAsync(id, name, arguments, maxResultBytes, ct),
                 _ => await SearchAsync(id, arguments, maxResultBytes, ct)
             };

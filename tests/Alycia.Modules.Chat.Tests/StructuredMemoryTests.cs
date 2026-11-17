@@ -51,6 +51,11 @@ public sealed class StructuredMemoryTests
         var again = await ConversationContext.BuildAsync(repo, model, repo.Conversation, "budget", options, true, null, default);
         Assert.False(again.Changed); Assert.Equal(calls, model.Calls);
         Assert.Equal(24, repo.Messages.Count);
+        var changedModel = options.Copy(); changedModel.ModelIdentity = "demo:new-digest";
+        var rebuilt = await ConversationContext.BuildAsync(repo, model, repo.Conversation, "budget", changedModel, true, null, default);
+        Assert.True(rebuilt.Changed); Assert.True(model.Calls > calls);
+        Assert.Equal("demo:new-digest", StructuredMemory.Read(rebuilt.LedgerJson!).ModelIdentity);
+        Assert.Equal(24, repo.Messages.Count);
     }
 
     [Fact]

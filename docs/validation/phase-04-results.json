@@ -1,0 +1,17 @@
+{
+  "phase": "04",
+  "startCommit": "09203f1dcb4717d61168e72f4dde1fef4267d366",
+  "status": "PARTIEL",
+  "build": "passed, no warnings",
+  "lint": "passed",
+  "tests": {
+    "chat": 136,
+    "postgresSkipped": 4,
+    "client": 44
+  },
+  "notExecuted": [
+    "PostgreSQL API/MCP live round trips",
+    "Ollama multi-turn campaigns"
+  ],
+  "qualityGain": null
+}

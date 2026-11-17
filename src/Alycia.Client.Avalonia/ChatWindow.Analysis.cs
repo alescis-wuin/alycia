@@ -109,6 +109,7 @@ public partial class ChatWindow
             panel.Children.Add(Label($"Mémoire structurée : {ledger.Entries.Length} citations, messages parcourus jusqu’à {ledger.Through}. "
                 + $"{ledger.Omitted} entrées écartées du cache ; {ledger.FallbackSegments} fragments en repli. Les originaux restent conservés."));
             panel.Children.Add(Label("Pour corriger une clé affichée : Correction [clé]: nouvelle information. Les autres variantes restent signalées, sans résolution automatique."));
+            panel.Children.Add(Label("Les anciens messages restent interrogeables avec history_search et history_read lorsque les outils sont activés. Une citation d’une réponse IA reste une proposition."));
             if (preview?.Context.Memory is { } report) panel.Children.Add(Label($"Contexte courant : {report.Selected}/{report.Stored} citations, {report.Conflicts} groupes de variantes non résolues."));
             panel.Children.Add(new Expander
             {

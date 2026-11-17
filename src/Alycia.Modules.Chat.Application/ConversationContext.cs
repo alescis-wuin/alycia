@@ -56,7 +56,10 @@ public static class ConversationContext
         var available = maximum - fixedCost;
         var memoryBudget = available - (files.Count == 0 ? 0 : Math.Min(2048, available / 3));
         var ledger = StructuredMemory.Read(conversation.MemoryLedgerJson);
-        if (ledger.Through > through) ledger = StructuredMemory.Empty;
+        var memoryIdentity = options.ModelIdentity ?? conversation.Model + ":identity-unavailable";
+        var invalidated = ledger.Through > 0 && (ledger.Through > through || ledger.ModelIdentity != memoryIdentity || ledger.PromptVersion != StructuredMemory.PromptVersion);
+        if (ledger.Through > through || ledger.ModelIdentity != memoryIdentity || ledger.PromptVersion != StructuredMemory.PromptVersion)
+            ledger = StructuredMemory.Empty with { ModelIdentity = memoryIdentity, PromptVersion = StructuredMemory.PromptVersion };
         var pending = new List<ChatMessage>();
         var cost = 0; var pressure = ledger.Through > 0;
         // Retain original history while it fits; extraction starts only under pressure.
@@ -74,7 +77,7 @@ public static class ConversationContext
                 }
                 cursor = end;
             }
-        var calls = 0; var changed = false;
+        var calls = 0; var changed = invalidated;
         if (pressure && prepare)
         {
             var extraction = options.Copy(); extraction.CallPurpose = "memory"; extraction.GenerateUntilStop = false;

@@ -6,9 +6,9 @@ public sealed record ToolFunction(string Name, JsonElement Arguments);
 public sealed record ModelToolCall(ToolFunction Function);
 public sealed record ProjectTool(string Name, string Description, JsonElement InputSchema);
 public sealed record ToolEvidence(string Path, string Sha256, int Offset, int? NextOffset, bool CompleteSource, string? Reference = null, Guid? FileId = null, int? End = null, int? StartLine = null, int? EndLine = null);
-public sealed record ProjectToolResult(string Text, bool IsError = false, ToolEvidence? Evidence = null, IReadOnlyList<ToolEvidence>? EvidenceItems = null);
+public sealed record ProjectToolResult(string Text, bool IsError = false, ToolEvidence? Evidence = null, IReadOnlyList<ToolEvidence>? EvidenceItems = null, IReadOnlyList<HistoryEvidence>? History = null);
 public sealed record ToolObservation(int Number, string Name, string Arguments, bool Succeeded, int ResultBytes, ToolEvidence? Evidence = null, bool RepeatSuppressed = false, string? Error = null,
-    IReadOnlyList<ToolEvidence>? EvidenceItems = null, double ElapsedMilliseconds = 0);
+    IReadOnlyList<ToolEvidence>? EvidenceItems = null, double ElapsedMilliseconds = 0, IReadOnlyList<HistoryEvidence>? History = null);
 public interface IProjectTools
 {
     Task<bool> HasSourcesAsync(Guid conversation, CancellationToken ct);
@@ -40,6 +40,12 @@ public static class ProjectToolCatalog
             """)),
         new("project_read_many", "Lit 1 à 4 unités par identifiant ; erreurs par entrée et budget global.", Schema("""
             {"type":"object","properties":{"reads":{"type":"array","minItems":1,"maxItems":4,"items":{"type":"object","properties":{"fileId":{"type":"string"},"offset":{"type":"integer"},"symbol":{"type":"string"}},"required":["fileId"],"additionalProperties":false}}},"required":["reads"],"additionalProperties":false}
+            """)),
+        new("history_search", "Messages anciens classés BM25. Suivre nextOffset puis nextBefore, même sans résultat.", Schema("""
+            {"type":"object","properties":{"query":{"type":"string"},"before":{"type":"integer"},"offset":{"type":"integer"},"limit":{"type":"integer"}},"required":["query"],"additionalProperties":false}
+            """)),
+        new("history_read", "Paire utilisateur/assistant d’une séquence. Offsets séparés pour lire la suite sans perdre les rôles.", Schema("""
+            {"type":"object","properties":{"sequence":{"type":"integer"},"userOffset":{"type":"integer"},"assistantOffset":{"type":"integer"},"maxBytes":{"type":"integer"}},"required":["sequence"],"additionalProperties":false}
             """))
     ];
     public static object[] OllamaTools() => All.Select(t => (object)new

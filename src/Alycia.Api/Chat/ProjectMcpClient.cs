@@ -37,11 +37,14 @@ public sealed class ProjectMcpClient(HttpClient http, IServer server, IConfigura
                 .Select(c => c.GetProperty("text").GetString()));
             ToolEvidence? evidence = null;
             IReadOnlyList<ToolEvidence>? evidenceItems = null;
+            IReadOnlyList<HistoryEvidence>? history = null;
             if (result.TryGetProperty("_meta", out var meta) && meta.TryGetProperty("io.alycia/evidence", out var source) && source.ValueKind != JsonValueKind.Null)
                 evidence = source.Deserialize<ToolEvidence>(ProjectToolCatalog.Json);
             if (result.TryGetProperty("_meta", out var batchMeta) && batchMeta.TryGetProperty("io.alycia/evidenceItems", out var batch) && batch.ValueKind != JsonValueKind.Null)
                 evidenceItems = batch.Deserialize<ToolEvidence[]>(ProjectToolCatalog.Json);
-            return new(text, result.TryGetProperty("isError", out var error) && error.GetBoolean(), evidence, evidenceItems);
+            if (result.TryGetProperty("_meta", out var historyMeta) && historyMeta.TryGetProperty("io.alycia/history", out var historyJson) && historyJson.ValueKind != JsonValueKind.Null)
+                history = historyJson.Deserialize<HistoryEvidence[]>(ProjectToolCatalog.Json);
+            return new(text, result.TryGetProperty("isError", out var error) && error.GetBoolean(), evidence, evidenceItems, history);
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested) { throw new ChatModelException("Le MCP local n’a pas répondu dans le délai prévu."); }
         catch (HttpRequestException) { throw new ChatModelException("Le MCP local est inaccessible. Vérifiez la configuration du backend."); }
