@@ -108,6 +108,7 @@ public sealed class ChatTests
         var messages = new List<ChatMessageItem>();
         FileItem[] files = [];
         var fail = false;
+        Action? beforeFailure = null;
         using var http = new HttpClient(new Handler(async (request, ct) =>
         {
             var path = request.RequestUri!.AbsolutePath;
@@ -169,6 +170,7 @@ public sealed class ChatTests
 
             if (fail)
             {
+                beforeFailure?.Invoke();
                 return Json(new { message = "Ollama indisponible" }, HttpStatusCode.ServiceUnavailable);
             }
 
@@ -287,8 +289,15 @@ public sealed class ChatTests
 
             fail = true;
             window.FindControl<TextBox>("MessageInput")!.Text = "Conserver ce brouillon";
+            beforeFailure = () => window.FindControl<TextBox>("MessageInput")!.Text = "";
             Click(window, "SendButton");
             Assert.Equal("Conserver ce brouillon", window.FindControl<TextBox>("MessageInput")!.Text);
+            var restored = new DraftStore(stateDirectory).Get(conversation.Id)!;
+            Assert.Equal("Conserver ce brouillon", restored.Text);
+            var retryIds = new List<Guid>();
+            beforeFailure = () => retryIds.Add(new DraftStore(stateDirectory).Get(conversation.Id)!.RequestId);
+            Click(window, "SendButton");
+            Assert.Equal(restored.RequestId, Assert.Single(retryIds));
             Assert.Equal("Ollama indisponible", window.FindControl<TextBlock>("FeedbackText")!.Text);
             Assert.False(window.FindControl<StackPanel>("EmptyState")!.IsVisible);
             Assert.Equal("Vous · demande non confirmée", window.FindControl<TextBlock>("PendingUserLabel")!.Text);

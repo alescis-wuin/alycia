@@ -9,6 +9,21 @@ namespace Alycia.Client.Avalonia.Tests;
 public sealed class ClientFeaturesTests
 {
     [Fact]
+    public void PersistedContextWarningAndToolFailureAreVisibleInMessageDetails()
+    {
+        var message = new ChatMessageItem(Guid.NewGuid(), 2, Guid.NewGuid(), "assistant", "Réponse", DateTimeOffset.UtcNow)
+        {
+            DiagnosticsJson = JsonSerializer.Serialize(new TurnDiagnostics(Warnings: [ToolMemoryFallback.Warning]), ProjectToolCatalog.Json),
+            ToolTraceJson = JsonSerializer.Serialize(new[] { new ToolObservation(1, "project_read", "{}", false, 40,
+                Error: "Identifiant de fichier inconnu.") }, ProjectToolCatalog.Json)
+        };
+        Assert.Contains("partiellement conservé", message.DiagnosticsTitle);
+        Assert.Contains(ToolMemoryFallback.Warning, message.DiagnosticsText);
+        Assert.Contains("Motif : Identifiant de fichier inconnu.", message.ToolTraceText);
+        Assert.Contains("refus ou erreur", message.ToolTraceText);
+    }
+
+    [Fact]
     public void DraftsRemainSeparateAndKeepRequestIdAcrossRestart()
     {
         var directory = Path.Combine(Path.GetTempPath(), "alycia-drafts-" + Guid.NewGuid().ToString("N"));

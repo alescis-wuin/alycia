@@ -359,7 +359,8 @@ public partial class ChatWindow : Window
             return;
         }
 
-        var pending = _drafts.Set(_current.Id, text);
+        var conversationId = _current.Id;
+        var pending = _drafts.Set(conversationId, text);
         _drafts.Save();
         _pendingId = pending.RequestId;
         using var generation = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
@@ -425,6 +426,13 @@ public partial class ChatWindow : Window
         {
             if (C<Expander>("StreamingPanel").IsVisible)
             {
+                // Restore the submitted draft even if a UI refresh changed the editor during the operation.
+                if (_current?.Id == conversationId && string.IsNullOrWhiteSpace(C<TextBox>("MessageInput").Text))
+                {
+                    C<TextBox>("MessageInput").Text = text;
+                    _drafts.Set(_current.Id, text);
+                    _drafts.Save();
+                }
                 C<MarkdownView>("StreamingText").Text = streamed.Length > 0 ? streamed.ToString() : "Aucune réponse reçue.";
                 C<Expander>("StreamingPanel").Header = "Réponse provisoire · enregistrement non confirmé";
                 C<TextBlock>("StreamingStatus").Text = "Génération interrompue · brouillon conservé";
@@ -436,7 +444,7 @@ public partial class ChatWindow : Window
 
     private void SaveDraft()
     {
-        if (_current is not null && !_loadingDraft)
+        if (_current is not null && !_loadingDraft && _generation is null)
             _drafts.Set(_current.Id, C<TextBox>("MessageInput").Text ?? "");
     }
 

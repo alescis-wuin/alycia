@@ -7,17 +7,19 @@ namespace Alycia.Client.Avalonia;
 
 internal static class ResponseDiagnostics
 {
-    public static string Title(TurnDiagnostics? report) => report?.Citations?.Status switch
-    {
-        "unknown_references" => "⚠ Références inconnues — examiner les sources",
-        "sources_uncited" => "Sources fournies, aucune référence citée",
-        "references_recognized" => "Sources citées et coût de la réponse",
-        _ => "Contexte et coût de la réponse"
-    };
+    public static string Title(TurnDiagnostics? report) => report?.Warnings is { Count: > 0 }
+        ? "⚠ Contexte partiellement conservé — détails" : report?.Citations?.Status switch
+        {
+            "unknown_references" => "⚠ Références inconnues — examiner les sources",
+            "sources_uncited" => "Sources fournies, aucune référence citée",
+            "references_recognized" => "Sources citées et coût de la réponse",
+            _ => "Contexte et coût de la réponse"
+        };
     public static string Describe(TurnDiagnostics? report)
     {
         if (report is null) return "Diagnostics illisibles.";
         var text = new StringBuilder();
+        foreach (var warning in report.Warnings ?? []) text.AppendLine("⚠ " + warning);
         if (report.Usage is { } usage)
         {
             text.AppendLine($"{usage.Calls.Count} appels · {usage.InputTokens?.ToString() ?? "?"} tokens entrants cumulés · {usage.OutputTokens?.ToString() ?? "?"} sortants cumulés");

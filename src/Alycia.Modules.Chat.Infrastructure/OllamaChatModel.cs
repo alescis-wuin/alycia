@@ -112,6 +112,9 @@ public sealed partial class OllamaChatModel(HttpClient http, ChatOptions options
                 ["stream"] = false,
                 ["options"] = GenerationOptions(settings)
             };
+            // Auxiliary tasks have a bounded output budget; do not spend it on optional reasoning.
+            // This does not change the reasoning setting of conversational/tool turns.
+            if (settings.CallPurpose is "summary" or "memory") request["think"] = false;
             if (settings.ResponseSchema is { } schema) request["format"] = schema;
             using var response = await http.PostAsJsonAsync("api/chat", request, timeout.Token);
             if (!response.IsSuccessStatusCode)
@@ -120,14 +123,21 @@ public sealed partial class OllamaChatModel(HttpClient http, ChatOptions options
             }
 
             var payload = await response.Content.ReadFromJsonAsync<ChatReply>(timeout.Token);
-            if (payload is not { Done: true, Message.Role: "assistant" }
-                || string.IsNullOrWhiteSpace(payload.Message.Content))
+            var stage = settings.CallPurpose switch { "summary" => "le résumé interne", "memory" => "l’extraction de mémoire", _ => "la génération" };
+            if (payload is not { Done: true, Message.Role: "assistant" })
             {
-                throw new ChatModelException("Ollama a renvoyé une réponse vide ou incomplète.");
+                throw new ChatModelException($"Ollama a renvoyé une réponse incomplète pendant {stage} : fin non confirmée ou rôle invalide.");
             }
-
+            var stats = new GenerationStats(payload.PromptTokens, payload.OutputTokens, payload.TotalDuration,
+                payload.EvaluationDuration, payload.DoneReason, payload.PromptDuration, payload.LoadDuration, payload.CachedTokens);
+            if (string.IsNullOrWhiteSpace(payload.Message.Content))
+            {
+                var reason = payload.DoneReason == "length" ? "Limite de génération atteinte." : "Aucun texte final reçu.";
+                var thinking = string.IsNullOrWhiteSpace(payload.Message.Thinking) ? "" : " Le modèle a produit du raisonnement sans réponse finale.";
+                throw new ChatModelException($"Ollama a renvoyé un contenu vide pendant {stage}. {reason}{thinking}", stats, ChatModelFailure.EmptyContent);
+            }
             ValidateCompletion(payload.DoneReason, settings);
-            return new(payload.Message.Content, new(payload.PromptTokens, payload.OutputTokens, payload.TotalDuration, payload.EvaluationDuration, payload.DoneReason, payload.PromptDuration, payload.LoadDuration, payload.CachedTokens));
+            return new(payload.Message.Content, stats);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {

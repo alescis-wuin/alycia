@@ -8,6 +8,34 @@ namespace Alycia.Modules.Chat.Tests;
 
 public sealed class OllamaChatModelTests
 {
+    [Theory]
+    [InlineData("chat", "la génération")]
+    [InlineData("summary", "le résumé interne")]
+    [InlineData("memory", "l’extraction de mémoire")]
+    public async Task EmptyContentIdentifiesStageAndRetainsMetricsWithoutExposingThinking(string purpose, string stage)
+    {
+        using var http = Client(async (request, ct) =>
+        {
+            if (request.RequestUri!.AbsolutePath == "/api/tags") return Json("{\"models\":[{\"name\":\"demo\"}]}");
+            if (request.RequestUri.AbsolutePath == "/api/show") return Json("{\"capabilities\":[\"completion\",\"thinking\"]}");
+            using var body = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(ct));
+            if (purpose == "chat") Assert.False(body.RootElement.TryGetProperty("think", out _));
+            else Assert.False(body.RootElement.GetProperty("think").GetBoolean());
+            return Json("""
+                {"done":true,"done_reason":"length","prompt_eval_count":500,"eval_count":128,
+                 "message":{"role":"assistant","content":"","thinking":"PRIVATE_THINKING"}}
+                """);
+        });
+        var model = new MeteredChatModel(new OllamaChatModel(http, new()));
+        var options = new ChatOptions { CallPurpose = purpose };
+        var error = await Assert.ThrowsAsync<ChatModelException>(() => model.GenerateAsync("demo", [], options, default));
+        Assert.Equal(ChatModelFailure.EmptyContent, error.Failure);
+        Assert.Contains(stage, error.Message);
+        Assert.Contains("Limite de génération", error.Message);
+        Assert.DoesNotContain("PRIVATE_THINKING", error.Message);
+        Assert.Equal(128, model.Snapshot(options).OutputTokens);
+    }
+
     [Fact]
     public async Task SendsHistoryAndExplicitGenerationBudget()
     {

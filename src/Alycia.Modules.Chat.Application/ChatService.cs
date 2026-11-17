@@ -98,7 +98,7 @@ public sealed partial class ChatService(IChatRepository repository, IChatModel m
             else conversation.SetMemory(prepared.Memory, prepared.Through, prepared.SourceHash, conversation.Model);
         }
         var usage = measured.Snapshot(settings);
-        assistant.SetDiagnostics(System.Text.Json.JsonSerializer.Serialize(new TurnDiagnostics(usage, settings.RetrievalReport, window.Memory, CitationAudit.Check(reply, window.Sources, generated.Tools)), ProjectToolCatalog.Json));
+        assistant.SetDiagnostics(System.Text.Json.JsonSerializer.Serialize(new TurnDiagnostics(usage, settings.RetrievalReport, window.Memory, CitationAudit.Check(reply, window.Sources, generated.Tools), generated.Warnings), ProjectToolCatalog.Json));
         conversation.CompleteTurn();
         // One atomic SaveChanges for both messages and the revision. A failed
         // model call/cancellation never leaves an orphan user message in storage.

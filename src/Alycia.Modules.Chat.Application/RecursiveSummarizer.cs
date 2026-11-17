@@ -16,7 +16,7 @@ public sealed class RecursiveSummarizer(IChatModel model, string modelName, Chat
     public async Task<string> ReduceAsync(IReadOnlyList<SummarySource> sources, int targetBytes, CancellationToken ct)
     {
         if (targetBytes < 128) throw new ArgumentException("Budget de résumé insuffisant : augmentez la fenêtre ou réduisez les éléments protégés.");
-        var output = Math.Min(1024, Math.Max(32, targetBytes / 4));
+        var output = OutputBudget(targetBytes);
         var inputLimit = settings.ContextTokens - output - settings.SafetyTokens
             - SlidingContext.EstimateTokens(Instruction) - 256;
         if (inputLimit < 512) throw new ArgumentException("Fenêtre trop petite pour résumer : utilisez au moins 2048 tokens et une réserve adaptée.");
@@ -67,7 +67,7 @@ public sealed class RecursiveSummarizer(IChatModel model, string modelName, Chat
                 AutoSummarize = false,
                 ContextTokens = settings.ContextTokens,
                 SafetyTokens = settings.SafetyTokens,
-                MaxOutputTokens = Math.Min(1024, Math.Max(32, target / 4)),
+                MaxOutputTokens = OutputBudget(target),
                 Temperature = 0,
                 Seed = settings.Seed,
                 TimeoutSeconds = settings.TimeoutSeconds
@@ -79,7 +79,8 @@ public sealed class RecursiveSummarizer(IChatModel model, string modelName, Chat
                 > options.ContextTokens - options.MaxOutputTokens - options.SafetyTokens)
                 throw new ArgumentException("Le fragment dépasse le budget de résumé.");
             var reply = (await model.GenerateAsync(modelName, messages, options, ct)).Trim();
-            if (reply.Length == 0 || reply.Contains('\0')) throw new ChatModelException("Le modèle a renvoyé un résumé vide ou invalide.");
+            if (reply.Length == 0) throw new ChatModelException("Le modèle a renvoyé un résumé vide.", failure: ChatModelFailure.EmptyContent);
+            if (reply.Contains('\0')) throw new ChatModelException("Le modèle a renvoyé un résumé invalide.");
             var size = Encoding.UTF8.GetByteCount(reply);
             if (size <= target) return reply;
             if (size >= Encoding.UTF8.GetByteCount(source) || size > inputLimit)
@@ -88,6 +89,11 @@ public sealed class RecursiveSummarizer(IChatModel model, string modelName, Chat
         }
         throw new ChatModelException("Le résumé reste trop volumineux après trois réductions ; aucun texte n’est tronqué silencieusement.");
     }
+
+    // Bytes of desired prose are not a token allowance for reasoning and final text combined.
+    // Keep enough room for small summaries while retaining an input reservation for small contexts.
+    private int OutputBudget(int targetBytes) => Math.Min(Math.Clamp(targetBytes, 256, 1024),
+        Math.Max(32, (settings.ContextTokens - settings.SafetyTokens) / 4));
 
     public static IEnumerable<string> Chunks(string text, int maxBytes)
     {

@@ -6,7 +6,7 @@ namespace Alycia.Modules.Chat.Application;
 public sealed record SuppliedSource(string Reference, Guid FileId, string Path, string Sha256, int StartLine, int EndLine,
     int Start, int End, string Origin, bool Partial);
 public sealed record CitationReport(string Status, SuppliedSource[] Supplied, string[] Recognized, string[] Unknown);
-public sealed record TurnDiagnostics(GenerationUsage? Usage = null, RetrievalReport? Retrieval = null, MemoryReport? Memory = null, CitationReport? Citations = null)
+public sealed record TurnDiagnostics(GenerationUsage? Usage = null, RetrievalReport? Retrieval = null, MemoryReport? Memory = null, CitationReport? Citations = null, IReadOnlyList<string>? Warnings = null)
 {
     public static TurnDiagnostics? Read(string json)
     {

@@ -1,5 +1,9 @@
 # Alycia V4 — compte rendu du 17 novembre 2026
 
+Correctif ultérieur : [interruption après des appels d’outils](Local-Client-V4-Hotfix-Tools.md).
+Les résultats ci-dessous décrivent la livraison V4 initiale ; la validation ciblée
+du correctif est consignée séparément.
+
 Les sept phases ont été réalisées successivement sur
 `feature/local-client-v4-context-quality-20261117`, dérivée du commit V3
 `228fde1996b5b0d7d5a04637dd2d9318c8970095`. Le [guide](Local-Client-V4-Guide.md)

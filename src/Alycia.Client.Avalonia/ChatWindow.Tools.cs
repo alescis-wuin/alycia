@@ -17,7 +17,8 @@ internal static class ToolDisplay
         var label = tool.Name switch { "project_list" => "Inventaire", "project_search" => "Recherche", "project_read" => "Lecture", _ => tool.Name };
         var detail = tool.Evidence is { } file ? $"{file.Path}\nCaractères {file.Offset} → {file.End?.ToString() ?? file.NextOffset?.ToString() ?? "fin"} · "
             + (file.CompleteSource ? "texte source intégral accessible" : "extraction partielle") + $"\nSHA-256 : {file.Sha256}" : tool.Arguments;
-        return $"{tool.Number}. {label} · {(tool.RepeatSuppressed ? "répétition évitée" : tool.Succeeded ? "réussi" : "refus ou erreur")}\n{detail}";
+        return $"{tool.Number}. {label} · {(tool.RepeatSuppressed ? "répétition évitée" : tool.Succeeded ? "réussi" : "refus ou erreur")}\n{detail}"
+            + (string.IsNullOrWhiteSpace(tool.Error) ? "" : "\nMotif : " + tool.Error);
     }
 }
 public sealed partial class ChatApiClient

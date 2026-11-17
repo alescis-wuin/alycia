@@ -3,6 +3,8 @@
 Branche : `feature/local-client-v4-context-quality-20261117`, issue de
 `feature/local-client-v1-20261116` à `228fde1996b5b0d7d5a04637dd2d9318c8970095`.
 Voir le [plan par phases](Local-Client-V4-Plan.md) et le [compte rendu](Local-Client-V4-Report.md).
+Le [correctif des interruptions après outils](Local-Client-V4-Hotfix-Tools.md)
+décrit la reprise après un résumé interne vide et sa recette ciblée.
 
 ## Mise à jour de l’installation existante
 
@@ -100,8 +102,19 @@ Les outils restent en lecture seule sur les imports.
 
 Les petits résultats sont conservés tels quels. Sous pression du budget, seuls
 les anciens cycles complets d’outils sont résumés ; le dernier cycle reste brut.
-Un appel identique déjà réussi reçoit un avertissement sans nouvelle lecture ;
+Un appel identique dont le résultat brut est encore présent reçoit un avertissement sans nouvelle lecture ;
 trois répétitions consécutives arrêtent l’opération sans enregistrer un échange partiel.
+Une source dont le résultat a été compacté peut être relue.
+
+Si Ollama termine un résumé interne sans texte, les anciens résultats d’outils
+sont remplacés par des extraits originaux bornés, explicitement incomplets.
+L’exploration peut continuer sans retenter ce résumé à chaque cycle. Le système,
+les quatre derniers messages et la demande ne sont pas tronqués par ce repli.
+Le diagnostic **Contexte partiellement conservé** signale les omissions possibles ;
+demander la relecture des fichiers déterminants avant de s’appuyer sur l’analyse.
+Une erreur réseau, une réponse sans fin confirmée ou une annulation reste bloquante.
+Ce repli ne s’applique pas aux résumés persistants de conversation ou de dossiers.
+Les refus d’outils affichent désormais leur motif dans la trace.
 
 ## Mémoire structurée et corrections
 

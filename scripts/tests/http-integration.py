@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """API réelle + PostgreSQL isolé + Ollama simulé, sans GPU ni téléchargement de modèle."""
+import argparse
 import http.client
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import importlib.util
@@ -22,6 +23,11 @@ class Ollama(BaseHTTPRequestHandler):
     tool_rounds = 0
     memory_calls = 0
     embedding_calls = 0
+    pressure_active = False
+    pressure_rounds = 0
+    pressure_summaries = 0
+    pressure_file = None
+    pressure_protected = None
 
     def log_message(self, *_):
         pass
@@ -68,6 +74,9 @@ class Ollama(BaseHTTPRequestHandler):
         assert self.path == "/api/chat" and request["model"] in ("demo", "tool-demo"), "Un modèle non génératif a reçu une demande de chat"
         prompt = json.dumps(request["messages"], ensure_ascii=False)
         assert "NE_JAMAIS_RESUMER_CE_CONTENU" not in prompt, "Un contenu exclu a été envoyé au modèle"
+        if Ollama.pressure_active:
+            self.pressure_reply(request)
+            return
         if request.get("tools"):
             assert request["model"] == "tool-demo" and request["stream"]
             assert {t["function"]["name"] for t in request["tools"]} == {"project_list", "project_read", "project_search"}
@@ -111,6 +120,43 @@ class Ollama(BaseHTTPRequestHandler):
         if request.get("stream"):
             self.wfile.write(b'{"message":{"role":"assistant","thinking":"thinking","content":""},"done":false}\n')
             self.wfile.flush()
+        self.wfile.write(json.dumps(reply).encode() + b"\n")
+
+    def pressure_reply(self, request):
+        if request.get("tools"):
+            assert "think" not in request, "Le raisonnement conversationnel ne doit pas être désactivé"
+            messages = request["messages"]
+            assert messages[0]["content"].startswith("SYSTEM_PRESSURE")
+            assert [m["content"] for m in messages[1:5]] == ["u1", "a1", "u2", "a2"]
+            # Source excerpts are appended to the current request by ConversationContext.
+            assert messages[5]["role"] == "user"
+            assert messages[5]["content"].split("\n\n", 1)[0] == "PRESSURE_SENTINEL : examine le code."
+            if Ollama.pressure_protected is None:
+                Ollama.pressure_protected = messages[:6]
+            assert messages[:6] == Ollama.pressure_protected
+            offsets = [None, 0, 3000, 6000, 0]
+            index = Ollama.pressure_rounds
+            Ollama.pressure_rounds += 1
+            if index < len(offsets):
+                args = {"fileId": str(uuid.UUID(int=0)) if offsets[index] is None else Ollama.pressure_file,
+                    "offset": offsets[index] or 0, "maxBytes": 5000}
+                message = {"role": "assistant", "content": "", "tool_calls": [
+                    {"function": {"name": "project_read", "arguments": args}}]}
+            else:
+                assert any("REPLI EXTRACTIF" in m["content"] for m in messages)
+                last = json.loads(messages[-1]["content"])
+                assert "reference" in last, "La relecture d’une source compactée a été refusée"
+                message = {"role": "assistant", "content": "Analyse partielle du code. [" + last["reference"] + "]"}
+            reply = {"message": message, "done": True, "done_reason": "stop", "prompt_eval_count": 2000, "eval_count": 20}
+        else:
+            Ollama.pressure_summaries += 1
+            assert request["think"] is False
+            assert 256 <= request["options"]["num_predict"] <= 1024
+            reply = {"message": {"role": "assistant", "content": "", "thinking": "PRIVATE_THINKING"},
+                "done": True, "done_reason": "length", "prompt_eval_count": 4000, "eval_count": 256}
+        self.send_response(200)
+        self.send_header("Content-Type", "application/x-ndjson" if request.get("stream") else "application/json")
+        self.end_headers()
         self.wfile.write(json.dumps(reply).encode() + b"\n")
 
 
@@ -210,7 +256,56 @@ def verify_structured_memory(call, checks):
         call("DELETE", prefix, expected=204)
 
 
+def verify_empty_tool_summary(call, checks):
+    originals = [{"role": role, "content": content, "createdAtUtc": "2026-11-17T00:00:00Z"}
+        for role, content in [("user", "u1"), ("assistant", "a1"), ("user", "u2"), ("assistant", "a2")]]
+    conv = call("POST", "/import", {"schemaVersion": 1, "title": "Reprise outils V4", "model": "tool-demo",
+        "systemPrompt": "SYSTEM_PRESSURE", "contextNotes": "", "options": {"contextTokens": 8192,
+        "maxOutputTokens": 1024, "useProjectTools": True}, "messages": originals}, expected=201)
+    prefix = "/conversations/" + conv["id"]
+    try:
+        boundary = "pressure-" + uuid.uuid4().hex
+        code = ("// Source de recette pour lecture récursive.\n" * 400).encode()
+        body = (f'--{boundary}\r\nContent-Disposition: form-data; name="files"; filename="Source.cs"\r\n'
+            'Content-Type: text/plain\r\n\r\n').encode() + code + f'\r\n--{boundary}--\r\n'.encode()
+        files = call("POST", prefix + "/files/" + str(uuid.uuid4()), raw=body,
+            headers={"Content-Type": "multipart/form-data; boundary=" + boundary})
+        Ollama.pressure_file = files[0]["id"]
+        Ollama.pressure_active = True
+        revision = call("GET", prefix + "/settings")["conversation"]["revision"]
+        request = {"requestId": str(uuid.uuid4()), "revision": revision, "content": "PRESSURE_SENTINEL : examine le code."}
+        events = call("POST", prefix + "/stream", request)
+        assert events[-1]["type"] == "done", events[-1]
+        result = events[-1]["result"]
+        assert Ollama.pressure_summaries == 1 and Ollama.pressure_rounds == 6
+        assistant = result["messages"][-1]
+        trace = json.loads(assistant["toolTraceJson"])
+        assert not trace[0]["succeeded"] and trace[0]["error"], "Le motif du refus manque"
+        assert all(t["succeeded"] and not t["repeatSuppressed"] for t in trace[1:])
+        diagnostic = json.loads(assistant["diagnosticsJson"])
+        assert len(diagnostic["warnings"]) == 1
+        assert "extraits partiels" in diagnostic["warnings"][0]
+        usage = diagnostic["usage"]
+        assert usage["complete"] and usage["outputTokens"] == 6 * 20 + 256
+        summary = [c for c in usage["calls"] if c["purpose"] == "summary"]
+        assert len(summary) == 1 and summary[0]["stats"]["doneReason"] == "length"
+        assert "PRIVATE_THINKING" not in json.dumps(events)
+        exported = call("GET", prefix + "/export?format=json")
+        assert len(exported["messages"]) == 6
+        assert [m["content"] for m in exported["messages"][:4]] == [m["content"] for m in originals]
+        assert json.loads(exported["messages"][-1]["diagnosticsJson"]) == diagnostic
+        assert call("POST", prefix + "/stream", request)[-1]["result"]["replayed"]
+        assert Ollama.pressure_rounds == 6 and Ollama.pressure_summaries == 1
+        checks.append("empty_tool_summary_recovery_warning_metrics_reread_persistence_and_replay")
+    finally:
+        Ollama.pressure_active = False
+        call("DELETE", prefix, expected=204)
+
+
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--case", choices=("all", "tool-summary"), default="all")
+    args = parser.parse_args()
     connection = os.environ.get("ALYCIA_CHAT_TEST_CONNECTION")
     if not connection:
         raise SystemExit("ALYCIA_CHAT_TEST_CONNECTION requis (administrateur de test avec CREATEDB).")
@@ -258,26 +353,30 @@ def main():
                 spec = importlib.util.spec_from_file_location("verify_local", ROOT / "scripts/verify-local.py")
                 module = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(module)
-                verify_model_selection(port)
-                checks = module.verify(f"http://127.0.0.1:{port}", "demo", extended=True)
-                checks.insert(0, "model_capabilities_and_existing_conversation_repair")
-                assert Ollama.chat_calls == 3 and Ollama.summary_calls >= 5
+                checks = []
                 client = module.create_client(f"http://127.0.0.1:{port}")
-                owned = []
-                try:
-                    summaries_before_tools = Ollama.summary_calls
-                    module.verify_tools(client, "tool-demo", owned, checks)
-                    assert Ollama.summary_calls == summaries_before_tools, "Les petits résultats d’outils ont été résumés inutilement"
-                    assert Ollama.tool_rounds == 4, "Le renvoi a réexécuté les outils"
-                finally:
-                    for conversation in owned:
-                        client("DELETE", "/conversations/" + conversation, expected=204)
-                verify_structured_memory(client, checks)
-                verify_hybrid(client, checks)
-                checks.append("tool_citations_and_persisted_diagnostics")
+                if args.case == "all":
+                    verify_model_selection(port)
+                    checks = module.verify(f"http://127.0.0.1:{port}", "demo", extended=True)
+                    checks.insert(0, "model_capabilities_and_existing_conversation_repair")
+                    assert Ollama.chat_calls == 3 and Ollama.summary_calls >= 5
+                    owned = []
+                    try:
+                        summaries_before_tools = Ollama.summary_calls
+                        module.verify_tools(client, "tool-demo", owned, checks)
+                        assert Ollama.summary_calls == summaries_before_tools, "Les petits résultats d’outils ont été résumés inutilement"
+                        assert Ollama.tool_rounds == 4, "Le renvoi a réexécuté les outils"
+                    finally:
+                        for conversation in owned:
+                            client("DELETE", "/conversations/" + conversation, expected=204)
+                    verify_structured_memory(client, checks)
+                    verify_hybrid(client, checks)
+                    checks.append("tool_citations_and_persisted_diagnostics")
+                verify_empty_tool_summary(client, checks)
                 print(json.dumps({"passed": len(checks), "checks": checks, "provider": "mock",
                     "database": "isolated PostgreSQL", "test_data_cleaned": True,
-                    "continuous_chat_calls": Ollama.chat_calls, "tool_rounds": Ollama.tool_rounds, "bounded_summary_calls": Ollama.summary_calls}, indent=2))
+                    "continuous_chat_calls": Ollama.chat_calls, "tool_rounds": Ollama.tool_rounds, "bounded_summary_calls": Ollama.summary_calls,
+                    "pressure_tool_rounds": Ollama.pressure_rounds, "empty_tool_summaries": Ollama.pressure_summaries}, indent=2))
             except Exception:
                 log.flush()
                 log.seek(0)
