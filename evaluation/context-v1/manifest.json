@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "228fde1996b5b0d7d5a04637dd2d9318c8970095",
+  "files": [
+    {
+      "path": "src/Alycia.Modules.Chat.Application/SlidingContext.cs",
+      "sha256": "69eb61419861c34159daef4619e0b95bb473ee5f9b4e2065c9eaebd390aed52b",
+      "bytes": 2460
+    },
+    {
+      "path": "src/Alycia.Modules.Chat.Application/ProjectAgent.cs",
+      "sha256": "e0398b4d1b716a09a1fbd50df1a415cbdf4ee7fb5e51c82bdfdfca4de4ed9876",
+      "bytes": 6622
+    },
+    {
+      "path": "src/Alycia.Modules.Chat.Application/RecursiveContext.cs",
+      "sha256": "f1386059dedebda63342aa401e42d59b569021960dca16457cb1cc69016723f0",
+      "bytes": 6105
+    },
+    {
+      "path": "src/Alycia.Modules.Chat.Application/RecursiveSummarizer.cs",
+      "sha256": "d7565f8800302741b1c68afbbe909f9513d453abd79b28f23a849820659d126d",
+      "bytes": 6482
+    },
+    {
+      "path": "src/Alycia.Modules.Chat.Application/ChatContracts.cs",
+      "sha256": "21ef73887f07c13905ebce3c8358a8c50bfd3f4183aa6f6468e1fa1817af9d7f",
+      "bytes": 5760
+    },
+    {
+      "path": "src/Alycia.Modules.Chat.Infrastructure/ProjectToolService.cs",
+      "sha256": "21a2a8f4105e4f0f71cd5caee351ce89cd46b1b162489406f667059bd3965344",
+      "bytes": 9817
+    },
+    {
+      "path": "src/Alycia.Modules.Chat.Infrastructure/ProjectSourceReader.cs",
+      "sha256": "337a464036c39d94ee7f1439a2a8344914dd3428f650ac6cc0233ffc68e9fe96",
+      "bytes": 2216
+    },
+    {
+      "path": "src/Alycia.Modules.Chat.Domain/Conversation.cs",
+      "sha256": "f263b35cdaa45bcf80b3cb1241def2bbe9f35c745a0678ceaa546dfca99894d8",
+      "bytes": 3391
+    }
+  ]
+}
