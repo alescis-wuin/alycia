@@ -43,7 +43,7 @@ public static class ConversationTransfer
                 || string.IsNullOrWhiteSpace(message.Content) || message.Content.Contains('\0')
                 || message.Content.Length > (i % 2 == 0 ? 32000 : 1_000_000))
                 throw new ArgumentException("L’archive doit contenir des échanges user/assistant complets et bornés.");
-            if (message.DiagnosticsJson is null || message.DiagnosticsJson.Length > 512000) throw new ArgumentException("Diagnostic invalide.");
+            if (message.DiagnosticsJson is null || message.DiagnosticsJson.Length > 2_000_000) throw new ArgumentException("Diagnostic invalide.");
             try { using var diagnostic = JsonDocument.Parse(message.DiagnosticsJson); if (diagnostic.RootElement.ValueKind != JsonValueKind.Object || (message.Role == "user" && message.DiagnosticsJson != "{}")) throw new ArgumentException("Diagnostic invalide."); }
             catch (JsonException) { throw new ArgumentException("Diagnostic invalide."); }
             if (message.ToolTraceJson is null || message.ToolTraceJson.Length > 512000) throw new ArgumentException("Trace d’outils trop volumineuse.");

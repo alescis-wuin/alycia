@@ -21,6 +21,9 @@ public sealed record ConversationSummary(Guid Id, string Title, string Model, st
 public sealed record ChatMessageItem(Guid ConversationId, int Sequence, Guid RequestId, string Role,
     string Content, DateTimeOffset CreatedAtUtc, Guid? AttachmentId = null, string ToolTraceJson = "[]", string DiagnosticsJson = "{}")
 {
+    public bool HasDiagnostics => IsAssistant && DiagnosticsJson != "{}";
+    public string DiagnosticsTitle => ResponseDiagnostics.Title(TurnDiagnostics.Read(DiagnosticsJson));
+    public string DiagnosticsText => ResponseDiagnostics.Describe(TurnDiagnostics.Read(DiagnosticsJson));
     public bool HasToolTrace => IsAssistant && !string.IsNullOrWhiteSpace(ToolTraceJson) && ToolTraceJson != "[]";
     public string ToolTraceText
     {

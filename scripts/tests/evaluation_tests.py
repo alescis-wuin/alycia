@@ -39,3 +39,5 @@ class EvaluationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             evaluation.compare(a, dict(a, results=[]))
         self.assertTrue(evaluation.compare(a, a)["modelIdentityRequiresReview"])
+        with self.assertRaisesRegex(ValueError, "Identité"):
+            evaluation.compare(dict(a, modelIdentity="model:one"), dict(a, modelIdentity="model:two"))

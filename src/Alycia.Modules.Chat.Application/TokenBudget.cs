@@ -56,6 +56,11 @@ public sealed class MeteredChatModel(IChatModel inner) : IChatModel
         var timer = System.Diagnostics.Stopwatch.StartNew();
         GenerationReply? reply = null;
         try { reply = await call(); return reply; }
-        finally { _calls.Add(new(purpose ?? options.CallPurpose, messages.Sum(m => TokenBudget.Count(m.Content, options)), timer.Elapsed.TotalMilliseconds, reply?.Stats)); }
+        finally
+        {
+            _calls.Add(new(purpose ?? options.CallPurpose, messages.Sum(m => TokenBudget.Count(m.Content, options) + Encoding.UTF8.GetByteCount(m.Thinking ?? "")
+            + (m.ToolCalls is null ? 0 : Encoding.UTF8.GetByteCount(System.Text.Json.JsonSerializer.Serialize(m.ToolCalls, ProjectToolCatalog.Json))))
+            + (purpose == "tools" ? TokenBudget.Count(System.Text.Json.JsonSerializer.Serialize(ProjectToolCatalog.OllamaTools(), ProjectToolCatalog.Json), options) : 0), timer.Elapsed.TotalMilliseconds, reply?.Stats));
+        }
     }
 }

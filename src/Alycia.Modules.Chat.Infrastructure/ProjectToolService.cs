@@ -126,8 +126,13 @@ public sealed class ProjectToolService(ChatDbContext database, ProjectSourceRead
         {
             var text = FileContext.Utf8Prefix(source.Text[offset..end], size);
             int? next = offset + text.Length < end ? offset + text.Length : null;
+            var actualEnd = offset + text.Length;
+            var startLine = 1 + source.Text.AsSpan(0, offset).Count('\n');
+            var endLine = startLine + source.Text.AsSpan(offset, Math.Max(0, text.Length - 1)).Count('\n');
+            var reference = ProjectRetrieval.Reference(id, file.Sha256, offset, actualEnd);
             var json = Json(new
             {
+                reference,
                 fileId = id,
                 path = FileContext.Utf8Prefix(file.Name, 320),
                 file.Sha256,
@@ -138,12 +143,14 @@ public sealed class ProjectToolService(ChatDbContext database, ProjectSourceRead
                 scopeStart = start,
                 scopeEnd = end,
                 headerOnly,
-                startLine = 1 + source.Text.AsSpan(0, offset).Count('\n'),
+                startLine,
+                endLine,
+                end = actualEnd,
                 completeSource = source.Complete,
                 source = source.Origin,
                 text
             });
-            if (Bytes(json) <= budget) return new(json, Evidence: new(file.Name, file.Sha256, offset, next, source.Complete));
+            if (Bytes(json) <= budget) return new(json, Evidence: new(file.Name, file.Sha256, offset, next, source.Complete, reference, id, actualEnd, startLine, endLine));
             if (size <= 32) throw new ArgumentException("Budget insuffisant pour cette source.");
             size /= 2;
         }

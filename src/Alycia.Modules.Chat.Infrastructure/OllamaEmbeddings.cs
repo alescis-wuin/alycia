@@ -20,6 +20,9 @@ public sealed class OllamaEmbeddings(HttpClient http) : ILocalEmbeddings
             throw new ArgumentException("Modèle d’embeddings local avec empreinte introuvable.");
         using var show = await http.PostAsJsonAsync("api/show", new { model }, timeout.Token); show.EnsureSuccessStatusCode();
         using var details = JsonDocument.Parse(await show.Content.ReadAsStringAsync(timeout.Token));
+        if ((details.RootElement.TryGetProperty("remote_host", out var remoteHost) && !string.IsNullOrEmpty(remoteHost.GetString()))
+            || (details.RootElement.TryGetProperty("remote_model", out var remoteModel) && !string.IsNullOrEmpty(remoteModel.GetString())))
+            throw new ArgumentException("Les embeddings distants ne sont pas autorisés.");
         if (!details.RootElement.GetProperty("capabilities").EnumerateArray().Any(c => c.GetString() == "embedding"))
             throw new ArgumentException("Ce modèle n’annonce pas la capacité embedding.");
         return model + ":" + digest.GetString();

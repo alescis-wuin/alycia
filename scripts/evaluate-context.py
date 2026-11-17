@@ -16,7 +16,7 @@ DATA = ROOT / "evaluation/context-v1"
 
 
 def load_suite(directory=DATA):
-    manifest = json.loads((directory / "manifest.json").read_text())
+    manifest = json.loads((directory / "manifest.json").read_text(encoding="utf-8"))
     files = {}
     for entry in manifest["files"]:
         path = Path(entry["path"])
@@ -26,7 +26,7 @@ def load_suite(directory=DATA):
         if hashlib.sha256(data).hexdigest() != entry["sha256"] or len(data) != entry["bytes"]:
             raise ValueError("Corpus modifié : " + str(path))
         files[entry["path"]] = data
-    cases = json.loads((directory / "cases.json").read_text())
+    cases = json.loads((directory / "cases.json").read_text(encoding="utf-8"))
     if len({c["id"] for c in cases}) != len(cases):
         raise ValueError("Identifiants de questions dupliqués")
     for case in cases:
@@ -51,6 +51,8 @@ def compare(left, right):
     mismatch = [k for k in keys if left.get(k) != right.get(k)]
     if mismatch:
         raise ValueError("Runs non comparables : " + ", ".join(mismatch))
+    if left.get("modelIdentity") and right.get("modelIdentity") and left["modelIdentity"] != right["modelIdentity"]:
+        raise ValueError("Identité de modèle différente")
     a = {(r["id"], r["repeat"]): r for r in left["results"]}
     b = {(r["id"], r["repeat"]): r for r in right["results"]}
     if a.keys() != b.keys():
@@ -60,6 +62,8 @@ def compare(left, right):
             "rows": [{"id": key[0], "repeat": key[1], "elapsedSeconds": [a[key]["elapsedSeconds"], b[key]["elapsedSeconds"]],
                       "indicators": [a[key].get("indicators"), b[key].get("indicators")],
                       "usage": [a[key].get("usage"), b[key].get("usage")],
+                      "previewUsage": [a[key].get("previewUsage"), b[key].get("previewUsage")],
+                      "options": [a[key].get("options"), b[key].get("options")],
                       "errors": [a[key].get("error"), b[key].get("error")]} for key in sorted(a)],
             "notice": "Examiner les réponses et les preuves ; aucune hausse de qualité n’est inférée des seuls motifs lexicaux."}
 
@@ -83,7 +87,7 @@ def run(args):
     report_path = args.output / "run.json"
 
     def save():
-        report_path.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n")
+        report_path.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
     remaining = []
     try:
@@ -101,22 +105,36 @@ def run(args):
                     settings = call("GET", prefix + "/settings")
                     options = settings["options"]
                     options.update(contextTokens=args.context, maxOutputTokens=args.output_tokens, temperature=0,
-                                   seed=args.seed, generateUntilStop=False, useProjectTools=args.tools, toolMaxCalls=args.calls)
+                                   seed=args.seed, generateUntilStop=False, useProjectTools=args.tools, toolMaxCalls=args.calls,
+                                   safetyTokens=256, summaryMaxCalls=256)
+                    requested = {}
+                    if args.retrieval: requested["retrievalMode"] = args.retrieval
+                    if args.embedding_model: requested["embeddingModel"] = args.embedding_model
+                    if args.counter: requested["tokenCounting"] = args.counter
+                    if args.memory: requested["structuredMemory"] = args.memory == "structured"
+                    options.update(requested)
                     call("PUT", prefix + "/settings", {"revision": conversation["revision"], "model": args.model,
                         "systemPrompt": conversation["systemPrompt"], "contextNotes": "", "options": options})
+                    applied = call("GET", prefix + "/settings")["options"]
+                    if any(applied.get(key) != value for key, value in requested.items()):
+                        raise RuntimeError("Option demandée non prise en charge par cette version")
+                    row["options"] = applied
                     boundary = "evaluation-" + uuid.uuid4().hex
                     body = (f'--{boundary}\r\nContent-Disposition: form-data; name="files"; filename="corpus.zip"\r\n'
                             'Content-Type: application/zip\r\n\r\n').encode() + archive.getvalue() + f'\r\n--{boundary}--\r\n'.encode()
                     call("POST", prefix + "/files/" + str(uuid.uuid4()), raw=body,
                          headers={"Content-Type": "multipart/form-data; boundary=" + boundary})
-                    row["preview"] = call("POST", prefix + "/context", {"content": case["question"]})["context"]
+                    preview = call("POST", prefix + "/context", {"content": case["question"]})
+                    row["preview"] = preview["context"]
+                    row["previewUsage"] = preview.get("usage")
                     revision = call("GET", prefix + "/settings")["conversation"]["revision"]
                     events = call("POST", prefix + "/stream", {"requestId": str(uuid.uuid4()), "revision": revision, "content": case["question"]})
                     if not events or events[-1]["type"] != "done":
                         raise RuntimeError("Réponse non terminée : " + str(events[-1].get("message", "") if events else "flux vide"))
                     result = events[-1]["result"]
                     row.update(answer=result["messages"][-1]["content"], tools=result["messages"][-1].get("toolTraceJson"),
-                               usage=result.get("usage"), lastCallStats=result.get("stats"))
+                               usage=result.get("usage"), lastCallStats=result.get("stats"),
+                               diagnostics=result["messages"][-1].get("diagnosticsJson"))
                     row["indicators"] = indicators(case, row["answer"])
                     if row["usage"]:
                         identity = row["usage"].get("modelIdentity")
@@ -160,6 +178,10 @@ if __name__ == "__main__":
     r.add_argument("--context", type=int, default=8192)
     r.add_argument("--output-tokens", type=int, default=1024)
     r.add_argument("--calls", type=int, default=12)
+    r.add_argument("--retrieval", choices=("legacy", "lexical", "hybrid"))
+    r.add_argument("--embedding-model")
+    r.add_argument("--counter", choices=("auto", "conservative"))
+    r.add_argument("--memory", choices=("structured", "recursive"))
     r.add_argument("--tools", action="store_true")
     r.add_argument("--seed", type=int, default=42)
     r.add_argument("--repeats", type=int, choices=range(1, 6), default=1)
@@ -174,7 +196,7 @@ if __name__ == "__main__":
     elif args.action == "run":
         run(args)
     else:
-        left, right = json.loads(args.baseline.read_text()), json.loads(args.candidate.read_text())
+        left, right = json.loads(args.baseline.read_text(encoding="utf-8")), json.loads(args.candidate.read_text(encoding="utf-8"))
         if left.get("modelIdentity") and right.get("modelIdentity") and left["modelIdentity"] != right["modelIdentity"]:
             raise SystemExit("Identité de modèle différente")
         print(json.dumps(compare(left, right), indent=2, ensure_ascii=False))

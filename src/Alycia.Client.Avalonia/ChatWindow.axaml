@@ -167,6 +167,9 @@
                         </StackPanel>
                       </Grid>
                       <local:MarkdownView Text="{Binding Content}" IsMarkdown="{Binding IsAssistant}" />
+                      <Expander Header="{Binding DiagnosticsTitle}" IsVisible="{Binding HasDiagnostics}">
+                        <SelectableTextBlock Text="{Binding DiagnosticsText}" TextWrapping="Wrap" FontSize="12" />
+                      </Expander>
                       <Expander Header="Actions et sources consultées" IsVisible="{Binding HasToolTrace}">
                         <SelectableTextBlock Text="{Binding ToolTraceText}" TextWrapping="Wrap" FontSize="12" />
                       </Expander>

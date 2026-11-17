@@ -5,7 +5,7 @@ namespace Alycia.Modules.Chat.Application;
 public sealed record ToolFunction(string Name, JsonElement Arguments);
 public sealed record ModelToolCall(ToolFunction Function);
 public sealed record ProjectTool(string Name, string Description, JsonElement InputSchema);
-public sealed record ToolEvidence(string Path, string Sha256, int Offset, int? NextOffset, bool CompleteSource);
+public sealed record ToolEvidence(string Path, string Sha256, int Offset, int? NextOffset, bool CompleteSource, string? Reference = null, Guid? FileId = null, int? End = null, int? StartLine = null, int? EndLine = null);
 public sealed record ProjectToolResult(string Text, bool IsError = false, ToolEvidence? Evidence = null);
 public sealed record ToolObservation(int Number, string Name, string Arguments, bool Succeeded, int ResultBytes, ToolEvidence? Evidence = null, bool RepeatSuppressed = false);
 public interface IProjectTools

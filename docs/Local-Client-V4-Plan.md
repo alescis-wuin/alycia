@@ -21,3 +21,11 @@ des seuls tests logiciels.
 Les outils restent en lecture seule sur les imports. Une référence valide n’atteste
 pas à elle seule la vérité d’une affirmation. L’estimation du format de conversation
 et les modèles non pris en charge restent identifiés explicitement.
+
+## État de livraison
+
+Les phases A à G sont réalisées successivement, avec un commit par phase sur la
+nouvelle branche. Les tests logiciels et la recette simulée sont terminés ; les
+essais qualitatifs et de performance sur un vrai modèle restent à exécuter sur
+le poste. Les résultats et limites sont dans le [compte rendu](Local-Client-V4-Report.md)
+et les commandes dans le [guide](Local-Client-V4-Guide.md).

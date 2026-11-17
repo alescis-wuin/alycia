@@ -21,6 +21,7 @@ class Ollama(BaseHTTPRequestHandler):
     summary_calls = 0
     tool_rounds = 0
     memory_calls = 0
+    embedding_calls = 0
 
     def log_message(self, *_):
         pass
@@ -29,7 +30,8 @@ class Ollama(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
         self.end_headers()
-        self.wfile.write(b'{"models":[{"name":"demo"},{"name":"tool-demo"},{"name":"embedding-alias"},{"name":"remote:cloud"}]}')
+        self.wfile.write(json.dumps({"models": [{"name": name, "digest": "fixture-" + name}
+            for name in ("demo", "tool-demo", "embedding-alias", "remote:cloud")]}).encode())
 
     def do_POST(self):
         if self.headers.get("Transfer-Encoding", "").lower() == "chunked":
@@ -54,6 +56,15 @@ class Ollama(BaseHTTPRequestHandler):
             capabilities = ["completion", "tools"] if request["model"] == "tool-demo" else ["completion" if request["model"] == "demo" else "embedding"]
             self.wfile.write(json.dumps({"capabilities": capabilities}).encode())
             return
+        if self.path == "/api/embed":
+            assert request["model"] == "embedding-alias" and request["truncate"] is False
+            Ollama.embedding_calls += 1
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"embeddings": [[text.lower().count("answer") + 1, text.lower().count("other") + 1]
+                for text in request["input"]], "prompt_eval_count": 30, "total_duration": 100000}).encode())
+            return
         assert self.path == "/api/chat" and request["model"] in ("demo", "tool-demo"), "Un modèle non génératif a reçu une demande de chat"
         prompt = json.dumps(request["messages"], ensure_ascii=False)
         assert "NE_JAMAIS_RESUMER_CE_CONTENU" not in prompt, "Un contenu exclu a été envoyé au modèle"
@@ -64,7 +75,7 @@ class Ollama(BaseHTTPRequestHandler):
             last = request["messages"][-1]
             if last.get("tool_name") == "project_read":
                 assert "CODE_SENTINEL_END" in last["content"]
-                reply = {"message": {"role": "assistant", "content": "CODE_SENTINEL_END retourne 42 dans src/Deep.cs."}, "done": True, "done_reason": "stop"}
+                reply = {"message": {"role": "assistant", "content": "CODE_SENTINEL_END retourne 42 dans src/Deep.cs. [" + json.loads(last["content"])["reference"] + "]"}, "done": True, "done_reason": "stop"}
             else:
                 if last.get("tool_name") == "project_search":
                     hit = json.loads(last["content"])["matches"][0]
@@ -135,6 +146,33 @@ def verify_model_selection(port):
         assert fixed["id"] == old["id"] and fixed["model"] == "demo"
         events = call("POST", prefix + "/stream", dict(request, revision=fixed["revision"]))
         assert events[-1]["type"] == "done" and len(events[-1]["result"]["messages"]) == 2
+    finally:
+        call("DELETE", prefix, expected=204)
+
+
+def verify_hybrid(call, checks):
+    conv = call("POST", "/conversations", {"title": "Hybride V4", "model": "demo", "systemPrompt": "Réponds avec les sources."}, expected=201)
+    prefix = "/conversations/" + conv["id"]
+    try:
+        settings = call("GET", prefix + "/settings")
+        options = dict(settings["options"], useProjectTools=False, retrievalMode="hybrid", embeddingModel="embedding-alias")
+        call("PUT", prefix + "/settings", {"revision": conv["revision"], "model": "demo",
+            "systemPrompt": conv["systemPrompt"], "contextNotes": "", "options": options})
+        boundary = "hybrid-" + uuid.uuid4().hex
+        code = b"class Demo { int Answer() => 42; int Other() => 12; }"
+        body = (f'--{boundary}\r\nContent-Disposition: form-data; name="files"; filename="Demo.cs"\r\n'
+            'Content-Type: text/plain\r\n\r\n').encode() + code + f'\r\n--{boundary}--\r\n'.encode()
+        call("POST", prefix + "/files/" + str(uuid.uuid4()), raw=body,
+            headers={"Content-Type": "multipart/form-data; boundary=" + boundary})
+        preview = call("POST", prefix + "/context", {"content": "Que fait Answer ?"})
+        assert preview["context"]["retrieval"]["mode"] == "hybrid"
+        assert preview["context"]["sources"] and preview["usage"]["inputTokens"] > 0
+        assert len(preview["usage"]["calls"]) >= 2
+        before = Ollama.embedding_calls
+        cached = call("POST", prefix + "/context", {"content": "Que fait Answer ?"})
+        assert Ollama.embedding_calls == before + 1 and len(cached["usage"]["calls"]) == 1
+        assert cached["context"]["sources"] == preview["context"]["sources"]
+        checks.append("hybrid_local_embedding_http_cache_and_accounted_preview_cost")
     finally:
         call("DELETE", prefix, expected=204)
 
@@ -235,6 +273,8 @@ def main():
                     for conversation in owned:
                         client("DELETE", "/conversations/" + conversation, expected=204)
                 verify_structured_memory(client, checks)
+                verify_hybrid(client, checks)
+                checks.append("tool_citations_and_persisted_diagnostics")
                 print(json.dumps({"passed": len(checks), "checks": checks, "provider": "mock",
                     "database": "isolated PostgreSQL", "test_data_cleaned": True,
                     "continuous_chat_calls": Ollama.chat_calls, "tool_rounds": Ollama.tool_rounds, "bounded_summary_calls": Ollama.summary_calls}, indent=2))

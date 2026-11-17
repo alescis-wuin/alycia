@@ -299,6 +299,14 @@ def verify_tools(call, model, conversations, checks):
     assert call("POST", prefix + "/stream", request)[-1]["result"]["replayed"]
     exported = call("GET", prefix + "/export?format=json")
     assert json.loads(exported["messages"][-1]["toolTraceJson"]) == trace
+    diagnostic = json.loads(reply["messages"][-1].get("diagnosticsJson", "{}"))
+    if diagnostic.get("citations"):
+        citations = diagnostic["citations"]
+        assert citations["supplied"], "Aucune provenance pour les lectures réussies"
+        assert json.loads(exported["messages"][-1]["diagnosticsJson"]) == diagnostic
+        assert not citations["unknown"], "Références inexistantes émises par le modèle"
+        if "[S" in reply["messages"][-1]["content"]:
+            assert citations["recognized"], "Référence émise mais non reconnue"
     checks.append("native_tool_loop_trace_persistence_export_and_replay")
     current = call("GET", prefix + "/settings")["conversation"]
     options["useProjectTools"] = False

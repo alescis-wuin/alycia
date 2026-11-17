@@ -8,13 +8,13 @@ namespace Alycia.Modules.Chat.Infrastructure;
 
 public sealed partial class OllamaChatModel
 {
-    private static readonly ConcurrentDictionary<string, ITextTokenCounter> Counters = new();
+    private sealed record CounterResult(ITextTokenCounter? Counter);
+    private static readonly ConcurrentDictionary<string, CounterResult> Counters = new();
     public async Task<ChatOptions> PrepareOptionsAsync(string model, ChatOptions settings, CancellationToken ct)
     {
         // Fail before progress events start the HTTP stream, including with conservative counting.
         await SupportsToolsAsync(model, ct);
         var result = settings.Copy();
-        if (settings.TokenCounting == "conservative") return result;
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeout.CancelAfter(TimeSpan.FromSeconds(20));
         try
@@ -27,18 +27,17 @@ public sealed partial class OllamaChatModel
             if (item.ValueKind == JsonValueKind.Undefined || !item.TryGetProperty("digest", out var digest) || string.IsNullOrWhiteSpace(digest.GetString())) return result;
             var identity = model + ":" + digest.GetString();
             result.ModelIdentity = identity;
+            if (settings.TokenCounting == "conservative") return result;
             var key = http.BaseAddress + "|" + identity;
-            if (Counters.TryGetValue(key, out var existing)) { result.TokenCounter = existing; return result; }
+            if (Counters.TryGetValue(key, out var existing)) { result.TokenCounter = existing.Counter; return result; }
             using var request = new HttpRequestMessage(HttpMethod.Post, "api/show") { Content = JsonContent.Create(new { model, verbose = true }) };
             using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token);
             response.EnsureSuccessStatusCode();
             await using var stream = await response.Content.ReadAsStreamAsync(timeout.Token);
             using var json = JsonDocument.Parse(await FileImport.ReadBoundedAsync(stream, 32 * 1024 * 1024, timeout.Token));
-            if (json.RootElement.TryGetProperty("model_info", out var info) && QwenTokenCounter.FromMetadata(info) is { } counter)
-            {
-                if (Counters.Count >= 8) Counters.Clear();
-                Counters[key] = counter; result.TokenCounter = counter;
-            }
+            var counter = json.RootElement.TryGetProperty("model_info", out var info) ? QwenTokenCounter.FromMetadata(info) : null;
+            if (Counters.Count >= 8) Counters.Clear();
+            Counters[key] = new(counter); result.TokenCounter = counter;
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested) { }
         catch (Exception e) when (e is HttpRequestException or JsonException or ArgumentException or InvalidOperationException or KeyNotFoundException) { }

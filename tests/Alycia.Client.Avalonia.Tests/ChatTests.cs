@@ -178,6 +178,9 @@ public sealed class ChatTests
             conversation = conversation with { MessageCount = 2 };
             messages[^1] = messages[^1] with
             {
+                DiagnosticsJson = JsonSerializer.Serialize(new TurnDiagnostics(
+                    new GenerationUsage([new("chat", 100, 200, new(100, 20, null, null, "stop"))], "demo:fixture", "UTF-8 conservateur", 100, 20, 200, true),
+                    Citations: new("unknown_references", [], [], ["S000000000000"])), ProjectToolCatalog.Json),
                 ToolTraceJson = JsonSerializer.Serialize(new[]
                 { new ToolObservation(1, "project_read", "{}", true, 100, new("src/A.cs", new string('a', 64), 0, null, true)) }, ProjectToolCatalog.Json)
             };
@@ -233,6 +236,9 @@ public sealed class ChatTests
             Assert.True(window.FindControl<Button>("AnalysisButton")!.IsEnabled);
             Assert.True(messages[^1].HasToolTrace);
             Assert.Contains("src/A.cs", messages[^1].ToolTraceText);
+            Assert.True(messages[^1].HasDiagnostics);
+            Assert.Contains("inconnues", messages[^1].DiagnosticsTitle);
+            Assert.Contains("100 tokens entrants", messages[^1].DiagnosticsText);
             window.FindControl<Button>("ProjectToolsButton")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             PumpUntil(() => window.OwnedWindows.Count > 0);
             var toolsDialog = window.OwnedWindows.Single();
@@ -254,6 +260,11 @@ public sealed class ChatTests
             Assert.Contains(window.FindControl<ItemsControl>("MessageList")!.GetVisualDescendants()
                 .OfType<MarkdownView>(), view => view.IsMarkdown && view.Children.Count >= 5);
 
+            var diagnostics = window.GetVisualDescendants().OfType<Expander>().Single(e => Equals(e.Header, messages[^1].DiagnosticsTitle));
+            diagnostics.IsExpanded = true;
+            Dispatcher.UIThread.RunJobs();
+            Assert.Contains(diagnostics.GetVisualDescendants().OfType<SelectableTextBlock>(), t => t.Text!.Contains("S000000000000"));
+            diagnostics.IsExpanded = false;
             // Optional visual evidence from the actual Avalonia/Skia rendering.
             if (Environment.GetEnvironmentVariable("ALYCIA_UI_CAPTURE") is { Length: > 0 } screenshot)
             {

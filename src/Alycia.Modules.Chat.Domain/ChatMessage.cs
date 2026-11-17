@@ -12,7 +12,7 @@ public sealed class ChatMessage
     public string DiagnosticsJson { get; private set; } = "{}";
     public void SetDiagnostics(string json)
     {
-        if (Role != "assistant" || json.Length > 512000) throw new ArgumentException("Diagnostic invalide ou trop volumineux.");
+        if (Role != "assistant" || json.Length > 2_000_000) throw new ArgumentException("Diagnostic invalide ou trop volumineux.");
         using var parsed = System.Text.Json.JsonDocument.Parse(json);
         if (parsed.RootElement.ValueKind != System.Text.Json.JsonValueKind.Object) throw new ArgumentException("Objet de diagnostic attendu.");
         DiagnosticsJson = json;
