@@ -19,6 +19,7 @@ ROOT = Path(__file__).resolve().parents[2]
 class Ollama(BaseHTTPRequestHandler):
     chat_calls = 0
     summary_calls = 0
+    tool_rounds = 0
 
     def log_message(self, *_):
         pass
@@ -27,7 +28,7 @@ class Ollama(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
         self.end_headers()
-        self.wfile.write(b'{"models":[{"name":"demo"},{"name":"embedding-alias"},{"name":"remote:cloud"}]}')
+        self.wfile.write(b'{"models":[{"name":"demo"},{"name":"tool-demo"},{"name":"embedding-alias"},{"name":"remote:cloud"}]}')
 
     def do_POST(self):
         if self.headers.get("Transfer-Encoding", "").lower() == "chunked":
@@ -45,15 +46,39 @@ class Ollama(BaseHTTPRequestHandler):
             body = self.rfile.read(int(self.headers["Content-Length"]))
         request = json.loads(body)
         if self.path == "/api/show":
-            assert request["model"] in ("demo", "embedding-alias")
+            assert request["model"] in ("demo", "tool-demo", "embedding-alias")
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
-            self.wfile.write(json.dumps({"capabilities": ["completion" if request["model"] == "demo" else "embedding"]}).encode())
+            capabilities = ["completion", "tools"] if request["model"] == "tool-demo" else ["completion" if request["model"] == "demo" else "embedding"]
+            self.wfile.write(json.dumps({"capabilities": capabilities}).encode())
             return
-        assert self.path == "/api/chat" and request["model"] == "demo", "Un modèle non génératif a reçu une demande de chat"
+        assert self.path == "/api/chat" and request["model"] in ("demo", "tool-demo"), "Un modèle non génératif a reçu une demande de chat"
         prompt = json.dumps(request["messages"], ensure_ascii=False)
         assert "NE_JAMAIS_RESUMER_CE_CONTENU" not in prompt, "Un contenu exclu a été envoyé au modèle"
+        if request.get("tools"):
+            assert request["model"] == "tool-demo" and request["stream"]
+            assert {t["function"]["name"] for t in request["tools"]} == {"project_list", "project_read", "project_search"}
+            Ollama.tool_rounds += 1
+            last = request["messages"][-1]
+            if last.get("tool_name") == "project_read":
+                assert "CODE_SENTINEL_END" in last["content"]
+                reply = {"message": {"role": "assistant", "content": "CODE_SENTINEL_END retourne 42 dans src/Deep.cs."}, "done": True, "done_reason": "stop"}
+            else:
+                if last.get("tool_name") == "project_search":
+                    hit = json.loads(last["content"])["matches"][0]
+                    tool, args = "project_read", {"fileId": hit["fileId"], "offset": hit["offset"]}
+                elif last.get("tool_name") == "project_list":
+                    tool, args = "project_search", {"query": "CODE_SENTINEL_END"}
+                else:
+                    tool, args = "project_list", {"codeOnly": True, "limit": 1}
+                reply = {"message": {"role": "assistant", "content": "", "thinking": "Consulter les sources.",
+                    "tool_calls": [{"function": {"name": tool, "arguments": args}}]}, "done": True, "done_reason": "stop"}
+            self.send_response(200)
+            self.send_header("Content-Type", "application/x-ndjson")
+            self.end_headers()
+            self.wfile.write(json.dumps(reply).encode() + b"\n")
+            return
         if request.get("stream"):
             assert request["options"]["num_predict"] == -1
             Ollama.chat_calls += 1
@@ -86,7 +111,7 @@ def verify_model_selection(port):
         finally:
             client.close()
 
-    assert call("GET", "/models") == ["demo"]
+    assert call("GET", "/models") == ["demo", "tool-demo"]
     call("POST", "/conversations", {"title": "Embedding refusé", "model": "embedding-alias", "systemPrompt": ""}, expected=400)
     options = {"contextTokens": 4096, "maxOutputTokens": 512}
     old = call("POST", "/import", {"schemaVersion": 1, "title": "Ancienne conversation embedding",
@@ -159,9 +184,17 @@ def main():
                 checks = module.verify(f"http://127.0.0.1:{port}", "demo", extended=True)
                 checks.insert(0, "model_capabilities_and_existing_conversation_repair")
                 assert Ollama.chat_calls == 3 and Ollama.summary_calls >= 5
+                client = module.create_client(f"http://127.0.0.1:{port}")
+                owned = []
+                try:
+                    module.verify_tools(client, "tool-demo", owned, checks)
+                    assert Ollama.tool_rounds == 4, "Le renvoi a réexécuté les outils"
+                finally:
+                    for conversation in owned:
+                        client("DELETE", "/conversations/" + conversation, expected=204)
                 print(json.dumps({"passed": len(checks), "checks": checks, "provider": "mock",
                     "database": "isolated PostgreSQL", "test_data_cleaned": True,
-                    "continuous_chat_calls": Ollama.chat_calls, "bounded_summary_calls": Ollama.summary_calls}, indent=2))
+                    "continuous_chat_calls": Ollama.chat_calls, "tool_rounds": Ollama.tool_rounds, "bounded_summary_calls": Ollama.summary_calls}, indent=2))
             except Exception:
                 log.flush()
                 log.seek(0)

@@ -214,6 +214,8 @@ public partial class ChatWindow : Window
             C<Expander>("StreamingPanel").IsVisible = false;
             C<Border>("PendingUserPanel").IsVisible = false;
             C<MarkdownView>("StreamingText").Text = "";
+            C<Expander>("StreamingTools").IsVisible = false;
+            C<SelectableTextBlock>("StreamingToolText").Text = "";
             C<SelectableTextBlock>("PendingUserText").Text = "";
             C<TextBox>("TitleInput").Text = "";
             C<TextBlock>("ConversationDetails").Text = "Créez une conversation pour commencer.";
@@ -370,6 +372,8 @@ public partial class ChatWindow : Window
         C<Expander>("StreamingPanel").IsVisible = true;
         C<Expander>("StreamingPanel").Header = "Réponse provisoire · en attente d’enregistrement";
         C<MarkdownView>("StreamingText").Text = "";
+        C<Expander>("StreamingTools").IsVisible = false;
+        C<SelectableTextBlock>("StreamingToolText").Text = "";
         C<TextBlock>("StreamingStatus").Text = "Préparation du contexte et chargement du modèle…";
         C<Border>("PendingUserPanel").IsVisible = true;
         C<TextBlock>("PendingUserLabel").Text = "Vous · envoi en cours";
@@ -381,14 +385,19 @@ public partial class ChatWindow : Window
             {
                 if (delta.Status is not null)
                 { Feedback(delta.Status); C<TextBlock>("StreamingStatus").Text = delta.Status; }
+                if (delta.Tool is { } tool)
+                {
+                    C<Expander>("StreamingTools").IsVisible = true;
+                    C<SelectableTextBlock>("StreamingToolText").Text += ToolDisplay.Describe(tool) + "\n\n";
+                }
                 streamed.Append(delta.Content);
                 hasThinking |= !string.IsNullOrEmpty(delta.Thinking);
                 // Throttle layout work; avoid re-rendering the whole text for every token.
                 if ((DateTime.UtcNow - lastRender).TotalMilliseconds >= 80 || streamed.Length == 0)
                 {
                     C<MarkdownView>("StreamingText").Text = streamed.ToString();
-                    if (streamed.Length > 0) C<TextBlock>("StreamingStatus").Text = $"Génération en cours · {streamed.Length:N0} caractères";
-                    else if (hasThinking) C<TextBlock>("StreamingStatus").Text = "Le modèle réfléchit…";
+                    if (delta.Status is null && streamed.Length > 0) C<TextBlock>("StreamingStatus").Text = $"Génération en cours · {streamed.Length:N0} caractères";
+                    else if (delta.Status is null && hasThinking) C<TextBlock>("StreamingStatus").Text = "Le modèle réfléchit…";
                     lastRender = DateTime.UtcNow;
                 }
                 return Task.CompletedTask;
@@ -406,8 +415,8 @@ public partial class ChatWindow : Window
             }
 
             Feedback(result.Replayed ? "Échange déjà enregistré : aucun doublon ajouté."
-                : $"Réponse enregistrée · {result.HistoryMessagesIncluded} messages et {result.FilesIncluded} fichiers · "
-                    + $"{result.Stats?.OutputTokens?.ToString() ?? "?"} tokens générés"
+                : $"Réponse enregistrée · {result.HistoryMessagesIncluded} messages et {result.FilesIncluded} extraits initiaux · "
+                    + $"{result.Stats?.OutputTokens?.ToString() ?? "?"} tokens (dernier appel)"
                     + (result.Stats is { EvaluationNanoseconds: > 0, OutputTokens: { } count } stats
                         ? $" · {count * 1_000_000_000.0 / stats.EvaluationNanoseconds.Value:F1} tok/s" : "")
                     + (result.Stats?.DoneReason == "length" ? " · limite de sortie atteinte" : ""));

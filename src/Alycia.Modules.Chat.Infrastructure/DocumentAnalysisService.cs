@@ -8,7 +8,7 @@ namespace Alycia.Modules.Chat.Infrastructure;
 public sealed record AnalysisItem(Guid Id, string Title, DateTimeOffset CreatedAtUtc, string Model,
     int FileCount, int SummaryCalls, bool UseInContext, bool IsStale, Guid? ScopeBatchId);
 
-public sealed class DocumentAnalysisService(ChatDbContext database, IChatModel model, ChatOptions defaults)
+public sealed class DocumentAnalysisService(ChatDbContext database, IChatModel model, ChatOptions defaults, ProjectSourceReader reader)
 {
     public async Task<DocumentAnalysis> AnalyzeAsync(Guid id, int revision, Guid? batch, int budget,
         Func<string, Task>? progress, CancellationToken ct)
@@ -35,6 +35,7 @@ public sealed class DocumentAnalysisService(ChatDbContext database, IChatModel m
         var overview = await reducer.ReduceAsync([new("tree.txt intégral", tree)], Math.Min(2048, budget), ct);
         leaves.Add(new("Inventaire tree.txt", overview));
         var fileSummaries = new List<object>();
+        var complete = 0; var partial = 0; var codeSummarized = 0;
         foreach (var file in files)
         {
             ct.ThrowIfCancellationRequested();
@@ -52,13 +53,34 @@ public sealed class DocumentAnalysisService(ChatDbContext database, IChatModel m
                 continue;
             }
             if (progress is not null) await progress("Résumé du fichier : " + file.Name);
+            var source = await reader.ReadAsync(file, ct);
+            var isCode = ProjectContext.IsCode(file.Name);
             var summary = await reducer.ReduceAsync([new(file.Name,
-                ProjectInventory.Metadata(metadata) + "\n\nContenu extrait :\n" + file.Text)], Math.Min(1024, budget), ct);
+                ProjectInventory.Metadata(metadata) + (isCode
+                    ? "\nCode : relever symboles, responsabilités, dépendances, flux et tests observés. Distinguer faits et hypothèses."
+                    : "\nDocument : relever les faits utiles au projet.")
+                + "\nOrigine : " + source.Origin + "\nContenu :\n" + source.Text)], Math.Min(1024, budget), ct);
+            if (source.Complete) complete++; else partial++;
+            if (isCode) codeSummarized++;
             leaves.Add(new(file.Name, summary));
-            fileSummaries.Add(new { file.Id, path = file.Name, summarized = true, summary, extraction = file.Status });
+            fileSummaries.Add(new
+            {
+                file.Id,
+                path = file.Name,
+                summarized = true,
+                summary,
+                extraction = file.Status,
+                completeSource = source.Complete,
+                source = source.Origin,
+                code = isCode,
+                charactersRead = source.Text.Length,
+                utf8BytesRead = System.Text.Encoding.UTF8.GetByteCount(source.Text)
+            });
         }
         if (progress is not null) await progress("Réduction hiérarchique des résumés de fichiers…");
-        var final = await reducer.ReduceAsync(leaves, budget, ct);
+        var coverageText = $"Couverture : {complete}/{eligible.Length} sources textuelles lues intégralement, {partial} extraction(s) partielle(s), "
+            + $"{codeSummarized} fichier(s) de code analysé(s), {files.Count(f => f.ContextMode == "excluded")} fichier(s) exclu(s).\n\n";
+        var final = await reducer.ReduceAsync(leaves, budget - System.Text.Encoding.UTF8.GetByteCount(coverageText), ct);
         var analysis = new DocumentAnalysis
         {
             ConversationId = id,
@@ -67,14 +89,14 @@ public sealed class DocumentAnalysisService(ChatDbContext database, IChatModel m
             Model = conversation.Model,
             SourceFingerprint = fingerprint,
             TreeText = tree,
-            SummaryText = final,
+            SummaryText = coverageText + final,
             FileCount = files.Length,
             SummaryCalls = reducer.Calls,
             UseInContext = true
         };
         analysis.ManifestJson = JsonSerializer.Serialize(new
         {
-            schemaVersion = 1,
+            schemaVersion = 2,
             analysis.Id,
             analysis.CreatedAtUtc,
             analysis.Model,
@@ -82,6 +104,19 @@ public sealed class DocumentAnalysisService(ChatDbContext database, IChatModel m
             analysis.ScopeBatchId,
             analysis.SummaryCalls,
             targetBytes = budget,
+            coverage = new
+            {
+                inventoriedFiles = files.Length,
+                eligibleFiles = eligible.Length,
+                summarizedFiles = complete + partial,
+                fullyReadFiles = complete,
+                partialFiles = partial,
+                codeFiles = files.Count(f => ProjectContext.IsCode(f.Name)),
+                codeFilesSummarized = codeSummarized,
+                excludedFiles = files.Count(f => f.ContextMode == "excluded"),
+                noTextFiles = files.Count(f => f.Text.Length == 0 && f.ContextMode != "excluded"),
+                allEligibleTextRead = complete == eligible.Length
+            },
             files = inventory,
             fileSummaries,
             inventorySummary = overview

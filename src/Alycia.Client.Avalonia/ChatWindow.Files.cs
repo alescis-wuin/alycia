@@ -112,7 +112,7 @@ public partial class ChatWindow
             await LoadAsync(_current);
             Feedback($"{result.Length} fichier(s) enregistrés · {excluded} élément(s) écarté(s) avant import · "
                 + $"{result.Count(file => file.ContextMode == "excluded")} contenu(s) exclu(s) de l’IA. "
-                + "Ouvrez Synthèses de dossiers pour produire tree.txt et une synthèse récursive.");
+                + "Ouvrez Analyse du projet pour produire tree.txt et une synthèse récursive.");
         }
         finally
         {

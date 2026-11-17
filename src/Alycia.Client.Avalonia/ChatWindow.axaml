@@ -132,7 +132,8 @@
           <Button x:Name="SettingsButton" Classes="quiet" Content="Réglages" FontSize="12" ToolTip.Tip="Modèle, prompt, contexte et génération" />
           <Button x:Name="ContextButton" Classes="quiet" Content="Mémoire et contexte" FontSize="12" ToolTip.Tip="Voir le contexte, préparer ou réinitialiser le résumé" />
           <Button x:Name="FilesButton" Classes="quiet" Content="Documents" FontSize="12" ToolTip.Tip="Épingler ou exclure les fichiers importés" />
-          <Button x:Name="AnalysisButton" Classes="quiet" Content="Synthèses de dossiers" FontSize="12" ToolTip.Tip="Inventaire tree.txt et résumés récursifs" />
+          <Button x:Name="AnalysisButton" Classes="quiet" Content="Analyse du projet" FontSize="12" ToolTip.Tip="Analyse de toutes les sources admissibles et couverture" />
+          <Button x:Name="ProjectToolsButton" Classes="quiet" Content="Sources et outils" FontSize="12" ToolTip.Tip="Lectures par l’IA et connexion MCP" />
           <Expander Header="Autres actions" FontSize="11" BorderThickness="0" Padding="0">
             <WrapPanel>
               <Button x:Name="ForkButton" Classes="quiet" Content="Dupliquer" FontSize="11" />
@@ -166,6 +167,9 @@
                         </StackPanel>
                       </Grid>
                       <local:MarkdownView Text="{Binding Content}" IsMarkdown="{Binding IsAssistant}" />
+                      <Expander Header="Actions et sources consultées" IsVisible="{Binding HasToolTrace}">
+                        <SelectableTextBlock Text="{Binding ToolTraceText}" TextWrapping="Wrap" FontSize="12" />
+                      </Expander>
                       <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsFile}">
                         <Button Classes="quiet" Content="Télécharger" CommandParameter="{Binding}" Click="DownloadFileClick" FontSize="11" />
                         <Button Classes="quiet" Content="Retirer" CommandParameter="{Binding}" Click="RemoveFileClick" FontSize="11" />
@@ -186,6 +190,9 @@
                 <StackPanel Spacing="10">
                   <TextBlock x:Name="StreamingStatus" Text="Préparation…" FontSize="11" Foreground="#A3CFC9" TextWrapping="Wrap" />
                   <local:MarkdownView x:Name="StreamingText" IsStreaming="True" />
+                  <Expander x:Name="StreamingTools" Header="Actions et sources consultées" IsVisible="False">
+                    <SelectableTextBlock x:Name="StreamingToolText" TextWrapping="Wrap" FontSize="12" />
+                  </Expander>
                 </StackPanel>
               </Border>
             </Expander>

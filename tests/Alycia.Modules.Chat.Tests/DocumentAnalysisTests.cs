@@ -42,7 +42,7 @@ public sealed class DocumentAnalysisTests
             Assert.Equal("", code.SourceCreatedAt);
             Assert.Contains("fuseau non fourni", code.MetadataSource);
             var model = new Model();
-            var service = new DocumentAnalysisService(database, model, new());
+            var service = new DocumentAnalysisService(database, model, new(), new ProjectSourceReader(storage));
             var report = await service.AnalyzeAsync(conversation.Id, conversation.Revision, null, 1024, null, default);
             Assert.Equal(4, report.FileCount);
             Assert.Contains("Source : tree.txt intégral", string.Join("\n", model.Inputs));
@@ -52,7 +52,7 @@ public sealed class DocumentAnalysisTests
             Assert.Contains("2025-01-02T03:04:05Z", report.TreeText);
             var context = await new EfChatRepository(database).ContextFilesAsync(conversation.Id, 1, default);
             Assert.Single(context);
-            Assert.Equal(report.SummaryText, context[0].Text.Split('\n')[1]);
+            Assert.EndsWith(report.SummaryText, context[0].Text);
             Assert.False((await service.ListAsync(conversation.Id, default)).Single().IsStale);
             code.ContextMode = "excluded"; conversation.AttachFiles();
             await database.SaveChangesAsync();

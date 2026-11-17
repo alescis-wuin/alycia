@@ -123,6 +123,9 @@ public sealed class ChatTests
 
             if (request.Method == HttpMethod.Get && path.EndsWith("/settings"))
                 return Json(new SettingsReply(conversation!, new ChatOptions()));
+            if (request.Method == HttpMethod.Get && path.EndsWith("/tools"))
+                return Json(new ProjectToolsInfo(true, true, 24, ["project_list", "project_read", "project_search"], "2025-11-25"));
+            if (request.Method == HttpMethod.Get && path.EndsWith("/files")) return Json(files);
             if (request.Method == HttpMethod.Get && path.EndsWith("/prompts"))
                 return Json(Array.Empty<PromptItem>());
             if (request.Method == HttpMethod.Get)
@@ -173,6 +176,11 @@ public sealed class ChatTests
             messages.Add(new(conversation!.Id, 1, requestId, "user", root.GetProperty("content").GetString()!, DateTimeOffset.UtcNow));
             messages.Add(new(conversation.Id, 2, requestId, "assistant", "## :rocket: Votre atelier de développement\n\n👩🏽‍💻 🇫🇷 🦊 ❤️ · Je peux vous aider à **concevoir**, tester et améliorer votre projet.\n\n- ✅ Contexte protégé &amp; mémoire récursive\n- 📁 Inventaire vérifiable des sources\n\n```python\ndef saluer(nom):\n    return f\"Bonjour {nom}\"\n```\n\n| Étape | État |\n|---|---|\n| Sources | Prêtes |\n| Tests | À lancer |", DateTimeOffset.UtcNow));
             conversation = conversation with { MessageCount = 2 };
+            messages[^1] = messages[^1] with
+            {
+                ToolTraceJson = JsonSerializer.Serialize(new[]
+                { new ToolObservation(1, "project_read", "{}", true, 100, new("src/A.cs", new string('a', 64), 0, null, true)) }, ProjectToolCatalog.Json)
+            };
             var result = new ChatSendResult(messages.ToArray(), 0, false);
             var settings = new JsonSerializerOptions(JsonSerializerDefaults.Web);
             return new HttpResponseMessage(HttpStatusCode.OK)
@@ -223,6 +231,14 @@ public sealed class ChatTests
             Click(window, "SendButton");
             Assert.Equal(2, messages.Count);
             Assert.True(window.FindControl<Button>("AnalysisButton")!.IsEnabled);
+            Assert.True(messages[^1].HasToolTrace);
+            Assert.Contains("src/A.cs", messages[^1].ToolTraceText);
+            window.FindControl<Button>("ProjectToolsButton")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            PumpUntil(() => window.OwnedWindows.Count > 0);
+            var toolsDialog = window.OwnedWindows.Single();
+            Assert.Contains(toolsDialog.GetVisualDescendants().OfType<SelectableTextBlock>(), t => t.Text!.EndsWith($"/conversations/{conversation.Id}/mcp"));
+            toolsDialog.GetVisualDescendants().OfType<Button>().Single(b => Equals(b.Content, "Fermer")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            PumpUntil(() => window.FindControl<Button>("RefreshButton")!.IsEnabled);
             Assert.Equal("", window.FindControl<TextBox>("MessageInput")!.Text);
             Assert.Equal(2, window.FindControl<ItemsControl>("MessageList")!.ItemCount);
 

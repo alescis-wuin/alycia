@@ -3,17 +3,20 @@
 
 Alycia is a local generative AI client. Multi-backend support and retrieval-augmented generation (RAG) are longer-term goals.
 
-## Local client V2 — this branch
+## Local client V3 — this branch
 
 `feature/local-client-v1-20261116` extends the conversation-files prototype with
 live Markdown, continuous generation until the model's stop signal, recursive
-conversation memory, and recursive folder/archive summaries with a downloadable
-file inventory. Configurable prompts, drafts, searchable history, exports,
+conversation memory, recursive folder/archive analysis with measured coverage,
+and native Ollama tool calls through a conversation-scoped MCP server. Imported
+projects remain available, with paginated access to original source files and
+persistent tool traces. Configurable prompts, drafts, searchable history, exports,
 conversation copies and backups from V1 remain available.
 
-- [V2 update, usage and tests — Linux/fish and Windows (FR)](docs/Local-Client-V2-Guide.md)
-- [V2 phased implementation plan (FR)](docs/Local-Client-V2-Plan.md)
-- [V2 delivered changes, executed checks and limitations (FR)](docs/Local-Client-V2-Report.md)
+- [V3 update, usage and tests — Linux/fish and Windows (FR)](docs/Local-Client-V3-Guide.md)
+- [V3 phased implementation plan (FR)](docs/Local-Client-V3-Plan.md)
+- [V3 delivered changes, executed checks and limitations (FR)](docs/Local-Client-V3-Report.md)
+- [V2 conversation, Markdown and recursive memory guide (FR)](docs/Local-Client-V2-Guide.md)
 - [Initial branch comparison and V1 audit (FR)](docs/Local-Client-V1-Plan.md)
 
 With .NET 10, Docker Compose, Python 3.11+ and a running local Ollama model:

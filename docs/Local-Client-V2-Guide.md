@@ -1,5 +1,9 @@
 # Alycia V2 — mise à jour, utilisation et recette
 
+> Pour la version actuelle de cette branche, suivre le
+> [guide V3](Local-Client-V3-Guide.md). Il remplace notamment les indications de
+> migration, de lecture intégrale des sources et les nombres de contrôles ci-dessous.
+
 Branche conservée : `feature/local-client-v1-20261116`.
 Cette version ajoute l’interface réorganisée, le Markdown progressif, la génération
 jusqu’au signal d’arrêt, la mémoire récursive et les synthèses de dossiers/archives.

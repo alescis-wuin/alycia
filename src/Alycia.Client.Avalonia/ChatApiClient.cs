@@ -1,4 +1,6 @@
 using System;
+using System.Linq;
+using Alycia.Modules.Chat.Application;
 using System.Net;
 using System.IO;
 using System.Collections.Generic;
@@ -17,8 +19,18 @@ public sealed record ConversationSummary(Guid Id, string Title, string Model, st
     string MemorySourceHash = "", string MemoryModel = "");
 
 public sealed record ChatMessageItem(Guid ConversationId, int Sequence, Guid RequestId, string Role,
-    string Content, DateTimeOffset CreatedAtUtc, Guid? AttachmentId = null)
+    string Content, DateTimeOffset CreatedAtUtc, Guid? AttachmentId = null, string ToolTraceJson = "[]")
 {
+    public bool HasToolTrace => IsAssistant && !string.IsNullOrWhiteSpace(ToolTraceJson) && ToolTraceJson != "[]";
+    public string ToolTraceText
+    {
+        get
+        {
+            if (!HasToolTrace) return "";
+            try { return string.Join("\n\n", (JsonSerializer.Deserialize<ToolObservation[]>(ToolTraceJson, ProjectToolCatalog.Json) ?? []).Where(t => t is not null).Select(ToolDisplay.Describe)); }
+            catch (JsonException) { return "Trace d’outils illisible."; }
+        }
+    }
     public bool IsAssistant => Role == "assistant" && !IsFile;
     public bool HasCode => IsAssistant && (Content.Contains("```") || Content.Contains("~~~"));
     public bool IsFile => AttachmentId.HasValue;

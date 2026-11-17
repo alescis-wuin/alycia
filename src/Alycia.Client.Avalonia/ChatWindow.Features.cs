@@ -21,6 +21,7 @@ public partial class ChatWindow
     private void InitializeFeatureControls()
     {
         C<Button>("AnalysisButton").Click += async (_, _) => await RunAsync(AnalysesAsync);
+        C<Button>("ProjectToolsButton").Click += async (_, _) => await RunAsync(ProjectToolsAsync);
         C<Button>("SettingsButton").Click += async (_, _) => await RunAsync(SettingsAsync);
         C<Button>("ActiveModelButton").Click += async (_, _) => await RunAsync(SettingsAsync);
         C<Button>("ContextButton").Click += async (_, _) => await RunAsync(PreviewAsync);
@@ -120,6 +121,8 @@ public partial class ChatWindow
         var seed = Input(options.Seed?.ToString() ?? "", 12);
         var timeout = Input(options.TimeoutSeconds.ToString(), 3);
         var calls = Input(options.SummaryMaxCalls.ToString(), 4);
+        var toolCalls = Input(options.ToolMaxCalls.ToString(), 3);
+        var tools = new CheckBox { Content = "Autoriser les outils de lecture des sources importées", IsChecked = options.UseProjectTools };
         var continuous = new CheckBox { Content = "Générer jusqu’au signal d’arrêt du modèle", IsChecked = options.GenerateUntilStop };
         var recursive = new CheckBox { Content = "Résumer les anciens échanges et préserver les deux derniers", IsChecked = options.AutoSummarize };
         turns.IsEnabled = !options.AutoSummarize;
@@ -134,7 +137,7 @@ public partial class ChatWindow
         panel.Children.Add(Label($"Modèle actuellement enregistré : {current.Model}"));
         if (!models.Contains(current.Model, StringComparer.Ordinal))
             panel.Children.Add(Label("Ce modèle n’est pas disponible pour la génération locale. Sélectionnez un modèle ci-dessous pour reprendre cette conversation ; votre brouillon est conservé."));
-        panel.Children.Add(continuous); panel.Children.Add(recursive); panel.Children.Add(presets);
+        panel.Children.Add(continuous); panel.Children.Add(recursive); panel.Children.Add(tools); panel.Children.Add(presets);
         foreach (var (label, control) in new (string, Control)[] {
             ("Modèle génératif pour cette conversation", model), ("Instruction système", system),
             ("Notes persistantes du projet — toujours incluses dans le budget", notes),
@@ -142,7 +145,8 @@ public partial class ChatWindow
             ("Fenêtre simple : échanges récents (uniquement sans résumé automatique)", turns), ("Température (0 à 2, virgule ou point)", temperature),
             ("Graine facultative (ne garantit pas un résultat identique sur tous les matériels)", seed),
             ("Inactivité maximale pendant une génération (secondes, 1 à 600)", timeout),
-            ("Nombre maximal d’appels par opération de résumé (8 à 2048)", calls) })
+            ("Nombre maximal d’appels par opération de résumé (8 à 2048)", calls),
+            ("Appels d’outils par demande (1 à 128, modèle compatible requis)", toolCalls) })
         { panel.Children.Add(Label(label)); panel.Children.Add(control); }
         panel.Children.Add(Label("Les modifications s’appliquent aux prochains échanges. L’historique reste intact. Une grande fenêtre augmente l’usage de mémoire."));
         ChatOptions? edited = null;
@@ -152,7 +156,7 @@ public partial class ChatWindow
                 return "Choisissez un modèle génératif local disponible.";
             if (!int.TryParse(context.Text, out var contextValue) || !int.TryParse(output.Text, out var outputValue)
                 || !int.TryParse(turns.Text, out var turnsValue) || !int.TryParse(timeout.Text, out var timeoutValue)
-                || !int.TryParse(calls.Text, out var callsValue)
+                || !int.TryParse(calls.Text, out var callsValue) || !int.TryParse(toolCalls.Text, out var toolCallsValue)
                 || !double.TryParse(temperature.Text?.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out var temperatureValue)
                 || !string.IsNullOrWhiteSpace(seed.Text) && !int.TryParse(seed.Text, out _))
                 return "Un réglage numérique est invalide. Les valeurs saisies sont conservées.";
@@ -165,6 +169,8 @@ public partial class ChatWindow
                 Temperature = temperatureValue,
                 SafetyTokens = options.SafetyTokens,
                 SummaryMaxCalls = callsValue,
+                ToolMaxCalls = toolCallsValue,
+                UseProjectTools = tools.IsChecked == true,
                 GenerateUntilStop = continuous.IsChecked == true,
                 AutoSummarize = recursive.IsChecked == true,
                 Seed = string.IsNullOrWhiteSpace(seed.Text) ? null : int.Parse(seed.Text!)
@@ -195,15 +201,15 @@ public partial class ChatWindow
         var settings = await _client.SettingsAsync(_current.Id, _lifetime.Token);
         var files = await _client.FilesAsync(_current.Id, _lifetime.Token);
         var panel = new StackPanel { Spacing = 12 };
-        panel.Children.Add(Label("Fenêtre : suit les échanges récents. Épinglé : reste candidat au contexte. Exclu : conservé sans envoi au modèle. Le budget peut tronquer ou omettre un document, même épinglé."));
+        panel.Children.Add(Label("Fenêtre : extraits liés aux échanges récents. Projet : extraits persistants. Épinglé : priorité aux extraits. Exclu : contenu inaccessible aux outils et au modèle. Les outils peuvent consulter tous les imports non exclus. Les extraits initiaux restent sélectifs."));
         var controls = new Dictionary<Guid, ComboBox>();
         foreach (var file in files)
         {
             panel.Children.Add(Label(file.Name + " · " + file.Status));
             var mode = new ComboBox
             {
-                ItemsSource = new[] { "Fenêtre", "Épinglé", "Exclu" },
-                SelectedIndex = file.ContextMode == "pinned" ? 1 : file.ContextMode == "excluded" ? 2 : 0
+                ItemsSource = new[] { "Fenêtre", "Épinglé", "Exclu", "Projet (persistant)" },
+                SelectedIndex = file.ContextMode == "pinned" ? 1 : file.ContextMode == "excluded" ? 2 : file.ContextMode == "project" ? 3 : 0
             };
             controls.Add(file.Id, mode); panel.Children.Add(mode);
         }
@@ -211,7 +217,7 @@ public partial class ChatWindow
         var revision = settings.Conversation.Revision;
         foreach (var file in files)
         {
-            var mode = controls[file.Id].SelectedIndex switch { 1 => "pinned", 2 => "excluded", _ => "window" };
+            var mode = controls[file.Id].SelectedIndex switch { 1 => "pinned", 2 => "excluded", 3 => "project", _ => "window" };
             if (mode == file.ContextMode) continue;
             await _client.ConfigureFileAsync(_current.Id, file.Id, revision, mode, _lifetime.Token);
             revision++;

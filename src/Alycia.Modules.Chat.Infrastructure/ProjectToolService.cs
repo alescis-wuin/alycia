@@ -59,12 +59,25 @@ public sealed class ProjectToolService(ChatDbContext database, ProjectSourceRead
         }
         var files = (await EntriesAsync(id, ct)).Where(f => !codeOnly || ProjectContext.IsCode(f.Path)).ToArray();
         var page = new List<object>();
-        string Result() => Json(new { total = files.Length, offset,
-            nextOffset = offset + page.Count < files.Length ? (int?)(offset + page.Count) : null, files = page });
+        string Result() => Json(new
+        {
+            total = files.Length,
+            offset,
+            nextOffset = offset + page.Count < files.Length ? (int?)(offset + page.Count) : null,
+            files = page
+        });
         foreach (var file in files.Skip(offset).Take(limit))
         {
-            page.Add(new { fileId = file.Id, path = FileContext.Utf8Prefix(file.Path, 320), file.Bytes,
-                code = ProjectContext.IsCode(file.Path), file.Readable, mode = file.Mode, status = file.Status });
+            page.Add(new
+            {
+                fileId = file.Id,
+                path = FileContext.Utf8Prefix(file.Path, 320),
+                file.Bytes,
+                code = ProjectContext.IsCode(file.Path),
+                file.Readable,
+                mode = file.Mode,
+                status = file.Status
+            });
             if (Bytes(Result()) <= budget) continue;
             page.RemoveAt(page.Count - 1); break;
         }
@@ -88,9 +101,19 @@ public sealed class ProjectToolService(ChatDbContext database, ProjectSourceRead
         {
             var text = FileContext.Utf8Prefix(source.Text[offset..], size);
             int? next = offset + text.Length < source.Text.Length ? offset + text.Length : null;
-            var json = Json(new { fileId = id, path = FileContext.Utf8Prefix(file.Name, 320), file.Sha256,
-                offset, nextOffset = next, totalCharacters = source.Text.Length, startLine = 1 + source.Text.AsSpan(0, offset).Count('\n'),
-                completeSource = source.Complete, source = source.Origin, text });
+            var json = Json(new
+            {
+                fileId = id,
+                path = FileContext.Utf8Prefix(file.Name, 320),
+                file.Sha256,
+                offset,
+                nextOffset = next,
+                totalCharacters = source.Text.Length,
+                startLine = 1 + source.Text.AsSpan(0, offset).Count('\n'),
+                completeSource = source.Complete,
+                source = source.Origin,
+                text
+            });
             if (Bytes(json) <= budget) return new(json, Evidence: new(file.Name, file.Sha256, offset, next, source.Complete));
             if (size <= 32) throw new ArgumentException("Budget insuffisant pour cette source.");
             size /= 2;
@@ -108,8 +131,15 @@ public sealed class ProjectToolService(ChatDbContext database, ProjectSourceRead
         var files = (await EntriesAsync(conversation, ct)).Where(f => f.Readable).ToArray();
         var matches = new List<object>();
         var examined = 0;
-        string Result() => Json(new { totalFiles = files.Length, examined, offset,
-            nextOffset = offset + examined < files.Length ? (int?)(offset + examined) : null, firstMatchPerFile = true, matches });
+        string Result() => Json(new
+        {
+            totalFiles = files.Length,
+            examined,
+            offset,
+            nextOffset = offset + examined < files.Length ? (int?)(offset + examined) : null,
+            firstMatchPerFile = true,
+            matches
+        });
         foreach (var entry in files.Skip(offset).Take(limit))
         {
             ct.ThrowIfCancellationRequested();
@@ -123,8 +153,14 @@ public sealed class ProjectToolService(ChatDbContext database, ProjectSourceRead
                 {
                     var start = Math.Max(0, position - 80);
                     if (start < source.Text.Length && char.IsLowSurrogate(source.Text[start])) start--;
-                    match = new { fileId = file.Id, path = FileContext.Utf8Prefix(file.Name, 240), offset = start,
-                        completeSource = source.Complete, excerpt = FileContext.Utf8Prefix(source.Text[start..], 240) };
+                    match = new
+                    {
+                        fileId = file.Id,
+                        path = FileContext.Utf8Prefix(file.Name, 240),
+                        offset = start,
+                        completeSource = source.Complete,
+                        excerpt = FileContext.Utf8Prefix(source.Text[start..], 240)
+                    };
                 }
             }
             catch (ArgumentException e) { match = new { fileId = file.Id, error = e.Message }; }

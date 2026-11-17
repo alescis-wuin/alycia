@@ -11,13 +11,12 @@ import zipfile
 from urllib.parse import quote, urlsplit
 
 
-def verify(base_url, model, *, extended=False):
+def create_client(base_url):
     origin = urlsplit(base_url)
     if origin.scheme not in ("http", "https") or origin.hostname not in ("localhost", "127.0.0.1", "::1"):
         raise ValueError("Le backend doit être local.")
     if origin.username or origin.password or origin.query or origin.fragment or origin.path not in ("", "/"):
         raise ValueError("Origine locale invalide.")
-    conversations, prompts, checks = [], [], []
     token = os.environ.get("ALYCIA_CHAT_ACCESS_TOKEN")
 
     def call(method, path, value=None, *, raw=None, headers=None, expected=200):
@@ -43,6 +42,13 @@ def verify(base_url, model, *, extended=False):
         finally:
             connection.close()
 
+    return call
+
+
+def verify(base_url, model, *, extended=False, tools=False):
+    conversations, prompts, checks = [], [], []
+    call = create_client(base_url)
+
     def done(events):
         assert events and events[-1]["type"] == "done", "Absence de confirmation de persistance"
         return events[-1]["result"]
@@ -60,7 +66,7 @@ def verify(base_url, model, *, extended=False):
         prefix = "/conversations/" + cid
         settings = call("GET", prefix + "/settings")
         options = settings["options"]
-        options.update(contextTokens=4096, maxOutputTokens=512, temperature=0.1, maxHistoryTurns=8)
+        options.update(contextTokens=4096, maxOutputTokens=512, temperature=0.1, maxHistoryTurns=8, useProjectTools=False)
         configured = call("PUT", prefix + "/settings", {"revision": conversation["revision"], "model": model,
             "systemPrompt": conversation["systemPrompt"], "contextNotes": "Projet de recette locale.", "options": options})
         stale = {"revision": conversation["revision"], "model": model, "systemPrompt": "", "options": options}
@@ -120,6 +126,8 @@ def verify(base_url, model, *, extended=False):
         checks.append("archive_roundtrip_search_and_fork")
         if extended:
             verify_recursive(call, done, model, prefix, archive, conversations, checks)
+        if tools:
+            verify_tools(call, model, conversations, checks)
         return checks
     finally:
         failures = []
@@ -223,11 +231,89 @@ def verify_recursive(call, done, model, prefix, archive, conversations, checks):
     checks.append("memory_turn_persistence_and_nondestructive_reset")
 
 
+def verify_tools(call, model, conversations, checks):
+    conversation = call("POST", "/conversations", {"title": "Recette outils " + uuid.uuid4().hex[:8],
+        "model": model, "systemPrompt": "Lis les sources avec les outils avant de répondre brièvement."}, expected=201)
+    conversations.append(conversation["id"])
+    prefix = "/conversations/" + conversation["id"]
+    options = call("GET", prefix + "/settings")["options"]
+    options.update(contextTokens=8192, maxOutputTokens=1024, useProjectTools=True, toolMaxCalls=12, temperature=0)
+    call("PUT", prefix + "/settings", {"revision": conversation["revision"], "model": model,
+        "systemPrompt": conversation["systemPrompt"], "contextNotes": "", "options": options})
+    assert call("GET", prefix + "/tools")["modelSupportsTools"], "Le modèle n’annonce pas tools dans /api/show."
+    source = ("// ligne de code synthétique\n" * 10000 + "public class CODE_SENTINEL_END { public int Value => 42; }\n").encode()
+    assert len(source) > 200000
+    memory = io.BytesIO()
+    with zipfile.ZipFile(memory, "w") as archive:
+        archive.writestr("./src/Deep.cs", source)
+        archive.writestr(".env", "NE_JAMAIS_RESUMER_CE_CONTENU")
+    boundary = "alycia-" + uuid.uuid4().hex
+    body = (f'--{boundary}\r\nContent-Disposition: form-data; name="files"; filename="project.zip"\r\n'
+        'Content-Type: application/zip\r\n\r\n').encode() + memory.getvalue() + f'\r\n--{boundary}--\r\n'.encode()
+    files = call("POST", prefix + "/files/" + str(uuid.uuid4()), raw=body,
+        headers={"Content-Type": "multipart/form-data; boundary=" + boundary})
+    code = next(f for f in files if f["name"].endswith("Deep.cs"))
+    excluded = next(f for f in files if f["name"].endswith(".env"))
+    assert code["contextMode"] == "project"
+    headers = {"Accept": "application/json, text/event-stream", "MCP-Protocol-Version": "2025-11-25"}
+
+    def rpc(method, params=None, **extra):
+        return call("POST", prefix + "/mcp", {"jsonrpc": "2.0", "id": 1, "method": method, "params": params or {}}, headers=headers, **extra)
+
+    result = rpc("initialize", {"protocolVersion": "2025-11-25", "capabilities": {}, "clientInfo": {"name": "alycia-recipe", "version": "1"}})
+    assert result["result"]["protocolVersion"] == "2025-11-25"
+    call("POST", prefix + "/mcp", {"jsonrpc": "2.0", "method": "notifications/initialized"}, headers=headers, expected=202)
+    catalog = rpc("tools/list")["result"]["tools"]
+    assert {t["name"] for t in catalog} == {"project_list", "project_read", "project_search"}
+    assert all(t["annotations"]["readOnlyHint"] for t in catalog)
+    call("GET", prefix + "/mcp", expected=405)
+    call("POST", prefix + "/mcp", {"jsonrpc": "2.0", "id": 1, "method": "ping"}, headers=dict(headers, Origin="https://example.invalid"), expected=403)
+    call("POST", prefix + "/mcp", {"jsonrpc": "2.0", "id": 1, "method": "ping"},
+        headers=dict(headers, **{"MCP-Protocol-Version": "2099-01-01"}), expected=400)
+    assert rpc("unknown")["error"]["code"] == -32601
+    assert rpc("tools/call", {"name": "run_shell", "arguments": {}})["error"]["code"] == -32602
+    assert rpc("tools/call", {"name": "project_read", "arguments": {"fileId": excluded["id"]}})["result"]["isError"]
+    assert rpc("tools/call", {"name": "project_read", "arguments": {"fileId": "../../etc/passwd"}})["result"]["isError"]
+    offset, ids = 0, []
+    while offset is not None:
+        result = rpc("tools/call", {"name": "project_list", "arguments": {"offset": offset, "limit": 1}})["result"]
+        page = json.loads(result["content"][0]["text"])
+        ids.extend(f["fileId"] for f in page["files"])
+        assert page["nextOffset"] is None or page["nextOffset"] > offset
+        offset = page["nextOffset"]
+    assert set(ids) == {f["id"] for f in files}
+    checks.append("mcp_handshake_catalog_pagination_and_access_controls")
+    result = rpc("tools/call", {"name": "project_read", "arguments": {"fileId": code["id"], "offset": len(source.decode()) - 60}})["result"]
+    assert not result["isError"] and "CODE_SENTINEL_END" in result["content"][0]["text"]
+    checks.append("original_read_beyond_import_excerpt")
+    revision = call("GET", prefix + "/settings")["conversation"]["revision"]
+    request = {"requestId": str(uuid.uuid4()), "revision": revision,
+        "content": "Utilise project_search pour chercher CODE_SENTINEL_END, puis project_read pour lire le code correspondant. Explique sa valeur."}
+    events = call("POST", prefix + "/stream", request)
+    assert events[-1]["type"] == "done", "L’agent n’a pas terminé : " + str(events[-1].get("message", "fin absente"))
+    reply = events[-1]["result"]
+    trace = json.loads(reply["messages"][-1]["toolTraceJson"])
+    assert any(t["name"] == "project_read" and t["succeeded"] for t in trace), "Le modèle n’a pas réellement lu le code."
+    assert any(event.get("tool") for event in events)
+    assert "NE_JAMAIS_RESUMER_CE_CONTENU" not in reply["messages"][-1]["content"]
+    assert call("POST", prefix + "/stream", request)[-1]["result"]["replayed"]
+    exported = call("GET", prefix + "/export?format=json")
+    assert json.loads(exported["messages"][-1]["toolTraceJson"]) == trace
+    checks.append("native_tool_loop_trace_persistence_export_and_replay")
+    current = call("GET", prefix + "/settings")["conversation"]
+    options["useProjectTools"] = False
+    call("PUT", prefix + "/settings", {"revision": current["revision"], "model": model,
+        "systemPrompt": conversation["systemPrompt"], "contextNotes": "", "options": options})
+    assert rpc("tools/call", {"name": "project_read", "arguments": {"fileId": code["id"]}})["result"]["isError"]
+    checks.append("tool_access_revocation")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--url", default="http://127.0.0.1:5187")
     parser.add_argument("--model", required=True, help="Nom exact d’un modèle local déjà installé")
     parser.add_argument("--extended", action="store_true", help="Tester aussi mémoire et dossiers : plusieurs générations locales supplémentaires")
+    parser.add_argument("--tools", action="store_true", help="Tester MCP et les outils natifs : modèle compatible tools requis")
     args = parser.parse_args()
-    result = verify(args.url, args.model, extended=args.extended)
+    result = verify(args.url, args.model, extended=args.extended, tools=args.tools)
     print(json.dumps({"passed": len(result), "checks": result, "test_data_cleaned": True}, indent=2))

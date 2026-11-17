@@ -88,7 +88,9 @@ public partial class ChatWindow
         {
             panel.Children.Add(Label($"Entrée estimée : {preview.Context.EstimatedInputTokens} / "
                 + $"{preview.Options.ContextTokens - preview.Options.MaxOutputTokens - preview.Options.SafetyTokens} · "
-                + $"{preview.Context.HistoryMessagesIncluded} messages bruts · {preview.Context.FilesIncluded} documents"));
+                + $"{preview.Context.HistoryMessagesIncluded} messages bruts · {preview.Context.FilesIncluded}/{preview.Context.FilesAvailable} sources en extraits · réserve outils {preview.Context.ToolReserve}"));
+            foreach (var source in preview.Context.Sources ?? [])
+                panel.Children.Add(Label($"{source.Path} · {source.Utf8Bytes} octets · {(source.Partial ? "extrait partiel" : "texte disponible complet")} · {source.Reason}"));
             panel.Children.Add(Label(preview.Context.NeedsSummary
                 ? "Un résumé doit être préparé. Cet aperçu est incomplet ; l’envoi effectuera la réduction automatiquement."
                 : "Le contexte courant respecte le budget estimé. L’aperçu ne déclenche aucune génération."));
@@ -147,15 +149,15 @@ public partial class ChatWindow
         };
         var budget = Input("2048", 5);
         var panel = new StackPanel { Spacing = 12 };
-        panel.Children.Add(Label("1. Importez un dossier ou ZIP depuis la conversation. 2. Choisissez le périmètre. 3. Générez la synthèse. Le modèle local reçoit tree.txt par fragments puis les contenus extractibles."));
+        panel.Children.Add(Label("1. Importez un dossier ou ZIP depuis la conversation. 2. Choisissez le périmètre. 3. Analysez les sources admissibles. Le modèle reçoit tree.txt et les originaux textuels par fragments ; le résultat distingue code, exclusions et extractions partielles."));
         panel.Children.Add(scope);
         panel.Children.Add(Label("Budget de la synthèse finale (512 à 16384 octets UTF-8 estimés)")); panel.Children.Add(budget);
         panel.Children.Add(Label($"Budget d’appels : {settings.Options.SummaryMaxCalls}. L’opération peut être longue et reste annulable. "
             + "Les fichiers sans texte et les exclusions figurent dans le manifeste. Les dossiers exclus avant import ne sont pas parcourus."));
         panel.Children.Add(Label("Analyses enregistrées")); panel.Children.Add(selected);
         panel.Children.Add(Label("Une nouvelle synthèse remplace les extraits bruts de son périmètre dans le contexte. Une analyse périmée est ignorée automatiquement. Les originaux restent disponibles."));
-        var action = await ActionDialogAsync("Synthèses de dossiers et archives", panel,
-            [("Créer une synthèse", "create"), ("Télécharger tree.txt", "tree"), ("Ouvrir l’analyse", "view"),
+        var action = await ActionDialogAsync("Analyse du projet et couverture", panel,
+            [("Analyser tous les fichiers", "create"), ("Télécharger tree.txt", "tree"), ("Ouvrir l’analyse", "view"),
              ("Activer / désactiver", "toggle"), ("Supprimer l’analyse", "delete")], key =>
             key == "create" && files.Length == 0 ? "Importez d’abord un dossier ou une archive."
             : key == "create" && (!int.TryParse(budget.Text, out var value) || value is < 512 or > 16384) ? "Budget attendu : 512 à 16384."
