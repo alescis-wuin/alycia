@@ -227,7 +227,9 @@ def main():
                 client = module.create_client(f"http://127.0.0.1:{port}")
                 owned = []
                 try:
+                    summaries_before_tools = Ollama.summary_calls
                     module.verify_tools(client, "tool-demo", owned, checks)
+                    assert Ollama.summary_calls == summaries_before_tools, "Les petits résultats d’outils ont été résumés inutilement"
                     assert Ollama.tool_rounds == 4, "Le renvoi a réexécuté les outils"
                 finally:
                     for conversation in owned:

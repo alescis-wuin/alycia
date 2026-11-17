@@ -29,7 +29,7 @@ public sealed class ProjectToolStorageTests
             var conversation = Conversation.Create("Projet", "demo", "system");
             var other = Conversation.Create("Autre", "demo", "");
             db.Conversations.AddRange(conversation, other); await db.SaveChangesAsync();
-            var original = "🙂\n" + new string('x', 200100) + "\nclass HiddenAtEnd { int Value => 42; }\n";
+            var original = "🙂\n" + new string('x', 200100) + "\nclass HiddenAtEnd { int Value => 42; int ValueOf() => Value; }\n";
             var added = await new FileImport(db, storage).ImportAsync(conversation.Id, Guid.NewGuid(),
                 [new("src/A.cs", new MemoryStream(Encoding.UTF8.GetBytes(original))), new(".env", new MemoryStream("SECRET_NEVER_READ"u8.ToArray()))], default);
             // Seed through the current importer, then exercise the upgrade from the old schema.
@@ -70,6 +70,15 @@ public sealed class ProjectToolStorageTests
             Assert.False(read.IsError); Assert.Contains("HiddenAtEnd", read.Text); Assert.True(read.Evidence!.CompleteSource);
             Assert.Equal(file.Sha256, read.Evidence.Sha256);
             Assert.InRange(Encoding.UTF8.GetByteCount(read.Text), 1, 2048);
+            var symbol = await Call("project_read", new { fileId = file.Id, symbol = "HiddenAtEnd.Value" });
+            Assert.False(symbol.IsError);
+            using var symbolJson = JsonDocument.Parse(symbol.Text);
+            Assert.Equal("int Value => 42;", symbolJson.RootElement.GetProperty("text").GetString());
+            Assert.True(symbol.Evidence!.Offset > 200000);
+            Assert.Equal(JsonValueKind.Null, symbolJson.RootElement.GetProperty("nextOffset").ValueKind);
+            var ambiguous = await Call("project_read", new { fileId = file.Id, symbol = "Value" });
+            Assert.True(ambiguous.IsError); Assert.Contains("HiddenAtEnd.ValueOf", ambiguous.Text);
+            Assert.True((await Call("project_read", new { fileId = file.Id, symbol = "HiddenAtEnd.Value", offset = 0 })).IsError);
             Assert.True((await Call("project_read", new { fileId = file.Id }, other.Id)).IsError);
             Assert.True((await Call("project_read", new { fileId = excluded.Id })).IsError);
             Assert.True((await Call("project_read", new { fileId = "../../etc/passwd" })).IsError);

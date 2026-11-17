@@ -40,7 +40,7 @@ public sealed class ToolCallingTests
     }
 
     [Fact]
-    public async Task AgentCompactsOldToolRoundsAndPreservesConversation()
+    public async Task AgentKeepsSmallToolRoundsWithoutSummaryAndPreservesConversation()
     {
         var model = new AgentModel();
         var tools = new Sources();
@@ -52,7 +52,8 @@ public sealed class ToolCallingTests
         Assert.Equal(3, tools.Calls);
         Assert.Equal(3, reply.Tools!.Count);
         Assert.Equal(3, events.Count(e => e.Tool is not null));
-        Assert.True(model.Summaries > 0);
+        Assert.Equal(0, model.Summaries);
+        Assert.Equal(3, model.Inputs[^1].Count(m => m.Role == "tool"));
         Assert.All(model.Inputs, input =>
         {
             Assert.StartsWith("SYSTEM", input[0].Content);
@@ -60,6 +61,27 @@ public sealed class ToolCallingTests
         });
         Assert.Equal("SYSTEM", original.Messages[0].Content);
         Assert.Contains(model.Inputs[^1], m => m.Role == "tool" && m.ToolName == "project_read");
+    }
+
+    [Fact]
+    public async Task AgentCompactsOnlyUnderPressureAndKeepsTheLastCompleteRound()
+    {
+        var model = new AgentModel(); var tools = new Sources(5000);
+        var result = await ProjectAgent.RunAsync(model, tools, Guid.NewGuid(), "demo", Context(), new(), null, default);
+        Assert.Equal(3, tools.Calls); Assert.True(model.Summaries > 0);
+        Assert.Contains(model.Inputs[^1], m => m.Role == "tool" && m.ToolName == "project_read");
+        Assert.All(model.Inputs, input => Assert.Contains(input, m => m.Content == "QUESTION"));
+        Assert.Equal("Réponse sourcée", result.Content);
+    }
+
+    [Fact]
+    public async Task ReorderedIdenticalArgumentsDoNotRepeatIoAndStopTheLoop()
+    {
+        var model = new RepeatingModel(); var tools = new Sources(); var events = new List<ModelDelta>();
+        var error = await Assert.ThrowsAsync<ChatModelException>(() => ProjectAgent.RunAsync(model, tools, Guid.NewGuid(), "demo", Context(), new(),
+            e => { events.Add(e); return Task.CompletedTask; }, default));
+        Assert.Contains("répète", error.Message); Assert.Equal(1, tools.Calls);
+        Assert.Equal(2, events.Count(e => e.Tool?.RepeatSuppressed == true));
     }
 
     [Fact]
@@ -96,12 +118,23 @@ public sealed class ToolCallingTests
             return new(HttpStatusCode.OK) { Content = new StringContent(text, Encoding.UTF8, "application/json") };
         }
     }
-    private sealed class Sources : IProjectTools
+    private sealed class Sources(int resultSize = 0) : IProjectTools
     {
         public int Calls;
         public Task<bool> HasSourcesAsync(Guid id, CancellationToken ct) => Task.FromResult(true);
         public Task<ProjectToolResult> CallAsync(Guid id, string name, JsonElement args, int budget, CancellationToken ct)
-        { Calls++; return Task.FromResult(new ProjectToolResult("{\"text\":\"return 42;\",\"nextOffset\":null}", Evidence: new("src/A.cs", new string('a', 64), 0, null, true))); }
+        { Calls++; return Task.FromResult(new ProjectToolResult(resultSize > 0 ? new string('x', Math.Min(resultSize, budget)) : "{\"text\":\"return 42;\",\"nextOffset\":null}", Evidence: new("src/A.cs", new string('a', 64), 0, null, true))); }
+    }
+    private sealed class RepeatingModel : IChatModel
+    {
+        private int _calls;
+        public Task<IReadOnlyList<string>> ListModelsAsync(CancellationToken ct) => Task.FromResult<IReadOnlyList<string>>(["demo"]);
+        public Task<string> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages, CancellationToken ct) => Task.FromResult("résumé");
+        public Task<GenerationReply> StreamWithToolsAsync(string model, IReadOnlyList<PromptMessage> messages, ChatOptions settings, Func<ModelDelta, Task> delta, CancellationToken ct)
+        {
+            var args = ++_calls % 2 == 0 ? "{\"offset\":0,\"fileId\":\"file\"}" : "{\"fileId\":\"file\",\"offset\":0}";
+            return Task.FromResult(new GenerationReply("", ToolCalls: [new(new("project_read", JsonSerializer.Deserialize<JsonElement>(args)))]));
+        }
     }
     private sealed class AgentModel : IChatModel
     {

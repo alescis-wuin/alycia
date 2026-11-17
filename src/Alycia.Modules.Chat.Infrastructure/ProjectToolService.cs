@@ -25,7 +25,7 @@ public sealed class ProjectToolService(ChatDbContext database, ProjectSourceRead
             string[] allowed = name switch
             {
                 "project_list" => ["offset", "limit", "codeOnly"],
-                "project_read" => ["fileId", "offset", "maxBytes"],
+                "project_read" => ["fileId", "offset", "maxBytes", "symbol"],
                 "project_search" => ["query", "offset", "limit"],
                 _ => throw new ArgumentException("Outil inconnu.")
             };
@@ -93,14 +93,39 @@ public sealed class ProjectToolService(ChatDbContext database, ProjectSourceRead
             ?? throw new ArgumentException("Fichier introuvable dans cette conversation.");
         var source = await reader.ReadAsync(file, ct);
         if (source.Text.Length == 0) throw new ArgumentException("Aucun texte disponible : " + source.Origin);
-        var offset = Int(args, "offset", 0, 0, source.Text.Length);
+        var start = 0; var end = source.Text.Length; string? symbol = null; var headerOnly = false;
+        if (args.TryGetProperty("symbol", out var requested))
+        {
+            if (requested.ValueKind != JsonValueKind.String || string.IsNullOrWhiteSpace(requested.GetString()) || requested.GetString()!.Length > 200)
+                throw new ArgumentException("symbol doit contenir de 1 à 200 caractères.");
+            symbol = requested.GetString()!;
+            var declarations = CodeStructure.Split(file.Id, file.Name, file.Sha256, source.Text, ct).Where(c => c.Kind != "text")
+                .GroupBy(c => c.Symbol).ToArray();
+            var matches = declarations.Where(g => g.Key.Equals(symbol, StringComparison.Ordinal)).ToArray();
+            if (matches.Length == 0) matches = declarations.Where(g => g.Key.Contains(symbol, StringComparison.OrdinalIgnoreCase)).ToArray();
+            if (matches.Length != 1)
+            {
+                var candidates = (matches.Length == 0 ? declarations : matches).Select(g => new
+                {
+                    symbol = FileContext.Utf8Prefix(g.Key, 180),
+                    startLine = g.First().StartLine,
+                    offset = g.First().Start
+                }).Take(12).ToList();
+                string Choices() => Json(new { error = matches.Length == 0 ? "Symbole introuvable." : "Symbole ambigu : utilisez un nom complet ou un offset.", candidates });
+                while (Bytes(Choices()) > budget && candidates.Count > 0) candidates.RemoveAt(candidates.Count - 1);
+                return new(Choices(), true);
+            }
+            symbol = matches[0].Key; start = matches[0].Min(c => c.Start); end = matches[0].Max(c => c.End);
+            headerOnly = matches[0].Any(c => c.Kind == "type_header");
+        }
+        var offset = Int(args, "offset", start, start, end);
         if (offset < source.Text.Length && char.IsLowSurrogate(source.Text[offset]))
             throw new ArgumentException("Offset au milieu d’un caractère Unicode ; utilisez nextOffset.");
         var size = Int(args, "maxBytes", 2048, 128, 8192);
         while (true)
         {
-            var text = FileContext.Utf8Prefix(source.Text[offset..], size);
-            int? next = offset + text.Length < source.Text.Length ? offset + text.Length : null;
+            var text = FileContext.Utf8Prefix(source.Text[offset..end], size);
+            int? next = offset + text.Length < end ? offset + text.Length : null;
             var json = Json(new
             {
                 fileId = id,
@@ -109,6 +134,10 @@ public sealed class ProjectToolService(ChatDbContext database, ProjectSourceRead
                 offset,
                 nextOffset = next,
                 totalCharacters = source.Text.Length,
+                symbol,
+                scopeStart = start,
+                scopeEnd = end,
+                headerOnly,
                 startLine = 1 + source.Text.AsSpan(0, offset).Count('\n'),
                 completeSource = source.Complete,
                 source = source.Origin,
