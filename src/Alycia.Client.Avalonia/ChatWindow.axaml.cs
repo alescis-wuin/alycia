@@ -69,6 +69,7 @@ public partial class ChatWindow : Window
         InitializeFileControls();
         InitializeFeatureControls();
         InitializeNavigation();
+        InitializeIndexing();
         C<MarkdownView>("StreamingText").Rendered += ScrollToEnd;
         C<ScrollViewer>("MessageScroll").ScrollChanged += (_, e) =>
         {
@@ -245,6 +246,7 @@ public partial class ChatWindow : Window
 
     private async Task LoadAsync(ConversationSummary conversation, bool keepReading = false)
     {
+        _indexingOwner = conversation.Id; _indexingProject = false;
         bool follow = !keepReading || _followOutput;
         var previousOffset = C<ScrollViewer>("MessageScroll").Offset;
         SaveDraft();

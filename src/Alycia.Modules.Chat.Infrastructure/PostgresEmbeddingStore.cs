@@ -1,0 +1,160 @@
+using System.Text.Json;
+using Alycia.Modules.Chat.Application;
+using Microsoft.EntityFrameworkCore;
+using Npgsql;
+using NpgsqlTypes;
+
+namespace Alycia.Modules.Chat.Infrastructure;
+
+public sealed record EmbeddingSettings(string Model, int BatchSize, int ChunkCharacters, bool History, string SourceRevision = "")
+{
+    public static EmbeddingSettings From(ChatOptions options) => new(options.EmbeddingModel, options.EmbeddingBatchSize,
+        options.EmbeddingChunkCharacters, options.EmbedHistory);
+}
+public sealed record EmbeddingJob(EmbeddingProgress Progress, EmbeddingSettings Settings, int Revision, string Fingerprint);
+
+// A separate short-lived connection avoids writing indexing state into a chat's repeatable-read snapshot.
+public sealed class PostgresEmbeddingStore(ChatDbContext database)
+{
+    private async Task<NpgsqlConnection> OpenAsync(CancellationToken ct)
+    {
+        var connection = new NpgsqlConnection(database.Database.GetConnectionString());
+        try { await connection.OpenAsync(ct); return connection; }
+        catch { await connection.DisposeAsync(); throw; }
+    }
+
+    public async Task QueueAsync(Guid owner, bool project, ChatOptions options, CancellationToken ct, bool retry = false, string sourceRevision = "")
+    {
+        options.Validate();
+        if (string.IsNullOrWhiteSpace(options.EmbeddingModel)) return;
+        await using var connection = await OpenAsync(ct);
+        await using var command = new NpgsqlCommand("""
+            INSERT INTO chat.embedding_jobs(owner_id, is_project, options_json) VALUES ($1, $2, $3)
+            ON CONFLICT(owner_id, is_project) DO UPDATE SET options_json = EXCLUDED.options_json,
+                revision = chat.embedding_jobs.revision + 1,
+                state = CASE WHEN chat.embedding_jobs.state = 'paused' AND NOT $4 THEN 'paused' ELSE 'queued' END,
+                detail = '', fingerprint = '', updated_at = now()
+            WHERE chat.embedding_jobs.options_json <> EXCLUDED.options_json OR $4
+            """, connection);
+        command.Parameters.AddWithValue(owner); command.Parameters.AddWithValue(project);
+        command.Parameters.AddWithValue(JsonSerializer.Serialize(EmbeddingSettings.From(options) with { SourceRevision = sourceRevision }, ProjectToolCatalog.Json));
+        command.Parameters.AddWithValue(retry);
+        await command.ExecuteNonQueryAsync(ct);
+    }
+
+    public async Task<EmbeddingJob[]> JobsAsync(CancellationToken ct)
+    {
+        await using var connection = await OpenAsync(ct);
+        await using var command = new NpgsqlCommand("SELECT owner_id, is_project, state, completed, total, detail, options_json, updated_at, revision, fingerprint FROM chat.embedding_jobs ORDER BY updated_at", connection);
+        await using var reader = await command.ExecuteReaderAsync(ct);
+        var jobs = new List<EmbeddingJob>();
+        while (await reader.ReadAsync(ct))
+        {
+            var settings = JsonSerializer.Deserialize<EmbeddingSettings>(reader.GetString(6), ProjectToolCatalog.Json)!;
+            jobs.Add(new(new(reader.GetGuid(0), reader.GetBoolean(1), reader.GetString(2), reader.GetInt32(3),
+                reader.GetInt32(4), reader.GetString(5), settings.Model, reader.GetFieldValue<DateTimeOffset>(7)),
+                settings, reader.GetInt32(8), reader.GetString(9)));
+        }
+        return jobs.Select(j => j with { Progress = j.Progress with { BatchSize = j.Settings.BatchSize, ChunkCharacters = j.Settings.ChunkCharacters } }).ToArray();
+    }
+
+    public async Task PauseAsync(Guid owner, bool project, CancellationToken ct)
+    {
+        await using var connection = await OpenAsync(ct);
+        await using var command = new NpgsqlCommand("UPDATE chat.embedding_jobs SET state = 'paused', revision = revision + 1, updated_at = now() WHERE owner_id = $1 AND is_project = $2", connection);
+        command.Parameters.AddWithValue(owner); command.Parameters.AddWithValue(project);
+        await command.ExecuteNonQueryAsync(ct);
+    }
+
+    public async Task<bool> ProgressAsync(EmbeddingJob job, string state, int completed, int total, string detail,
+        string fingerprint, CancellationToken ct)
+    {
+        await using var connection = await OpenAsync(ct);
+        await using var command = new NpgsqlCommand("""
+            UPDATE chat.embedding_jobs SET state = $1, completed = $2, total = $3, detail = $4, fingerprint = $5, updated_at = now()
+            WHERE owner_id = $6 AND is_project = $7 AND revision = $8
+            """, connection);
+        command.Parameters.AddWithValue(state); command.Parameters.AddWithValue(completed); command.Parameters.AddWithValue(total);
+        command.Parameters.AddWithValue(detail); command.Parameters.AddWithValue(fingerprint);
+        command.Parameters.AddWithValue(job.Progress.OwnerId); command.Parameters.AddWithValue(job.Progress.IsProject);
+        command.Parameters.AddWithValue(job.Revision);
+        return await command.ExecuteNonQueryAsync(ct) == 1;
+    }
+
+    public async Task DeleteJobAsync(EmbeddingJob job, CancellationToken ct)
+    {
+        await using var connection = await OpenAsync(ct);
+        await using var command = new NpgsqlCommand("DELETE FROM chat.embedding_jobs WHERE owner_id = $1 AND is_project = $2", connection);
+        command.Parameters.AddWithValue(job.Progress.OwnerId); command.Parameters.AddWithValue(job.Progress.IsProject);
+        await command.ExecuteNonQueryAsync(ct);
+    }
+
+    public async Task<NpgsqlConnection?> TryLockAsync(EmbeddingJob job, CancellationToken ct)
+    {
+        var connection = new NpgsqlConnection(new NpgsqlConnectionStringBuilder(database.Database.GetConnectionString()) { Pooling = false }.ToString());
+        await connection.OpenAsync(ct);
+        await using var command = new NpgsqlCommand("SELECT pg_try_advisory_lock(hashtextextended($1, 0))", connection);
+        command.Parameters.AddWithValue("alycia-embeddings:" + job.Progress.OwnerId + ":" + job.Progress.IsProject);
+        try
+        {
+            if (await command.ExecuteScalarAsync(ct) is true) return connection;
+            await connection.DisposeAsync(); return null;
+        }
+        catch { await connection.DisposeAsync(); throw; }
+    }
+
+    public async Task<Dictionary<string, float[]>> ReadAsync(string identity, IReadOnlyList<string> keys, CancellationToken ct)
+    {
+        var values = new Dictionary<string, float[]>(StringComparer.Ordinal);
+        if (keys.Count == 0) return values;
+        await using var connection = await OpenAsync(ct);
+        foreach (var batch in keys.Chunk(256))
+        {
+            await using var command = new NpgsqlCommand("SELECT key, embedding FROM chat.embedding_vectors WHERE identity = $1 AND key = ANY($2)", connection);
+            command.Parameters.AddWithValue(identity); command.Parameters.AddWithValue(batch);
+            await using var reader = await command.ExecuteReaderAsync(ct);
+            while (await reader.ReadAsync(ct)) values[reader.GetString(0)] = reader.GetFieldValue<float[]>(1);
+        }
+        return values;
+    }
+
+    public async Task WriteAsync(string identity, SourceChunk chunk, float[] vector, Guid? conversation, int sequence, CancellationToken ct)
+    {
+        if (vector.Length is < 1 or > 8192 || vector.Any(v => !float.IsFinite(v))) throw new ChatModelException("Vecteur invalide.");
+        await using var connection = await OpenAsync(ct);
+        await using var command = new NpgsqlCommand("""
+            INSERT INTO chat.embedding_vectors(identity, key, file_id, conversation_id, sequence, start_offset, end_offset, content_hash, embedding)
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+            ON CONFLICT(identity,key) DO UPDATE SET embedding = EXCLUDED.embedding
+            """, connection);
+        command.Parameters.AddWithValue(identity); command.Parameters.AddWithValue(EmbeddingChunks.Key(chunk));
+        command.Parameters.Add(new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Uuid, Value = conversation is null ? chunk.FileId : DBNull.Value });
+        command.Parameters.Add(new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Uuid, Value = conversation is Guid id ? id : DBNull.Value });
+        command.Parameters.AddWithValue(sequence); command.Parameters.AddWithValue(chunk.Start); command.Parameters.AddWithValue(chunk.End);
+        command.Parameters.AddWithValue(chunk.Sha256); command.Parameters.AddWithValue(vector);
+        await command.ExecuteNonQueryAsync(ct);
+    }
+
+    public async Task<Dictionary<string, double>> SimilaritiesAsync(string identity, string[] keys, float[] query, CancellationToken ct)
+    {
+        await using var connection = await OpenAsync(ct);
+        await using var extension = new NpgsqlCommand("SELECT EXISTS(SELECT 1 FROM pg_extension WHERE extname = 'vector')", connection);
+        if (await extension.ExecuteScalarAsync(ct) is not true)
+            return (await ReadAsync(identity, keys, ct)).Where(v => v.Value.Length == query.Length)
+                .ToDictionary(v => v.Key, v => ProjectRetrievalService.Cosine(query, v.Value));
+        var scores = new Dictionary<string, double>();
+        foreach (var batch in keys.Chunk(256))
+        {
+            // Exact search with membership filtering before ranking. No approximate-index omissions.
+            await using var command = new NpgsqlCommand("""
+                SELECT key, 1 - (embedding::vector <=> $3::real[]::vector)
+                FROM chat.embedding_vectors WHERE identity = $1 AND key = ANY($2) AND cardinality(embedding) = $4
+                """, connection);
+            command.Parameters.AddWithValue(identity); command.Parameters.AddWithValue(batch);
+            command.Parameters.AddWithValue(query); command.Parameters.AddWithValue(query.Length);
+            await using var reader = await command.ExecuteReaderAsync(ct);
+            while (await reader.ReadAsync(ct)) if (!reader.IsDBNull(1)) scores[reader.GetString(0)] = reader.GetDouble(1);
+        }
+        return scores;
+    }
+}

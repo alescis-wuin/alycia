@@ -4,13 +4,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Alycia.Modules.Chat.Infrastructure;
 
-public sealed class ProjectIndexService(ChatDbContext database, FileStorage storage, ProjectSourceReader reader) : IProjectIndex
+public sealed class ProjectIndexService(ChatDbContext database, FileStorage storage, ProjectSourceReader reader, ChatOptions? defaults = null) : IProjectIndex
 {
-    public const int MaxCharacters = 8_000_000;
     private sealed record Cached(int Version, string Sha256, string Path, string Status, SourceChunk[] Chunks, int ExtractorVersion = 0);
     public async Task<ProjectIndexSnapshot> BuildAsync(Guid conversation, CancellationToken ct)
     {
-        if (!await database.Conversations.AnyAsync(c => c.Id == conversation, ct)) throw new ConversationNotFoundException();
+        var owner = await database.Conversations.AsNoTracking().SingleOrDefaultAsync(c => c.Id == conversation, ct)
+            ?? throw new ConversationNotFoundException();
+        var maximum = ConversationConfiguration.Options(owner, defaults ?? new()).IndexMaxCharacters;
         var files = await database.ModelSources(conversation).Where(f => f.ContextMode != "excluded" && f.Text != "").OrderBy(f => f.Name).ThenBy(f => f.Id).ToArrayAsync(ct);
         files = files.OrderByDescending(f => f.ContextMode == "pinned").DistinctBy(f => (f.Name, f.Sha256)).ToArray();
         var chunks = new List<SourceChunk>(); var omissions = new List<string>(); var characters = 0; var indexed = 0; var reused = 0;
@@ -38,7 +39,7 @@ public sealed class ProjectIndexService(ChatDbContext database, FileStorage stor
                 else
                 {
                     var original = await reader.ReadAsync(file, ct);
-                    if (characters + original.Text.Length > MaxCharacters)
+                    if (maximum > 0 && (long)characters + original.Text.Length > maximum)
                     { omissions.Add(file.Name + " : budget d’index atteint ; original accessible par outils"); continue; }
                     parts = CodeStructure.Split(file.Id, file.Name, file.Sha256, original.Text, ct).Select(c => c with { CompleteSource = original.Complete }).ToArray();
                     var temp = cachePath + "." + Guid.NewGuid().ToString("N");
@@ -50,7 +51,7 @@ public sealed class ProjectIndexService(ChatDbContext database, FileStorage stor
                     finally { if (File.Exists(temp)) File.Delete(temp); }
                 }
                 var size = parts.Sum(p => p.Text.Length);
-                if (characters + size > MaxCharacters)
+                if (maximum > 0 && (long)characters + size > maximum)
                 { omissions.Add(file.Name + " : budget d’index atteint ; original accessible par outils"); continue; }
                 if (parts.Any(c => !c.CompleteSource)) omissions.Add(file.Name + " : extraction documentaire partielle");
                 characters += size; chunks.AddRange(parts); indexed++; if (valid) reused++;

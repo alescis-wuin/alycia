@@ -70,6 +70,7 @@ public partial class ChatWindow
         if ((project ? _project.Id : _current?.Id) is not Guid owner) return;
         var selected = items.ToArray();
         if (selected.Length == 0) return;
+        var limits = await _client.ImportLimitsAsync(_lifetime.Token);
         var includeExcluded = false;
         if (selected.Any(item => item is IStorageFolder))
         {
@@ -79,7 +80,7 @@ public partial class ChatWindow
                     + "Leurs originaux restent stockés localement et leurs métadonnées figurent dans tree.txt ; leur contenu reste exclu de l’IA.\n\n"
                     + "Sources utiles : ignorer avant import les chemins techniques ou sensibles habituels (.git, .venv, node_modules, .env…). "
                     + "L’arbre couvrira seulement les fichiers retenus.\n\n"
-                    + "Dans les deux cas : 500 fichiers / 100 Mio maximum, 25 Mio par fichier et aucun lien symbolique. "
+                    + $"Dans les deux cas : {limits.BatchEntries} fichiers / {limits.BatchMiB} Mio maximum, {limits.FileMiB} Mio par fichier et aucun lien symbolique. "
                     + "Choisissez des sous-dossiers si le projet dépasse ces limites.",
                 TextWrapping = global::Avalonia.Media.TextWrapping.Wrap,
                 FontSize = 15
@@ -94,7 +95,7 @@ public partial class ChatWindow
         async Task VisitAsync(IStorageItem item, string prefix, int depth)
         {
             _lifetime.Token.ThrowIfCancellationRequested();
-            if (depth > 16) throw new ChatApiException("Les dossiers sont limités à 16 niveaux.");
+            if (depth > limits.FolderDepth) throw new ChatApiException($"Les dossiers sont limités à {limits.FolderDepth} niveaux.");
             var path = prefix + item.Name;
             if (!includeExcluded && ImportPolicy.Excluded(path)) { excluded++; return; }
             var local = item.TryGetLocalPath();
@@ -107,11 +108,11 @@ public partial class ChatWindow
             }
             else if (item is IStorageFile file)
             {
-                if (files.Count >= 500) throw new ChatApiException("Import limité à 500 fichiers par lot.");
+                if (files.Count >= limits.BatchEntries) throw new ChatApiException($"Import limité à {limits.BatchEntries} fichiers par lot.");
                 var properties = await file.GetBasicPropertiesAsync();
-                if (properties.Size > 25 * 1024 * 1024) throw new ChatApiException($"{file.Name} dépasse la limite de 25 Mio.");
+                if (properties.Size > (ulong)limits.FileBytes) throw new ChatApiException($"{file.Name} dépasse la limite de {limits.FileMiB} Mio.");
                 totalBytes += properties.Size ?? 0;
-                if (totalBytes > 100 * 1024 * 1024) throw new ChatApiException("Lot limité à 100 Mio.");
+                if (totalBytes > (ulong)limits.BatchBytes) throw new ChatApiException($"Lot limité à {limits.BatchMiB} Mio.");
                 files.Add(new(path, await file.OpenReadAsync(), properties.DateCreated, properties.DateModified));
             }
         }

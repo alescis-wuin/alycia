@@ -68,44 +68,24 @@ public sealed class ProjectRetrievalTests
         Assert.DoesNotContain(":L1-L100", result.Text);
     }
     [Fact]
-    public async Task EmbeddingsCacheReusesSourcesAndInvalidatesOnModelIdentity()
+    public async Task HybridSearchUsesOnlyPreparedVectorsAndReportsPendingCoverage()
     {
-        var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
-        var id = Guid.NewGuid(); var storage = new FileStorage(root); Directory.CreateDirectory(storage.DirectoryFor(id));
-        try
-        {
-            var encoder = new Embeddings();
-            var service = new ProjectRetrievalService(new Index(), encoder, storage);
-            var options = new ChatOptions { RetrievalMode = "hybrid", EmbeddingModel = "embed" };
-            var first = await service.PrepareAsync(id, "database", options, default);
-            Assert.Equal(2, first.Calls.Count);
-            Assert.True(first.Report.Cache!.VectorWritten);
-            var path = Path.Combine(storage.DirectoryFor(id), "vectors-v1.json");
-            var stamp = new DateTime(2020, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-            File.SetLastWriteTimeUtc(path, stamp);
-            var second = await service.PrepareAsync(id, "store", options, default);
-            Assert.Single(second.Calls);
-            Assert.True(second.Report.Cache!.LexicalHit);
-            Assert.Equal(1, second.Report.Cache.VectorHits);
-            Assert.False(second.Report.Cache.VectorWritten);
-            Assert.Equal(stamp, File.GetLastWriteTimeUtc(path));
-            encoder.Identity = "embed:different";
-            Assert.Equal(2, (await service.PrepareAsync(id, "store", options, default)).Calls.Count);
-            Assert.Equal(5, encoder.Calls);
-            var cache = System.Text.Json.Nodes.JsonNode.Parse(await File.ReadAllTextAsync(path))!;
-            var vectors = cache["vectors"]!.AsObject();
-            vectors[vectors.First().Key] = new System.Text.Json.Nodes.JsonArray(1);
-            await File.WriteAllTextAsync(path, cache.ToJsonString());
-            var repaired = await service.PrepareAsync(id, "store", options, default);
-            Assert.Equal(2, repaired.Calls.Count);
-            Assert.True(repaired.Report.Cache!.VectorWritten);
-            Assert.Equal(0, repaired.Report.Cache.VectorHits);
-            await File.WriteAllTextAsync(path, "{invalid");
-            Assert.Equal(2, (await service.PrepareAsync(id, "store", options, default)).Calls.Count);
-            Assert.Throws<ChatModelException>(() => ProjectRetrievalService.Cosine([1, 0], [1]));
-        }
-        finally { Directory.Delete(root, true); }
+        var semantic = new PreparedEmbeddings();
+        var service = new ProjectRetrievalService(new Index(), semantic);
+        var options = new ChatOptions { RetrievalMode = "hybrid", EmbeddingModel = "embed" };
+        var first = await service.PrepareAsync(Guid.NewGuid(), "database", options, default);
+        Assert.Equal(1, semantic.Calls);
+        Assert.Equal(1, first.Report.Cache!.VectorMisses);
+        Assert.Contains(first.Report.Omissions, s => s.Contains("0/1"));
+        Assert.Single(first.Chunks); // BM25 still works while the background job is pending.
+        semantic.Ready = true;
+        var second = await service.PrepareAsync(Guid.NewGuid(), "paraphrase", options, default);
+        Assert.Single(second.Chunks);
+        Assert.Equal(1, second.Report.Cache!.VectorHits);
+        Assert.Empty(second.Report.Omissions);
+        Assert.False(second.Report.Cache.VectorWritten); // Chat does not write corpus vectors.
     }
+
     [Fact]
     public void LexicalCacheInvalidatesChangedContentAndSeparatesConversations()
     {
@@ -137,28 +117,26 @@ public sealed class ProjectRetrievalTests
     }
 
     [Fact]
-    public async Task EmbeddingBatchesAreSerializedAcrossConversations()
+    public async Task HybridSearchHasNo2048PassageQuota()
     {
-        var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
-        var encoder = new ConcurrentEmbeddings(); var service = new ProjectRetrievalService(new Index(), encoder, new FileStorage(root));
-        try
-        {
-            var options = new ChatOptions { RetrievalMode = "hybrid", EmbeddingModel = "embed" };
-            var results = await Task.WhenAll(Enumerable.Range(0, 3).Select(_ => service.PrepareAsync(Guid.NewGuid(), "database", options, default)));
-            Assert.Equal(1, encoder.Maximum);
-            Assert.All(results, r => Assert.True(r.Report.Cache!.VectorWritten));
-        }
-        finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
+        var service = new ProjectRetrievalService(new LargeIndex(), new PreparedEmbeddings { Ready = true });
+        var result = await service.PrepareAsync(Guid.NewGuid(), "database", new() { RetrievalMode = "hybrid", EmbeddingModel = "embed" }, default);
+        Assert.Equal(3000, result.Report.CandidateChunks);
+        Assert.Equal(3000, result.Report.Cache!.VectorHits);
     }
-    private sealed class ConcurrentEmbeddings : ILocalEmbeddings
+
+    private sealed class LargeIndex : IProjectIndex
     {
-        private int _active; public int Maximum;
-        public Task<string> IdentityAsync(string model, CancellationToken ct) => Task.FromResult("test:digest");
-        public async Task<EmbeddingBatch> EmbedAsync(string model, IReadOnlyList<string> input, CancellationToken ct)
+        public Task<ProjectIndexSnapshot> BuildAsync(Guid id, CancellationToken ct) => Task.FromResult(new ProjectIndexSnapshot(
+            Enumerable.Range(0, 3000).Select(i => Chunk("src/" + i + ".cs", "Read", "database " + i)).ToArray(), 3000, 3000, 0, []));
+    }
+    private sealed class PreparedEmbeddings : IIndexedEmbeddings
+    {
+        public int Calls; public bool Ready;
+        public Task<SemanticSearch> SearchAsync(Guid id, string query, ChatOptions settings, IReadOnlyList<SourceChunk> chunks, CancellationToken ct)
         {
-            var active = Interlocked.Increment(ref _active); Maximum = Math.Max(Maximum, active);
-            try { await Task.Delay(10, ct); return new(input.Select(_ => new float[] { 1, 0 }).ToArray(), null); }
-            finally { Interlocked.Decrement(ref _active); }
+            Calls++;
+            return Task.FromResult(new SemanticSearch(chunks.Select(_ => Ready ? .9 : 0).ToArray(), Ready ? chunks.Count : 0, []));
         }
     }
 
@@ -166,12 +144,5 @@ public sealed class ProjectRetrievalTests
     {
         private readonly SourceChunk _chunk = Chunk("src/A.cs", "Read", "database.Read();");
         public Task<ProjectIndexSnapshot> BuildAsync(Guid conversation, CancellationToken ct) => Task.FromResult(new ProjectIndexSnapshot([_chunk], 1, 1, 0, []));
-    }
-    private sealed class Embeddings : ILocalEmbeddings
-    {
-        public int Calls; public string Identity = "embed:initial";
-        public Task<string> IdentityAsync(string model, CancellationToken ct) => Task.FromResult(Identity);
-        public Task<EmbeddingBatch> EmbedAsync(string model, IReadOnlyList<string> input, CancellationToken ct)
-        { Calls++; return Task.FromResult(new EmbeddingBatch(input.Select(_ => new float[] { 1, 0 }).ToArray(), new(10, 0, 100, null, "embedding"))); }
     }
 }

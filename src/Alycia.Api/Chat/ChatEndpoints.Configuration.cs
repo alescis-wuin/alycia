@@ -9,6 +9,12 @@ internal static partial class ChatEndpoints
 {
     private static void MapConfiguration(RouteGroupBuilder routes)
     {
+        routes.MapGet("/import-settings", async (ImportSettingsStore settings, CancellationToken ct) => Results.Ok(await settings.LoadAsync(ct)));
+        routes.MapPut("/import-settings", async (ImportLimits limits, ImportSettingsStore settings, CancellationToken ct) =>
+        {
+            await settings.SaveAsync(limits, ct);
+            return Results.Ok(limits);
+        });
         routes.MapGet("/conversations/{id:guid}/settings", async (Guid id, IChatRepository repository,
             ChatOptions defaults, CancellationToken ct) =>
         {
@@ -44,7 +50,10 @@ internal static partial class ChatEndpoints
                 options.SourceCandidates = selected.Chunks; options.RetrievalReport = selected.Report; measurements.AddCalls(selected.Calls);
             }
             var useTools = options.UseProjectTools && await tools.HasSourcesAsync(id, ct) && await model.SupportsToolsAsync(conversation.Model, ct);
-            var contextOptions = useTools ? ProjectAgent.ContextOptions(options) : options;
+            var protectedTokens = TokenBudget.Count(text, options) + TokenBudget.Count(ConversationConfiguration.System(conversation), options);
+            if (useTools && options.AutoSummarize)
+                protectedTokens += (await repository.MessagesAsync(id, options.ProtectedHistoryTurns * 2, null, ct)).Sum(m => TokenBudget.Count(m.Content, options));
+            var contextOptions = useTools ? ProjectAgent.ContextOptions(options, protectedTokens) : options;
             ContextWindow context;
             if (options.AutoSummarize)
                 context = (await ConversationContext.BuildAsync(repository, model, conversation, text, contextOptions, false, null, ct)).Context;
@@ -56,7 +65,7 @@ internal static partial class ChatEndpoints
             }
             return Results.Ok(new
             {
-                context = context with { ToolReserve = useTools ? ProjectAgent.Reserve(options) : 0 },
+                context = context with { ToolReserve = contextOptions.SafetyTokens - options.SafetyTokens },
                 options,
                 conversation.Revision,
                 omittedMessages = conversation.MessageCount - context.HistoryMessagesIncluded,

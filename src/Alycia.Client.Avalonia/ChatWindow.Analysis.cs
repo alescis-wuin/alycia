@@ -82,8 +82,8 @@ public partial class ChatWindow
         }
         var panel = new StackPanel { Spacing = 14 };
         panel.Children.Add(Label(settings.Options.AutoSummarize
-            ? "Le système, les notes, les deux derniers échanges complets et votre demande sont protégés. Les échanges plus anciens sont résumés seulement si nécessaire."
-            : "Le résumé automatique est désactivé. La fenêtre glissante simple est utilisée ; activez le résumé dans Réglages pour protéger les deux derniers échanges."));
+            ? "Le système, les notes, les échanges récents protégés et votre demande sont protégés. Les échanges plus anciens sont résumés seulement si nécessaire."
+            : "Le résumé automatique est désactivé. La fenêtre glissante simple est utilisée ; activez le résumé dans Réglages pour préserver les échanges récents configurés."));
         if (preview is not null)
         {
             panel.Children.Add(Label($"Entrée estimée : {preview.Context.EstimatedInputTokens} / "

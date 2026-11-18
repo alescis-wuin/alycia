@@ -19,6 +19,7 @@ public partial class ChatWindow
 
     private void InitializeNavigation()
     {
+        C<Button>("ImportLimitsButton").Click += async (_, _) => await RunAsync(EditImportLimitsAsync);
         var selector = C<ComboBox>("ProjectSelector");
         selector.ItemsSource = _projects;
         selector.SelectedItem = Outside;
@@ -99,6 +100,7 @@ public partial class ChatWindow
 
     private async Task SwitchProjectAsync(ProjectChoice selection)
     {
+        _indexingOwner = selection.Id; _indexingProject = true;
         SaveDraft();
         _current = null;
         _messages.Clear();
@@ -123,11 +125,15 @@ public partial class ChatWindow
     {
         if (_current is not { } current) return;
         var picker = new ComboBox { ItemsSource = _projects.Where(p => !p.Archived).ToArray(), SelectedItem = _project, HorizontalAlignment = HorizontalAlignment.Stretch };
-        var panel = new StackPanel { Spacing = 12, Children =
+        var panel = new StackPanel
+        {
+            Spacing = 12,
+            Children =
         {
             Label("Les pièces jointes et la mémoire suivent cette conversation. Les sources et consignes partagées seront celles du projet de destination."),
             picker
-        } };
+        }
+        };
         if (!await EditDialogAsync("Changer de projet", panel, "Déplacer") || picker.SelectedItem is not ProjectChoice target || target.Id == _project.Id) return;
         await _client.MoveAsync(current, target.Id, _lifetime.Token);
         await RefreshProjectsAsync(target.Id);

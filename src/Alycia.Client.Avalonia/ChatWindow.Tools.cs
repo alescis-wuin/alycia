@@ -18,6 +18,7 @@ internal static class ToolDisplay
         var detail = tool.Evidence is { } file ? $"{file.Path}\nCaractères {file.Offset} → {file.End?.ToString() ?? file.NextOffset?.ToString() ?? "fin"} · "
             + (file.CompleteSource ? "texte source intégral accessible" : "extraction partielle") + $"\nSHA-256 : {file.Sha256}" : tool.Arguments;
         return $"{tool.Number}. {label} · {(tool.RepeatSuppressed ? "répétition évitée" : tool.Succeeded ? "réussi" : "refus ou erreur")}\n{detail}"
+            + (tool.ContextBudgetTokens > 0 ? $"\nContexte outils conservé : {tool.RetainedTokens}/{tool.ContextBudgetTokens} tokens estimés" : "")
             + (string.IsNullOrWhiteSpace(tool.Error) ? "" : "\nMotif : " + tool.Error);
     }
 }
@@ -42,7 +43,8 @@ public partial class ChatWindow
             + $"{files.Count(f => f.ContextMode == "excluded")} exclusions"));
         panel.Children.Add(Label(!info.Enabled ? "Outils désactivés. Activez-les dans Réglages pour permettre les lectures par l’IA."
             : !info.ModelSupportsTools ? "Ce modèle n’annonce pas la capacité tools. Les extraits restent disponibles ; choisissez un modèle compatible dans Réglages pour les lectures à la demande."
-            : $"Le modèle peut lister, rechercher et lire les sources de cette conversation. Limite : {info.MaxCalls} appels par demande."));
+            : "Le modèle peut lister, rechercher et lire les sources de cette conversation. "
+                + (info.MaxCalls == 0 ? "Sans quota d’appels ; budget du contexte et délai restent actifs." : $"Garde-fou : {info.MaxCalls} appels par demande.")));
         panel.Children.Add(Label("Les outils lisent les originaux textuels par portions. Leurs actions apparaissent pendant la réponse et sont conservées avec les échanges terminés. "
             + "Une recherche ciblée ne prouve pas une analyse complète : Analyse du projet parcourt toutes les sources admissibles et fournit leur couverture."));
         panel.Children.Add(Label("MCP local · Streamable HTTP · protocole " + info.ProtocolVersion));

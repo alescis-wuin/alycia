@@ -23,6 +23,7 @@ public partial class ChatWindow
             ShowPage("Documents").Children.Add(Label("Ouvrez une conversation ou choisissez un projet."));
             return;
         }
+        _indexingOwner = owner; _indexingProject = project;
         var ct = _lifetime.Token;
         var profile = project ? await _client.ProjectAsync(owner, ct) : null;
         var chat = project ? null : (await _client.SettingsAsync(owner, ct)).Conversation;
@@ -39,6 +40,12 @@ public partial class ChatWindow
         imports.Children.Add(importFolder);
         imports.IsEnabled = profile?.Archived != true;
         body.Children.Add(imports);
+        body.Children.Add(ActionButton("Démarrer ou reprendre l’indexation", () => QueueIndexingAsync(owner, project)));
+        body.Children.Add(ActionButton("Mettre l’indexation en pause", async () =>
+        {
+            await _client.PauseIndexingAsync(owner, project, ct);
+            await RefreshIndexingAsync();
+        }));
         var filter = new TextBox { PlaceholderText = "Filtrer les documents" };
         var list = new ListBox { ItemsSource = files, MaxHeight = 300, SelectionMode = SelectionMode.Multiple };
         var details = new StackPanel { Spacing = 8 };

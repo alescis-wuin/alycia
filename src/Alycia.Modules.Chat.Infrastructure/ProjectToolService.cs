@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Alycia.Modules.Chat.Infrastructure;
 
-public sealed partial class ProjectToolService(ChatDbContext database, ProjectSourceReader reader, ChatOptions defaults, IProjectIndex? index = null) : ISnapshotProjectTools
+public sealed partial class ProjectToolService(ChatDbContext database, ProjectSourceReader reader, ChatOptions defaults, IProjectIndex? index = null, IIndexedEmbeddings? semantic = null) : ISnapshotProjectTools
 {
     public async Task<bool> HasSourcesAsync(Guid id, CancellationToken ct) => await database.ModelSources(id)
         .AnyAsync(f => f.ContextMode != "excluded" && f.Text != "", ct)
@@ -20,7 +20,7 @@ public sealed partial class ProjectToolService(ChatDbContext database, ProjectSo
         {
             if (!ConversationConfiguration.Options(conversation, defaults).UseProjectTools)
                 throw new ArgumentException("Les outils sont désactivés dans cette conversation.");
-            if (maxResultBytes is < 1024 or > 24000) throw new ArgumentException("Budget de résultat invalide.");
+            if (maxResultBytes is < 1024 or > 131072) throw new ArgumentException("Budget de résultat invalide.");
             if (arguments.ValueKind != JsonValueKind.Object || arguments.GetRawText().Length > 4096)
                 throw new ArgumentException("Arguments invalides.");
             string[] allowed = name switch
@@ -42,7 +42,8 @@ public sealed partial class ProjectToolService(ChatDbContext database, ProjectSo
                 "project_list" => await ListAsync(id, arguments, maxResultBytes, ct),
                 "project_read" => await ReadAsync(id, arguments, maxResultBytes, ct),
                 "project_read_many" => await ReadManyAsync(id, arguments, maxResultBytes, ct),
-                "history_search" or "history_read" => await new HistoryTools(new EfChatRepository(database)).CallAsync(id, name, arguments, maxResultBytes, ct),
+                "history_search" or "history_read" => await new HistoryTools(new EfChatRepository(database), semantic,
+                    ConversationConfiguration.Options(conversation, defaults)).CallAsync(id, name, arguments, maxResultBytes, ct),
                 "project_search_passages" or "project_find_symbols" or "project_find_references" => await ExploreAsync(id, name, arguments, maxResultBytes, ct),
                 _ => await SearchAsync(id, arguments, maxResultBytes, ct)
             };
@@ -56,7 +57,7 @@ public sealed partial class ProjectToolService(ChatDbContext database, ProjectSo
 
     private async Task<ProjectToolResult> ListAsync(Guid id, JsonElement args, int budget, CancellationToken ct)
     {
-        var offset = Int(args, "offset", 0, 0, 500);
+        var offset = Int(args, "offset", 0, 0, int.MaxValue);
         var limit = Int(args, "limit", 20, 1, 50);
         var codeOnly = false;
         if (args.TryGetProperty("codeOnly", out var code))
@@ -128,7 +129,7 @@ public sealed partial class ProjectToolService(ChatDbContext database, ProjectSo
         var offset = Int(args, "offset", start, start, end);
         if (offset < source.Text.Length && char.IsLowSurrogate(source.Text[offset]))
             throw new ArgumentException("Offset au milieu d’un caractère Unicode ; utilisez nextOffset.");
-        var size = Int(args, "maxBytes", 2048, 128, 8192);
+        var size = Int(args, "maxBytes", Math.Min(8192, budget / 2), 128, 131072);
         while (true)
         {
             var text = FileContext.Utf8Prefix(source.Text[offset..end], size);
@@ -169,7 +170,7 @@ public sealed partial class ProjectToolService(ChatDbContext database, ProjectSo
             throw new ArgumentException("query doit être une chaîne littérale.");
         var query = q.GetString()!;
         if (query.Trim().Length < 2 || query.Length > 120 || query.Any(char.IsControl)) throw new ArgumentException("Recherche de 2 à 120 caractères sans contrôle attendue.");
-        var offset = Int(args, "offset", 0, 0, 500);
+        var offset = Int(args, "offset", 0, 0, int.MaxValue);
         var limit = Int(args, "limit", 10, 1, 20);
         var files = (await EntriesAsync(conversation, ct)).Where(f => f.Readable).ToArray();
         var matches = new List<object>();

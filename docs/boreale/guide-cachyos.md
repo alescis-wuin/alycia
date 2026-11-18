@@ -1,5 +1,7 @@
 # Alycia Boréale sur CachyOS
 
+Pour les nouveaux réglages de budgets, les imports configurables et l’indexation PostgreSQL/pgvector, consulter le [guide contexte et indexation](../context-budget-indexing.md).
+
 ## Préparer le poste
 
 Les commandes se lancent depuis la racine du dépôt, sous fish ou Bash. Il faut Git, Bash, Python 3.11 ou ultérieur, le SDK .NET 10, Docker avec Compose et un modèle génératif installé dans Ollama. Les polices Luciole et Hack sont embarquées dans le client. Le backend, PostgreSQL et les originaux des documents restent sur la machine.

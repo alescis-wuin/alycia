@@ -121,14 +121,27 @@ public partial class ChatWindow
         var seed = Input(options.Seed?.ToString() ?? "", 12);
         var timeout = Input(options.TimeoutSeconds.ToString(), 3);
         var calls = Input(options.SummaryMaxCalls.ToString(), 4);
-        var toolCalls = Input(options.ToolMaxCalls.ToString(), 3);
+        var toolCalls = Input(options.ToolMaxCalls.ToString(), 4);
+        var budgets = new (string Label, TextBox Input, Action<ChatOptions, int> Set)[]
+        {
+            ("Résultats d’outils conservés · tokens (0 : adaptatif)", Input(options.ToolContextTokens.ToString(), 6), (o, v) => o.ToolContextTokens = v),
+            ("Résultat maximal par appel · octets UTF-8", Input(options.ToolResultBytes.ToString(), 6), (o, v) => o.ToolResultBytes = v),
+            ("Durée maximale des outils · secondes", Input(options.ToolTimeoutSeconds.ToString(), 5), (o, v) => o.ToolTimeoutSeconds = v),
+            ("Extraits documentaires · tokens (0 : adaptatif)", Input(options.DocumentContextTokens.ToString(), 6), (o, v) => o.DocumentContextTokens = v),
+            ("Échanges récents protégés de la réduction · 0 à 20", Input(options.ProtectedHistoryTurns.ToString(), 2), (o, v) => o.ProtectedHistoryTurns = v),
+            ("Marge de sécurité · tokens", Input(options.SafetyTokens.ToString(), 6), (o, v) => o.SafetyTokens = v),
+            ("Candidats à la recherche · caractères (0 : sans plafond global)", Input(options.IndexMaxCharacters.ToString(), 10), (o, v) => o.IndexMaxCharacters = v),
+            ("Passages par lot d’embeddings · 1 à 64", Input(options.EmbeddingBatchSize.ToString(), 2), (o, v) => o.EmbeddingBatchSize = v),
+            ("Taille des passages d’embeddings · 128 à 3200 caractères", Input(options.EmbeddingChunkCharacters.ToString(), 4), (o, v) => o.EmbeddingChunkCharacters = v)
+        };
+        var embedHistory = new CheckBox { Content = "Indexer aussi les messages de cette conversation", IsChecked = options.EmbedHistory };
         var retrieval = new ComboBox { ItemsSource = new[] { "legacy", "lexical", "hybrid" }, SelectedItem = options.RetrievalMode };
         var embedding = Input(options.EmbeddingModel, 200);
         var tokenizer = new CheckBox { Content = "Utiliser le tokenizer compatible du modèle quand disponible", IsChecked = options.TokenCounting == "auto" };
         var tools = new CheckBox { Content = "Autoriser les outils de lecture des sources importées", IsChecked = options.UseProjectTools };
         var continuous = new CheckBox { Content = "Générer jusqu’au signal d’arrêt du modèle", IsChecked = options.GenerateUntilStop };
         var structured = new CheckBox { Content = "Mémoire structurée : citations, décisions et contraintes", IsChecked = options.StructuredMemory };
-        var recursive = new CheckBox { Content = "Résumer les anciens échanges et préserver les deux derniers", IsChecked = options.AutoSummarize };
+        var recursive = new CheckBox { Content = "Réduire les anciens échanges si nécessaire", IsChecked = options.AutoSummarize };
         turns.IsEnabled = !options.AutoSummarize;
         recursive.IsCheckedChanged += (_, _) => turns.IsEnabled = recursive.IsChecked != true;
         var panel = new StackPanel { Spacing = 10 };
@@ -161,8 +174,11 @@ public partial class ChatWindow
             ("Recherche documentaire", retrieval), ("Modèle d’embeddings pour la recherche hybride", embedding),
             ("Fenêtre du modèle en tokens", context), ("Réserve pour la réponse", output),
             ("Nombre d’échanges récents", turns), ("Température", temperature), ("Graine facultative", seed),
-            ("Délai d’inactivité en secondes", timeout), ("Appels de résumé par opération", calls), ("Appels d’outils par demande", toolCalls) })
+            ("Délai d’inactivité en secondes", timeout), ("Appels de résumé par opération", calls), ("Garde-fou du nombre d’appels (0 : sans quota)", toolCalls) })
         { advanced.Children.Add(Label(label)); advanced.Children.Add(control); }
+        foreach (var budget in budgets) { advanced.Children.Add(Label(budget.Label)); advanced.Children.Add(budget.Input); }
+        advanced.Children.Add(embedHistory);
+        advanced.Children.Add(Label("L’indexation hybride est indépendante du budget de conversation. Les résultats retirés du contexte libèrent leur budget ; les originaux restent conservés."));
         panel.Children.Add(new Expander { Header = "Avancé", Content = advanced });
         ChatOptions? edited = null;
         string? Validate()
@@ -194,9 +210,16 @@ public partial class ChatWindow
                 StructuredMemory = structured.IsChecked == true,
                 Seed = string.IsNullOrWhiteSpace(seed.Text) ? null : int.Parse(seed.Text!)
             };
+            foreach (var budget in budgets)
+            {
+                if (!int.TryParse(budget.Input.Text, out var value)) return budget.Label + " : nombre entier attendu.";
+                budget.Set(edited, value);
+            }
+            edited.EmbedHistory = embedHistory.IsChecked == true;
             try
             {
                 edited.Validate();
+                if (edited.UseProjectTools) ProjectAgent.ContextOptions(edited);
                 var sample = Alycia.Modules.Chat.Domain.Conversation.Create("test", modelName, system.Text);
                 sample.Configure(modelName, system.Text, notes.Text, "{}");
                 SlidingContext.Build(ConversationConfiguration.System(sample), [], "Bonjour", edited);

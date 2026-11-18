@@ -17,7 +17,7 @@ public static class FileContext
         var available = options.ContextTokens - options.MaxOutputTokens - options.SafetyTokens
             - TokenBudget.Count(question, options) - (system.Length == 0 ? 0 : TokenBudget.Count(system, options));
         if (available < 256) return original;
-        var reserve = Math.Min(available / 2, 4096);
+        var reserve = options.DocumentContextTokens == 0 ? available / 2 : Math.Min(available, options.DocumentContextTokens);
         // Use the original configured context but reserve part of its input budget for files.
         var reduced = options.Copy();
         reduced.SafetyTokens += reserve;

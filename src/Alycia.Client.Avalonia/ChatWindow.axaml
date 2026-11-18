@@ -139,6 +139,7 @@
             <TextBox x:Name="SystemPromptInput" Text="Tu es Alycia, un assistant utile. Réponds en français." AcceptsReturn="True" TextWrapping="Wrap" MaxLength="4000" />
           </StackPanel></Expander>
           <Expander Header="Connexion et outils"><StackPanel Spacing="8">
+            <Button x:Name="ImportLimitsButton" Content="Imports et stockage" />
             <TextBlock Text="Adresse de l’API locale" /><TextBox x:Name="ApiUrlInput" PlaceholderText="http://127.0.0.1:5187" />
             <Button x:Name="DiagnosticsButton" Content="Diagnostics de connexion" /><Button x:Name="PromptsButton" Content="Bibliothèque de prompts" />
             <Button x:Name="ImportConversationButton" Content="Importer une conversation JSON" />
@@ -149,6 +150,8 @@
       <StackPanel Grid.Row="2" Margin="15,0,15,6" Spacing="3">
         <ProgressBar x:Name="BusyIndicator" Height="2" IsIndeterminate="True" IsVisible="False" />
         <TextBlock x:Name="FeedbackText" Classes="muted" TextWrapping="Wrap" />
+        <ProgressBar x:Name="IndexingProgressBar" Height="3" Minimum="0" Maximum="100" IsVisible="False" />
+        <TextBlock x:Name="IndexingStatusText" Classes="muted" TextWrapping="Wrap" IsVisible="False" />
       </StackPanel>
       <Border Grid.Row="1" x:Name="ActionMenu" IsVisible="False" VerticalAlignment="Top" HorizontalAlignment="Right" MaxWidth="360"
               Background="{DynamicResource BorealSurface}" BorderBrush="{DynamicResource BorealOutline}" BorderThickness="1" Padding="12" Margin="8" CornerRadius="12">

@@ -65,7 +65,11 @@ public sealed partial class ChatService(IChatRepository repository, IChatModel m
         var activeTools = conversation.WorkspaceId.HasValue && snapshotTools is not null ? snapshotTools : projectTools;
         var useTools = settings.UseProjectTools && activeTools is not null && await activeTools.HasSourcesAsync(id, cancellationToken)
             && await model.SupportsToolsAsync(conversation.Model, cancellationToken);
-        var contextSettings = useTools ? ProjectAgent.ContextOptions(settings) : settings;
+        var protectedTokens = TokenBudget.Count(text, settings) + TokenBudget.Count(ConversationConfiguration.System(conversation), settings);
+        if (useTools && settings.AutoSummarize)
+            protectedTokens += (await repository.MessagesAsync(id, settings.ProtectedHistoryTurns * 2, null, cancellationToken))
+                .Sum(m => TokenBudget.Count(m.Content, settings));
+        var contextSettings = useTools ? ProjectAgent.ContextOptions(settings, protectedTokens) : settings;
         PreparedContext? prepared = null;
         ContextWindow window;
         if (settings.AutoSummarize)
@@ -80,7 +84,7 @@ public sealed partial class ChatService(IChatRepository repository, IChatModel m
             var files = await repository.ContextFilesAsync(id, Math.Max(1, conversation.MessageCount - settings.MaxHistoryTurns * 2 + 1), cancellationToken);
             window = FileContext.Build(ConversationConfiguration.System(conversation), history, text, contextSettings, files, conversation.MessageCount + 1);
         }
-        if (useTools) window = window with { ToolReserve = ProjectAgent.Reserve(settings) };
+        if (useTools) window = window with { ToolReserve = contextSettings.SafetyTokens - settings.SafetyTokens };
         var generated = useTools ? await ProjectAgent.RunAsync(measured, activeTools!, id, conversation.Model, window, settings, onDelta, cancellationToken)
             : onDelta is null
             ? new GenerationReply(await measured.GenerateAsync(conversation.Model, window.Messages, settings, cancellationToken))

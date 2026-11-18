@@ -225,13 +225,55 @@ def verify_hybrid(call, checks):
         preview = call("POST", prefix + "/context", {"content": "Que fait Answer ?"})
         assert preview["context"]["retrieval"]["mode"] == "hybrid"
         assert preview["context"]["sources"] and preview["usage"]["inputTokens"] > 0
-        assert len(preview["usage"]["calls"]) >= 2
+        assert len(preview["usage"]["calls"]) == 1, "Une demande ne doit encoder que sa requête"
+        for _ in range(200):
+            jobs = call("GET", f'/indexing?owner={conv["id"]}&project=false')
+            if jobs and jobs[0]["state"] == "completed":
+                break
+            assert not jobs or jobs[0]["state"] != "failed", jobs
+            time.sleep(0.1)
+        else:
+            raise AssertionError("L’indexation en arrière-plan n’a pas terminé")
+        assert jobs[0]["completed"] == jobs[0]["total"] == 1
+        preview = call("POST", prefix + "/context", {"content": "Que fait Answer ?"})
+        cache = preview["context"]["retrieval"]["cache"]
+        assert cache["vectorHits"] == preview["context"]["retrieval"]["candidateChunks"]
+        call("POST", "/indexing/pause", {"owner": conv["id"], "project": False}, expected=204)
+        assert call("GET", f'/indexing?owner={conv["id"]}&project=false')[0]["state"] == "paused"
         before = Ollama.embedding_calls
         cached = call("POST", prefix + "/context", {"content": "Que fait Answer ?"})
         assert Ollama.embedding_calls == before + 1 and len(cached["usage"]["calls"]) == 1
         assert cached["context"]["sources"] == preview["context"]["sources"]
-        checks.append("hybrid_local_embedding_http_cache_and_accounted_preview_cost")
+        checks.append("background_indexing_progress_pause_and_query_only_embedding_cost")
     finally:
+        call("DELETE", prefix, expected=204)
+
+
+def verify_import_settings(call, checks):
+    original = call("GET", "/import-settings")
+    conv = call("POST", "/conversations", {"title": "Limites configurables", "model": "demo", "systemPrompt": ""}, expected=201)
+    prefix = "/conversations/" + conv["id"]
+    def upload(name, expected=200):
+        boundary = "limits-" + uuid.uuid4().hex
+        body = (f'--{boundary}\r\nContent-Disposition: form-data; name="files"; filename="{name}"\r\n'
+            'Content-Type: text/plain\r\n\r\nTexte de test\r\n' + f'--{boundary}--\r\n').encode()
+        return call("POST", prefix + "/files/" + str(uuid.uuid4()), raw=body,
+            headers={"Content-Type": "multipart/form-data; boundary=" + boundary}, expected=expected)
+    try:
+        limits = dict(original, fileMiB=1, batchMiB=2, batchEntries=1, storedFiles=1, storedMiB=2)
+        assert call("PUT", "/import-settings", limits) == limits
+        assert call("GET", "/import-settings") == limits
+        upload("first.txt")
+        upload("second.txt", expected=400)
+        assert len(call("GET", prefix + "/files")) == 1
+        call("PUT", "/import-settings", dict(limits, storedFiles=0, storedMiB=0))
+        upload("second.txt")
+        assert len(call("GET", prefix + "/files")) == 2
+        call("PUT", "/import-settings", dict(limits, fileMiB=0), expected=400)
+        assert call("GET", "/import-settings")["storedFiles"] == 0
+        checks.append("import_limits_persistence_enforcement_and_unlimited_scope")
+    finally:
+        call("PUT", "/import-settings", original)
         call("DELETE", prefix, expected=204)
 
 
@@ -342,7 +384,8 @@ def verify_boreale(call, checks):
         assert passage["text"] == "BOREAL"
     def tool_read(conversation):
         return call("POST", conversation + "/mcp", {"jsonrpc": "2.0", "id": 1, "method": "tools/call",
-            "params": {"name": "project_read", "arguments": {"fileId": fid, "offset": 0}}})["result"]
+            "params": {"name": "project_read", "arguments": {"fileId": fid, "offset": 0}}},
+            headers={"Accept": "application/json, text/event-stream", "MCP-Protocol-Version": "2025-11-25"})["result"]
 
     assert "BOREAL_SENTINEL" in str(tool_read(second)["content"])
     for isolated in (stranger, outside):
@@ -392,7 +435,7 @@ def verify_boreale(call, checks):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--case", choices=("all", "tool-summary", "boreale"), default="all")
+    parser.add_argument("--case", choices=("all", "tool-summary", "boreale", "indexing"), default="all")
     args = parser.parse_args()
     connection = os.environ.get("ALYCIA_CHAT_TEST_CONNECTION")
     if not connection:
@@ -461,8 +504,10 @@ def main():
                         for conversation in owned:
                             client("DELETE", "/conversations/" + conversation, expected=204)
                     verify_structured_memory(client, checks)
-                    verify_hybrid(client, checks)
                     checks.append("tool_citations_and_persisted_diagnostics")
+                if args.case in ("all", "indexing"):
+                    verify_hybrid(client, checks)
+                    verify_import_settings(client, checks)
                 if args.case in ("all", "tool-summary"):
                     verify_empty_tool_summary(client, checks)
                 if args.case in ("all", "boreale"):

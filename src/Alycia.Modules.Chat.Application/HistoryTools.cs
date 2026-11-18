@@ -8,14 +8,14 @@ public sealed record HistoryEvidence(string Reference, Guid ConversationId, int 
     DateTimeOffset CreatedAtUtc, string Sha256, int Start, int End, bool Partial);
 
 // Builds a bounded local lexical index from immutable messages. No cross-conversation lookup.
-public sealed class HistoryTools(IChatRepository repository)
+public sealed class HistoryTools(IChatRepository repository, IIndexedEmbeddings? semantic = null, ChatOptions? settings = null)
 {
     public const int MaxScanCharacters = 4_000_000;
     public const int MaxScanMessages = 4096;
     public async Task<ProjectToolResult> CallAsync(Guid conversation, string tool, JsonElement args, int budget, CancellationToken ct)
     {
         var owner = await repository.FindAsync(conversation, ct) ?? throw new ConversationNotFoundException();
-        if (budget is < 1024 or > 24000) throw new ArgumentException("Budget historique invalide.");
+        if (budget is < 1024 or > 131072) throw new ArgumentException("Budget historique invalide.");
         if (tool == "history_read") return await ReadAsync(conversation, args, budget, ct);
         if (!args.TryGetProperty("query", out var value) || value.ValueKind != JsonValueKind.String
             || string.IsNullOrWhiteSpace(value.GetString()) || value.GetString()!.Length is < 2 or > 120)
@@ -42,6 +42,21 @@ public sealed class HistoryTools(IChatRepository repository)
         var chunks = messages.Select(m => new SourceChunk(m.RequestId, "history/" + m.Sequence, StructuredMemory.Hash(m.Content),
             m.Role, "history", 0, m.Content.Length, 1, 1, m.Content, [], true)).ToArray();
         var scores = ProjectRetrieval.Bm25(chunks, query);
+        var scoreKind = "BM25";
+        if (semantic is not null && settings is { RetrievalMode: "hybrid", EmbedHistory: true })
+        {
+            var found = await semantic.SearchHistoryAsync(conversation, query, settings, messages, ct);
+            if (found.Hits > 0)
+            {
+                var fused = new double[messages.Count];
+                foreach (var ranking in new[] { scores, found.Scores })
+                {
+                    var order = Enumerable.Range(0, messages.Count).Where(i => ranking[i] > 0).OrderByDescending(i => ranking[i]).ThenBy(i => i).ToArray();
+                    for (var rank = 0; rank < order.Length; rank++) fused[order[rank]] += 1.0 / (61 + rank);
+                }
+                scores = fused; scoreKind = $"hybride RRF · {found.Hits}/{messages.Count} messages indexés";
+            }
+        }
         var ranked = messages.Select((m, i) => (Message: m, Score: scores[i])).Where(x => x.Score > 0)
             .OrderByDescending(x => x.Score).ThenByDescending(x => x.Message.Sequence).DistinctBy(x => x.Message.RequestId).ToArray();
         var results = new List<object>(); var evidence = new List<HistoryEvidence>();
@@ -60,7 +75,7 @@ public sealed class HistoryTools(IChatRepository repository)
         {
             var pair = await ReadAsync(conversation, JsonSerializer.SerializeToElement(new { sequence = match.Message.Sequence, maxBytes = 128 }), 2048, ct);
             using var parsed = JsonDocument.Parse(pair.Text);
-            results.Add(new { score = match.Score, scoreKind = "BM25", matchedSequence = match.Message.Sequence, turn = parsed.RootElement.Clone() });
+            results.Add(new { score = match.Score, scoreKind, matchedSequence = match.Message.Sequence, turn = parsed.RootElement.Clone() });
             if (Encoding.UTF8.GetByteCount(Result()) > budget) { results.RemoveAt(results.Count - 1); break; }
             evidence.AddRange(pair.History ?? []);
         }

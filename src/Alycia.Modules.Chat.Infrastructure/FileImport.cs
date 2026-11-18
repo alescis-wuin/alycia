@@ -32,13 +32,14 @@ public sealed class FileStorage(string root)
     }
 }
 
-public sealed class FileImport(ChatDbContext database, FileStorage storage)
+public sealed class FileImport(ChatDbContext database, FileStorage storage, ImportSettingsStore? settings = null)
 {
     public const int MaxFileBytes = 25 * 1024 * 1024;
     public const int MaxBatchBytes = 100 * 1024 * 1024;
     public const int MaxEntries = 500;
     public const int MaxArchiveDepth = 4;
     public const int MaxTextBytes = 200_000;
+    public Task<ImportLimits> LimitsAsync(CancellationToken ct) => settings?.LoadAsync(ct) ?? Task.FromResult(new ImportLimits());
 
     public static FileSummary Summary(Attachment f) => new(f.Id, f.Name, f.Size, f.Status,
         f.AnchorSequence, f.CreatedAtUtc, f.ArchiveId, f.Sha256, f.ContextMode, f.BatchId, f.SourceCreatedAt, f.SourceModifiedAt, f.MetadataSource, f.WorkspaceId);
@@ -46,8 +47,9 @@ public sealed class FileImport(ChatDbContext database, FileStorage storage)
     public async Task<IReadOnlyList<FileSummary>> ImportAsync(Guid conversationId, Guid batchId,
         IReadOnlyList<IncomingFile> incoming, CancellationToken ct, bool workspace = false)
     {
-        if (batchId == Guid.Empty || incoming.Count is < 1 or > MaxEntries)
-            throw new ArgumentException("Import limité à 500 fichiers ; identifiant de lot requis.");
+        var limits = await LimitsAsync(ct);
+        if (batchId == Guid.Empty || incoming.Count < 1 || incoming.Count > limits.BatchEntries)
+            throw new ArgumentException($"Import limité à {limits.BatchEntries} fichiers ; identifiant de lot requis.");
         var conversation = workspace ? null : await database.Conversations.SingleOrDefaultAsync(c => c.Id == conversationId, ct)
             ?? throw new ConversationNotFoundException();
         var profile = workspace ? await database.WorkspaceProfiles.SingleOrDefaultAsync(p => p.Id == conversationId && !p.Archived, ct)
@@ -63,14 +65,14 @@ public sealed class FileImport(ChatDbContext database, FileStorage storage)
         async Task AddAsync(string name, Stream content, Guid? archive, int depth, string created = "", string modified = "", string source = "unknown")
         {
             ct.ThrowIfCancellationRequested();
-            if (files.Count >= MaxEntries) throw new ArgumentException("Archive ou lot limité à 500 entrées, original compris.");
+            if (files.Count >= limits.BatchEntries) throw new ArgumentException($"Archive ou lot limité à {limits.BatchEntries} entrées, original compris.");
             name = NormalizeName(name);
             if (!names.Add(name)) throw new ArgumentException("Le lot contient deux chemins identiques : " + name);
             if (created.Length > 64 || modified.Length > 64 || source.Length > 100)
                 throw new ArgumentException("Métadonnées de source invalides.");
-            var bytes = await ReadBoundedAsync(content, MaxFileBytes, ct);
+            var bytes = await ReadBoundedAsync(content, limits.FileBytes, ct);
             total += bytes.Length;
-            if (total > MaxBatchBytes) throw new ArgumentException("Lot décompressé limité à 100 Mio.");
+            if (total > limits.BatchBytes) throw new ArgumentException($"Lot décompressé limité à {limits.BatchMiB} Mio.");
             var file = new Attachment
             {
                 Id = Guid.NewGuid(),
@@ -99,20 +101,20 @@ public sealed class FileImport(ChatDbContext database, FileStorage storage)
             files.Add(file);
             payloads.Add((file, bytes));
             if (!isArchive) return;
-            if (depth >= MaxArchiveDepth) throw new ArgumentException("Archives limitées à quatre niveaux imbriqués. Aucun fichier du lot enregistré.");
+            if (depth >= limits.ArchiveDepth) throw new ArgumentException($"Archives limitées à {limits.ArchiveDepth} niveaux imbriqués. Aucun fichier du lot enregistré.");
             try
             {
                 using var input = new MemoryStream(bytes, false);
                 if (name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
                 {
                     using var zip = new ZipArchive(input, ZipArchiveMode.Read);
-                    if (zip.Entries.Count > MaxEntries) throw new ArgumentException("Archive limitée à 500 entrées.");
+                    if (zip.Entries.Count > limits.BatchEntries) throw new ArgumentException($"Archive limitée à {limits.BatchEntries} entrées.");
                     foreach (var entry in zip.Entries)
                     {
                         if (entry.FullName.Replace('\\', '/').EndsWith('/')) continue;
                         if (((entry.ExternalAttributes >> 16) & 0xF000) == 0xA000)
                             throw new ArgumentException("Les liens symboliques dans les archives ne sont pas importés.");
-                        if (entry.Length > MaxFileBytes) throw new ArgumentException("Entrée d’archive supérieure à 25 Mio.");
+                        if (entry.Length > limits.FileBytes) throw new ArgumentException($"Entrée d’archive supérieure à {limits.FileMiB} Mio.");
                         await using var stream = entry.Open();
                         await AddAsync(name + "!/" + NormalizeName(entry.FullName), stream, file.Id, depth + 1,
                             modified: entry.LastWriteTime.DateTime.ToString("yyyy-MM-dd'T'HH:mm:ss", CultureInfo.InvariantCulture),
@@ -138,8 +140,8 @@ public sealed class FileImport(ChatDbContext database, FileStorage storage)
             while (tar.GetNextEntry() is { } entry)
             {
                 ct.ThrowIfCancellationRequested();
-                if (++entries > MaxEntries) throw new ArgumentException("Archive limitée à 500 entrées.");
-                if (entry.Length > MaxFileBytes) throw new ArgumentException("Entrée TAR supérieure à 25 Mio.");
+                if (++entries > limits.BatchEntries) throw new ArgumentException($"Archive limitée à {limits.BatchEntries} entrées.");
+                if (entry.Length > limits.FileBytes) throw new ArgumentException($"Entrée TAR supérieure à {limits.FileMiB} Mio.");
                 if (entry.EntryType == TarEntryType.Directory) continue;
                 if (entry.EntryType is not (TarEntryType.RegularFile or TarEntryType.V7RegularFile))
                     throw new ArgumentException("Seuls les fichiers réguliers des archives TAR sont acceptés.");
@@ -158,8 +160,9 @@ public sealed class FileImport(ChatDbContext database, FileStorage storage)
         }
         var stored = await owned
             .Select(f => f.Size).ToListAsync(ct);
-        if (stored.Count + files.Count > 500 || stored.Sum() + total > 1024L * 1024 * 1024)
-            throw new ArgumentException("Limite de conversation : 500 fichiers ou 1 Gio.");
+        if (limits.StoredFiles > 0 && stored.Count + files.Count > limits.StoredFiles
+            || limits.StoredMiB > 0 && stored.Sum() + total > limits.StoredBytes)
+            throw new ArgumentException($"Quota de stockage atteint ({limits.StoredFiles} fichiers / {limits.StoredMiB} Mio ; 0 signifie sans quota). Modifiez Imports et stockage dans les paramètres.");
         Directory.CreateDirectory(workspace ? storage.WorkspaceDirectory(conversationId) : storage.DirectoryFor(conversationId));
         var written = new List<string>();
         var committing = false;
@@ -221,7 +224,7 @@ public sealed class FileImport(ChatDbContext database, FileStorage storage)
         int count;
         while ((count = await input.ReadAsync(buffer, ct)) > 0)
         {
-            if (output.Length + count > maximum) throw new ArgumentException("Fichier limité à 25 Mio.");
+            if (output.Length + count > maximum) throw new ArgumentException($"Flux limité à {maximum:N0} octets.");
             await output.WriteAsync(buffer.AsMemory(0, count), ct);
         }
         return output.ToArray();

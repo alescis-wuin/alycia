@@ -247,8 +247,9 @@ un temps de calcul conséquent. Un rappel attendu absent produit un échec à ex
 Les dossiers de sortie doivent être nouveaux. Pour la validation finale, refaire
 les deux runs avec `--split holdout` et d'autres dossiers, sans changer les fixtures.
 Pour `hybrid`, fournir `--embedding-model "NOM_EMBEDDINGS_LOCAL"` déjà installé et
-conserver tous les autres paramètres. Au-delà de 2048 passages, le mode hybride
-refuse explicitement la recherche.
+conserver tous les autres paramètres. Le plafond de 2 048 passages a été supprimé
+et l’indexation est désormais asynchrone : attendre son état terminé avant de
+comparer la couverture sémantique. Voir le [guide d’indexation](../context-budget-indexing.md).
 
 `legacy` compare des modes du moteur livré ; ce n'est pas un retour complet à V4.
 Pour mesurer V4 contre cette livraison, conserver un checkout distinct de

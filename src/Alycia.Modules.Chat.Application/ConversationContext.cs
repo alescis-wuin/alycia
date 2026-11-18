@@ -42,19 +42,20 @@ public static class ConversationContext
     {
         if (!options.StructuredMemory) return await RecursiveContext.BuildAsync(repository, model, conversation, question, options, prepare, progress, ct);
         var system = ConversationConfiguration.System(conversation);
-        var recent = (await repository.MessagesAsync(conversation.Id, 4, null, ct)).ToArray();
-        if (recent.Length != Math.Min(4, conversation.MessageCount) || recent.Length % 2 != 0) throw new ChatConflictException();
+        var recent = (await repository.MessagesAsync(conversation.Id, options.ProtectedHistoryTurns * 2, null, ct)).ToArray();
+        if (recent.Length != Math.Min(options.ProtectedHistoryTurns * 2, conversation.MessageCount) || recent.Length % 2 != 0) throw new ChatConflictException();
         for (var i = 0; i < recent.Length; i += 2)
             if (recent[i].Role != "user" || recent[i + 1].Role != "assistant" || recent[i].RequestId != recent[i + 1].RequestId
                 || recent[i].Sequence + 1 != recent[i + 1].Sequence) throw new ChatConflictException();
         var maximum = options.ContextTokens - options.MaxOutputTokens - options.SafetyTokens;
         var fixedCost = TokenBudget.Count(question, options) + recent.Sum(m => TokenBudget.Count(m.Content, options))
             + (system.Length == 0 ? 0 : TokenBudget.Count(system, options));
-        if (fixedCost > maximum) throw new ArgumentException("Le système, les notes, les deux derniers échanges et la demande dépassent seuls le budget. Augmentez la fenêtre : aucun message protégé n’a été tronqué.");
+        if (fixedCost > maximum) throw new ArgumentException("Le système, les notes, les échanges récents protégés et la demande dépassent seuls le budget. Augmentez la fenêtre : aucun message protégé n’a été tronqué.");
         var through = conversation.MessageCount - recent.Length;
         var files = await repository.ContextFilesAsync(conversation.Id, Math.Max(1, through + 1), ct);
         var available = maximum - fixedCost;
-        var memoryBudget = available - (files.Count == 0 ? 0 : Math.Min(2048, available / 3));
+        var memoryBudget = available - (files.Count == 0 ? 0 : options.DocumentContextTokens == 0
+            ? available / 3 : Math.Min(available, options.DocumentContextTokens));
         var ledger = StructuredMemory.Read(conversation.MemoryLedgerJson);
         var memoryIdentity = options.ModelIdentity ?? conversation.Model + ":identity-unavailable";
         var invalidated = ledger.Through > 0 && (ledger.Through > through || ledger.ModelIdentity != memoryIdentity || ledger.PromptVersion != StructuredMemory.PromptVersion);
@@ -130,7 +131,8 @@ public static class ConversationContext
         messages.AddRange(recent.Select(m => new PromptMessage(m.Role, m.Content)));
         messages.Add(new("user", question));
         var used = messages.Sum(m => TokenBudget.Count(m.Content, options));
-        var excerpts = ProjectContext.Select(files, question, Math.Min(4096, maximum - used), options);
+        var excerpts = ProjectContext.Select(files, question, options.DocumentContextTokens == 0
+            ? maximum - used : Math.Min(options.DocumentContextTokens, maximum - used), options);
         messages[^1] = new("user", question + excerpts.Text);
         used = messages.Sum(m => TokenBudget.Count(m.Content, options));
         if (used > maximum) throw new InvalidOperationException("Le contexte préparé dépasse son budget.");

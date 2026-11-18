@@ -33,11 +33,16 @@ internal static partial class ChatEndpoints
         builder.Services.AddScoped<ChatService>();
         builder.Services.AddSingleton(new FileStorage(builder.Configuration["ALYCIA_FILES_DIRECTORY"]
             ?? Path.Combine(builder.Environment.ContentRootPath, "data", "files")));
+        builder.Services.AddScoped<ImportSettingsStore>();
         builder.Services.AddScoped<FileImport>();
         builder.Services.AddScoped<DocumentAnalysisService>();
         builder.Services.AddScoped<ProjectSourceReader>();
         builder.Services.AddScoped<IProjectIndex, ProjectIndexService>();
         builder.Services.AddSingleton<LexicalIndexCache>();
+        builder.Services.AddScoped<PostgresEmbeddingStore>();
+        builder.Services.AddScoped<BackgroundEmbeddingIndex>();
+        builder.Services.AddScoped<IIndexedEmbeddings>(sp => sp.GetRequiredService<BackgroundEmbeddingIndex>());
+        builder.Services.AddHostedService<EmbeddingWorker>();
         builder.Services.AddScoped<IProjectRetrieval, ProjectRetrievalService>();
         builder.Services.AddHttpClient<ILocalEmbeddings, OllamaEmbeddings>(http =>
         { http.BaseAddress = uri; http.Timeout = Timeout.InfiniteTimeSpan; http.MaxResponseContentBufferSize = 8 * 1024 * 1024; })
@@ -46,8 +51,8 @@ internal static partial class ChatEndpoints
         builder.Services.AddScoped<ISnapshotProjectTools>(sp => sp.GetRequiredService<ProjectToolService>());
         builder.Services.AddHttpClient<IProjectTools, ProjectMcpClient>(http => http.Timeout = Timeout.InfiniteTimeSpan)
             .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false, UseProxy = false });
-        builder.Services.Configure<FormOptions>(form => form.MultipartBodyLengthLimit = FileImport.MaxBatchBytes);
-        builder.WebHost.ConfigureKestrel(server => server.Limits.MaxRequestBodySize = FileImport.MaxBatchBytes + 1024 * 1024);
+        builder.Services.Configure<FormOptions>(form => form.MultipartBodyLengthLimit = ImportLimits.HardBatchBytes);
+        builder.WebHost.ConfigureKestrel(server => server.Limits.MaxRequestBodySize = ImportLimits.HardBatchBytes + 32 * 1024 * 1024);
         builder.Services.AddHttpClient<IChatModel, OllamaChatModel>(http =>
         {
             http.BaseAddress = uri;
@@ -222,9 +227,14 @@ internal static partial class ChatEndpoints
     private static async Task<IResult> UploadFilesAsync(Guid id, Guid batchId, HttpRequest request, FileImport importer, bool workspace, CancellationToken ct)
     {
         if (!request.HasFormContentType) return Error(request.HttpContext, 415, "INVALID_UPLOAD", "Un formulaire multipart est requis.");
+        var limits = await importer.LimitsAsync(ct);
+        var sizeLimit = request.HttpContext.Features.Get<IHttpMaxRequestBodySizeFeature>();
+        if (sizeLimit is { IsReadOnly: false }) sizeLimit.MaxRequestBodySize = limits.BatchBytes + 32L * 1024 * 1024;
+        request.HttpContext.Features.Set<IFormFeature>(new FormFeature(request, new FormOptions
+        { MultipartBodyLengthLimit = limits.BatchBytes, ValueLengthLimit = 16 * 1024 * 1024 }));
         IFormCollection form;
         try { form = await request.ReadFormAsync(ct); }
-        catch (InvalidDataException) { return Error(request.HttpContext, 413, "UPLOAD_TOO_LARGE", "Import limité à 100 Mio."); }
+        catch (InvalidDataException) { return Error(request.HttpContext, 413, "UPLOAD_TOO_LARGE", $"Import limité à {limits.BatchMiB} Mio."); }
         SourceFileMetadata[] metadata;
         try
         {
@@ -232,7 +242,7 @@ internal static partial class ChatEndpoints
             ? JsonSerializer.Deserialize<SourceFileMetadata[]>(raw.ToString(), StreamJson) ?? [] : [];
         }
         catch (JsonException) { throw new ArgumentException("Métadonnées de fichiers invalides."); }
-        if (metadata.Length > FileImport.MaxEntries || metadata.Any(m => m is null || string.IsNullOrEmpty(m.Name))
+        if (metadata.Length > limits.BatchEntries || metadata.Any(m => m is null || string.IsNullOrEmpty(m.Name))
             || metadata.Select(m => m.Name).Distinct(StringComparer.Ordinal).Count() != metadata.Length)
             throw new ArgumentException("Métadonnées de fichiers invalides.");
         var lookup = metadata.ToDictionary(m => m.Name, StringComparer.Ordinal);

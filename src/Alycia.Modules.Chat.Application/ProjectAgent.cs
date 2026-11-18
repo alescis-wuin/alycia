@@ -13,16 +13,30 @@ public static class ProjectAgent
         + "Propose une lecture ciblée si la preuve manque.";
     private static int SchemaCost(ChatOptions settings) => TokenBudget.Count(JsonSerializer.Serialize(ProjectToolCatalog.OllamaTools(), ProjectToolCatalog.Json), settings);
     public static int Reserve(ChatOptions settings) => SchemaCost(settings) + TokenBudget.Count(Instruction, settings)
-        + Math.Clamp(settings.ContextTokens / 4, 2048, 8192);
-    public static ChatOptions ContextOptions(ChatOptions settings)
+        + (settings.ToolContextTokens == 0 ? Math.Max(2048, settings.ContextTokens / 4) : settings.ToolContextTokens);
+    public static ChatOptions ContextOptions(ChatOptions settings, int protectedTokens = 0)
     {
         var copy = settings.Copy();
-        copy.SafetyTokens += Reserve(settings);
+        var overhead = SchemaCost(settings) + TokenBudget.Count(Instruction, settings);
+        var available = settings.ContextTokens - settings.MaxOutputTokens - settings.SafetyTokens - overhead - protectedTokens;
+        var outputs = settings.ToolContextTokens == 0
+            ? Math.Clamp(available, 1100, Math.Max(2048, settings.ContextTokens / 4)) : settings.ToolContextTokens;
+        copy.SafetyTokens += overhead + outputs;
         if (copy.SafetyTokens + copy.MaxOutputTokens >= copy.ContextTokens)
             throw new ArgumentException("Fenêtre trop petite pour les outils. Utilisez au moins 8192 tokens ou désactivez les outils dans Réglages.");
         return copy;
     }
     public static async Task<GenerationReply> RunAsync(IChatModel model, IProjectTools tools, Guid conversation,
+        string modelName, ContextWindow context, ChatOptions settings, Func<ModelDelta, Task>? progress, CancellationToken ct)
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeout.CancelAfter(TimeSpan.FromSeconds(settings.ToolTimeoutSeconds));
+        try { return await RunCoreAsync(model, tools, conversation, modelName, context, settings, progress, timeout.Token); }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested && timeout.IsCancellationRequested)
+        { throw new ChatModelException("Durée maximale des outils atteinte. Augmentez le délai dans Réglages ; aucun échange partiel enregistré."); }
+    }
+
+    private static async Task<GenerationReply> RunCoreAsync(IChatModel model, IProjectTools tools, Guid conversation,
         string modelName, ContextWindow context, ChatOptions settings, Func<ModelDelta, Task>? progress, CancellationToken ct)
     {
         var protectedMessages = context.Messages.ToList();
@@ -47,6 +61,12 @@ public static class ProjectAgent
         int Cost(IEnumerable<PromptMessage> messages) => SchemaCost(settings) + messages.Sum(m => TokenBudget.Count(m.Content, settings)
             + Encoding.UTF8.GetByteCount(m.Thinking ?? "")
             + (m.ToolCalls is null ? 0 : Encoding.UTF8.GetByteCount(JsonSerializer.Serialize(m.ToolCalls, ProjectToolCatalog.Json))));
+        // Only outputs still in Input(), including their retained summary, consume this budget.
+        // The complete prompt separately remains subject to the model's physical window.
+        var toolBudget = Math.Max(0, maximum - Cost(protectedMessages));
+        if (settings.ToolContextTokens > 0) toolBudget = Math.Min(toolBudget, settings.ToolContextTokens);
+        int RetainedCost() => (notes.Length == 0 ? 0 : TokenBudget.Count(notes, settings))
+            + rounds.SelectMany(r => r).Where(m => m.Role == "tool").Sum(m => TokenBudget.Count(m.Content, settings));
         List<PromptMessage> Input()
         {
             var messages = protectedMessages.ToList();
@@ -54,9 +74,9 @@ public static class ProjectAgent
             messages.AddRange(rounds.SelectMany(r => r));
             return messages;
         }
-        async Task MakeRoomAsync(int required)
+        async Task MakeRoomAsync(int required, int toolRequired = 0)
         {
-            while (Cost(Input()) + required > maximum && rounds.Count > 1)
+            while ((Cost(Input()) + required > maximum || RetainedCost() + toolRequired > toolBudget) && rounds.Count > 1)
             {
                 var oldest = rounds[0];
                 var sources = new List<SummarySource>();
@@ -81,10 +101,10 @@ public static class ProjectAgent
                 foreach (var key in completedCalls.Where(p => ReferenceEquals(p.Value, oldest)).Select(p => p.Key).ToArray())
                     completedCalls.Remove(key);
             }
-            if (Cost(Input()) + required > maximum)
+            if (Cost(Input()) + required > maximum || RetainedCost() + toolRequired > toolBudget)
                 throw new ChatModelException("Le dernier résultat et les messages protégés dépassent le budget. Augmentez la fenêtre ; aucun échange partiel enregistré.");
         }
-        for (var round = 0; round <= settings.ToolMaxCalls; round++)
+        while (true)
         {
             ct.ThrowIfCancellationRequested();
             await MakeRoomAsync(0);
@@ -95,14 +115,14 @@ public static class ProjectAgent
             if (answer.Length > 1_000_000) throw new ChatModelException("Réponse cumulée trop volumineuse.");
             var calls = reply.ToolCalls ?? [];
             if (calls.Count == 0) return new(answer.ToString(), reply.Stats, Tools: observations, Warnings: warnings, EvidenceTexts: evidenceTexts);
-            if (observations.Count + calls.Count > settings.ToolMaxCalls)
+            if (settings.ToolMaxCalls > 0 && observations.Count + calls.Count > settings.ToolMaxCalls)
                 throw new ChatModelException($"Limite de {settings.ToolMaxCalls} appels atteinte. Ciblez un sous-ensemble ou lancez Analyse du projet.");
             var current = new List<PromptMessage> { new("assistant", reply.Content, calls, Thinking: reply.Thinking) };
             rounds.Add(current);
             // Only complete older rounds may be reduced; the current call/result pair remains intact.
-            await MakeRoomAsync(calls.Count * 1100);
+            await MakeRoomAsync(calls.Count * 1100, calls.Count * 1100);
             var room = maximum - Cost(Input()) - calls.Count * 64;
-            var perCall = Math.Min(8192, room / calls.Count);
+            var perCall = Math.Min(settings.ToolResultBytes, Math.Min(room, toolBudget - RetainedCost() - calls.Count * 64) / calls.Count);
             foreach (var call in calls)
             {
                 ct.ThrowIfCancellationRequested();
@@ -111,7 +131,8 @@ public static class ProjectAgent
                 if (duplicate && ++repeated >= 3)
                     throw new ChatModelException("L’IA répète les mêmes appels sans progresser. Aucun échange partiel enregistré ; ciblez un symbole ou une question plus précise.");
                 if (!duplicate) repeated = 0;
-                await Emit(new("", Status: $"Outil {observations.Count + 1}/{settings.ToolMaxCalls} · {call.Function.Name}"));
+                var limit = settings.ToolMaxCalls > 0 ? $"/{settings.ToolMaxCalls}" : "";
+                await Emit(new("", Status: $"Outil {observations.Count + 1}{limit} · {call.Function.Name}"));
                 // Do not replay cached source content after permissions may have changed.
                 var timer = System.Diagnostics.Stopwatch.StartNew();
                 var result = duplicate ? new ProjectToolResult("{\"error\":\"Appel déjà réussi : utilisez le résultat conservé, un autre symbole ou nextOffset.\"}", true)
@@ -122,12 +143,12 @@ public static class ProjectAgent
                 current.Add(new("tool", result.Text, ToolName: call.Function.Name));
                 var observation = new ToolObservation(observations.Count + 1, call.Function.Name,
                     call.Function.Arguments.GetRawText(), !result.IsError, Encoding.UTF8.GetByteCount(result.Text), result.Evidence, duplicate,
-                    result.IsError ? ToolError(result.Text) : null, result.EvidenceItems, timer.Elapsed.TotalMilliseconds, result.History);
+                    result.IsError ? ToolError(result.Text) : null, result.EvidenceItems, timer.Elapsed.TotalMilliseconds, result.History,
+                    RetainedCost(), toolBudget);
                 observations.Add(observation);
                 await Emit(new("", Status: $"{call.Function.Name} · {(duplicate ? "répétition évitée" : result.IsError ? "refus ou erreur" : result.Evidence?.Path ?? "résultat reçu")}", Tool: observation));
             }
         }
-        throw new ChatModelException("Limite d’itérations atteinte. Aucun échange partiel enregistré.");
     }
 
     private static string ToolError(string text)

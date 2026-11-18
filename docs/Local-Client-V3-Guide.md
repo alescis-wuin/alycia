@@ -73,8 +73,9 @@ ensuite de revenir aux implémentations pour une question précise.
    les extraits ; **Fenêtre** suit les échanges récents ; **Exclu** interdit le
    contenu au modèle, y compris via MCP.
 3. Dans **Réglages**, choisir un modèle Ollama annonçant la capacité `tools`,
-   activer **Autoriser les outils de lecture des sources importées** et conserver
-   initialement la limite de **24 appels par demande**. Elle est réglable de 1 à 128.
+   activer **Autoriser les outils de lecture des sources importées**. Le garde-fou
+   de nombre d’appels est réglable de 0 à 4 096 ; 0 désactive ce quota. Les budgets
+   de contexte, de sortie et de durée restent actifs. Voir le [guide actualisé](context-budget-indexing.md).
 4. Utiliser une fenêtre d’au moins **8 192 tokens** pour les outils, davantage si
    le système, les derniers échanges ou le raisonnement occupent beaucoup de place.
    Les anciennes conversations gardent leurs propres réglages ; augmenter leur

@@ -83,12 +83,22 @@ public sealed class ChatOptions
     [JsonIgnore] public string? ModelIdentity { get; set; }
     [JsonIgnore] public string CallPurpose { get; set; } = "chat";
     public bool UseProjectTools { get; set; } = true;
-    public int ToolMaxCalls { get; set; } = 24;
+    // A call limit is an optional execution guard, never a token budget.
+    public int ToolMaxCalls { get; set; } = 0;
+    public int ToolContextTokens { get; set; } = 0;
+    public int ToolResultBytes { get; set; } = 24000;
+    public int ToolTimeoutSeconds { get; set; } = 1200;
+    public int DocumentContextTokens { get; set; } = 0;
+    public int IndexMaxCharacters { get; set; } = 0;
+    public int EmbeddingBatchSize { get; set; } = 16;
+    public int EmbeddingChunkCharacters { get; set; } = 1600;
+    public bool EmbedHistory { get; set; } = true;
     public ChatOptions Copy() => (ChatOptions)MemberwiseClone();
     public bool AutoSummarize { get; set; } = true;
     public int SummaryMaxCalls { get; set; } = 256;
     public bool GenerateUntilStop { get; set; } = true;
     public int MaxHistoryTurns { get; set; } = 12;
+    public int ProtectedHistoryTurns { get; set; } = 2;
     public int ContextTokens { get; set; } = 8192;
     public int MaxOutputTokens { get; set; } = 1024;
     public int SafetyTokens { get; set; } = 256;
@@ -98,7 +108,12 @@ public sealed class ChatOptions
 
     public void Validate()
     {
-        if (RetrievalMode is not ("legacy" or "lexical" or "hybrid") || EmbeddingModel is null || EmbeddingModel.Length > 200 || TokenCounting is not ("auto" or "conservative") || ToolMaxCalls is < 1 or > 128 || SummaryMaxCalls is < 8 or > 2048 || MaxHistoryTurns is < 0 or > 100 || ContextTokens is < 1024 or > 131072
+        if (RetrievalMode is not ("legacy" or "lexical" or "hybrid") || EmbeddingModel is null || EmbeddingModel.Length > 200 || TokenCounting is not ("auto" or "conservative") || ToolMaxCalls is < 0 or > 4096 || SummaryMaxCalls is < 8 or > 2048 || MaxHistoryTurns is < 0 or > 100 || ContextTokens is < 1024 or > 131072
+            || ToolContextTokens < 0 || ToolContextTokens >= ContextTokens || DocumentContextTokens < 0 || DocumentContextTokens >= ContextTokens
+            || ToolResultBytes is < 1024 or > 131072 || IndexMaxCharacters < 0
+            || ToolTimeoutSeconds is < 30 or > 86400
+            || EmbeddingBatchSize is < 1 or > 64 || EmbeddingChunkCharacters is < 128 or > 3200
+            || ProtectedHistoryTurns is < 0 or > 20
             || MaxOutputTokens < 1 || SafetyTokens < 128
             || (long)MaxOutputTokens + SafetyTokens >= ContextTokens
             || TimeoutSeconds is < 1 or > 600

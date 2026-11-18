@@ -71,7 +71,7 @@ public sealed class ProjectMcpClient(HttpClient http, IServer server, IConfigura
         if (!response.IsSuccessStatusCode) throw new ChatModelException($"Le MCP local a refusé la requête (HTTP {(int)response.StatusCode}).");
         if (notification) return default;
         await using var stream = await response.Content.ReadAsStreamAsync(ct);
-        using var document = JsonDocument.Parse(await FileImport.ReadBoundedAsync(stream, 256 * 1024, ct));
+        using var document = JsonDocument.Parse(await FileImport.ReadBoundedAsync(stream, 1024 * 1024, ct));
         var root = document.RootElement;
         if (root.GetProperty("jsonrpc").GetString() != "2.0" || root.GetProperty("id").GetInt32() != id) throw new ChatModelException("Identifiant MCP invalide.");
         if (root.TryGetProperty("error", out _)) throw new ChatModelException("Le MCP local a signalé une erreur de protocole.");

@@ -91,7 +91,7 @@ internal static partial class ChatEndpoints
                         if (args.TryGetProperty("_meta", out var meta) && meta.ValueKind == JsonValueKind.Object
                             && meta.TryGetProperty("io.alycia/maxResultBytes", out var size))
                         {
-                            if (size.ValueKind != JsonValueKind.Number || !size.TryGetInt32(out budget) || budget is < 1024 or > 24000) return Error(-32602, "Budget invalide.");
+                            if (size.ValueKind != JsonValueKind.Number || !size.TryGetInt32(out budget) || budget is < 1024 or > 131072) return Error(-32602, "Budget invalide.");
                         }
                         var result = await tools.CallAsync(id, name.GetString()!, input, budget, ct);
                         return Result(new

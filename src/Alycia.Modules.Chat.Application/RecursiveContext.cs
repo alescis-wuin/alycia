@@ -15,20 +15,20 @@ public static class RecursiveContext
         Func<string, Task>? progress, CancellationToken ct)
     {
         var system = ConversationConfiguration.System(conversation);
-        var recent = (await repository.MessagesAsync(conversation.Id, 4, null, ct)).TakeLast(4).ToArray();
+        var recent = (await repository.MessagesAsync(conversation.Id, options.ProtectedHistoryTurns * 2, null, ct)).TakeLast(options.ProtectedHistoryTurns * 2).ToArray();
         var budget = options.ContextTokens - options.MaxOutputTokens - options.SafetyTokens;
         var fixedCost = TokenBudget.Count(question, options) + recent.Sum(m => TokenBudget.Count(m.Content, options))
             + (system.Length == 0 ? 0 : TokenBudget.Count(system, options));
         if (fixedCost > budget)
-            throw new ArgumentException("Le système, les notes, les deux derniers échanges et la demande dépassent seuls le budget. "
+            throw new ArgumentException("Le système, les notes, les échanges récents protégés et la demande dépassent seuls le budget. "
                 + "Augmentez la fenêtre, réduisez la réserve/les notes ou démarrez une nouvelle conversation. Aucun message protégé n’a été tronqué.");
-        if (recent.Length % 2 != 0 || recent.Length != Math.Min(4, conversation.MessageCount))
+        if (recent.Length % 2 != 0 || recent.Length != Math.Min(options.ProtectedHistoryTurns * 2, conversation.MessageCount))
             throw new InvalidOperationException("Historique protégé incomplet.");
         for (var i = 0; i < recent.Length; i += 2) ValidatePair(recent[i], recent[i + 1]);
         var throughLimit = conversation.MessageCount - recent.Length;
         var files = await repository.ContextFilesAsync(conversation.Id, Math.Max(1, throughLimit + 1), ct);
         var available = budget - fixedCost;
-        var documentsReserve = files.Count == 0 ? 0 : Math.Min(2048, available / 4);
+        var documentsReserve = files.Count == 0 ? 0 : (options.DocumentContextTokens == 0 ? available / 4 : Math.Min(available, options.DocumentContextTokens));
         var memoryBudget = available - documentsReserve;
         var valid = conversation.MemoryThroughSequence <= throughLimit && conversation.MemoryModel == conversation.Model;
         var memory = valid ? conversation.MemoryText : "";
@@ -74,7 +74,7 @@ public static class RecursiveContext
         messages.AddRange(pending.Concat(recent).Select(m => new PromptMessage(m.Role, m.Content)));
         messages.Add(new("user", question));
         var used = messages.Sum(m => TokenBudget.Count(m.Content, options));
-        var documentBudget = Math.Min(4096, budget - used);
+        var documentBudget = (options.DocumentContextTokens == 0 ? budget - used : Math.Min(options.DocumentContextTokens, budget - used));
         var excerpts = ProjectContext.Select(files, question, documentBudget, options);
         messages[^1] = new("user", question + excerpts.Text);
         used = messages.Sum(m => TokenBudget.Count(m.Content, options));

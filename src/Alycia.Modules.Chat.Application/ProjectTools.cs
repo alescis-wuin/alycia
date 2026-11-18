@@ -8,7 +8,8 @@ public sealed record ProjectTool(string Name, string Description, JsonElement In
 public sealed record ToolEvidence(string Path, string Sha256, int Offset, int? NextOffset, bool CompleteSource, string? Reference = null, Guid? FileId = null, int? End = null, int? StartLine = null, int? EndLine = null);
 public sealed record ProjectToolResult(string Text, bool IsError = false, ToolEvidence? Evidence = null, IReadOnlyList<ToolEvidence>? EvidenceItems = null, IReadOnlyList<HistoryEvidence>? History = null);
 public sealed record ToolObservation(int Number, string Name, string Arguments, bool Succeeded, int ResultBytes, ToolEvidence? Evidence = null, bool RepeatSuppressed = false, string? Error = null,
-    IReadOnlyList<ToolEvidence>? EvidenceItems = null, double ElapsedMilliseconds = 0, IReadOnlyList<HistoryEvidence>? History = null);
+    IReadOnlyList<ToolEvidence>? EvidenceItems = null, double ElapsedMilliseconds = 0, IReadOnlyList<HistoryEvidence>? History = null,
+    int RetainedTokens = 0, int ContextBudgetTokens = 0);
 public interface IProjectTools
 {
     Task<bool> HasSourcesAsync(Guid conversation, CancellationToken ct);
@@ -24,7 +25,7 @@ public static class ProjectToolCatalog
             {"type":"object","properties":{"offset":{"type":"integer","minimum":0},"limit":{"type":"integer","minimum":1,"maximum":50},"codeOnly":{"type":"boolean"}},"additionalProperties":false}
             """)),
         new("project_read", "Lit une source par fileId, avec symbol optionnel (nom complet ou partiel, ambiguïtés signalées). Offset absolu UTF-16 ; suivre nextOffset jusqu’à null dans ce périmètre.", Schema("""
-            {"type":"object","properties":{"fileId":{"type":"string","format":"uuid"},"offset":{"type":"integer","minimum":0},"maxBytes":{"type":"integer","minimum":128,"maximum":8192},"symbol":{"type":"string","minLength":1,"maxLength":200}},"required":["fileId"],"additionalProperties":false}
+            {"type":"object","properties":{"fileId":{"type":"string","format":"uuid"},"offset":{"type":"integer","minimum":0},"maxBytes":{"type":"integer","minimum":128,"maximum":131072},"symbol":{"type":"string","minLength":1,"maxLength":200}},"required":["fileId"],"additionalProperties":false}
             """)),
         new("project_search", "Recherche littérale dans les originaux, première occurrence par fichier. Pagination par fichier ; suivre nextOffset même sans résultat.", Schema("""
             {"type":"object","properties":{"query":{"type":"string","minLength":2,"maxLength":120},"offset":{"type":"integer","minimum":0},"limit":{"type":"integer","minimum":1,"maximum":20}},"required":["query"],"additionalProperties":false}
