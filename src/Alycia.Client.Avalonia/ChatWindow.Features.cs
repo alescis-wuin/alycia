@@ -143,7 +143,7 @@ public partial class ChatWindow
             panel.Children.Add(Label("Ce modèle n’est pas disponible pour la génération locale. Sélectionnez un modèle ci-dessous pour reprendre cette conversation ; votre brouillon est conservé."));
         panel.Children.Add(Label("Modèle de la conversation"));
         panel.Children.Add(model);
-        var modelWarning = Label("Changer de modèle invalide la mémoire dérivée de cette conversation.");
+        var modelWarning = Label("Changer de modèle efface le résumé généré de cette conversation.");
         modelWarning.IsVisible = false;
         model.SelectionChanged += (_, _) => modelWarning.IsVisible = model.SelectedItem is string choice && choice != current.Model;
         panel.Children.Add(modelWarning);
@@ -272,6 +272,8 @@ public partial class ChatWindow
             buffer.Write(bytes, 0, count);
         }
         var conversation = await _client.ImportConversationAsync(buffer.ToArray(), _lifetime.Token);
+        SaveDraft();
+        await RefreshProjectsAsync(conversation.WorkspaceId);
         C<TextBox>("SearchInput").Text = "";
         await RefreshConversationsAsync(conversation.Id);
         await LoadAsync(conversation);

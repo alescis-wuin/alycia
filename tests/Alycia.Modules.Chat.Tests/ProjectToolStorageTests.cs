@@ -40,6 +40,11 @@ public sealed class ProjectToolStorageTests
             conversation = await db.Conversations.SingleAsync(c => c.Id == conversation.Id);
             var file = await db.Attachments.SingleAsync(f => f.Name == "src/A.cs");
             var excluded = await db.Attachments.SingleAsync(f => f.Name == ".env");
+            Assert.Null(conversation.WorkspaceId);
+            Assert.Null(file.WorkspaceId);
+            Assert.Equal(conversation.Id, file.ConversationId);
+            Assert.Equal(added.Single(f => f.Name == "src/A.cs").Id, file.Id);
+            Assert.Equal(original, await File.ReadAllTextAsync(storage.PathFor(file)));
             Assert.Equal("project", file.ContextMode); Assert.Equal("excluded", excluded.ContextMode);
             Assert.DoesNotContain("HiddenAtEnd", file.Text);
             Assert.Single(await new EfChatRepository(db).ContextFilesAsync(conversation.Id, 99, default));

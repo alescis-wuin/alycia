@@ -26,7 +26,8 @@ public partial class ChatWindow
         try
         {
             var version = await _client.SourceAsync(conversation, false, source.FileId, _lifetime.Token, source.Sha256, source.Start, source.End);
-            passage.Text = $"{version.Name}\nSHA-256 {version.Sha256}\n\n{version.Text}";
+            var truncated = version.End < source.End ? "\nExtrait affiché partiellement." : "";
+            passage.Text = $"{version.Name}\nSHA-256 {version.Sha256}{truncated}\n\n{version.Text}";
             passage.BringIntoView();
         }
         catch (ChatApiException e) { passage.Text = "Passage indisponible. " + e.Message; }

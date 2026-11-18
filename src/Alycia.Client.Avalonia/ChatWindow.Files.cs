@@ -21,15 +21,15 @@ public partial class ChatWindow
 
     private void InitializeFileControls()
     {
-        C<Button>("UploadButton").Click += async (_, _) => await RunAsync(async () =>
+        C<Button>("UploadButton").Click += (_, _) =>
         {
-            var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
-            {
-                Title = "Importer des fichiers ou archives",
-                AllowMultiple = true
-            });
-            await ImportItemsAsync(files);
-        });
+            var menu = C<WrapPanel>("AttachmentActions");
+            menu.IsVisible = !menu.IsVisible;
+            if (menu.IsVisible) C<Button>("AttachFileCommand").Focus();
+        };
+        C<Button>("AttachFileCommand").Click += async (_, _) => await RunAsync(() => PickFilesAsync(false));
+        C<Button>("AttachArchiveCommand").Click += async (_, _) => await RunAsync(() => PickFilesAsync(true));
+        C<Button>("AttachProjectCommand").Click += async (_, _) => await RunAsync(() => ShowDocumentsAsync(true));
         C<Button>("FolderButton").Click += async (_, _) => await RunAsync(async () =>
         {
             var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
@@ -52,6 +52,17 @@ public partial class ChatWindow
             var files = e.DataTransfer.TryGetFiles();
             if (files is not null && _current is not null) await RunAsync(() => ImportItemsAsync(files));
         });
+    }
+
+    private async Task PickFilesAsync(bool archive)
+    {
+        var options = new FilePickerOpenOptions
+        {
+            Title = archive ? "Joindre une archive à la conversation" : "Joindre des fichiers à la conversation",
+            AllowMultiple = true,
+            FileTypeFilter = archive ? [new("Archives") { Patterns = ["*.zip", "*.tar", "*.tar.gz", "*.tgz", "*.gz"] }] : null
+        };
+        await ImportItemsAsync(await StorageProvider.OpenFilePickerAsync(options));
     }
 
     private async Task ImportItemsAsync(IEnumerable<IStorageItem> items, bool project = false, bool documents = false)

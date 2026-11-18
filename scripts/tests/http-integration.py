@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """API réelle + PostgreSQL isolé + Ollama simulé, sans GPU ni téléchargement de modèle."""
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 import http.client
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import importlib.util
@@ -28,6 +29,8 @@ class Ollama(BaseHTTPRequestHandler):
     pressure_summaries = 0
     pressure_file = None
     pressure_protected = None
+    turn_started = threading.Event()
+    release_turn = threading.Event()
 
     def log_message(self, *_):
         pass
@@ -74,6 +77,15 @@ class Ollama(BaseHTTPRequestHandler):
         assert self.path == "/api/chat" and request["model"] in ("demo", "tool-demo"), "Un modèle non génératif a reçu une demande de chat"
         prompt = json.dumps(request["messages"], ensure_ascii=False)
         assert "NE_JAMAIS_RESUMER_CE_CONTENU" not in prompt, "Un contenu exclu a été envoyé au modèle"
+        if request["messages"][-1]["content"].startswith("BOR_TEST_SNAPSHOT"):
+            assert "INSTRUCTION_V1" in prompt and "INSTRUCTION_V2" not in prompt
+            Ollama.turn_started.set()
+            assert Ollama.release_turn.wait(20)
+            self.send_response(200)
+            self.send_header("Content-Type", "application/x-ndjson" if request.get("stream") else "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"message": {"role": "assistant", "content": "Révision initiale."}, "done": True, "done_reason": "stop"}).encode() + b"\n")
+            return
         if Ollama.pressure_active:
             self.pressure_reply(request)
             return
@@ -302,9 +314,85 @@ def verify_empty_tool_summary(call, checks):
         call("DELETE", prefix, expected=204)
 
 
+def verify_boreale(call, checks):
+    project = call("POST", "/projects", {"name": "Recette boréale"})
+    other = call("POST", "/projects", {"name": "Autre projet"})
+    base = "/projects/" + project["id"]
+    profile = call("GET", base)
+    profile = call("PUT", base, dict(profile, instructions="INSTRUCTION_V1", defaultModel="demo"))
+    assert project["id"] in {p["id"] for p in call("GET", "/projects")}
+
+    def create(label, wid):
+        return "/conversations/" + call("POST", "/conversations", {"title": label, "model": "demo",
+            "systemPrompt": "", "workspaceId": wid}, expected=201)["id"]
+
+    first, second, stranger, outside = [create("Recette " + title, owner) for title, owner in (
+        ("A", project["id"]), ("B", project["id"]), ("C", other["id"]), ("D", None))]
+    boundary = "boreal-test"
+    payload = (f'--{boundary}\r\nContent-Disposition: form-data; name="files"; filename="boreale.txt"\r\n'
+               f'Content-Type: text/plain\r\n\r\nBOREAL_SENTINEL\r\n--{boundary}--\r\n').encode()
+    file = call("POST", base + "/files/" + str(uuid.uuid4()), raw=payload,
+                headers={"Content-Type": "multipart/form-data; boundary=" + boundary})[0]
+    fid = file["id"]
+    profile = call("GET", base)
+    call("PUT", base + "/files/" + fid, {"mode": "pinned", "revision": profile["revision"]})
+    for member in (first, second):
+        assert fid in {f["id"] for f in call("GET", member + "/files")}
+        passage = call("GET", member + "/files/" + fid + "/preview?sha=" + file["sha256"] + "&start=0&end=6")
+        assert passage["text"] == "BOREAL"
+    def tool_read(conversation):
+        return call("POST", conversation + "/mcp", {"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+            "params": {"name": "project_read", "arguments": {"fileId": fid, "offset": 0}}})["result"]
+
+    assert "BOREAL_SENTINEL" in str(tool_read(second)["content"])
+    for isolated in (stranger, outside):
+        assert tool_read(isolated)["isError"]
+        assert not call("GET", isolated + "/files")
+        call("GET", isolated + "/files/" + fid + "/preview", expected=404)
+        assert "BOREAL_SENTINEL" not in str(call("POST", isolated + "/context", {"content": "boreale.txt"}))
+    assert len(call("GET", "/search?workspaceId=" + project["id"])["items"]) == 2
+    assert "BOREAL_SENTINEL" in str(call("POST", first + "/context", {"content": "boreale.txt"}))
+    rev = call("GET", first + "/settings")["conversation"]["revision"]
+    call("PATCH", first + "/files/" + fid, {"mode": "excluded", "revision": rev})
+    assert "BOREAL_SENTINEL" not in str(call("POST", first + "/context", {"content": "boreale.txt"}))
+    assert tool_read(first)["isError"]
+    assert "BOREAL_SENTINEL" in str(call("POST", second + "/context", {"content": "boreale.txt"}))
+    checks.append("project_source_membership_preview_search_and_local_exclusion")
+
+    old = call("GET", base)
+    revision = call("GET", second + "/settings")["conversation"]["revision"]
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        pending = pool.submit(call, "POST", second + "/stream", {"requestId": str(uuid.uuid4()), "content": "BOR_TEST_SNAPSHOT", "revision": revision})
+        try:
+            assert Ollama.turn_started.wait(15), "Le modèle simulé n’a pas reçu la demande."
+            updated = call("PUT", base, dict(old, instructions="INSTRUCTION_V2"))
+        finally:
+            Ollama.release_turn.set()
+        events = pending.result(timeout=20)
+        assert events[-1]["type"] == "done", events[-1]
+    saved = call("GET", second + "/messages")["messages"][-1]
+    assert json.loads(saved["diagnosticsJson"])["workspaceRevision"] == old["revision"]
+    assert "INSTRUCTION_V2" in str(call("POST", second + "/context", {"content": "Suite"}))
+    call("PUT", base, dict(old, instructions="Périmée"), expected=409)
+    note = call("POST", base + "/notes", {"text": "NOTE_VALIDEE", "revision": updated["revision"],
+                "originConversationId": second.rsplit("/", 1)[1], "originSequence": saved["sequence"]})
+    assert note["notes"][0]["originSequence"] == saved["sequence"]
+    assert "NOTE_VALIDEE" in str(call("POST", first + "/context", {"content": "Suite"}))
+    assert "NOTE_VALIDEE" not in str(call("POST", stranger + "/context", {"content": "Suite"}))
+    checks.append("project_snapshot_optimistic_revision_and_explicit_notes")
+
+    call("DELETE", first, expected=204)
+    assert fid in {f["id"] for f in call("GET", second + "/files")}
+    profile = call("GET", base)
+    call("DELETE", base + "/files/" + fid + "?revision=" + str(profile["revision"]), expected=204)
+    assert not call("GET", second + "/files")
+    assert call("GET", second + "/messages")["messages"][-1]["content"] == saved["content"]
+    checks.append("project_source_survives_chat_then_explicit_withdrawal_preserves_history")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--case", choices=("all", "tool-summary"), default="all")
+    parser.add_argument("--case", choices=("all", "tool-summary", "boreale"), default="all")
     args = parser.parse_args()
     connection = os.environ.get("ALYCIA_CHAT_TEST_CONNECTION")
     if not connection:
@@ -316,6 +404,7 @@ def main():
     env = dict(os.environ, ALYCIA_CHAT_CONNECTION=connection.rstrip(";") + ";Database=" + database,
         ALYCIA_CHAT_CONTAINER_MODE="false", ALYCIA_ENABLE_LOCAL_WORKSPACES="false",
         ALYCIA_ENABLE_LOCAL_CHAT="true", ASPNETCORE_ENVIRONMENT="Development", DOTNET_ENVIRONMENT="Development")
+    env["ALYCIA_WORKSPACES_CONNECTION"] = env["ALYCIA_CHAT_CONNECTION"]
     ef = ["dotnet", "tool", "run", "dotnet-ef", "database"]
     ef_options = ["--project", "src/Alycia.Modules.Chat.Infrastructure", "--context", "ChatDbContext", "--no-build"]
     provider = ThreadingHTTPServer(("127.0.0.1", 0), Ollama)
@@ -330,6 +419,8 @@ def main():
             try:
                 # Mark cleanup before migration: a failed migration can still create the database.
                 created = True
+                subprocess.run(ef + ["update", "--project", "src/Alycia.Modules.Workspaces.Infrastructure",
+                    "--context", "WorkspacesDbContext", "--no-build"], cwd=ROOT, env=env, check=True, stdout=log, stderr=log, timeout=120)
                 subprocess.run(ef + ["update"] + ef_options, cwd=ROOT, env=env, check=True, stdout=log, stderr=log, timeout=120)
                 with socket.socket() as reserve:
                     reserve.bind(("127.0.0.1", 0))
@@ -372,7 +463,10 @@ def main():
                     verify_structured_memory(client, checks)
                     verify_hybrid(client, checks)
                     checks.append("tool_citations_and_persisted_diagnostics")
-                verify_empty_tool_summary(client, checks)
+                if args.case in ("all", "tool-summary"):
+                    verify_empty_tool_summary(client, checks)
+                if args.case in ("all", "boreale"):
+                    verify_boreale(client, checks)
                 print(json.dumps({"passed": len(checks), "checks": checks, "provider": "mock",
                     "database": "isolated PostgreSQL", "test_data_cleaned": True,
                     "continuous_chat_calls": Ollama.chat_calls, "tool_rounds": Ollama.tool_rounds, "bounded_summary_calls": Ollama.summary_calls,

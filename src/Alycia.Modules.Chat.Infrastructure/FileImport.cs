@@ -177,6 +177,12 @@ public sealed class FileImport(ChatDbContext database, FileStorage storage)
             committing = true;
             await new EfChatRepository(database).SaveAsync(ct);
         }
+        catch (ChatConflictException)
+        {
+            // SaveChanges rolled back the losing transaction. Each attempt uses fresh file IDs.
+            foreach (var path in written) File.Delete(path);
+            throw;
+        }
         catch
         {
             // On ambiguous DB commit failure keep bytes: never delete a file that

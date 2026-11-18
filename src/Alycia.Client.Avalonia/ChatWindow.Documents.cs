@@ -72,11 +72,23 @@ public partial class ChatWindow
                 modes.Children.Add(ActionButton(title, async () =>
                 {
                     int revision = profile?.Revision ?? chat!.Revision;
-                    foreach (var selected in selection)
+                    int completed = 0;
+                    try
                     {
-                        if (profile is not null) await _client.SetProjectFileModeAsync(profile with { Revision = revision }, selected.Id, mode, ct);
-                        else await _client.ConfigureFileAsync(owner, selected.Id, revision, mode, ct);
-                        revision++;
+                        foreach (var selected in selection)
+                        {
+                            if (profile is not null) await _client.SetProjectFileModeAsync(profile with { Revision = revision }, selected.Id, mode, ct);
+                            else await _client.ConfigureFileAsync(owner, selected.Id, revision, mode, ct);
+                            revision++;
+                            completed++;
+                        }
+                    }
+                    catch (ChatApiException error)
+                    {
+                        if (chat is not null) _current = (await _client.SettingsAsync(owner, ct)).Conversation;
+                        await ShowDocumentsAsync(project);
+                        Feedback($"{completed}/{selection.Length} modifications enregistrées. {error.Message}", true);
+                        return;
                     }
                     if (chat is not null) _current = (await _client.SettingsAsync(owner, ct)).Conversation;
                     await ShowDocumentsAsync(project);

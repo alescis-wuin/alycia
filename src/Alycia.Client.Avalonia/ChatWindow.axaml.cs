@@ -92,10 +92,12 @@ public partial class ChatWindow : Window
         };
         KeyDown += async (_, e) =>
         {
+            if (e.Key == Key.Escape && C<WrapPanel>("AttachmentActions").IsVisible) { C<WrapPanel>("AttachmentActions").IsVisible = false; C<Button>("UploadButton").Focus(); e.Handled = true; return; }
             if (e.Key == Key.Escape && C<Border>("Inspector").IsVisible) { CloseInspector(); e.Handled = true; return; }
             if (e.Key == Key.Escape && C<Border>("ActionMenu").IsVisible) { C<Border>("ActionMenu").IsVisible = false; C<Button>("MoreButton").Focus(); e.Handled = true; return; }
             if (e.Key == Key.Escape && _generation is not null) { _generation.Cancel(); e.Handled = true; }
             if (!e.KeyModifiers.HasFlag(KeyModifiers.Control)) return;
+            if (e.Key == Key.F && e.KeyModifiers.HasFlag(KeyModifiers.Shift)) { e.Handled = true; ToggleConcentration(); return; }
             if (e.Key == Key.N) { e.Handled = true; await RunAsync(CreateAsync); }
             if (e.Key == Key.F) { e.Handled = true; _sidebarManual = true; C<Border>("Sidebar").IsVisible = true; C<TextBox>("SearchInput").Focus(); }
         };
@@ -123,6 +125,7 @@ public partial class ChatWindow : Window
         }
 
         _busy = true;
+        C<WrapPanel>("AttachmentActions").IsVisible = false;
         C<Border>("ActionMenu").IsVisible = false;
         UpdateControls();
         Feedback("Chargement…");
@@ -158,7 +161,7 @@ public partial class ChatWindow : Window
         C<Button>("ActiveModelButton").IsVisible = _current is not null;
         C<Button>("ActiveModelButton").IsEnabled = !_busy && _current is not null;
         C<TextBlock>("EmptyHint").Text = _current is null
-            ? "Choisissez un modèle et créez votre première conversation."
+            ? "Créez une conversation pour commencer."
             : "Posez votre première question.";
         C<StackPanel>("CreationPanel").IsEnabled = !_busy;
         C<WrapPanel>("ConversationTools").IsEnabled = !_busy && _current is not null;
@@ -173,6 +176,7 @@ public partial class ChatWindow : Window
         C<Button>("FilesButton").IsEnabled = !_busy && (_current is not null || _project.Id.HasValue);
         C<Button>("InstructionsButton").IsEnabled = !_busy && _project.Id.HasValue;
         C<Button>("UploadButton").IsEnabled = !_busy && _current is not null;
+        C<Button>("AttachProjectCommand").IsVisible = _project.Id.HasValue && !_project.Archived;
         C<Button>("FolderButton").IsEnabled = !_busy && _current is not null;
         C<Button>("SendButton").IsEnabled = !_busy && _current is not null && !string.IsNullOrWhiteSpace(C<TextBox>("MessageInput").Text);
         C<TextBox>("MessageInput").IsEnabled = !_busy && _current is not null;
@@ -257,8 +261,7 @@ public partial class ChatWindow : Window
         C<TextBox>("TitleInput").Text = _current.Title;
         ShowChat();
         C<Button>("ActiveModelButton").Content = _current.Model;
-        C<TextBlock>("ConversationDetails").Text = $"{_current.MessageCount} messages"
-           ;
+        C<TextBlock>("ConversationDetails").Text = $"{_current.MessageCount} messages";
         _messages.Clear();
         foreach (var message in Timeline(page))
         {

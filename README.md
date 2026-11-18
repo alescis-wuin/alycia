@@ -3,6 +3,10 @@
 
 Alycia is a local generative AI client. Multi-backend support and retrieval-augmented generation (RAG) are longer-term goals.
 
+## Client Avalonia Boréale
+
+[Guide de démarrage et d’utilisation sur CachyOS](docs/boreale/guide-cachyos.md) · [Compte rendu et statut des vérifications](docs/boreale/compte-rendu.md) · [Phases et étapes](docs/boreale/plan.md)
+
 ## Local client V4 — this branch
 
 `feature/local-client-v4-context-quality-20261117` adds a frozen evaluation corpus,

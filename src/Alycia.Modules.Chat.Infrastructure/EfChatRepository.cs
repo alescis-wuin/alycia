@@ -29,6 +29,7 @@ public sealed class EfChatRepository(ChatDbContext database) : IChatRepository
         var files = await database.ModelSources(id).Where(f => f.ContextMode != "excluded"
             && ((f.ContextMode == "pinned" || f.ContextMode == "project") || f.AnchorSequence >= first) && f.Text != "")
             .OrderBy(f => f.CreatedAtUtc).ToListAsync(ct);
+        files = files.OrderByDescending(f => f.ContextMode == "pinned").DistinctBy(f => (f.Name, f.Sha256)).ToList();
         var summaries = await database.DocumentAnalyses.AsNoTracking().Where(a => a.ConversationId == id && a.UseInContext).ToArrayAsync(ct);
         if (summaries.Length == 0) return files;
         var metadata = await DocumentAnalysisService.MetadataAsync(database, id, ct);

@@ -109,11 +109,20 @@ public sealed class ChatTests
         ConversationSummary? conversation = null;
         var messages = new List<ChatMessageItem>();
         FileItem[] files = [];
+        var citedId = Guid.NewGuid();
+        string citedHash = new string('a', 64);
         var fail = false;
         Action? beforeFailure = null;
         using var http = new HttpClient(new Handler(async (request, ct) =>
         {
             var path = request.RequestUri!.AbsolutePath;
+            if (path.EndsWith("/projects")) return Json(Array.Empty<ProjectChoice>());
+            if (path.EndsWith("/preview"))
+            {
+                Assert.Contains("sha=" + citedHash, request.RequestUri!.Query);
+                Assert.Contains("start=2&end=9", request.RequestUri.Query);
+                return Json(new SourcePreview("src/A.cs", citedHash, "passage", 2, 9, true));
+            }
             if (path.EndsWith("/models"))
             {
                 return Json(new[] { "demo", "other" });
@@ -136,7 +145,9 @@ public sealed class ChatTests
                 return Json(Array.Empty<PromptItem>());
             if (request.Method == HttpMethod.Get)
             {
-                return Json(new MessagePage(conversation!, messages.ToArray(), false, files));
+                int before = int.TryParse(request.RequestUri!.Query.Replace("?before=", ""), out var bound) ? bound : int.MaxValue;
+                var eligible = messages.Where(m => m.Sequence < before).ToArray();
+                return Json(new MessagePage(conversation!, eligible.TakeLast(100).ToArray(), eligible.Length > 100, files));
             }
 
             if (request.Method == HttpMethod.Delete)
@@ -187,7 +198,7 @@ public sealed class ChatTests
             {
                 DiagnosticsJson = JsonSerializer.Serialize(new TurnDiagnostics(
                     new GenerationUsage([new("chat", 100, 200, new(100, 20, null, null, "stop"))], "demo:fixture", "UTF-8 conservateur", 100, 20, 200, true),
-                    Citations: new("unknown_references", [], [], ["S000000000000"])), ProjectToolCatalog.Json),
+                    Citations: new("unknown_references", [new("Sabcdef123456", citedId, "src/A.cs", citedHash, 1, 1, 2, 9, "initial", true)], [], ["S000000000000"])), ProjectToolCatalog.Json),
                 ToolTraceJson = JsonSerializer.Serialize(new[]
                 { new ToolObservation(1, "project_read", "{}", true, 100, new("src/A.cs", new string('a', 64), 0, null, true)) }, ProjectToolCatalog.Json)
             };
@@ -223,6 +234,10 @@ public sealed class ChatTests
                 .Single(box => box.Name == "ConversationModelSelector");
             Assert.Equal("demo", conversationModel.SelectedItem);
             conversationModel.SelectedItem = "other";
+            var advanced = settingsDialog.GetVisualDescendants().OfType<Expander>().Single(e => Equals(e.Header, "Avancé"));
+            Assert.False(advanced.IsExpanded);
+            advanced.IsExpanded = true;
+            Dispatcher.UIThread.RunJobs();
             var fields = settingsDialog.GetVisualDescendants().OfType<TextBox>().ToArray();
             fields.Single(field => field.Text == "0.7").Text = "invalide";
             settingsDialog.GetVisualDescendants().OfType<Button>().Single(button => Equals(button.Content, "Enregistrer"))
@@ -267,11 +282,18 @@ public sealed class ChatTests
             Assert.Contains(window.FindControl<ItemsControl>("MessageList")!.GetVisualDescendants()
                 .OfType<MarkdownView>(), view => view.IsMarkdown && view.Children.Count >= 5);
 
-            var diagnostics = window.GetVisualDescendants().OfType<Expander>().Single(e => Equals(e.Header, messages[^1].DiagnosticsTitle));
+            var evidence = window.GetVisualDescendants().OfType<Button>().Single(b => Equals(b.Content, "Sources et détails") && b.IsVisible);
+            evidence.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            PumpUntil(() => window.FindControl<Border>("Inspector")!.IsVisible);
+            var inspector = window.FindControl<StackPanel>("InspectorBody")!;
+            inspector.Children.OfType<Button>().Single(b => b.Content?.ToString()?.Contains("src/A.cs") == true)
+                .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            PumpUntil(() => inspector.Children.OfType<MarkdownView>().Any(v => v.Text.Contains("passage") && v.Text.Contains(citedHash)));
+            var diagnostics = inspector.Children.OfType<Expander>().Single(e => Equals(e.Header, "Détails de la réponse"));
             diagnostics.IsExpanded = true;
-            Dispatcher.UIThread.RunJobs();
-            Assert.Contains(diagnostics.GetVisualDescendants().OfType<SelectableTextBlock>(), t => t.Text!.Contains("S000000000000"));
-            diagnostics.IsExpanded = false;
+            PumpUntil(() => diagnostics.GetVisualDescendants().OfType<SelectableTextBlock>().Any(t => t.Text?.Contains("S000000000000") == true));
+            Click(window, "CloseInspector");
+            Assert.False(window.FindControl<Border>("Inspector")!.IsVisible);
             // Optional visual evidence from the actual Avalonia/Skia rendering.
             if (Environment.GetEnvironmentVariable("ALYCIA_UI_CAPTURE") is { Length: > 0 } screenshot)
             {
@@ -280,8 +302,58 @@ public sealed class ChatTests
                 using var frame = window.CaptureRenderedFrame();
                 Assert.NotNull(frame);
                 frame.Save(screenshot, global::Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
+                var themeBefore = window.RequestedThemeVariant;
+                var oldWidth = window.Width;
+                var oldHeight = window.Height;
+                foreach (var (variant, name, width, height, size) in new[] {
+                    (global::Avalonia.Styling.ThemeVariant.Light, "aube-1280", 1280, 720, 18),
+                    (global::Avalonia.Styling.ThemeVariant.Dark, "nuit-1920", 1920, 1080, 18),
+                    (global::Avalonia.Styling.ThemeVariant.Light, "aube-200pc", 1280, 720, 36) })
+                {
+                    window.RequestedThemeVariant = variant;
+                    window.Width = width; window.Height = height;
+                    window.Resources["ReadingSize"] = (double)size;
+                    Dispatcher.UIThread.RunJobs();
+                    foreach (var view in window.GetVisualDescendants().OfType<MarkdownView>().ToArray()) view.RenderNow();
+                    Dispatcher.UIThread.RunJobs();
+                    using var themed = window.CaptureRenderedFrame();
+                    Assert.NotNull(themed);
+                    themed.Save(Path.ChangeExtension(screenshot, name + ".png"), global::Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
+                }
+                window.Resources.Remove("ReadingSize");
+                window.RequestedThemeVariant = themeBefore;
+                window.Width = oldWidth; window.Height = oldHeight;
             }
 
+            if (Environment.GetEnvironmentVariable("ALYCIA_UI_BENCHMARK") is { Length: > 0 } benchmarkPath)
+            {
+                var original = messages.ToArray();
+                var priorFiles = files;
+                messages.Clear();
+                files = [];
+                messages.AddRange(Enumerable.Range(1, 1000).Select(i => new ChatMessageItem(conversation.Id, i, Guid.Empty,
+                    i % 2 == 0 ? "assistant" : "user", i % 2 == 0 ? $"## Document {i}\\n\\nUn passage **français** et une mesure de lecture." : $"Analyser le document {i}.", DateTimeOffset.UnixEpoch)));
+                var bytesBefore = GC.GetTotalAllocatedBytes();
+                var watch = System.Diagnostics.Stopwatch.StartNew();
+                Click(window, "RefreshButton");
+                for (var page = 1; page < 10; page++) Click(window, "OlderButton");
+                var list = window.FindControl<ItemsControl>("MessageList")!;
+                PumpUntil(() => list.GetVisualDescendants().OfType<MarkdownView>().Count(view => view.Children.Count > 0) == 1000, 120);
+                var historyMs = watch.Elapsed.TotalMilliseconds;
+                var stream = window.FindControl<MarkdownView>("StreamingText")!;
+                var large = string.Concat(Enumerable.Repeat("Un paragraphe **important** et du code en ligne.\\n\\n", 2200))[..100000];
+                watch.Restart();
+                for (int end = 25000; end <= large.Length; end += 25000) { stream.Text = large[..end]; stream.RenderNow(); }
+                watch.Stop();
+                File.WriteAllText(benchmarkPath, JsonSerializer.Serialize(new { messages = 1000, characters = 100000,
+                    fragments = 4, historyMs, markdownMs = watch.Elapsed.TotalMilliseconds,
+                    allocatedBytes = GC.GetTotalAllocatedBytes() - bytesBefore, workingSetBytes = Environment.WorkingSet }));
+                stream.Text = "";
+                messages.Clear();
+                messages.AddRange(original);
+                files = priorFiles;
+                Click(window, "RefreshButton");
+            }
             window.Width = 960; window.Height = 700;
             PumpUntil(() => !window.FindControl<Border>("Sidebar")!.IsVisible);
             Assert.True(window.FindControl<ScrollViewer>("MessageScroll")!.Bounds.Width > 800);
@@ -353,9 +425,9 @@ public sealed class ChatTests
         PumpUntil(() => window.FindControl<Button>("RefreshButton")!.IsEnabled);
     }
 
-    private static void PumpUntil(Func<bool> condition)
+    private static void PumpUntil(Func<bool> condition, int seconds = 5)
     {
-        var timeout = DateTime.UtcNow.AddSeconds(5);
+        var timeout = DateTime.UtcNow.AddSeconds(seconds);
         while (!condition() && DateTime.UtcNow < timeout)
         {
             Dispatcher.UIThread.RunJobs();

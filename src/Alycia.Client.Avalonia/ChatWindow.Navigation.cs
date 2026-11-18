@@ -36,6 +36,7 @@ public partial class ChatWindow
             await RefreshProjectsAsync(created.Id);
             await SwitchProjectAsync(created);
         });
+        C<Button>("FocusButton").Click += (_, _) => ToggleConcentration();
         C<Button>("MoveButton").Click += async (_, _) => await RunAsync(MoveConversationAsync);
         C<Button>("MoreButton").Click += (_, _) =>
         {
@@ -44,7 +45,17 @@ public partial class ChatWindow
             if (menu.IsVisible) C<TextBox>("TitleInput").Focus();
         };
         C<Button>("AppearanceButton").Click += (_, _) => ShowPreferences();
-        C<Button>("SaveAppearanceButton").Click += async (_, _) => await RunAsync(SaveAppearanceAsync);
+        C<Button>("SaveAppearanceButton").Click += async (_, _) =>
+        {
+            if (!_busy) { await RunAsync(SaveAppearanceAsync); return; }
+            if (_generation is not null)
+            {
+                if ((C<TextBox>("ApiUrlInput").Text?.Trim() ?? "") != Appearance.Current.ApiUrl)
+                { Feedback("Terminez la génération avant de changer de connexion.", true); return; }
+                try { await SaveAppearanceAsync(); }
+                catch (Exception e) when (e is System.IO.IOException or UnauthorizedAccessException or ChatApiException) { Feedback(e.Message, true); }
+            }
+        };
         C<Button>("BackButton").Click += (_, _) => ShowChat();
         C<Button>("CloseInspector").Click += (_, _) => CloseInspector();
         C<Button>("ContextTab").Click += async (_, _) => await RunAsync(() => OpenInspectorAsync("context"));
@@ -53,6 +64,21 @@ public partial class ChatWindow
         C<Button>("InstructionsButton").Click += async (_, _) => await RunAsync(ProjectPreferencesAsync);
         C<ComboBox>("ThemeChoice").ItemsSource = new[] { "Système", "Aube", "Nuit" };
         C<ComboBox>("SizeChoice").ItemsSource = new[] { 14, 16, 17, 18, 20, 24, 28, 32, 36 };
+    }
+
+    private bool _concentrating;
+    private bool _sidebarBeforeFocus;
+    private void ToggleConcentration()
+    {
+        var side = C<Border>("Sidebar");
+        if (!_concentrating) _sidebarBeforeFocus = side.IsVisible;
+        _concentrating = !_concentrating;
+        _sidebarManual = true;
+        side.IsVisible = !_concentrating && _sidebarBeforeFocus;
+        CloseInspector();
+        ShowChat();
+        C<Button>("FocusButton").Content = _concentrating ? "Quitter la concentration" : "Mode concentration";
+        C<TextBox>("MessageInput").Focus();
     }
 
     private async Task RefreshProjectsAsync(Guid? selectedId)

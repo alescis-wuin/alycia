@@ -161,7 +161,7 @@ public sealed partial class MarkdownView : StackPanel
         switch (block)
         {
             case MathBlock math:
-                return math.ClosingFencedCharCount < 2 ? Plain(Raw(math, source)) : Formula(math.Lines.ToString(), false);
+                return math.ClosingFencedCharCount < 2 ? Plain("$$\n" + math.Lines.ToString()) : Formula(math.Lines.ToString(), false);
             case CodeBlock code: return CodePanel(code);
             case Footnote note:
                 var footnote = Container(note, source, depth);

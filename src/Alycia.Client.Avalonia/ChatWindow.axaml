@@ -12,7 +12,7 @@
     <Border x:Name="Sidebar" Width="248" Background="{DynamicResource BorealSurface}" Padding="16,20,16,12">
       <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="12">
         <StackPanel Orientation="Horizontal" Spacing="10" Margin="6,0,0,8">
-          <PathIcon Data="{StaticResource GlyphMark}" Foreground="{DynamicResource BorealIris}" Width="30" Height="30" />
+          <PathIcon Data="{x:Static local:Brand.Mark}" Foreground="{DynamicResource BorealIris}" Width="30" Height="30" />
           <TextBlock Text="alycia" FontSize="28" FontWeight="Bold" />
         </StackPanel>
         <StackPanel Grid.Row="1" x:Name="CreationPanel" Spacing="8">
@@ -60,7 +60,7 @@
           <Button x:Name="ActiveModelButton" Grid.Column="2" Classes="quiet" IsVisible="False" ToolTip.Tip="Modèle et réglages de cet échange" />
         </Grid>
         <StackPanel Grid.Row="1" x:Name="EmptyState" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="20" Spacing="10" IsHitTestVisible="False">
-          <PathIcon Data="{StaticResource GlyphMark}" Width="42" Height="42" Foreground="{DynamicResource BorealIris}" />
+          <PathIcon Data="{x:Static local:Brand.Mark}" Width="42" Height="42" Foreground="{DynamicResource BorealIris}" />
           <TextBlock x:Name="EmptyHint" TextAlignment="Center" TextWrapping="Wrap" FontSize="20" />
         </StackPanel>
         <ScrollViewer Grid.Row="1" x:Name="MessageScroll" HorizontalScrollBarVisibility="Disabled">
@@ -110,8 +110,13 @@
                        FontSize="{DynamicResource ReadingSize}" AcceptsReturn="True" Background="Transparent" BorderThickness="0" TextWrapping="Wrap"
                        MinHeight="50" MaxHeight="150" MaxLength="32000" />
               <Grid Grid.Row="1" ColumnDefinitions="Auto,Auto,*,Auto">
-                <Button x:Name="UploadButton" Classes="quiet icon" AutomationProperties.Name="Joindre des fichiers ou une archive" ToolTip.Tip="Joindre des fichiers ou une archive"><PathIcon Data="{StaticResource GlyphAttach}" /></Button>
-                <Button x:Name="FolderButton" Grid.Column="1" Classes="quiet" Content="Dossier" ToolTip.Tip="Joindre un dossier à cette conversation" />
+                <Button x:Name="UploadButton" Classes="quiet icon" AutomationProperties.Name="Joindre" ToolTip.Tip="Joindre"><PathIcon Data="{StaticResource GlyphAttach}" /></Button>
+                <WrapPanel Grid.Column="1" Grid.ColumnSpan="2" x:Name="AttachmentActions" IsVisible="False">
+                  <Button x:Name="AttachFileCommand" Classes="quiet" Content="Fichier" ToolTip.Tip="Joindre à cette conversation" />
+                  <Button x:Name="FolderButton" Classes="quiet" Content="Dossier" ToolTip.Tip="Joindre à cette conversation" />
+                  <Button x:Name="AttachArchiveCommand" Classes="quiet" Content="Archive" ToolTip.Tip="Joindre à cette conversation" />
+                  <Button x:Name="AttachProjectCommand" Classes="quiet" Content="Au projet…" />
+                </WrapPanel>
                 <Button x:Name="CancelButton" Grid.Column="3" Classes="primary icon" IsVisible="False" AutomationProperties.Name="Arrêter" ToolTip.Tip="Arrêter · Échap"><PathIcon Data="{StaticResource GlyphStop}" /></Button>
                 <Button x:Name="SendButton" Grid.Column="3" Classes="primary icon" AutomationProperties.Name="Envoyer" ToolTip.Tip="Envoyer · Ctrl+Entrée"><PathIcon Data="{StaticResource GlyphSend}" /></Button>
               </Grid>
@@ -149,7 +154,8 @@
               Background="{DynamicResource BorealSurface}" BorderBrush="{DynamicResource BorealOutline}" BorderThickness="1" Padding="12" Margin="8" CornerRadius="12">
         <ScrollViewer HorizontalScrollBarVisibility="Disabled"><WrapPanel x:Name="ConversationTools" MaxWidth="300">
           <TextBox x:Name="TitleInput" Width="196" MaxLength="100" AutomationProperties.Name="Titre de la conversation" /><Button x:Name="RenameButton" Content="Renommer" />
-          <Button x:Name="SettingsButton" Content="Réglages de conversation" /><Button x:Name="MoveButton" Content="Changer de projet" />
+          <Button x:Name="SettingsButton" Content="Réglages de conversation" /><Button x:Name="FocusButton" Content="Mode concentration" ToolTip.Tip="Ctrl+Maj+F" />
+          <Button x:Name="MoveButton" Content="Changer de projet" />
           <Button x:Name="AnalysisButton" Content="Analyses" /><Button x:Name="ProjectToolsButton" Content="Outils et diagnostics" />
           <Button x:Name="ForkButton" Content="Dupliquer" /><Button x:Name="RegenerateButton" Content="Régénérer une copie" />
           <Button x:Name="ExportButton" Content="Exporter" /><Button x:Name="DeleteButton" Content="Supprimer" Foreground="{DynamicResource BorealError}" />

@@ -12,6 +12,7 @@ public sealed class ProjectIndexService(ChatDbContext database, FileStorage stor
     {
         if (!await database.Conversations.AnyAsync(c => c.Id == conversation, ct)) throw new ConversationNotFoundException();
         var files = await database.ModelSources(conversation).Where(f => f.ContextMode != "excluded" && f.Text != "").OrderBy(f => f.Name).ThenBy(f => f.Id).ToArrayAsync(ct);
+        files = files.OrderByDescending(f => f.ContextMode == "pinned").DistinctBy(f => (f.Name, f.Sha256)).ToArray();
         var chunks = new List<SourceChunk>(); var omissions = new List<string>(); var characters = 0; var indexed = 0; var reused = 0;
         var directory = Path.Combine(storage.DirectoryFor(conversation), "index-v1");
         Directory.CreateDirectory(directory);
