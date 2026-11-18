@@ -43,6 +43,7 @@ internal static partial class ChatEndpoints
         { http.BaseAddress = uri; http.Timeout = Timeout.InfiniteTimeSpan; http.MaxResponseContentBufferSize = 8 * 1024 * 1024; })
             .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false, UseProxy = false });
         builder.Services.AddScoped<ProjectToolService>();
+        builder.Services.AddScoped<ISnapshotProjectTools>(sp => sp.GetRequiredService<ProjectToolService>());
         builder.Services.AddHttpClient<IProjectTools, ProjectMcpClient>(http => http.Timeout = Timeout.InfiniteTimeSpan)
             .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false, UseProxy = false });
         builder.Services.Configure<FormOptions>(form => form.MultipartBodyLengthLimit = FileImport.MaxBatchBytes);
@@ -112,6 +113,7 @@ internal static partial class ChatEndpoints
             }
         });
 
+        MapProjects(routes);
         MapConfiguration(routes);
         MapMemory(routes);
         MapAnalysis(routes);
@@ -126,9 +128,11 @@ internal static partial class ChatEndpoints
         routes.MapGet("/conversations", async (IChatRepository repository, CancellationToken ct) =>
             Results.Ok(await repository.ListAsync(ct)));
 
-        routes.MapPost("/conversations", async (CreateConversation request, ChatService service, CancellationToken ct) =>
+        routes.MapPost("/conversations", async (CreateConversation request, ChatService service, ChatDbContext database, CancellationToken ct) =>
         {
-            var conversation = await service.CreateAsync(request.Title, request.Model, request.SystemPrompt, ct);
+            var project = request.WorkspaceId is Guid projectId ? await RequireProjectAsync(database, projectId, ct) : null;
+            var model = string.IsNullOrWhiteSpace(request.Model) ? project?.DefaultModel : request.Model;
+            var conversation = await service.CreateAsync(request.Title, model, request.SystemPrompt, ct, request.WorkspaceId);
             return Results.Created($"/api/chat/conversations/{conversation.Id}", conversation);
         });
 
@@ -146,7 +150,7 @@ internal static partial class ChatEndpoints
             var files = await database.Attachments.AsNoTracking().Where(f => f.ConversationId == id
                 && f.AnchorSequence >= minimum && (before == null || f.AnchorSequence < before))
                 .Select(f => new FileSummary(f.Id, f.Name, f.Size, f.Status, f.AnchorSequence,
-                    f.CreatedAtUtc, f.ArchiveId, f.Sha256, f.ContextMode, f.BatchId, f.SourceCreatedAt, f.SourceModifiedAt, f.MetadataSource)).ToListAsync(ct);
+                    f.CreatedAtUtc, f.ArchiveId, f.Sha256, f.ContextMode, f.BatchId, f.SourceCreatedAt, f.SourceModifiedAt, f.MetadataSource, f.WorkspaceId)).ToListAsync(ct);
             return Results.Ok(new { conversation, messages, files, hasMore = messages.Count > 0 && messages[0].Sequence > 1 });
         });
 
@@ -169,40 +173,15 @@ internal static partial class ChatEndpoints
             return Results.NoContent();
         });
 
-        routes.MapPost("/conversations/{id:guid}/files/{batchId:guid}", async (Guid id, Guid batchId,
-            HttpRequest request, FileImport importer, CancellationToken ct) =>
-        {
-            if (!request.HasFormContentType) return Error(request.HttpContext, 415, "INVALID_UPLOAD", "Un formulaire multipart est requis.");
-            IFormCollection form;
-            try { form = await request.ReadFormAsync(ct); }
-            catch (InvalidDataException) { return Error(request.HttpContext, 413, "UPLOAD_TOO_LARGE", "Import limité à 100 Mio."); }
-            SourceFileMetadata[] metadata;
-            try
-            {
-                metadata = form.TryGetValue("metadata", out var raw)
-                ? JsonSerializer.Deserialize<SourceFileMetadata[]>(raw.ToString(), StreamJson) ?? [] : [];
-            }
-            catch (JsonException) { throw new ArgumentException("Métadonnées de fichiers invalides."); }
-            if (metadata.Length > FileImport.MaxEntries || metadata.Any(m => m is null || string.IsNullOrEmpty(m.Name))
-                || metadata.Select(m => m.Name).Distinct(StringComparer.Ordinal).Count() != metadata.Length)
-                throw new ArgumentException("Métadonnées de fichiers invalides.");
-            var lookup = metadata.ToDictionary(m => m.Name, StringComparer.Ordinal);
-            var incoming = form.Files.Select(file =>
-            {
-                lookup.TryGetValue(file.FileName, out var source);
-                return new IncomingFile(file.FileName, file.OpenReadStream(), source?.CreatedAt?.ToUniversalTime().ToString("O") ?? "",
-                    source?.ModifiedAt?.ToUniversalTime().ToString("O") ?? "", source is null ? "unknown" : "Dates rapportées par le système client");
-            }).ToArray();
-            try { return Results.Ok(await importer.ImportAsync(id, batchId, incoming, ct)); }
-            finally { foreach (var file in incoming) await file.Content.DisposeAsync(); }
-        });
+        routes.MapPost("/conversations/{id:guid}/files/{batchId:guid}", (Guid id, Guid batchId,
+            HttpRequest request, FileImport importer, CancellationToken ct) => UploadFilesAsync(id, batchId, request, importer, false, ct));
 
         routes.MapGet("/conversations/{id:guid}/files/{fileId:guid}", async (Guid id, Guid fileId,
             ChatDbContext database, FileStorage storage, HttpContext http, CancellationToken ct) =>
         {
-            var file = await database.Attachments.AsNoTracking().SingleOrDefaultAsync(f => f.Id == fileId && f.ConversationId == id, ct);
+            var file = await database.ForConversation(id).SingleOrDefaultAsync(f => f.Id == fileId, ct);
             if (file is null) return Error(http, 404, "FILE_NOT_FOUND", "Fichier introuvable.");
-            var path = storage.PathFor(id, fileId);
+            var path = storage.PathFor(file);
             if (!File.Exists(path)) return Error(http, 503, "FILE_UNAVAILABLE", "Le volume de fichiers est indisponible.");
             http.Response.Headers["X-Content-Type-Options"] = "nosniff";
             return Results.File(path, "application/octet-stream", Path.GetFileName(file.Name), enableRangeProcessing: true);
@@ -240,6 +219,33 @@ internal static partial class ChatEndpoints
             Results.Ok(await service.SendAsync(id, request.RequestId, request.Content, ct)));
     }
 
+    private static async Task<IResult> UploadFilesAsync(Guid id, Guid batchId, HttpRequest request, FileImport importer, bool workspace, CancellationToken ct)
+    {
+        if (!request.HasFormContentType) return Error(request.HttpContext, 415, "INVALID_UPLOAD", "Un formulaire multipart est requis.");
+        IFormCollection form;
+        try { form = await request.ReadFormAsync(ct); }
+        catch (InvalidDataException) { return Error(request.HttpContext, 413, "UPLOAD_TOO_LARGE", "Import limité à 100 Mio."); }
+        SourceFileMetadata[] metadata;
+        try
+        {
+            metadata = form.TryGetValue("metadata", out var raw)
+            ? JsonSerializer.Deserialize<SourceFileMetadata[]>(raw.ToString(), StreamJson) ?? [] : [];
+        }
+        catch (JsonException) { throw new ArgumentException("Métadonnées de fichiers invalides."); }
+        if (metadata.Length > FileImport.MaxEntries || metadata.Any(m => m is null || string.IsNullOrEmpty(m.Name))
+            || metadata.Select(m => m.Name).Distinct(StringComparer.Ordinal).Count() != metadata.Length)
+            throw new ArgumentException("Métadonnées de fichiers invalides.");
+        var lookup = metadata.ToDictionary(m => m.Name, StringComparer.Ordinal);
+        var incoming = form.Files.Select(file =>
+        {
+            lookup.TryGetValue(file.FileName, out var source);
+            return new IncomingFile(file.FileName, file.OpenReadStream(), source?.CreatedAt?.ToUniversalTime().ToString("O") ?? "",
+                source?.ModifiedAt?.ToUniversalTime().ToString("O") ?? "", source is null ? "unknown" : "Dates rapportées par le système client");
+        }).ToArray();
+        try { return Results.Ok(await importer.ImportAsync(id, batchId, incoming, ct, workspace)); }
+        finally { foreach (var file in incoming) await file.Content.DisposeAsync(); }
+    }
+
     private static IResult Error(HttpContext context, int status, string code, string message) =>
         Results.Json(new
         {
@@ -253,7 +259,7 @@ internal static partial class ChatEndpoints
             timestamp = DateTimeOffset.UtcNow
         }, statusCode: status);
 
-    private sealed record CreateConversation(string? Title, string? Model, string? SystemPrompt);
+    private sealed record CreateConversation(string? Title, string? Model, string? SystemPrompt, Guid? WorkspaceId = null);
     private sealed record RenameConversation(string? Title);
     private sealed record SendMessage(Guid RequestId, string? Content);
 }

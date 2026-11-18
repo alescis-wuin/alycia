@@ -10,13 +10,14 @@ internal static partial class ChatEndpoints
 {
     private static void MapHistory(RouteGroupBuilder routes)
     {
-        routes.MapGet("/search", async (string? q, int? offset, ChatDbContext database, CancellationToken ct) =>
+        routes.MapGet("/search", async (string? q, int? offset, Guid? workspaceId, bool? unassigned, ChatDbContext database, CancellationToken ct) =>
         {
             var query = q?.Trim() ?? "";
             if (query.Length > 200 || offset is < 0 or > 100000) throw new ArgumentException("Recherche invalide.");
             var pattern = "%" + query.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_") + "%";
             var matches = database.Conversations.AsNoTracking().Where(c => query == "" || EF.Functions.ILike(c.Title, pattern, "\\")
                 || database.Messages.Any(m => m.ConversationId == c.Id && EF.Functions.ILike(m.Content, pattern, "\\")));
+            if (workspaceId.HasValue || unassigned == true) matches = matches.Where(c => c.WorkspaceId == workspaceId);
             var items = await matches.OrderByDescending(c => c.UpdatedAtUtc).ThenBy(c => c.Id)
                 .Skip(offset ?? 0).Take(51).ToListAsync(ct);
             return Results.Ok(new { items = items.Take(50), hasMore = items.Count > 50 });
@@ -61,6 +62,7 @@ internal static partial class ChatEndpoints
             var archive = await ArchiveAsync(id, through, database, defaults, ct);
             archive = archive with { Title = ("Copie · " + archive.Title)[..Math.Min(100, archive.Title.Length + 8)] };
             var restored = ConversationTransfer.Restore(archive);
+            restored.Conversation.AssignWorkspace(original.WorkspaceId);
             var files = await database.Attachments.AsNoTracking().Where(f => f.ConversationId == id
                 && f.AnchorSequence <= through + 1).ToListAsync(ct);
             var ids = files.ToDictionary(f => f.Id, _ => Guid.NewGuid());
@@ -98,6 +100,12 @@ internal static partial class ChatEndpoints
                 if (!await database.Conversations.AnyAsync(c => c.Id == id && c.Revision == request.Revision, ct))
                     throw new ChatConflictException();
                 database.Conversations.Add(restored.Conversation);
+                if (original.WorkspaceId.HasValue)
+                {
+                    var localModes = await database.WorkspaceFileOverrides.AsNoTracking().Where(o => o.ConversationId == id).ToArrayAsync(ct);
+                    database.WorkspaceFileOverrides.AddRange(localModes.Select(o => new WorkspaceFileOverride
+                    { ConversationId = restored.Conversation.Id, FileId = o.FileId, Mode = o.Mode }));
+                }
                 database.Messages.AddRange(restored.Messages);
                 database.Attachments.AddRange(copies);
                 committing = true;
@@ -126,7 +134,9 @@ internal static partial class ChatEndpoints
             .Select(m => new ArchivedMessage(m.Role, m.Content, m.CreatedAtUtc, m.ToolTraceJson, m.DiagnosticsJson)).ToArrayAsync(ct);
         if (messages.Length != limit) throw new ChatConflictException();
         return new(1, conversation.Title, conversation.Model, conversation.SystemPrompt, conversation.ContextNotes,
-            ConversationConfiguration.Options(conversation, defaults), messages);
+            ConversationConfiguration.Options(conversation, defaults), messages, conversation.WorkspaceId,
+            conversation.WorkspaceId is Guid project ? await database.Attachments.AsNoTracking().Where(f => f.WorkspaceId == project)
+                .OrderBy(f => f.Name).Select(f => f.Name + " · " + f.Sha256).ToArrayAsync(ct) : null);
     }
 
     private sealed record ForkConversation(int Revision, int? ThroughSequence);

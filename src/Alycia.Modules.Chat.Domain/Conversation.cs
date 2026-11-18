@@ -3,6 +3,18 @@ namespace Alycia.Modules.Chat.Domain;
 public sealed class Conversation
 {
     public Guid Id { get; private set; }
+    public Guid? WorkspaceId { get; private set; }
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped, System.Text.Json.Serialization.JsonIgnore]
+    public WorkspaceProfile? ProjectSnapshot { get; set; }
+
+    public void AssignWorkspace(Guid? id)
+    {
+        if (WorkspaceId == id) return;
+        WorkspaceId = id;
+        ProjectSnapshot = null;
+        Touch();
+    }
+
     public string Title { get; private set; } = null!;
     public string Model { get; private set; } = null!;
     public string SystemPrompt { get; private set; } = null!;

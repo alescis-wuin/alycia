@@ -6,7 +6,7 @@ namespace Alycia.Modules.Chat.Application;
 
 public sealed record ArchivedMessage(string Role, string Content, DateTimeOffset CreatedAtUtc, string ToolTraceJson = "[]", string DiagnosticsJson = "{}");
 public sealed record ConversationArchive(int SchemaVersion, string Title, string Model, string SystemPrompt,
-    string ContextNotes, ChatOptions Options, ArchivedMessage[] Messages);
+    string ContextNotes, ChatOptions Options, ArchivedMessage[] Messages, Guid? SourceWorkspaceId = null, string[]? ReferencedProjectFiles = null);
 
 public static class ConversationTransfer
 {
@@ -92,6 +92,13 @@ public static class ConversationTransfer
             .Append("Modèle : ").AppendLine(archive.Model).AppendLine()
             .AppendLine("## Instruction système").AppendLine().AppendLine(archive.SystemPrompt).AppendLine()
             .AppendLine("## Notes de contexte").AppendLine().AppendLine(archive.ContextNotes).AppendLine();
+        if (archive.SourceWorkspaceId is Guid project)
+        {
+            text.Append("Projet d’origine : ").AppendLine(project.ToString());
+            text.AppendLine("Documents référencés uniquement. Les originaux, consignes et notes du projet restent dans la sauvegarde complète.");
+            foreach (var file in archive.ReferencedProjectFiles ?? []) text.Append("- ").AppendLine(file);
+            text.AppendLine();
+        }
         foreach (var message in archive.Messages)
             text.Append("## ").Append(message.Role == "user" ? "Vous" : "Alycia").Append(" · ")
                 .AppendLine(message.CreatedAtUtc.ToString("O")).AppendLine().AppendLine(message.Content).AppendLine();

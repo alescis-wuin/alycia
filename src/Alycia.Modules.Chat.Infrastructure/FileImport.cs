@@ -14,13 +14,17 @@ namespace Alycia.Modules.Chat.Infrastructure;
 public sealed record IncomingFile(string Name, Stream Content, string SourceCreatedAt = "", string SourceModifiedAt = "", string MetadataSource = "unknown");
 public sealed record SourceFileMetadata(string Name, DateTimeOffset? CreatedAt, DateTimeOffset? ModifiedAt);
 public sealed record FileSummary(Guid Id, string Name, long Size, string Status, int AnchorSequence,
-    DateTimeOffset CreatedAtUtc, Guid? ArchiveId, string Sha256, string ContextMode = "window", Guid BatchId = default, string SourceCreatedAt = "", string SourceModifiedAt = "", string MetadataSource = "unknown");
+    DateTimeOffset CreatedAtUtc, Guid? ArchiveId, string Sha256, string ContextMode = "window", Guid BatchId = default, string SourceCreatedAt = "", string SourceModifiedAt = "", string MetadataSource = "unknown", Guid? WorkspaceId = null);
 
 public sealed class FileStorage(string root)
 {
     public string Root { get; } = Path.GetFullPath(root);
     public string DirectoryFor(Guid conversation) => Path.Combine(Root, conversation.ToString("N"));
     public string PathFor(Guid conversation, Guid file) => Path.Combine(DirectoryFor(conversation), file.ToString("N") + ".bin");
+    public string WorkspaceDirectory(Guid id) => Path.Combine(Root, "projects", id.ToString("N"));
+    public string PathFor(Attachment file) => file.WorkspaceId is Guid project
+        ? Path.Combine(WorkspaceDirectory(project), file.Id.ToString("N") + ".bin")
+        : PathFor(file.ConversationId!.Value, file.Id);
     public void DeleteConversation(Guid conversation)
     {
         var directory = DirectoryFor(conversation);
@@ -37,17 +41,21 @@ public sealed class FileImport(ChatDbContext database, FileStorage storage)
     public const int MaxTextBytes = 200_000;
 
     public static FileSummary Summary(Attachment f) => new(f.Id, f.Name, f.Size, f.Status,
-        f.AnchorSequence, f.CreatedAtUtc, f.ArchiveId, f.Sha256, f.ContextMode, f.BatchId, f.SourceCreatedAt, f.SourceModifiedAt, f.MetadataSource);
+        f.AnchorSequence, f.CreatedAtUtc, f.ArchiveId, f.Sha256, f.ContextMode, f.BatchId, f.SourceCreatedAt, f.SourceModifiedAt, f.MetadataSource, f.WorkspaceId);
 
     public async Task<IReadOnlyList<FileSummary>> ImportAsync(Guid conversationId, Guid batchId,
-        IReadOnlyList<IncomingFile> incoming, CancellationToken ct)
+        IReadOnlyList<IncomingFile> incoming, CancellationToken ct, bool workspace = false)
     {
         if (batchId == Guid.Empty || incoming.Count is < 1 or > MaxEntries)
             throw new ArgumentException("Import limité à 500 fichiers ; identifiant de lot requis.");
-        var conversation = await database.Conversations.SingleOrDefaultAsync(c => c.Id == conversationId, ct)
+        var conversation = workspace ? null : await database.Conversations.SingleOrDefaultAsync(c => c.Id == conversationId, ct)
             ?? throw new ConversationNotFoundException();
-        var previous = await database.Attachments.AsNoTracking()
-            .Where(f => f.ConversationId == conversationId && f.BatchId == batchId).ToListAsync(ct);
+        var profile = workspace ? await database.WorkspaceProfiles.SingleOrDefaultAsync(p => p.Id == conversationId && !p.Archived, ct)
+            ?? throw new ArgumentException("Projet indisponible.") : null;
+        var owned = workspace ? database.Attachments.Where(f => f.WorkspaceId == conversationId)
+            : database.Attachments.Where(f => f.ConversationId == conversationId);
+        var previous = await owned.AsNoTracking()
+            .Where(f => f.BatchId == batchId).ToListAsync(ct);
         var files = new List<Attachment>();
         var payloads = new List<(Attachment File, byte[] Bytes)>();
         long total = 0;
@@ -66,14 +74,15 @@ public sealed class FileImport(ChatDbContext database, FileStorage storage)
             var file = new Attachment
             {
                 Id = Guid.NewGuid(),
-                ConversationId = conversationId,
+                ConversationId = workspace ? null : conversationId,
+                WorkspaceId = workspace ? conversationId : null,
                 BatchId = batchId,
                 ArchiveId = archive,
-                ContextMode = archive.HasValue || name.Contains('/') ? "project" : "window",
+                ContextMode = workspace || archive.HasValue || name.Contains('/') ? "project" : "window",
                 Name = name,
                 Size = bytes.Length,
                 Sha256 = Convert.ToHexString(SHA256.HashData(bytes)),
-                AnchorSequence = conversation.MessageCount + 1,
+                AnchorSequence = (conversation?.MessageCount ?? 0) + 1,
                 SourceCreatedAt = created,
                 SourceModifiedAt = modified,
                 MetadataSource = source,
@@ -147,23 +156,24 @@ public sealed class FileImport(ChatDbContext database, FileStorage storage)
             if (!oldRoots.SequenceEqual(newRoots)) throw new ChatConflictException();
             return previous.OrderBy(f => f.CreatedAtUtc).Select(Summary).ToArray();
         }
-        var stored = await database.Attachments.Where(f => f.ConversationId == conversationId)
+        var stored = await owned
             .Select(f => f.Size).ToListAsync(ct);
         if (stored.Count + files.Count > 500 || stored.Sum() + total > 1024L * 1024 * 1024)
             throw new ArgumentException("Limite de conversation : 500 fichiers ou 1 Gio.");
-        Directory.CreateDirectory(storage.DirectoryFor(conversationId));
+        Directory.CreateDirectory(workspace ? storage.WorkspaceDirectory(conversationId) : storage.DirectoryFor(conversationId));
         var written = new List<string>();
         var committing = false;
         try
         {
             foreach (var (file, bytes) in payloads)
             {
-                var path = storage.PathFor(conversationId, file.Id);
+                var path = storage.PathFor(file);
                 written.Add(path);
                 await File.WriteAllBytesAsync(path, bytes, ct);
             }
             database.Attachments.AddRange(files);
-            conversation.AttachFiles();
+            conversation?.AttachFiles();
+            if (profile is not null) profile.Revision++;
             committing = true;
             await new EfChatRepository(database).SaveAsync(ct);
         }

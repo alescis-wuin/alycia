@@ -7,13 +7,26 @@ namespace Alycia.Modules.Chat.Infrastructure;
 
 public sealed class EfChatRepository(ChatDbContext database) : IChatRepository
 {
+    public async Task<IChatTurnScope?> BeginTurnAsync(Guid id, CancellationToken ct)
+    {
+        if (!await database.Conversations.AnyAsync(c => c.Id == id && c.WorkspaceId != null, ct)) return null;
+        var transaction = await database.Database.BeginTransactionAsync(System.Data.IsolationLevel.RepeatableRead, ct);
+        return new TurnScope(transaction);
+    }
+
+    private sealed class TurnScope(Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction transaction) : IChatTurnScope
+    {
+        public Task CommitAsync(CancellationToken ct) => transaction.CommitAsync(ct);
+        public ValueTask DisposeAsync() => transaction.DisposeAsync();
+    }
+
     public async Task<IReadOnlyList<Attachment>> FilesAsync(Guid id, CancellationToken cancellationToken) =>
-        await database.Attachments.AsNoTracking().Where(f => f.ConversationId == id)
+        await database.ForConversation(id)
             .OrderBy(f => f.CreatedAtUtc).ToListAsync(cancellationToken);
 
     public async Task<IReadOnlyList<Attachment>> ContextFilesAsync(Guid id, int first, CancellationToken ct)
     {
-        var files = await database.Attachments.AsNoTracking().Where(f => f.ConversationId == id && f.ContextMode != "excluded"
+        var files = await database.ForConversation(id).Where(f => f.ContextMode != "excluded"
             && ((f.ContextMode == "pinned" || f.ContextMode == "project") || f.AnchorSequence >= first) && f.Text != "")
             .OrderBy(f => f.CreatedAtUtc).ToListAsync(ct);
         var summaries = await database.DocumentAnalyses.AsNoTracking().Where(a => a.ConversationId == id && a.UseInContext).ToArrayAsync(ct);
@@ -47,8 +60,13 @@ public sealed class EfChatRepository(ChatDbContext database) : IChatRepository
         await database.Conversations.AsNoTracking().OrderByDescending(item => item.UpdatedAtUtc)
             .ThenBy(item => item.Id).ToListAsync(cancellationToken);
 
-    public Task<Conversation?> FindAsync(Guid id, CancellationToken cancellationToken) =>
-        database.Conversations.SingleOrDefaultAsync(item => item.Id == id, cancellationToken);
+    public async Task<Conversation?> FindAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var conversation = await database.Conversations.SingleOrDefaultAsync(item => item.Id == id, cancellationToken);
+        if (conversation?.WorkspaceId is Guid project)
+            conversation.ProjectSnapshot = await database.WorkspaceProfiles.AsNoTracking().SingleAsync(p => p.Id == project, cancellationToken);
+        return conversation;
+    }
 
     public async Task AddAsync(Conversation conversation, CancellationToken cancellationToken)
     {
@@ -67,7 +85,7 @@ public sealed class EfChatRepository(ChatDbContext database) : IChatRepository
             throw new ChatConflictException();
         }
         catch (DbUpdateException exception) when (exception.InnerException is PostgresException
-        { SqlState: PostgresErrorCodes.UniqueViolation or PostgresErrorCodes.ForeignKeyViolation })
+        { SqlState: PostgresErrorCodes.UniqueViolation or PostgresErrorCodes.ForeignKeyViolation or PostgresErrorCodes.SerializationFailure })
         {
             throw new ChatConflictException();
         }

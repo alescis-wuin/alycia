@@ -52,3 +52,6 @@ public static class ProjectToolCatalog
     { type = "function", function = new { name = t.Name, description = t.Description, parameters = t.InputSchema } }).ToArray();
     private static JsonElement Schema(string json) => JsonSerializer.Deserialize<JsonElement>(json);
 }
+
+// Executes against the caller’s scoped database transaction.
+public interface ISnapshotProjectTools : IProjectTools { }

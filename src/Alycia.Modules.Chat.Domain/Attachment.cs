@@ -3,7 +3,8 @@ namespace Alycia.Modules.Chat.Domain;
 public sealed class Attachment
 {
     public Guid Id { get; set; }
-    public Guid ConversationId { get; set; }
+    public Guid? WorkspaceId { get; set; }
+    public Guid? ConversationId { get; set; }
     public Guid BatchId { get; set; }
     public Guid? ArchiveId { get; set; }
     public string Name { get; set; } = "";

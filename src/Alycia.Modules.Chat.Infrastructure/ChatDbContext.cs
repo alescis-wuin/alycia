@@ -6,6 +6,8 @@ namespace Alycia.Modules.Chat.Infrastructure;
 
 public sealed class ChatDbContext(DbContextOptions<ChatDbContext> options) : DbContext(options)
 {
+    public DbSet<WorkspaceProfile> WorkspaceProfiles => Set<WorkspaceProfile>();
+    public DbSet<WorkspaceFileOverride> WorkspaceFileOverrides => Set<WorkspaceFileOverride>();
     public DbSet<DocumentAnalysis> DocumentAnalyses => Set<DocumentAnalysis>();
     public DbSet<Attachment> Attachments => Set<Attachment>();
     public DbSet<Conversation> Conversations => Set<Conversation>();
@@ -15,6 +17,23 @@ public sealed class ChatDbContext(DbContextOptions<ChatDbContext> options) : DbC
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema("chat");
+        modelBuilder.Entity<WorkspaceProfile>(entity =>
+        {
+            entity.ToTable("workspace_profiles");
+            entity.HasKey(p => p.Id);
+            entity.Property(p => p.Id).ValueGeneratedNever();
+            entity.Property(p => p.Instructions).HasMaxLength(4000);
+            entity.Property(p => p.DefaultModel).HasMaxLength(200);
+            entity.Property(p => p.Revision).IsConcurrencyToken();
+        });
+        modelBuilder.Entity<WorkspaceFileOverride>(entity =>
+        {
+            entity.ToTable("workspace_file_overrides");
+            entity.HasKey(o => new { o.ConversationId, o.FileId });
+            entity.Property(o => o.Mode).HasMaxLength(16);
+            entity.HasOne<Conversation>().WithMany().HasForeignKey(o => o.ConversationId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<Attachment>().WithMany().HasForeignKey(o => o.FileId).OnDelete(DeleteBehavior.Cascade);
+        });
         modelBuilder.Entity<DocumentAnalysis>(entity =>
         {
             entity.ToTable("document_analyses");
@@ -36,7 +55,9 @@ public sealed class ChatDbContext(DbContextOptions<ChatDbContext> options) : DbC
         });
         modelBuilder.Entity<Attachment>(entity =>
         {
-            entity.ToTable("attachments");
+            entity.ToTable("attachments", table => table.HasCheckConstraint("ck_attachment_owner",
+                "num_nonnulls(\"ConversationId\", \"WorkspaceId\") = 1"));
+            entity.HasOne<WorkspaceProfile>().WithMany().HasForeignKey(f => f.WorkspaceId).OnDelete(DeleteBehavior.Restrict);
             entity.HasKey(f => f.Id);
             entity.Property(f => f.Id).ValueGeneratedNever();
             entity.Property(f => f.Name).HasMaxLength(1024).IsRequired();
@@ -52,6 +73,7 @@ public sealed class ChatDbContext(DbContextOptions<ChatDbContext> options) : DbC
         modelBuilder.Entity<Conversation>(entity =>
         {
             entity.ToTable("conversations");
+            entity.HasOne<WorkspaceProfile>().WithMany().HasForeignKey(c => c.WorkspaceId).OnDelete(DeleteBehavior.Restrict);
             entity.HasKey(item => item.Id);
             entity.Property(item => item.Id).ValueGeneratedNever();
             entity.Property(item => item.Title).HasMaxLength(100).IsRequired();

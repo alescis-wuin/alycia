@@ -2,12 +2,13 @@ using Alycia.Modules.Chat.Domain;
 
 namespace Alycia.Modules.Chat.Application;
 
-public sealed partial class ChatService(IChatRepository repository, IChatModel model, ChatOptions options, IProjectTools? projectTools = null, IProjectRetrieval? retrieval = null)
+public sealed partial class ChatService(IChatRepository repository, IChatModel model, ChatOptions options, IProjectTools? projectTools = null, IProjectRetrieval? retrieval = null, ISnapshotProjectTools? snapshotTools = null)
 {
     public async Task<Conversation> CreateAsync(string? title, string? modelName, string? systemPrompt,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, Guid? workspaceId = null)
     {
         var conversation = Conversation.Create(title, modelName, systemPrompt);
+        conversation.AssignWorkspace(workspaceId);
         // Validate the system instruction before accepting a conversation.
         SlidingContext.Build(conversation.SystemPrompt, [], "Bonjour", options);
         var models = await model.ListModelsAsync(cancellationToken);
@@ -37,6 +38,7 @@ public sealed partial class ChatService(IChatRepository repository, IChatModel m
         }
 
         var text = Conversation.RequiredText(content, 32000, "Le message");
+        await using var snapshot = await repository.BeginTurnAsync(id, cancellationToken);
         var conversation = await repository.FindAsync(id, cancellationToken)
             ?? throw new ConversationNotFoundException();
         var previous = await repository.FindTurnAsync(id, requestId, cancellationToken);
@@ -60,7 +62,8 @@ public sealed partial class ChatService(IChatRepository repository, IChatModel m
             settings.SourceCandidates = sources.Chunks; settings.RetrievalReport = sources.Report;
             measured.AddCalls(sources.Calls);
         }
-        var useTools = settings.UseProjectTools && projectTools is not null && await projectTools.HasSourcesAsync(id, cancellationToken)
+        var activeTools = conversation.WorkspaceId.HasValue && snapshotTools is not null ? snapshotTools : projectTools;
+        var useTools = settings.UseProjectTools && activeTools is not null && await activeTools.HasSourcesAsync(id, cancellationToken)
             && await model.SupportsToolsAsync(conversation.Model, cancellationToken);
         var contextSettings = useTools ? ProjectAgent.ContextOptions(settings) : settings;
         PreparedContext? prepared = null;
@@ -78,7 +81,7 @@ public sealed partial class ChatService(IChatRepository repository, IChatModel m
             window = FileContext.Build(ConversationConfiguration.System(conversation), history, text, contextSettings, files, conversation.MessageCount + 1);
         }
         if (useTools) window = window with { ToolReserve = ProjectAgent.Reserve(settings) };
-        var generated = useTools ? await ProjectAgent.RunAsync(measured, projectTools!, id, conversation.Model, window, settings, onDelta, cancellationToken)
+        var generated = useTools ? await ProjectAgent.RunAsync(measured, activeTools!, id, conversation.Model, window, settings, onDelta, cancellationToken)
             : onDelta is null
             ? new GenerationReply(await measured.GenerateAsync(conversation.Model, window.Messages, settings, cancellationToken))
             : await measured.StreamAsync(conversation.Model, window.Messages, settings, onDelta, cancellationToken);
@@ -99,11 +102,12 @@ public sealed partial class ChatService(IChatRepository repository, IChatModel m
         }
         var usage = measured.Snapshot(settings);
         assistant.SetDiagnostics(System.Text.Json.JsonSerializer.Serialize(new TurnDiagnostics(usage, settings.RetrievalReport, window.Memory, CitationAudit.Check(reply, window.Sources, generated.Tools), generated.Warnings,
-            ClaimAudit.Check(reply, window.Sources, generated.EvidenceTexts)), ProjectToolCatalog.Json));
+            ClaimAudit.Check(reply, window.Sources, generated.EvidenceTexts), conversation.WorkspaceId, conversation.ProjectSnapshot?.Revision), ProjectToolCatalog.Json));
         conversation.CompleteTurn();
         // One atomic SaveChanges for both messages and the revision. A failed
         // model call/cancellation never leaves an orphan user message in storage.
         await repository.AppendTurnAsync(conversation, user, assistant, cancellationToken);
+        if (snapshot is not null) await snapshot.CommitAsync(cancellationToken);
         return new([user, assistant], window.HistoryMessagesIncluded, false, window.FilesIncluded, window.EstimatedInputTokens, generated.Stats, usage);
     }
 }

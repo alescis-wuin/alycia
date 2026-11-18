@@ -18,7 +18,7 @@ public sealed class ProjectSourceReader(FileStorage storage)
         if (file.Text.Length == 0) return new("", false, file.Status);
         try
         {
-            await using var stream = File.OpenRead(storage.PathFor(file.ConversationId, file.Id));
+            await using var stream = File.OpenRead(storage.PathFor(file));
             var bytes = await FileImport.ReadBoundedAsync(stream, FileImport.MaxFileBytes, ct);
             if (!Convert.ToHexString(SHA256.HashData(bytes)).Equals(file.Sha256, StringComparison.OrdinalIgnoreCase))
                 throw new ArgumentException("L’original a changé : réimportez-le avant consultation.");

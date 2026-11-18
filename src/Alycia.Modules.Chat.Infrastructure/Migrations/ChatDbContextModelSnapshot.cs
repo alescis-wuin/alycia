@@ -44,7 +44,7 @@ namespace Alycia.Modules.Chat.Infrastructure.Migrations
                         .HasColumnType("character varying(16)")
                         .HasDefaultValue("window");
 
-                    b.Property<Guid>("ConversationId")
+                    b.Property<Guid?>("ConversationId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTimeOffset>("CreatedAtUtc")
@@ -97,7 +97,10 @@ namespace Alycia.Modules.Chat.Infrastructure.Migrations
 
                     b.HasIndex("ConversationId", "BatchId");
 
-                    b.ToTable("attachments", "chat");
+                    b.Property<Guid?>("WorkspaceId").HasColumnType("uuid");
+                    b.HasIndex("WorkspaceId");
+
+                    b.ToTable("attachments", "chat", t => t.HasCheckConstraint("ck_attachment_owner", "num_nonnulls(\"ConversationId\", \"WorkspaceId\") = 1"));
                 });
 
             modelBuilder.Entity("Alycia.Modules.Chat.Domain.ChatMessage", b =>
@@ -222,6 +225,9 @@ namespace Alycia.Modules.Chat.Infrastructure.Migrations
 
                     b.HasIndex("UpdatedAtUtc");
 
+                    b.Property<Guid?>("WorkspaceId").HasColumnType("uuid");
+                    b.HasIndex("WorkspaceId");
+
                     b.ToTable("conversations", "chat");
                 });
 
@@ -302,13 +308,46 @@ namespace Alycia.Modules.Chat.Infrastructure.Migrations
                     b.ToTable("prompt_profiles", "chat");
                 });
 
+            modelBuilder.Entity("Alycia.Modules.Chat.Domain.WorkspaceProfile", b =>
+                {
+                    b.Property<Guid>("Id").HasColumnType("uuid");
+                    b.Property<bool>("Archived").HasColumnType("boolean");
+                    b.Property<string>("DefaultModel").IsRequired().HasMaxLength(200).HasColumnType("character varying(200)");
+                    b.Property<string>("Instructions").IsRequired().HasMaxLength(4000).HasColumnType("character varying(4000)");
+                    b.Property<string>("NotesJson").IsRequired().HasColumnType("text");
+                    b.Property<int>("Revision").IsConcurrencyToken().HasColumnType("integer");
+                    b.HasKey("Id");
+                    b.ToTable("workspace_profiles", "chat");
+                });
+
+            modelBuilder.Entity("Alycia.Modules.Chat.Domain.WorkspaceFileOverride", b =>
+                {
+                    b.Property<Guid>("ConversationId").HasColumnType("uuid");
+                    b.Property<Guid>("FileId").HasColumnType("uuid");
+                    b.Property<string>("Mode").IsRequired().HasMaxLength(16).HasColumnType("character varying(16)");
+                    b.HasKey("ConversationId", "FileId");
+                    b.HasIndex("FileId");
+                    b.ToTable("workspace_file_overrides", "chat");
+                });
+
+            modelBuilder.Entity("Alycia.Modules.Chat.Domain.WorkspaceFileOverride", b =>
+                {
+                    b.HasOne("Alycia.Modules.Chat.Domain.Conversation", null).WithMany().HasForeignKey("ConversationId").OnDelete(DeleteBehavior.Cascade).IsRequired();
+                    b.HasOne("Alycia.Modules.Chat.Domain.Attachment", null).WithMany().HasForeignKey("FileId").OnDelete(DeleteBehavior.Cascade).IsRequired();
+                });
+
+            modelBuilder.Entity("Alycia.Modules.Chat.Domain.Conversation", b =>
+                {
+                    b.HasOne("Alycia.Modules.Chat.Domain.WorkspaceProfile", null).WithMany().HasForeignKey("WorkspaceId").OnDelete(DeleteBehavior.Restrict);
+                });
+
             modelBuilder.Entity("Alycia.Modules.Chat.Domain.Attachment", b =>
                 {
                     b.HasOne("Alycia.Modules.Chat.Domain.Conversation", null)
                         .WithMany()
                         .HasForeignKey("ConversationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
+                    b.HasOne("Alycia.Modules.Chat.Domain.WorkspaceProfile", null).WithMany().HasForeignKey("WorkspaceId").OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("Alycia.Modules.Chat.Domain.ChatMessage", b =>

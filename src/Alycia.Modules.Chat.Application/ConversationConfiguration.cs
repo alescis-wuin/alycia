@@ -23,7 +23,7 @@ public static class ConversationConfiguration
         return JsonSerializer.Serialize(options, Json);
     }
 
-    public static string System(Conversation conversation) => conversation.SystemPrompt
+    public static string System(Conversation conversation) => (conversation.ProjectSnapshot?.SystemText() ?? "") + conversation.SystemPrompt
         + (conversation.ContextNotes.Length == 0 ? "" : "\n\nNotes de référence fournies par l’utilisateur :\n" + conversation.ContextNotes);
 
     public static void CheckRevision(Conversation conversation, int revision)

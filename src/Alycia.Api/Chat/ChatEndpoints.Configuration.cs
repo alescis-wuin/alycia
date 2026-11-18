@@ -69,9 +69,9 @@ internal static partial class ChatEndpoints
         {
             if (!await database.Conversations.AnyAsync(c => c.Id == id, ct)) throw new ConversationNotFoundException();
             // Project metadata in SQL: do not load extracted documents for this list.
-            return Results.Ok(await database.Attachments.AsNoTracking().Where(f => f.ConversationId == id)
+            return Results.Ok(await database.ForConversation(id)
                 .OrderBy(f => f.CreatedAtUtc).Select(f => new FileSummary(f.Id, f.Name, f.Size, f.Status,
-                    f.AnchorSequence, f.CreatedAtUtc, f.ArchiveId, f.Sha256, f.ContextMode, f.BatchId, f.SourceCreatedAt, f.SourceModifiedAt, f.MetadataSource)).ToListAsync(ct));
+                    f.AnchorSequence, f.CreatedAtUtc, f.ArchiveId, f.Sha256, f.ContextMode, f.BatchId, f.SourceCreatedAt, f.SourceModifiedAt, f.MetadataSource, f.WorkspaceId)).ToListAsync(ct));
         });
 
         routes.MapPatch("/conversations/{id:guid}/files/{fileId:guid}", async (Guid id, Guid fileId,
@@ -81,6 +81,16 @@ internal static partial class ChatEndpoints
                 throw new ArgumentException("Mode documentaire invalide.");
             var conversation = await repository.FindAsync(id, ct) ?? throw new ConversationNotFoundException();
             ConversationConfiguration.CheckRevision(conversation, request.Revision);
+            if (conversation.WorkspaceId is Guid project && await database.Attachments.AnyAsync(f => f.Id == fileId && f.WorkspaceId == project, ct))
+            {
+                if (request.Mode == "window") throw new ArgumentException("Une source du projet est disponible, épinglée ou exclue.");
+                var entry = await database.WorkspaceFileOverrides.FindAsync([id, fileId], ct);
+                if (entry is null) database.WorkspaceFileOverrides.Add(new() { ConversationId = id, FileId = fileId, Mode = request.Mode });
+                else entry.Mode = request.Mode;
+                conversation.AttachFiles();
+                await repository.SaveAsync(ct);
+                return Results.Ok(FileImport.Summary(await database.ForConversation(id).SingleAsync(f => f.Id == fileId, ct)));
+            }
             var file = await database.Attachments.SingleOrDefaultAsync(f => f.ConversationId == id && f.Id == fileId, ct)
                 ?? throw new ArgumentException("Fichier introuvable.");
             file.ContextMode = request.Mode;

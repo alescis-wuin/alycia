@@ -29,8 +29,7 @@ public sealed class DocumentAnalysisService(ChatDbContext database, IChatModel m
         }
         if (await database.DocumentAnalyses.CountAsync(a => a.ConversationId == id, ct) >= 50)
             throw new ArgumentException("Limite de 50 analyses : supprimez une ancienne analyse avant de continuer.");
-        var files = await database.Attachments.AsNoTracking().Where(f => f.ConversationId == id
-            && (!batch.HasValue || f.BatchId == batch)).OrderBy(f => f.Name).ThenBy(f => f.Id).ToArrayAsync(ct);
+        var files = await database.ForConversation(id).Where(f => (!batch.HasValue || f.BatchId == batch)).OrderBy(f => f.Name).ThenBy(f => f.Id).ToArrayAsync(ct);
         if (files.Length == 0) throw new ArgumentException("Aucun fichier dans ce périmètre. Importez un dossier ou une archive.");
         var options = await model.PrepareOptionsAsync(conversation.Model, ConversationConfiguration.Options(conversation, defaults), ct);
         var measured = new MeteredChatModel(model);
@@ -222,7 +221,7 @@ public sealed class DocumentAnalysisService(ChatDbContext database, IChatModel m
     }
 
     public static async Task<InventoryFile[]> MetadataAsync(ChatDbContext database, Guid id, CancellationToken ct) =>
-        await database.Attachments.AsNoTracking().Where(f => f.ConversationId == id)
+        await database.ForConversation(id)
             .Select(f => new InventoryFile(f.Id, f.BatchId, f.ArchiveId, f.Name, f.Size, f.Sha256,
                 Path.GetExtension(f.Name), f.SourceCreatedAt, f.SourceModifiedAt, f.MetadataSource,
                 f.CreatedAtUtc, f.Status, f.ContextMode)).ToArrayAsync(ct);

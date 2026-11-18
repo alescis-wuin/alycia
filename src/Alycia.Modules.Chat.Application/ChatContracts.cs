@@ -3,8 +3,14 @@ using System.Text.Json.Serialization;
 
 namespace Alycia.Modules.Chat.Application;
 
+public interface IChatTurnScope : IAsyncDisposable
+{
+    Task CommitAsync(CancellationToken ct);
+}
+
 public interface IChatRepository
 {
+    Task<IChatTurnScope?> BeginTurnAsync(Guid id, CancellationToken ct) => Task.FromResult<IChatTurnScope?>(null);
     Task<IReadOnlyList<Attachment>> FilesAsync(Guid id, CancellationToken cancellationToken);
     async Task<IReadOnlyList<Attachment>> ContextFilesAsync(Guid id, int first, CancellationToken ct) =>
         (await FilesAsync(id, ct)).Where(f => f.ContextMode != "excluded"
