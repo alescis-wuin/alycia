@@ -93,7 +93,7 @@ public partial class ChatWindow : Window
         KeyDown += async (_, e) =>
         {
             if (e.Key == Key.Escape && C<WrapPanel>("AttachmentActions").IsVisible) { C<WrapPanel>("AttachmentActions").IsVisible = false; C<Button>("UploadButton").Focus(); e.Handled = true; return; }
-            if (e.Key == Key.Escape && C<Border>("Inspector").IsVisible) { CloseInspector(); e.Handled = true; return; }
+            if (e.Key == Key.Escape && C<Border>("Inspector").IsVisible) { HideInspector(); e.Handled = true; return; }
             if (e.Key == Key.Escape && C<Border>("ActionMenu").IsVisible) { C<Border>("ActionMenu").IsVisible = false; C<Button>("MoreButton").Focus(); e.Handled = true; return; }
             if (e.Key == Key.Escape && _generation is not null) { _generation.Cancel(); e.Handled = true; }
             if (!e.KeyModifiers.HasFlag(KeyModifiers.Control)) return;
@@ -248,7 +248,7 @@ public partial class ChatWindow : Window
         bool follow = !keepReading || _followOutput;
         var previousOffset = C<ScrollViewer>("MessageScroll").Offset;
         SaveDraft();
-        CloseInspector();
+        HideInspector();
         _evidence = null;
         var page = await _client.MessagesAsync(conversation.Id, null, _lifetime.Token);
         _current = page.Conversation;

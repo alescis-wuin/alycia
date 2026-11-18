@@ -57,7 +57,7 @@ public partial class ChatWindow
             }
         };
         C<Button>("BackButton").Click += (_, _) => ShowChat();
-        C<Button>("CloseInspector").Click += (_, _) => CloseInspector();
+        C<Button>("CloseInspector").Click += (_, _) => HideInspector();
         C<Button>("ContextTab").Click += async (_, _) => await RunAsync(() => OpenInspectorAsync("context"));
         C<Button>("SourcesTab").Click += async (_, _) => await RunAsync(() => OpenInspectorAsync("sources"));
         C<Button>("MemoryTab").Click += async (_, _) => await RunAsync(() => OpenInspectorAsync("memory"));
@@ -75,7 +75,7 @@ public partial class ChatWindow
         _concentrating = !_concentrating;
         _sidebarManual = true;
         side.IsVisible = !_concentrating && _sidebarBeforeFocus;
-        CloseInspector();
+        HideInspector();
         ShowChat();
         C<Button>("FocusButton").Content = _concentrating ? "Quitter la concentration" : "Mode concentration";
         C<TextBox>("MessageInput").Focus();
@@ -112,7 +112,7 @@ public partial class ChatWindow
         _evidence = null;
         C<TextBlock>("ProjectHeading").Text = selection.ToString();
         C<TextBox>("SearchInput").Text = "";
-        CloseInspector();
+        HideInspector();
         await RefreshConversationsAsync(null);
         if (_current is not null) await LoadAsync(_current);
         else ShowChat();
@@ -147,7 +147,7 @@ public partial class ChatWindow
 
     private void ShowPreferences()
     {
-        CloseInspector();
+        HideInspector();
         var value = Appearance.Current;
         C<ComboBox>("ThemeChoice").SelectedIndex = value.Theme switch { "light" => 1, "dark" => 2, _ => 0 };
         C<ComboBox>("SizeChoice").SelectedItem = value.ReadingSize;
@@ -183,7 +183,7 @@ public partial class ChatWindow
 
     private StackPanel ShowPage(string title)
     {
-        CloseInspector();
+        HideInspector();
         C<TextBlock>("ViewHeading").Text = title;
         C<Grid>("ChatPage").IsVisible = false;
         C<Border>("ActionMenu").IsVisible = false;
@@ -212,7 +212,7 @@ public partial class ChatWindow
         C<Grid>("MainContent").IsVisible = !compact || !inspector.IsVisible;
     }
 
-    private void CloseInspector()
+    private void HideInspector()
     {
         var panel = C<Border>("Inspector");
         if (!panel.IsVisible) return;
