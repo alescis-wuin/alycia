@@ -107,6 +107,9 @@ public partial class ChatWindow : Window
 
     private void Feedback(string message, bool error = false)
     {
+        var inspectorMessage = C<TextBlock>("InspectorFeedback");
+        inspectorMessage.Text = error ? message : "";
+        inspectorMessage.IsVisible = error && C<Border>("Inspector").IsVisible;
         C<TextBlock>("FeedbackText").Text = message;
         C<TextBlock>("FeedbackText").Foreground = Appearance.Color(this, error ? "Error" : "Muted");
         C<TextBlock>("FeedbackText").IsVisible = !string.IsNullOrWhiteSpace(message);

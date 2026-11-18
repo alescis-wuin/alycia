@@ -24,7 +24,7 @@ public sealed partial class ChatApiClient
 
     private HttpRequestMessage CreateRequest(HttpMethod method, string path, object? body)
     {
-        var url = _baseUrl ?? Environment.GetEnvironmentVariable("ALYCIA_API_BASE_URL") ?? (string.IsNullOrWhiteSpace(Appearance.Current.ApiUrl) ? "http://127.0.0.1:8080" : Appearance.Current.ApiUrl);
+        var url = _baseUrl ?? Environment.GetEnvironmentVariable("ALYCIA_API_BASE_URL") ?? Appearance.ApiDefault;
         if (!Uri.TryCreate(url, UriKind.Absolute, out var origin) || !origin.IsLoopback
             || origin.Scheme is not ("http" or "https") || origin.AbsolutePath != "/"
             || origin.UserInfo.Length > 0 || origin.Query.Length > 0 || origin.Fragment.Length > 0)

@@ -28,7 +28,7 @@ public partial class ChatWindow
             WindowStartupLocation = WindowStartupLocation.CenterOwner
         };
         var buttons = new WrapPanel { HorizontalAlignment = HorizontalAlignment.Right };
-        var error = new TextBlock { Foreground = Brush.Parse("#F1AABA"), TextWrapping = TextWrapping.Wrap, IsVisible = false };
+        var error = new TextBlock { Foreground = Appearance.Color(this, "Error"), TextWrapping = TextWrapping.Wrap, IsVisible = false };
         foreach (var action in actions.Append(("Fermer", "close")))
         {
             var button = new Button { Content = action.Item1, Margin = new Thickness(4), Padding = new Thickness(12, 8) };

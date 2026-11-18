@@ -157,11 +157,12 @@
       </Border>
     </Grid>
     <Border Grid.Column="2" x:Name="Inspector" Background="{DynamicResource BorealSurface}" Width="350" Padding="16" IsVisible="False">
-      <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10">
+      <Grid RowDefinitions="Auto,Auto,Auto,*" RowSpacing="10">
         <Grid ColumnDefinitions="*,Auto"><TextBlock Text="Cet échange" FontSize="20" FontWeight="Bold" VerticalAlignment="Center" />
           <Button Grid.Column="1" x:Name="CloseInspector" Classes="quiet icon" AutomationProperties.Name="Fermer le panneau" ToolTip.Tip="Fermer · Échap"><PathIcon Data="{StaticResource GlyphClose}" /></Button></Grid>
         <WrapPanel Grid.Row="1"><Button x:Name="ContextTab" Content="Contexte" /><Button x:Name="SourcesTab" Content="Sources" /><Button x:Name="MemoryTab" Content="Mémoire" /></WrapPanel>
-        <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Disabled"><StackPanel x:Name="InspectorBody" Spacing="10" /></ScrollViewer>
+        <TextBlock x:Name="InspectorFeedback" Grid.Row="2" TextWrapping="Wrap" Foreground="{DynamicResource BorealError}" IsVisible="False" />
+        <ScrollViewer Grid.Row="3" HorizontalScrollBarVisibility="Disabled"><StackPanel x:Name="InspectorBody" Spacing="10" /></ScrollViewer>
       </Grid>
     </Border>
   </Grid>

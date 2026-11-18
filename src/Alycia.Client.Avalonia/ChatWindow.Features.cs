@@ -141,21 +141,29 @@ public partial class ChatWindow
         panel.Children.Add(Label($"Modèle actuellement enregistré : {current.Model}"));
         if (!models.Contains(current.Model, StringComparer.Ordinal))
             panel.Children.Add(Label("Ce modèle n’est pas disponible pour la génération locale. Sélectionnez un modèle ci-dessous pour reprendre cette conversation ; votre brouillon est conservé."));
-        panel.Children.Add(continuous); panel.Children.Add(recursive); panel.Children.Add(tools); panel.Children.Add(tokenizer); panel.Children.Add(presets);
+        panel.Children.Add(Label("Modèle de la conversation"));
+        panel.Children.Add(model);
+        var modelWarning = Label("Changer de modèle invalide la mémoire dérivée de cette conversation.");
+        modelWarning.IsVisible = false;
+        model.SelectionChanged += (_, _) => modelWarning.IsVisible = model.SelectedItem is string choice && choice != current.Model;
+        panel.Children.Add(modelWarning);
+        string inherited = (current.WorkspaceId is Guid projectId ? (await _client.ProjectAsync(projectId, _lifetime.Token)).DefaultModel : "");
+        if (string.IsNullOrEmpty(inherited)) inherited = Appearance.Current.DefaultModel;
+        if (models.Contains(inherited)) panel.Children.Add(ActionButtonInline("Restaurer le modèle par défaut", () => model.SelectedItem = inherited));
+        panel.Children.Add(Label("Instruction de la conversation"));
+        panel.Children.Add(presets);
+        panel.Children.Add(system);
+        panel.Children.Add(Label("Notes privées de la conversation"));
+        panel.Children.Add(notes);
+        var advanced = new StackPanel { Spacing = 10 };
+        foreach (var toggle in new[] { continuous, recursive, structured, tools, tokenizer }) advanced.Children.Add(toggle);
         foreach (var (label, control) in new (string, Control)[] {
-            ("Modèle génératif pour cette conversation", model),
-            ("Mémoire des échanges anciens", structured),
-            ("Recherche : lexical = BM25 ; hybrid = BM25 + embeddings locaux ; legacy = V3", retrieval),
-            ("Modèle d’embeddings installé (hybrid uniquement, nom exact)", embedding), ("Instruction système", system),
-            ("Notes persistantes du projet — toujours incluses dans le budget", notes),
-            ("Fenêtre du modèle (tokens, 1024 à 131072)", context), ("Réserve de contexte pour la sortie (limite de génération seulement si le mode continu est désactivé)", output),
-            ("Fenêtre simple : échanges récents (uniquement sans résumé automatique)", turns), ("Température (0 à 2, virgule ou point)", temperature),
-            ("Graine facultative (ne garantit pas un résultat identique sur tous les matériels)", seed),
-            ("Inactivité maximale pendant une génération (secondes, 1 à 600)", timeout),
-            ("Nombre maximal d’appels par opération de résumé (8 à 2048)", calls),
-            ("Appels d’outils par demande (1 à 128, modèle compatible requis)", toolCalls) })
-        { panel.Children.Add(Label(label)); panel.Children.Add(control); }
-        panel.Children.Add(Label("Les modifications s’appliquent aux prochains échanges. L’historique reste intact. Une grande fenêtre augmente l’usage de mémoire."));
+            ("Recherche documentaire", retrieval), ("Modèle d’embeddings pour la recherche hybride", embedding),
+            ("Fenêtre du modèle en tokens", context), ("Réserve pour la réponse", output),
+            ("Nombre d’échanges récents", turns), ("Température", temperature), ("Graine facultative", seed),
+            ("Délai d’inactivité en secondes", timeout), ("Appels de résumé par opération", calls), ("Appels d’outils par demande", toolCalls) })
+        { advanced.Children.Add(Label(label)); advanced.Children.Add(control); }
+        panel.Children.Add(new Expander { Header = "Avancé", Content = advanced });
         ChatOptions? edited = null;
         string? Validate()
         {
@@ -204,38 +212,7 @@ public partial class ChatWindow
         Feedback("Réglages enregistrés pour les prochains échanges.");
     }
 
-    private Task PreviewAsync() => MemoryAsync();
-
-    private async Task ManageFilesAsync()
-    {
-        if (_current is null) return;
-        var settings = await _client.SettingsAsync(_current.Id, _lifetime.Token);
-        var files = await _client.FilesAsync(_current.Id, _lifetime.Token);
-        var panel = new StackPanel { Spacing = 12 };
-        panel.Children.Add(Label("Fenêtre : extraits liés aux échanges récents. Projet : extraits persistants. Épinglé : priorité aux extraits. Exclu : contenu inaccessible aux outils et au modèle. Les outils peuvent consulter tous les imports non exclus. Les extraits initiaux restent sélectifs."));
-        var controls = new Dictionary<Guid, ComboBox>();
-        foreach (var file in files)
-        {
-            panel.Children.Add(Label(file.Name + " · " + file.Status));
-            var mode = new ComboBox
-            {
-                ItemsSource = new[] { "Fenêtre", "Épinglé", "Exclu", "Projet (persistant)" },
-                SelectedIndex = file.ContextMode == "pinned" ? 1 : file.ContextMode == "excluded" ? 2 : file.ContextMode == "project" ? 3 : 0
-            };
-            controls.Add(file.Id, mode); panel.Children.Add(mode);
-        }
-        if (!await EditDialogAsync("Documents de la conversation", panel)) return;
-        var revision = settings.Conversation.Revision;
-        foreach (var file in files)
-        {
-            var mode = controls[file.Id].SelectedIndex switch { 1 => "pinned", 2 => "excluded", 3 => "project", _ => "window" };
-            if (mode == file.ContextMode) continue;
-            await _client.ConfigureFileAsync(_current.Id, file.Id, revision, mode, _lifetime.Token);
-            revision++;
-        }
-        await LoadAsync(_current);
-        Feedback("Sélection documentaire enregistrée.");
-    }
+    private Task ManageFilesAsync() => ShowDocumentsAsync(_project.Id.HasValue);
 
     private async Task ForkAsync(bool regenerate)
     {

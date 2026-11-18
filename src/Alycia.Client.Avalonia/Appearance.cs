@@ -60,5 +60,7 @@ internal sealed record Appearance(string Theme = "system", int ReadingSize = 18,
         owner.TryFindResource("Boreal" + role, owner.ActualThemeVariant, out var value)
         && value is IBrush brush ? brush : Brushes.Gray;
 
+    internal static string ApiDefault => string.IsNullOrWhiteSpace(Current.ApiUrl) ? "http://127.0.0.1:8080" : Current.ApiUrl;
+
     internal static readonly FontFamily Mono = new("avares://Alycia.Client.Avalonia/Assets/Fonts/Hack#Hack");
 }

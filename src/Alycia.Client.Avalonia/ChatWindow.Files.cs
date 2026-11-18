@@ -54,10 +54,11 @@ public partial class ChatWindow
         });
     }
 
-    private async Task ImportItemsAsync(IEnumerable<IStorageItem> items)
+    private async Task ImportItemsAsync(IEnumerable<IStorageItem> items, bool project = false, bool documents = false)
     {
-        if (_current is null) return;
+        if ((project ? _project.Id : _current?.Id) is not Guid owner) return;
         var selected = items.ToArray();
+        if (selected.Length == 0) return;
         var includeExcluded = false;
         if (selected.Any(item => item is IStorageFolder))
         {
@@ -108,8 +109,9 @@ public partial class ChatWindow
             foreach (var item in selected) await VisitAsync(item, "", 0);
             if (files.Count == 0) { Feedback("Aucun fichier sélectionné (les dossiers vides ne sont pas importés)."); return; }
             Feedback($"Import de {files.Count} fichier(s)…");
-            var result = await _client.UploadAsync(_current.Id, Guid.NewGuid(), files, _lifetime.Token);
-            await LoadAsync(_current);
+            var result = await _client.UploadAsync(owner, Guid.NewGuid(), files, _lifetime.Token, project);
+            if (_current is not null) await LoadAsync(_current);
+            if (documents) await ShowDocumentsAsync(project);
             Feedback($"{result.Length} fichier(s) enregistrés · {excluded} élément(s) écarté(s) avant import · "
                 + $"{result.Count(file => file.ContextMode == "excluded")} contenu(s) exclu(s) de l’IA. "
                 + "Ouvrez Analyse du projet pour produire tree.txt et une synthèse récursive.");

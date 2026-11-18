@@ -74,6 +74,14 @@ public partial class ChatWindow
     private async Task SwitchProjectAsync(ProjectChoice selection)
     {
         SaveDraft();
+        _current = null;
+        _messages.Clear();
+        C<ListBox>("ConversationList").ItemsSource = Array.Empty<ConversationSummary>();
+        C<TextBox>("MessageInput").Text = "";
+        C<TextBlock>("ViewHeading").Text = "Conversation";
+        C<Button>("ActiveModelButton").Content = "";
+        C<Border>("PendingUserPanel").IsVisible = false;
+        C<Expander>("StreamingPanel").IsVisible = false;
         _project = selection;
         _evidence = null;
         C<TextBlock>("ProjectHeading").Text = selection.ToString();
@@ -185,6 +193,7 @@ public partial class ChatWindow
         panel.IsVisible = false;
         LayoutInspector();
         _inspectorOrigin?.Focus();
+        _inspectorOrigin = null;
     }
 
     private async void EvidenceClick(object? sender, RoutedEventArgs e)
@@ -210,19 +219,6 @@ public partial class ChatWindow
         Feedback("");
     }
 
-    private async Task FillInspectorAsync(StackPanel body, string tab)
-    {
-        if (_current is null) return;
-        if (tab == "sources")
-        {
-            var last = _evidence ?? _messages.LastOrDefault(m => m.IsAssistant);
-            body.Children.Add(new SelectableTextBlock { Text = last?.DiagnosticsText ?? "Aucune réponse enregistrée.", TextWrapping = global::Avalonia.Media.TextWrapping.Wrap });
-        }
-        else if (tab == "memory") body.Children.Add(ActionButton("Mémoire de conversation", MemoryAsync));
-        else body.Children.Add(ActionButton("Prévisualiser le contexte", PreviewAsync));
-        await Task.CompletedTask;
-    }
-
     private async Task ProjectPreferencesAsync()
     {
         if (_project.Id is not Guid id) return;
@@ -240,6 +236,7 @@ public partial class ChatWindow
             await ProjectPreferencesAsync();
             Feedback("Consignes enregistrées.");
         }));
+        AddProjectNotes(body, project, ProjectPreferencesAsync);
         body.Children.Add(ActionButton(project.Archived ? "Restaurer le projet" : "Archiver le projet", async () =>
         {
             var next = await _client.SaveProjectAsync(project with { Archived = !project.Archived }, _lifetime.Token);

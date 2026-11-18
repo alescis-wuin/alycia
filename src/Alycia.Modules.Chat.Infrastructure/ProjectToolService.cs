@@ -7,7 +7,7 @@ namespace Alycia.Modules.Chat.Infrastructure;
 
 public sealed partial class ProjectToolService(ChatDbContext database, ProjectSourceReader reader, ChatOptions defaults, IProjectIndex? index = null) : ISnapshotProjectTools
 {
-    public async Task<bool> HasSourcesAsync(Guid id, CancellationToken ct) => await database.ForConversation(id)
+    public async Task<bool> HasSourcesAsync(Guid id, CancellationToken ct) => await database.ModelSources(id)
         .AnyAsync(f => f.ContextMode != "excluded" && f.Text != "", ct)
         || await database.Messages.AnyAsync(m => m.ConversationId == id, ct);
 
@@ -51,7 +51,7 @@ public sealed partial class ProjectToolService(ChatDbContext database, ProjectSo
     }
 
     private sealed record Entry(Guid Id, string Path, long Bytes, string Mode, string Status, bool Readable);
-    private Task<Entry[]> EntriesAsync(Guid id, CancellationToken ct) => database.ForConversation(id).OrderBy(f => f.Name).ThenBy(f => f.Id)
+    private Task<Entry[]> EntriesAsync(Guid id, CancellationToken ct) => database.ModelSources(id).OrderBy(f => f.Name).ThenBy(f => f.Id)
         .Select(f => new Entry(f.Id, f.Name, f.Size, f.ContextMode, f.Status, f.ContextMode != "excluded" && f.Text != "")).ToArrayAsync(ct);
 
     private async Task<ProjectToolResult> ListAsync(Guid id, JsonElement args, int budget, CancellationToken ct)
@@ -96,7 +96,7 @@ public sealed partial class ProjectToolService(ChatDbContext database, ProjectSo
     {
         if (!args.TryGetProperty("fileId", out var key) || key.ValueKind != JsonValueKind.String || !key.TryGetGuid(out var id))
             throw new ArgumentException("fileId doit être l’identifiant fourni par l’inventaire ou la recherche.");
-        var file = await database.ForConversation(conversation).SingleOrDefaultAsync(f => f.Id == id, ct)
+        var file = await database.ModelSources(conversation).SingleOrDefaultAsync(f => f.Id == id, ct)
             ?? throw new ArgumentException("Fichier introuvable dans cette conversation.");
         var source = await reader.ReadAsync(file, ct);
         if (source.Text.Length == 0) throw new ArgumentException("Aucun texte disponible : " + source.Origin);
@@ -186,7 +186,7 @@ public sealed partial class ProjectToolService(ChatDbContext database, ProjectSo
         foreach (var entry in files.Skip(offset).Take(limit))
         {
             ct.ThrowIfCancellationRequested();
-            var file = await database.ForConversation(conversation).SingleAsync(f => f.Id == entry.Id, ct);
+            var file = await database.ModelSources(conversation).SingleAsync(f => f.Id == entry.Id, ct);
             object? match = null;
             try
             {
