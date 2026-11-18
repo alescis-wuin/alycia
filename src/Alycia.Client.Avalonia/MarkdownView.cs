@@ -15,6 +15,9 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using Markdig;
 using Markdig.Extensions.Tables;
+using Markdig.Extensions.Footnotes;
+using Markdig.Extensions.Mathematics;
+using Avalonia.Automation;
 using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
 using MdBlock = Markdig.Syntax.Block;
@@ -23,7 +26,7 @@ using MdInline = Markdig.Syntax.Inlines.Inline;
 namespace Alycia.Client.Avalonia;
 
 // Native controls only: no HTML execution, web view, remote image fetch or script.
-public sealed class MarkdownView : StackPanel
+public sealed partial class MarkdownView : StackPanel
 {
     public static readonly StyledProperty<string> TextProperty = AvaloniaProperty.Register<MarkdownView, string>(nameof(Text), "");
     public static readonly StyledProperty<bool> IsMarkdownProperty = AvaloniaProperty.Register<MarkdownView, bool>(nameof(IsMarkdown), true);
@@ -32,10 +35,12 @@ public sealed class MarkdownView : StackPanel
     public bool IsMarkdown { get => GetValue(IsMarkdownProperty); set => SetValue(IsMarkdownProperty, value); }
     public bool IsStreaming { get => GetValue(IsStreamingProperty); set => SetValue(IsStreamingProperty, value); }
     public event Action? Rendered;
-    private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder().UsePipeTables()
-        .UseEmphasisExtras().UseTaskLists().UseEmojiAndSmiley(enableSmileys: false).UseAutoLinks().DisableHtml().Build();
-    private static readonly IBrush Ink = Brush.Parse("#E3E9F3");
-    private static readonly FontFamily Mono = new("Cascadia Code,Consolas,DejaVu Sans Mono,monospace");
+    public static readonly StyledProperty<double> ReadingSizeProperty = AvaloniaProperty.Register<MarkdownView, double>(nameof(ReadingSize), 18);
+    public static readonly StyledProperty<bool> WrapCodeProperty = AvaloniaProperty.Register<MarkdownView, bool>(nameof(WrapCode));
+    public double ReadingSize { get => GetValue(ReadingSizeProperty); set => SetValue(ReadingSizeProperty, value); }
+    public bool WrapCode { get => GetValue(WrapCodeProperty); set => SetValue(WrapCodeProperty, value); }
+    private static readonly MarkdownPipeline Pipeline = CreatePipeline();
+    private IBrush Ink(string role) => Appearance.Color(this, role);
     private static readonly FontFamily EmojiFont = new("Noto Color Emoji,Segoe UI Emoji,Apple Color Emoji,Noto Emoji");
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(120) };
     private readonly List<string> _keys = [];
@@ -46,6 +51,7 @@ public sealed class MarkdownView : StackPanel
     public MarkdownView()
     {
         Spacing = 12;
+        ActualThemeVariantChanged += (_, _) => RefreshStyle();
         _timer.Tick += async (_, _) => { _timer.Stop(); await RenderAsync(); };
         DetachedFromVisualTree += (_, _) => _timer.Stop();
         AttachedToVisualTree += (_, _) => Schedule();
@@ -54,8 +60,23 @@ public sealed class MarkdownView : StackPanel
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
+        if (_timer is null) return;
+        if (change.Property == ReadingSizeProperty || change.Property == WrapCodeProperty || change.Property == DataContextProperty) RefreshStyle();
         if (change.Property == TextProperty || change.Property == IsMarkdownProperty || change.Property == IsStreamingProperty)
             Schedule();
+    }
+
+    private void RefreshStyle()
+    {
+        _keys.Clear();
+        Schedule();
+    }
+
+    private static string Raw(MdBlock block, string source)
+    {
+        int start = Math.Clamp(block.Span.Start, 0, source.Length);
+        int length = Math.Clamp(block.Span.Length, 0, source.Length - start);
+        return source.Substring(start, length);
     }
 
     private void Schedule()
@@ -113,21 +134,22 @@ public sealed class MarkdownView : StackPanel
             Children.Clear(); _keys.Clear(); Children.Add(Plain(source)); Rendered?.Invoke(); return;
         }
         var count = Math.Min(document.Count, 1000);
+        int references = source.Contains("]:", StringComparison.Ordinal) ? StringComparer.Ordinal.GetHashCode(source) : 0;
         for (var index = 0; index < count; index++)
         {
             var block = document[index];
-            var raw = source.Substring(block.Span.Start, Math.Min(block.Span.Length, source.Length - block.Span.Start));
-            // Reference definitions appended later can change earlier link targets.
-            var key = block.GetType().Name + raw + (raw.Contains('[') ? source.Length.ToString() : "");
+            var raw = Raw(block, source);
+            var key = block.GetType().Name + raw + (raw.Contains('[') || block is FootnoteGroup ? references.ToString(CultureInfo.InvariantCulture) : "");
             if (index < _keys.Count && _keys[index] == key) continue;
             var control = Block(block, source, 0);
-            if (index < Children.Count) { Children[index] = control; _keys[index] = key; }
-            else { Children.Add(control); _keys.Add(key); }
+            if (index < Children.Count) Children[index] = control; else Children.Add(control);
+            if (index < _keys.Count) _keys[index] = key; else _keys.Add(key);
         }
-        while (Children.Count > count) { Children.RemoveAt(Children.Count - 1); _keys.RemoveAt(_keys.Count - 1); }
+        while (Children.Count > count) Children.RemoveAt(Children.Count - 1);
+        if (_keys.Count > count) _keys.RemoveRange(count, _keys.Count - count);
         if (document.Count > count)
         {
-            Children.Add(new Expander { Header = "Réponse très longue · suite en texte brut", Content = Plain(source[document[count].Span.Start..]) });
+            Children.Add(new Expander { Header = "Réponse très longue · suite en texte brut", Content = Plain(source[Math.Clamp(document[count].Span.Start, 0, source.Length)..]) });
             _keys.Add("overflow");
         }
         Rendered?.Invoke();
@@ -135,46 +157,20 @@ public sealed class MarkdownView : StackPanel
 
     private Control Block(MdBlock block, string source, int depth)
     {
-        if (depth > 16) return Plain(source.Substring(block.Span.Start, block.Span.Length));
+        if (depth > 16) return Plain(Raw(block, source));
         switch (block)
         {
-            case CodeBlock code:
-                var body = code.Lines.ToString();
-                var copy = new Button { Content = "Copier le code", FontSize = 11, Padding = new Thickness(10, 5) };
-                copy.Click += async (_, _) =>
-                {
-                    try
-                    {
-                        var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
-                        if (clipboard is null) { copy.Content = "Presse-papiers indisponible"; return; }
-                        await clipboard.SetTextAsync(body); copy.Content = "Copié";
-                    }
-                    catch { copy.Content = "Copie indisponible"; }
-                };
-                var header = new DockPanel { LastChildFill = true, Margin = new Thickness(0, 0, 0, 8) };
-                DockPanel.SetDock(copy, Dock.Right); header.Children.Add(copy);
-                header.Children.Add(new TextBlock
-                {
-                    Text = code is FencedCodeBlock { Info.Length: > 0 } fenced ? fenced.Info : "code",
-                    FontSize = 11,
-                    Foreground = Brush.Parse("#A8BCD3"),
-                    VerticalAlignment = VerticalAlignment.Center
-                });
-                var codeText = Plain(body); codeText.FontFamily = Mono; codeText.FontSize = 13; codeText.TextWrapping = TextWrapping.NoWrap;
-                return new Border
-                {
-                    Background = Brush.Parse("#0C1420"),
-                    CornerRadius = new CornerRadius(10),
-                    Padding = new Thickness(14),
-                    Child = new StackPanel
-                    {
-                        Children = { header, new ScrollViewer { Content = codeText,
-                        HorizontalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalScrollBarVisibility = ScrollBarVisibility.Disabled } }
-                    }
-                };
+            case MathBlock math:
+                return math.ClosingFencedCharCount < 2 ? Plain(Raw(math, source)) : Formula(math.Lines.ToString(), false);
+            case CodeBlock code: return CodePanel(code);
+            case Footnote note:
+                var footnote = Container(note, source, depth);
+                footnote.Tag = "footnote:" + note.Order;
+                footnote.Children.Insert(0, Plain($"[{note.Order}]"));
+                return footnote;
             case Table table:
                 var columns = Math.Max(1, table.ColumnDefinitions.Count);
-                if (columns > 20 || table.Count > 100) return Plain(source.Substring(block.Span.Start, block.Span.Length));
+                if (columns > 20 || table.Count > 100) return Plain(Raw(block, source));
                 var grid = new Grid { ColumnDefinitions = new ColumnDefinitions(string.Join(",", Enumerable.Repeat("*", columns))), MinWidth = columns * 135 };
                 for (var rowIndex = 0; rowIndex < table.Count; rowIndex++)
                 {
@@ -185,16 +181,16 @@ public sealed class MarkdownView : StackPanel
                         var cell = new Border
                         {
                             Padding = new Thickness(10),
-                            BorderBrush = Brush.Parse("#35445A"),
+                            BorderBrush = Ink("Rule"),
                             BorderThickness = new Thickness(0, 0, 1, 1),
-                            Background = row.IsHeader ? Brush.Parse("#263348") : Brushes.Transparent,
+                            Background = row.IsHeader ? Ink("Soft") : Brushes.Transparent,
                             Child = Block(row[col], source, depth + 1)
                         };
                         Grid.SetRow(cell, rowIndex); Grid.SetColumn(cell, col); grid.Children.Add(cell);
                         foreach (var cellText in cell.GetLogicalDescendants().OfType<TextBlock>())
                         {
-                            cellText.FontSize = 14;
-                            if (row.IsHeader) cellText.FontWeight = FontWeight.SemiBold;
+                            cellText.FontSize = Math.Max(15, ReadingSize - 1);
+                            if (row.IsHeader) cellText.FontWeight = FontWeight.Bold;
                             cellText.TextAlignment = table.ColumnDefinitions[col].Alignment switch
                             {
                                 TableColumnAlign.Center => TextAlignment.Center,
@@ -223,26 +219,26 @@ public sealed class MarkdownView : StackPanel
             case QuoteBlock quote:
                 return new Border
                 {
-                    BorderBrush = Brush.Parse("#8D9DB7"),
+                    BorderBrush = Ink("Jade"),
                     BorderThickness = new Thickness(3, 0, 0, 0),
                     Padding = new Thickness(14, 4),
                     Child = Container(quote, source, depth)
                 };
             case ThematicBreakBlock:
-                return new Border { Height = 1, Background = Brush.Parse("#35445A"), Margin = new Thickness(0, 8) };
+                return new Border { Height = 1, Background = Ink("Rule"), Margin = new Thickness(0, 8) };
             case LeafBlock leaf:
                 var text = Plain(leaf.Inline is null ? leaf.Lines.ToString() : "");
                 if (leaf.Inline is not null) { text.Inlines = new InlineCollection(); Fill(leaf.Inline, text.Inlines); }
                 if (leaf is HeadingBlock heading)
                 {
-                    text.FontSize = heading.Level switch { 1 => 28, 2 => 24, 3 => 20, _ => 17 };
+                    text.FontSize = heading.Level switch { 1 => ReadingSize * 1.55, 2 => ReadingSize * 1.35, _ => ReadingSize * 1.17 };
                     text.LineHeight = Math.Ceiling(text.FontSize * 1.4);
-                    text.FontWeight = FontWeight.SemiBold;
+                    text.FontWeight = FontWeight.Bold;
                     text.Margin = new Thickness(0, 4, 0, 4);
                 }
                 return text;
             case ContainerBlock container: return Container(container, source, depth);
-            default: return Plain("");
+            default: return Plain(Raw(block, source));
         }
     }
 
@@ -259,9 +255,22 @@ public sealed class MarkdownView : StackPanel
         {
             switch (item)
             {
+                case CitationInline citation: AddCitation(output, citation.Reference); break;
+                case MathInline math:
+                    output.Add(new InlineUIContainer { Child = Formula(math.Content.ToString(), true) });
+                    break;
+                case FootnoteLink note:
+                    if (note.IsBackLink) break;
+                    var order = note.Footnote.Order;
+                    var jump = new Button { Content = $"[{order}]", Padding = new Thickness(2, 0), Foreground = Ink("Iris") };
+                    AutomationProperties.SetName(jump, $"Lire la note {order}");
+                    jump.Click += (_, _) => this.GetLogicalDescendants().OfType<StackPanel>()
+                        .FirstOrDefault(p => Equals(p.Tag, "footnote:" + order))?.BringIntoView();
+                    output.Add(new InlineUIContainer { Child = jump });
+                    break;
                 case LiteralInline literal: AppendText(output, literal.Content.ToString()); break;
                 case HtmlEntityInline entity: AppendText(output, entity.Transcoded.ToString()); break;
-                case CodeInline code: output.Add(new Run(code.Content) { FontFamily = Mono, Foreground = Brush.Parse("#E2C38D") }); break;
+                case CodeInline code: output.Add(new Run(code.Content) { FontFamily = Appearance.Mono, Foreground = Ink("Amber") }); break;
                 case LineBreakInline line: if (line.IsHard) output.Add(new LineBreak()); else output.Add(new Run(" ")); break;
                 case EmphasisInline emphasis:
                     var span = new Span();
@@ -278,8 +287,8 @@ public sealed class MarkdownView : StackPanel
                             Content = label.Length == 0 ? link.Url : label,
                             NavigateUri = uri,
                             Padding = new Thickness(0),
-                            FontSize = 15,
-                            Foreground = Brush.Parse("#B7ACFF")
+                            FontSize = ReadingSize,
+                            Foreground = Ink("Iris")
                         };
                         ToolTip.SetTip(button, uri.AbsoluteUri); output.Add(new InlineUIContainer { Child = button });
                     }
@@ -289,7 +298,7 @@ public sealed class MarkdownView : StackPanel
                     if (SafeLink(auto.Url) is { } target) output.Add(new InlineUIContainer
                     {
                         Child = new HyperlinkButton
-                        { Content = auto.Url, NavigateUri = target, Padding = new Thickness(0), FontSize = 15 }
+                        { Content = auto.Url, NavigateUri = target, Padding = new Thickness(0), FontSize = ReadingSize }
                     });
                     else output.Add(new Run(auto.Url));
                     break;
@@ -342,12 +351,12 @@ public sealed class MarkdownView : StackPanel
 
     internal static Uri? SafeLink(string? value) => Uri.TryCreate(value, UriKind.Absolute, out var uri)
         && uri.Scheme is "http" or "https" && uri.UserInfo.Length == 0 ? uri : null;
-    private static SelectableTextBlock Plain(string text) => new()
+    private SelectableTextBlock Plain(string text) => new()
     {
         Text = text,
         TextWrapping = TextWrapping.Wrap,
-        FontSize = 16,
-        LineHeight = 27,
-        Foreground = Ink
+        FontSize = ReadingSize,
+        LineHeight = Math.Ceiling(ReadingSize * 1.6),
+        Foreground = Ink("Ink")
     };
 }

@@ -77,7 +77,7 @@
                         <Button Grid.Column="2" Classes="quiet" Content="Code" AutomationProperties.Name="Copier tous les blocs de code" ToolTip.Tip="Copier tous les blocs"
                                 CommandParameter="{Binding}" Click="CopyCodeClick" IsVisible="{Binding HasCode}" />
                       </Grid>
-                      <local:MarkdownView Text="{Binding Content}" IsMarkdown="{Binding IsAssistant}" />
+                      <local:MarkdownView Text="{Binding Content}" IsMarkdown="{Binding IsAssistant}" CitationRequested="CitationClick" />
                       <Button Classes="quiet" Content="Sources et détails" Foreground="{DynamicResource BorealJade}"
                               IsVisible="{Binding HasEvidence}" CommandParameter="{Binding}" Click="EvidenceClick" />
                       <WrapPanel IsVisible="{Binding IsFile}">

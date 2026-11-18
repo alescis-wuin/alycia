@@ -239,8 +239,10 @@ public partial class ChatWindow : Window
         }
     }
 
-    private async Task LoadAsync(ConversationSummary conversation)
+    private async Task LoadAsync(ConversationSummary conversation, bool keepReading = false)
     {
+        bool follow = !keepReading || _followOutput;
+        var previousOffset = C<ScrollViewer>("MessageScroll").Offset;
         SaveDraft();
         CloseInspector();
         _evidence = null;
@@ -251,7 +253,7 @@ public partial class ChatWindow : Window
         _loadingDraft = false;
         C<Expander>("StreamingPanel").IsVisible = false;
         C<Border>("PendingUserPanel").IsVisible = false;
-        _followOutput = true; C<Button>("LatestButton").IsVisible = false;
+        _followOutput = follow; C<Button>("LatestButton").IsVisible = !follow;
         C<TextBox>("TitleInput").Text = _current.Title;
         ShowChat();
         C<Button>("ActiveModelButton").Content = _current.Model;
@@ -264,7 +266,8 @@ public partial class ChatWindow : Window
         }
 
         C<Button>("OlderButton").IsVisible = page.HasMore;
-        ScrollToEnd();
+        if (follow) ScrollToEnd();
+        else Dispatcher.UIThread.Post(() => C<ScrollViewer>("MessageScroll").Offset = previousOffset, DispatcherPriority.Background);
         Feedback("");
     }
 
@@ -276,6 +279,9 @@ public partial class ChatWindow : Window
         }
 
         var page = await _client.MessagesAsync(_current.Id, _messages[0].Sequence, _lifetime.Token);
+        var scroll = C<ScrollViewer>("MessageScroll");
+        var offset = scroll.Offset;
+        double oldHeight = scroll.Extent.Height;
         var timeline = Timeline(page);
         for (var index = timeline.Length - 1; index >= 0; index--)
         {
@@ -283,6 +289,7 @@ public partial class ChatWindow : Window
         }
 
         C<Button>("OlderButton").IsVisible = page.HasMore;
+        Dispatcher.UIThread.Post(() => scroll.Offset = new Vector(offset.X, offset.Y + Math.Max(0, scroll.Extent.Height - oldHeight)), DispatcherPriority.Background);
         Feedback("Messages précédents chargés.");
     }
 
@@ -437,7 +444,7 @@ public partial class ChatWindow : Window
             await RefreshConversationsAsync(_current.Id);
             if (_current is not null)
             {
-                await LoadAsync(_current);
+                await LoadAsync(_current, keepReading: true);
             }
 
             Feedback(result.Stats?.DoneReason == "length" ? "Limite de sortie atteinte." : "");

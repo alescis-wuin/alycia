@@ -9,6 +9,29 @@ namespace Alycia.Client.Avalonia;
 
 public partial class ChatWindow
 {
+    private async void CitationClick(object? sender, CitationEventArgs e)
+    {
+        if (_current?.Id != e.Message.ConversationId) return;
+        _evidence = e.Message;
+        await RunAsync(async () =>
+        {
+            await OpenInspectorAsync("sources");
+            var passage = C<StackPanel>("InspectorBody").Children.OfType<MarkdownView>().First();
+            await ReadPassageAsync(passage, e.Message.ConversationId, e.Source);
+        });
+    }
+
+    private async Task ReadPassageAsync(MarkdownView passage, Guid conversation, SuppliedSource source)
+    {
+        try
+        {
+            var version = await _client.SourceAsync(conversation, false, source.FileId, _lifetime.Token, source.Sha256, source.Start, source.End);
+            passage.Text = $"{version.Name}\nSHA-256 {version.Sha256}\n\n{version.Text}";
+            passage.BringIntoView();
+        }
+        catch (ChatApiException e) { passage.Text = "Passage indisponible. " + e.Message; }
+    }
+
     private async Task FillInspectorAsync(StackPanel body, string tab)
     {
         if (_current is not { } chat) return;
@@ -24,15 +47,7 @@ public partial class ChatWindow
             foreach (var source in passages)
             {
                 var lines = source.StartLine > 0 ? $" · l. {source.StartLine}–{source.EndLine}" : "";
-                body.Children.Add(ActionButton($"[{source.Reference}] {source.Path}{lines}", async () =>
-                {
-                    try
-                    {
-                        var version = await _client.SourceAsync(chat.Id, false, source.FileId, ct, source.Sha256, source.Start, source.End);
-                        passage.Text = $"{version.Name}\nSHA-256 {version.Sha256}\n\n{version.Text}";
-                    }
-                    catch (ChatApiException e) { passage.Text = "Passage indisponible. " + e.Message; }
-                }));
+                body.Children.Add(ActionButton($"[{source.Reference}] {source.Path}{lines}", () => ReadPassageAsync(passage, chat.Id, source)));
             }
             body.Children.Add(passage);
             if (message?.HasDiagnostics == true) body.Children.Add(new Expander { Header = "Détails de la réponse", Content = new MarkdownView { Text = message.DiagnosticsText, IsMarkdown = false } });
