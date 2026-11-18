@@ -1,228 +1,168 @@
-<Window xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:local="using:Alycia.Client.Avalonia"
-        x:Class="Alycia.Client.Avalonia.ChatWindow"
-        Title="Alycia — Chat local" Background="#10131E" Foreground="#E7EAF5"
-        Width="1240" Height="880" MinWidth="880" MinHeight="650">
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="using:Alycia.Client.Avalonia" x:Class="Alycia.Client.Avalonia.ChatWindow"
+        Title="Alycia" Width="1240" Height="840" MinWidth="480" MinHeight="420">
   <Window.Styles>
-    <Style Selector="Button">
-      <Setter Property="CornerRadius" Value="10" />
-      <Setter Property="Padding" Value="14,10" />
-      <Setter Property="Background" Value="#23293C" />
-      <Setter Property="BorderThickness" Value="0" />
-    </Style>
-    <Style Selector="Button.primary">
-      <Setter Property="Background" Value="#8875F5" />
-      <Setter Property="Foreground" Value="#FFFFFF" />
-      <Setter Property="FontWeight" Value="SemiBold" />
-    </Style>
-    <Style Selector="Button.quiet">
-      <Setter Property="Background" Value="Transparent" />
-      <Setter Property="Foreground" Value="#A8B2CC" />
-    </Style>
-    <Style Selector="TextBox">
-      <Setter Property="Background" Value="#191E2D" />
-      <Setter Property="BorderBrush" Value="#30384F" />
-      <Setter Property="CornerRadius" Value="10" />
-      <Setter Property="Padding" Value="12,10" />
-    </Style>
-    <Style Selector="Expander /template/ ToggleButton">
-      <Setter Property="Background" Value="Transparent" />
-      <Setter Property="BorderThickness" Value="0" />
-      <Setter Property="Foreground" Value="#A8B2CC" />
-    </Style>
-    <Style Selector="ComboBox">
-      <Setter Property="Background" Value="#23293C" />
-      <Setter Property="BorderThickness" Value="0" />
-      <Setter Property="CornerRadius" Value="10" />
-      <Setter Property="Padding" Value="12,10" />
-    </Style>
-    <Style Selector="ListBoxItem">
-      <Setter Property="CornerRadius" Value="10" />
-      <Setter Property="Margin" Value="0,3" />
-      <Setter Property="Padding" Value="12,10" />
-    </Style>
-    <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
-      <Setter Property="Background" Value="#302B50" />
-      <Setter Property="BorderBrush" Value="#8875F5" />
-    </Style>
-    <Style Selector="Border.message">
-      <Setter Property="Margin" Value="0,0,24,20" />
-      <Setter Property="Background" Value="#1A2030" />
-      <Setter Property="BorderBrush" Value="#3BCEB5" />
-      <Setter Property="BorderThickness" Value="3,0,0,0" />
-    </Style>
-    <Style Selector="Border.message.file">
-      <Setter Property="Background" Value="#232B3C" />
-      <Setter Property="BorderBrush" Value="#E5B96B" />
-    </Style>
-    <Style Selector="Border.message.user">
-      <Setter Property="Background" Value="#25223B" />
-      <Setter Property="BorderBrush" Value="#A493FF" />
-      <Setter Property="Margin" Value="32,0,0,20" />
-    </Style>
+    <Style Selector="Button"><Setter Property="CornerRadius" Value="9" /></Style>
+    <Style Selector="Border.user"><Setter Property="Background" Value="{DynamicResource BorealSoft}" /><Setter Property="Margin" Value="44,0,0,0" /></Style>
+    <Style Selector="Border.file"><Setter Property="Background" Value="{DynamicResource BorealSurface}" /></Style>
+    <Style Selector="TextBlock.muted"><Setter Property="Foreground" Value="{DynamicResource BorealMuted}" /><Setter Property="FontSize" Value="14" /></Style>
+    <Style Selector="ListBoxItem:selected /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource BorealSoft}" /><Setter Property="Foreground" Value="{DynamicResource BorealIris}" /></Style>
   </Window.Styles>
-  <Grid x:Name="ShellGrid" ColumnDefinitions="Auto,*">
-    <Border x:Name="Sidebar" Width="260" Background="#171B29" Padding="18,24,18,18">
-      <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="18">
-        <StackPanel Spacing="3">
-          <TextBlock Text="alycia" FontSize="27" FontWeight="SemiBold" Foreground="#C6BCFF" />
-          <TextBlock Text="Votre atelier IA local" FontSize="12" Foreground="#9EA9C3" />
+  <Grid x:Name="ShellGrid" ColumnDefinitions="Auto,*,Auto">
+    <Border x:Name="Sidebar" Width="248" Background="{DynamicResource BorealSurface}" Padding="16,20,16,12">
+      <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="12">
+        <StackPanel Orientation="Horizontal" Spacing="10" Margin="6,0,0,8">
+          <PathIcon Data="{StaticResource GlyphMark}" Foreground="{DynamicResource BorealIris}" Width="30" Height="30" />
+          <TextBlock Text="alycia" FontSize="28" FontWeight="Bold" />
         </StackPanel>
-        <StackPanel Grid.Row="1" Spacing="10" x:Name="CreationPanel">
-          <TextBlock Text="Modèle pour une nouvelle conversation" FontSize="11" Foreground="#A8B2CC" />
-          <ComboBox x:Name="ModelSelector" HorizontalAlignment="Stretch" PlaceholderText="Choisir un modèle génératif"
-                    ToolTip.Tip="Ce choix s’applique à la prochaine conversation. Pour modifier la conversation ouverte, cliquez sur Modèle actif au-dessus du fil." />
-          <Button x:Name="NewButton" Classes="primary" Content="+  Nouvelle conversation" HorizontalAlignment="Stretch"
-                  HorizontalContentAlignment="Center" ToolTip.Tip="Créer une conversation · Ctrl+N" />
-          <Expander Header="Titre et instruction initiale" FontSize="11" BorderThickness="0" Padding="0">
-            <StackPanel Spacing="8" Margin="0,8,0,0">
-              <TextBox x:Name="NewTitleInput" PlaceholderText="Titre facultatif" MaxLength="100" />
-              <TextBox x:Name="SystemPromptInput" AcceptsReturn="True" Height="80" TextWrapping="Wrap" MaxLength="4000"
-                       Text="Tu es Alycia, un assistant utile. Réponds en français." />
-            </StackPanel>
-          </Expander>
+        <StackPanel Grid.Row="1" x:Name="CreationPanel" Spacing="8">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="4">
+            <ComboBox x:Name="ProjectSelector" HorizontalAlignment="Stretch" AutomationProperties.Name="Projet actif" />
+            <Button Grid.Column="1" x:Name="AddProjectButton" Classes="quiet icon" AutomationProperties.Name="Créer un projet" ToolTip.Tip="Créer un projet"><PathIcon Data="{StaticResource GlyphPlus}" /></Button>
+          </Grid>
+          <Button x:Name="NewButton" Classes="primary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                  Content="Nouvelle conversation" ToolTip.Tip="Nouvelle conversation · Ctrl+N" />
+          <Button x:Name="FilesButton" Classes="quiet" HorizontalAlignment="Stretch" Content="Documents" />
+          <Button x:Name="InstructionsButton" Classes="quiet" HorizontalAlignment="Stretch" Content="Consignes du projet" />
         </StackPanel>
-        <Grid Grid.Row="2" RowDefinitions="Auto,Auto" RowSpacing="4">
-          <TextBox x:Name="SearchInput" PlaceholderText="Rechercher une conversation…" MaxLength="200" ToolTip.Tip="Titre ou contenu des messages · Ctrl+F" />
-          <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="6">
-            <Button x:Name="SearchButton" Classes="quiet" Content="Rechercher" FontSize="11" Padding="8,4" />
-            <Button x:Name="MoreConversationsButton" Classes="quiet" Content="Suivantes" FontSize="11" Padding="8,4" IsVisible="False" />
-          </StackPanel>
+        <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="4">
+          <TextBox x:Name="SearchInput" PlaceholderText="Rechercher…" MaxLength="200" AutomationProperties.Name="Rechercher une conversation" />
+          <Button Grid.Column="1" x:Name="SearchButton" Classes="quiet" Content="OK" AutomationProperties.Name="Lancer la recherche" />
         </Grid>
-        <ListBox Grid.Row="3" x:Name="ConversationList" Background="Transparent" BorderThickness="0">
-          <ListBox.ItemTemplate>
-            <DataTemplate x:DataType="local:ConversationSummary">
-              <StackPanel Spacing="5">
-                <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" FontWeight="Medium" Foreground="#E7EAF5" />
-                <TextBlock Text="{Binding Model}" FontSize="11" Foreground="#9B91C8" TextTrimming="CharacterEllipsis" />
-              </StackPanel>
-            </DataTemplate>
-          </ListBox.ItemTemplate>
-        </ListBox>
-        <StackPanel Grid.Row="4" Spacing="3">
-          <Button x:Name="RefreshButton" Classes="quiet" Content="Actualiser modèles et historique" FontSize="11" HorizontalAlignment="Stretch" />
-          <Expander Header="Prompts et outils" FontSize="12" BorderThickness="0" Padding="0">
-            <StackPanel Spacing="3">
-              <Button x:Name="PromptsButton" Classes="quiet" Content="Bibliothèque de prompts" FontSize="11" HorizontalAlignment="Stretch" />
-              <Button x:Name="ImportConversationButton" Classes="quiet" Content="Importer une conversation JSON" FontSize="11" HorizontalAlignment="Stretch" />
-              <Button x:Name="DiagnosticsButton" Classes="quiet" Content="Connexion et diagnostics" FontSize="11" HorizontalAlignment="Stretch" />
-            </StackPanel>
-          </Expander>
-        </StackPanel>
+        <Grid Grid.Row="3" RowDefinitions="*,Auto">
+          <ListBox x:Name="ConversationList" Background="Transparent" BorderThickness="0">
+            <ListBox.ItemTemplate><DataTemplate x:DataType="local:ConversationSummary">
+              <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Title}" />
+            </DataTemplate></ListBox.ItemTemplate>
+          </ListBox>
+          <Button Grid.Row="1" x:Name="MoreConversationsButton" Classes="quiet" Content="Afficher la suite" IsVisible="False" />
+        </Grid>
+        <Grid Grid.Row="4" ColumnDefinitions="*,Auto">
+          <Button x:Name="AppearanceButton" Classes="quiet" Content="Paramètres" />
+          <Button x:Name="RefreshButton" Grid.Column="1" Classes="quiet" Content="Actualiser" />
+        </Grid>
       </Grid>
     </Border>
-    <Grid Grid.Column="1" Margin="24,20,24,18" MaxWidth="1180" RowDefinitions="Auto,Auto,*,Auto,Auto" RowSpacing="12">
-      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
-        <Button x:Name="SidebarToggle" Content="☰" Classes="quiet" ToolTip.Tip="Afficher ou masquer les conversations" />
-        <Grid Grid.Column="1" x:Name="ConversationHeader" ColumnDefinitions="*,Auto" ColumnSpacing="6">
-          <TextBox x:Name="TitleInput" PlaceholderText="Votre prochaine idée commence ici" MaxLength="100"
-                   Background="Transparent" BorderThickness="0" FontSize="20" FontWeight="SemiBold" Padding="0,8" />
-          <Button Grid.Column="1" x:Name="RenameButton" Classes="quiet" Content="Renommer" FontSize="11" />
+    <Grid Grid.Column="1" RowDefinitions="Auto,*,Auto" x:Name="MainContent">
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto" Margin="12" ColumnSpacing="6">
+        <Button x:Name="SidebarToggle" Classes="quiet icon" AutomationProperties.Name="Navigation" ToolTip.Tip="Navigation"><PathIcon Data="{StaticResource GlyphMenu}" /></Button>
+        <Grid Grid.Column="1" x:Name="ConversationHeader" RowDefinitions="Auto,Auto">
+          <TextBlock x:Name="ProjectHeading" Classes="muted" Text="Hors projet" />
+          <TextBlock x:Name="ViewHeading" Grid.Row="1" FontSize="20" FontWeight="Bold" Text="Conversation" TextTrimming="CharacterEllipsis" />
         </Grid>
+        <Button x:Name="ContextButton" Grid.Column="2" Classes="quiet icon" AutomationProperties.Name="Contexte et mémoire" ToolTip.Tip="Contexte et mémoire"><PathIcon Data="{StaticResource GlyphInspect}" /></Button>
+        <Button x:Name="MoreButton" Grid.Column="3" Classes="quiet icon" AutomationProperties.Name="Actions de conversation" ToolTip.Tip="Actions"><PathIcon Data="{StaticResource GlyphMore}" /></Button>
       </Grid>
-      <StackPanel Grid.Row="1" Spacing="6">
-        <WrapPanel Orientation="Horizontal">
-          <Button x:Name="ActiveModelButton" Classes="quiet" Content="Modèle actif" IsVisible="False"
-                  FontSize="13" Padding="0,4,14,4" ToolTip.Tip="Changer le modèle de cette conversation dans Réglages" />
-          <TextBlock x:Name="ConversationDetails" Text="Choisissez un modèle, puis créez une conversation."
-                     Foreground="#9DAAC2" FontSize="12" TextWrapping="Wrap" VerticalAlignment="Center" />
-        </WrapPanel>
-        <WrapPanel x:Name="ConversationTools" Orientation="Horizontal">
-          <Button x:Name="SettingsButton" Classes="quiet" Content="Réglages" FontSize="12" ToolTip.Tip="Modèle, prompt, contexte et génération" />
-          <Button x:Name="ContextButton" Classes="quiet" Content="Mémoire et contexte" FontSize="12" ToolTip.Tip="Voir le contexte, préparer ou réinitialiser le résumé" />
-          <Button x:Name="FilesButton" Classes="quiet" Content="Documents" FontSize="12" ToolTip.Tip="Épingler ou exclure les fichiers importés" />
-          <Button x:Name="AnalysisButton" Classes="quiet" Content="Analyse du projet" FontSize="12" ToolTip.Tip="Analyse de toutes les sources admissibles et couverture" />
-          <Button x:Name="ProjectToolsButton" Classes="quiet" Content="Sources et outils" FontSize="12" ToolTip.Tip="Lectures par l’IA et connexion MCP" />
-          <Expander Header="Autres actions" FontSize="11" BorderThickness="0" Padding="0">
-            <WrapPanel>
-              <Button x:Name="ForkButton" Classes="quiet" Content="Dupliquer" FontSize="11" />
-              <Button x:Name="RegenerateButton" Classes="quiet" Content="Régénérer une copie" FontSize="11" />
-              <Button x:Name="ExportButton" Classes="quiet" Content="Exporter" FontSize="11" />
-              <Button x:Name="DeleteButton" Classes="quiet" Content="Supprimer" FontSize="11" Foreground="#ECA8B5" />
-            </WrapPanel>
-          </Expander>
-        </WrapPanel>
-      </StackPanel>
-      <Grid Grid.Row="2" RowDefinitions="Auto,*,Auto">
-        <Button x:Name="OlderButton" Classes="quiet" Content="Charger les messages précédents" IsVisible="False"
-                HorizontalAlignment="Center" Margin="0,0,0,10" FontSize="12" />
-        <StackPanel Grid.Row="1" x:Name="EmptyState" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="14" IsHitTestVisible="False" Margin="24">
-          <TextBlock Text="Que souhaitez-vous construire ?" FontSize="25" FontWeight="SemiBold" Foreground="#C5B9FF" TextAlignment="Center" TextWrapping="Wrap" />
-          <TextBlock x:Name="EmptyHint" Text="Choisissez un modèle local et créez une conversation." FontSize="14" Foreground="#A9B6CE" TextAlignment="Center" TextWrapping="Wrap" />
-          <TextBlock Text="Discutez d’une idée · Analysez un dossier · Développez avec vos sources" FontSize="12" Foreground="#8797B3" TextAlignment="Center" TextWrapping="Wrap" />
+      <Grid Grid.Row="1" x:Name="ChatPage" RowDefinitions="Auto,*,Auto" Margin="16,0">
+        <Grid ColumnDefinitions="*,Auto,Auto" MaxWidth="880" HorizontalAlignment="Stretch">
+          <TextBlock x:Name="ConversationDetails" Classes="muted" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+          <Button x:Name="OlderButton" Grid.Column="1" Classes="quiet" Content="Précédents" IsVisible="False" />
+          <Button x:Name="ActiveModelButton" Grid.Column="2" Classes="quiet" IsVisible="False" ToolTip.Tip="Modèle et réglages de cet échange" />
+        </Grid>
+        <StackPanel Grid.Row="1" x:Name="EmptyState" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="20" Spacing="10" IsHitTestVisible="False">
+          <PathIcon Data="{StaticResource GlyphMark}" Width="42" Height="42" Foreground="{DynamicResource BorealIris}" />
+          <TextBlock x:Name="EmptyHint" TextAlignment="Center" TextWrapping="Wrap" FontSize="20" />
         </StackPanel>
         <ScrollViewer Grid.Row="1" x:Name="MessageScroll" HorizontalScrollBarVisibility="Disabled">
-          <StackPanel Spacing="0" Margin="0,0,8,0">
+          <StackPanel HorizontalAlignment="Stretch" MaxWidth="880" Margin="0,12,4,10" Spacing="12">
             <ItemsControl x:Name="MessageList">
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="local:ChatMessageItem">
-                  <Border Classes="message" Classes.user="{Binding IsUser}" Classes.file="{Binding IsFile}" Padding="18,16" CornerRadius="12">
-                    <StackPanel Spacing="12">
-                      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                        <TextBlock Text="{Binding Label}" FontWeight="SemiBold" Foreground="#ACBBD2" FontSize="11" VerticalAlignment="Center" />
-                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
-                          <Button Classes="quiet" Content="Copier" CommandParameter="{Binding}" Click="CopyMessageClick" FontSize="11" Padding="8,4" />
-                          <Button Classes="quiet" Content="Tout le code" IsVisible="{Binding HasCode}" CommandParameter="{Binding}" Click="CopyCodeClick" FontSize="11" Padding="8,4" />
-                        </StackPanel>
+                  <Border Classes.user="{Binding IsUser}" Classes.file="{Binding IsFile}" Padding="14,10" CornerRadius="14">
+                    <StackPanel Spacing="8" Margin="0,0,0,8">
+                      <Grid ColumnDefinitions="*,Auto,Auto">
+                        <TextBlock Text="{Binding Label}" Classes="muted" VerticalAlignment="Center" />
+                        <Button Grid.Column="1" Classes="quiet icon" AutomationProperties.Name="Copier le message" ToolTip.Tip="Copier le message"
+                                CommandParameter="{Binding}" Click="CopyMessageClick"><PathIcon Data="{StaticResource GlyphCopy}" /></Button>
+                        <Button Grid.Column="2" Classes="quiet" Content="Code" AutomationProperties.Name="Copier tous les blocs de code" ToolTip.Tip="Copier tous les blocs"
+                                CommandParameter="{Binding}" Click="CopyCodeClick" IsVisible="{Binding HasCode}" />
                       </Grid>
                       <local:MarkdownView Text="{Binding Content}" IsMarkdown="{Binding IsAssistant}" />
-                      <Expander Header="{Binding DiagnosticsTitle}" IsVisible="{Binding HasDiagnostics}">
-                        <SelectableTextBlock Text="{Binding DiagnosticsText}" TextWrapping="Wrap" FontSize="12" />
-                      </Expander>
-                      <Expander Header="Actions et sources consultées" IsVisible="{Binding HasToolTrace}">
-                        <SelectableTextBlock Text="{Binding ToolTraceText}" TextWrapping="Wrap" FontSize="12" />
-                      </Expander>
-                      <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsFile}">
-                        <Button Classes="quiet" Content="Télécharger" CommandParameter="{Binding}" Click="DownloadFileClick" FontSize="11" />
-                        <Button Classes="quiet" Content="Retirer" CommandParameter="{Binding}" Click="RemoveFileClick" FontSize="11" />
-                      </StackPanel>
+                      <Button Classes="quiet" Content="Sources et détails" Foreground="{DynamicResource BorealJade}"
+                              IsVisible="{Binding HasEvidence}" CommandParameter="{Binding}" Click="EvidenceClick" />
+                      <WrapPanel IsVisible="{Binding IsFile}">
+                        <Button Classes="quiet" Content="Télécharger" CommandParameter="{Binding}" Click="DownloadFileClick" />
+                        <Button Classes="quiet" Content="Retirer" CommandParameter="{Binding}" Click="RemoveFileClick" />
+                      </WrapPanel>
                     </StackPanel>
                   </Border>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>
-            <Border x:Name="PendingUserPanel" Classes="message user" IsVisible="False" Padding="18,16" CornerRadius="12">
-              <StackPanel Spacing="8">
-                <TextBlock x:Name="PendingUserLabel" Text="Vous · envoi en cours" FontSize="11" Foreground="#ACBBD2" />
-                <SelectableTextBlock x:Name="PendingUserText" TextWrapping="Wrap" FontSize="15" />
-              </StackPanel>
+            <Border x:Name="PendingUserPanel" Classes="user" IsVisible="False" Padding="16" CornerRadius="14">
+              <StackPanel Spacing="6"><TextBlock x:Name="PendingUserLabel" Classes="muted" />
+                <SelectableTextBlock x:Name="PendingUserText" FontSize="{DynamicResource ReadingSize}" TextWrapping="Wrap" /></StackPanel>
             </Border>
-            <Expander x:Name="StreamingPanel" Header="Alycia · génération en cours" IsVisible="False" IsExpanded="True" HorizontalAlignment="Stretch">
-              <Border Padding="18,16" Background="#1A2030" CornerRadius="12" BorderBrush="#3BCEB5" BorderThickness="3,0,0,0">
-                <StackPanel Spacing="10">
-                  <TextBlock x:Name="StreamingStatus" Text="Préparation…" FontSize="11" Foreground="#A3CFC9" TextWrapping="Wrap" />
-                  <local:MarkdownView x:Name="StreamingText" IsStreaming="True" />
-                  <Expander x:Name="StreamingTools" Header="Actions et sources consultées" IsVisible="False">
-                    <SelectableTextBlock x:Name="StreamingToolText" TextWrapping="Wrap" FontSize="12" />
-                  </Expander>
-                </StackPanel>
-              </Border>
+            <Expander x:Name="StreamingPanel" IsVisible="False" IsExpanded="True" HorizontalAlignment="Stretch">
+              <StackPanel Spacing="8">
+                <TextBlock x:Name="StreamingStatus" Classes="muted" TextWrapping="Wrap" />
+                <local:MarkdownView x:Name="StreamingText" IsStreaming="True" />
+                <Expander x:Name="StreamingTools" Header="Sources consultées" IsVisible="False"><SelectableTextBlock x:Name="StreamingToolText" TextWrapping="Wrap" /></Expander>
+              </StackPanel>
             </Expander>
           </StackPanel>
         </ScrollViewer>
-        <Button Grid.Row="2" x:Name="LatestButton" Content="↓  Revenir à la réponse" Classes="quiet" IsVisible="False" HorizontalAlignment="Right" FontSize="11" />
+        <StackPanel Grid.Row="2" MaxWidth="880" HorizontalAlignment="Stretch" Spacing="6" Margin="0,6,0,12">
+          <Button x:Name="LatestButton" Content="Revenir à la réponse" Classes="quiet" IsVisible="False" HorizontalAlignment="Right" />
+          <Border Background="{DynamicResource BorealSurface}" BorderBrush="{DynamicResource BorealOutline}" BorderThickness="1" CornerRadius="16" Padding="10">
+            <Grid RowDefinitions="Auto,Auto">
+              <TextBox x:Name="MessageInput" PlaceholderText="Écrivez à Alycia…" AutomationProperties.Name="Message à Alycia"
+                       FontSize="{DynamicResource ReadingSize}" AcceptsReturn="True" Background="Transparent" BorderThickness="0" TextWrapping="Wrap"
+                       MinHeight="50" MaxHeight="150" MaxLength="32000" />
+              <Grid Grid.Row="1" ColumnDefinitions="Auto,Auto,*,Auto">
+                <Button x:Name="UploadButton" Classes="quiet icon" AutomationProperties.Name="Joindre des fichiers ou une archive" ToolTip.Tip="Joindre des fichiers ou une archive"><PathIcon Data="{StaticResource GlyphAttach}" /></Button>
+                <Button x:Name="FolderButton" Grid.Column="1" Classes="quiet" Content="Dossier" ToolTip.Tip="Joindre un dossier à cette conversation" />
+                <Button x:Name="CancelButton" Grid.Column="3" Classes="primary icon" IsVisible="False" AutomationProperties.Name="Arrêter" ToolTip.Tip="Arrêter · Échap"><PathIcon Data="{StaticResource GlyphStop}" /></Button>
+                <Button x:Name="SendButton" Grid.Column="3" Classes="primary icon" AutomationProperties.Name="Envoyer" ToolTip.Tip="Envoyer · Ctrl+Entrée"><PathIcon Data="{StaticResource GlyphSend}" /></Button>
+              </Grid>
+            </Grid>
+          </Border>
+        </StackPanel>
       </Grid>
-      <StackPanel Grid.Row="3" Spacing="6">
-        <ProgressBar x:Name="BusyIndicator" IsIndeterminate="True" IsVisible="False" Height="3" Foreground="#8875F5" />
-        <TextBlock x:Name="FeedbackText" Text="Connexion…" TextWrapping="Wrap" FontSize="12" Foreground="#A0AEC8" />
+      <ScrollViewer Grid.Row="1" x:Name="PageScroll" IsVisible="False" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel x:Name="PageBody" MaxWidth="850" HorizontalAlignment="Stretch" Margin="24,12" Spacing="14" />
+      </ScrollViewer>
+      <ScrollViewer Grid.Row="1" x:Name="PreferencesPage" IsVisible="False" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel MaxWidth="720" Margin="24,12" Spacing="12">
+          <TextBlock Text="Apparence" FontWeight="Bold" FontSize="22" /><ComboBox x:Name="ThemeChoice" AutomationProperties.Name="Thème" HorizontalAlignment="Stretch" />
+          <TextBlock Text="Taille de lecture" /><ComboBox x:Name="SizeChoice" AutomationProperties.Name="Taille de lecture" HorizontalAlignment="Stretch" />
+          <CheckBox x:Name="WrapChoice" Content="Replier les longues lignes de code" />
+          <TextBlock Text="Nouvelles conversations" FontWeight="Bold" FontSize="20" />
+          <ComboBox x:Name="ModelSelector" AutomationProperties.Name="Modèle par défaut" PlaceholderText="Modèle par défaut" HorizontalAlignment="Stretch" />
+          <Expander Header="Titre et consigne initiale"><StackPanel Spacing="6">
+            <TextBox x:Name="NewTitleInput" PlaceholderText="Titre facultatif" MaxLength="100" />
+            <TextBox x:Name="SystemPromptInput" Text="Tu es Alycia, un assistant utile. Réponds en français." AcceptsReturn="True" TextWrapping="Wrap" MaxLength="4000" />
+          </StackPanel></Expander>
+          <Expander Header="Connexion et outils"><StackPanel Spacing="8">
+            <TextBlock Text="Adresse de l’API locale" /><TextBox x:Name="ApiUrlInput" PlaceholderText="http://127.0.0.1:5187" />
+            <Button x:Name="DiagnosticsButton" Content="Diagnostics de connexion" /><Button x:Name="PromptsButton" Content="Bibliothèque de prompts" />
+            <Button x:Name="ImportConversationButton" Content="Importer une conversation JSON" />
+          </StackPanel></Expander>
+          <WrapPanel><Button x:Name="SaveAppearanceButton" Classes="primary" Content="Appliquer" /><Button x:Name="BackButton" Classes="quiet" Content="Revenir au fil" /></WrapPanel>
+        </StackPanel>
+      </ScrollViewer>
+      <StackPanel Grid.Row="2" Margin="15,0,15,6" Spacing="3">
+        <ProgressBar x:Name="BusyIndicator" Height="2" IsIndeterminate="True" IsVisible="False" />
+        <TextBlock x:Name="FeedbackText" Classes="muted" TextWrapping="Wrap" />
       </StackPanel>
-      <Border Grid.Row="4" Background="#1A2030" CornerRadius="16" BorderBrush="#3F4A65" BorderThickness="1" Padding="12">
-        <Grid RowDefinitions="Auto,Auto" RowSpacing="8">
-          <TextBox x:Name="MessageInput" PlaceholderText="Votre demande… Les deux derniers échanges restent dans le contexte."
-                   AcceptsReturn="True" Background="Transparent" BorderThickness="0" TextWrapping="Wrap" MinHeight="72" MaxHeight="160" MaxLength="32000" />
-          <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="8">
-            <StackPanel Orientation="Horizontal" Spacing="4">
-              <Button x:Name="UploadButton" Classes="quiet" Content="+ Fichiers / ZIP" FontSize="11" ToolTip.Tip="Importer des fichiers ou archives récursives" />
-              <Button x:Name="FolderButton" Classes="quiet" Content="+ Dossier" FontSize="11" />
-            </StackPanel>
-            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
-              <Button x:Name="CancelButton" Content="Arrêter" IsVisible="False" ToolTip.Tip="Interrompre l’opération · Échap" />
-              <Button x:Name="SendButton" Classes="primary" Content="Envoyer  →" Padding="18,10" ToolTip.Tip="Envoyer · Ctrl+Entrée" />
-            </StackPanel>
-          </Grid>
-        </Grid>
+      <Border Grid.Row="1" x:Name="ActionMenu" IsVisible="False" VerticalAlignment="Top" HorizontalAlignment="Right" MaxWidth="360"
+              Background="{DynamicResource BorealSurface}" BorderBrush="{DynamicResource BorealOutline}" BorderThickness="1" Padding="12" Margin="8" CornerRadius="12">
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled"><WrapPanel x:Name="ConversationTools" MaxWidth="300">
+          <TextBox x:Name="TitleInput" Width="196" MaxLength="100" AutomationProperties.Name="Titre de la conversation" /><Button x:Name="RenameButton" Content="Renommer" />
+          <Button x:Name="SettingsButton" Content="Réglages de conversation" /><Button x:Name="MoveButton" Content="Changer de projet" />
+          <Button x:Name="AnalysisButton" Content="Analyses" /><Button x:Name="ProjectToolsButton" Content="Outils et diagnostics" />
+          <Button x:Name="ForkButton" Content="Dupliquer" /><Button x:Name="RegenerateButton" Content="Régénérer une copie" />
+          <Button x:Name="ExportButton" Content="Exporter" /><Button x:Name="DeleteButton" Content="Supprimer" Foreground="{DynamicResource BorealError}" />
+        </WrapPanel></ScrollViewer>
       </Border>
     </Grid>
+    <Border Grid.Column="2" x:Name="Inspector" Background="{DynamicResource BorealSurface}" Width="350" Padding="16" IsVisible="False">
+      <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10">
+        <Grid ColumnDefinitions="*,Auto"><TextBlock Text="Cet échange" FontSize="20" FontWeight="Bold" VerticalAlignment="Center" />
+          <Button Grid.Column="1" x:Name="CloseInspector" Classes="quiet icon" AutomationProperties.Name="Fermer le panneau" ToolTip.Tip="Fermer · Échap"><PathIcon Data="{StaticResource GlyphClose}" /></Button></Grid>
+        <WrapPanel Grid.Row="1"><Button x:Name="ContextTab" Content="Contexte" /><Button x:Name="SourcesTab" Content="Sources" /><Button x:Name="MemoryTab" Content="Mémoire" /></WrapPanel>
+        <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Disabled"><StackPanel x:Name="InspectorBody" Spacing="10" /></ScrollViewer>
+      </Grid>
+    </Border>
   </Grid>
 </Window>

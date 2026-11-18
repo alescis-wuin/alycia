@@ -68,6 +68,7 @@ public partial class ChatWindow : Window
         };
         InitializeFileControls();
         InitializeFeatureControls();
+        InitializeNavigation();
         C<MarkdownView>("StreamingText").Rendered += ScrollToEnd;
         C<ScrollViewer>("MessageScroll").ScrollChanged += (_, e) =>
         {
@@ -80,7 +81,7 @@ public partial class ChatWindow : Window
         };
         C<Button>("LatestButton").Click += (_, _) => { _followOutput = true; C<Button>("LatestButton").IsVisible = false; ScrollToEnd(); };
         C<Button>("SidebarToggle").Click += (_, _) => { _sidebarManual = true; C<Border>("Sidebar").IsVisible = !C<Border>("Sidebar").IsVisible; };
-        SizeChanged += (_, _) => { if (!_sidebarManual) C<Border>("Sidebar").IsVisible = Bounds.Width >= 1040; };
+        SizeChanged += (_, _) => { if (!_sidebarManual) C<Border>("Sidebar").IsVisible = Bounds.Width >= 1040; LayoutInspector(); };
         C<TextBox>("SearchInput").KeyDown += async (_, e) =>
         {
             if (e.Key == Key.Enter)
@@ -91,6 +92,8 @@ public partial class ChatWindow : Window
         };
         KeyDown += async (_, e) =>
         {
+            if (e.Key == Key.Escape && C<Border>("Inspector").IsVisible) { CloseInspector(); e.Handled = true; return; }
+            if (e.Key == Key.Escape && C<Border>("ActionMenu").IsVisible) { C<Border>("ActionMenu").IsVisible = false; C<Button>("MoreButton").Focus(); e.Handled = true; return; }
             if (e.Key == Key.Escape && _generation is not null) { _generation.Cancel(); e.Handled = true; }
             if (!e.KeyModifiers.HasFlag(KeyModifiers.Control)) return;
             if (e.Key == Key.N) { e.Handled = true; await RunAsync(CreateAsync); }
@@ -105,7 +108,8 @@ public partial class ChatWindow : Window
     private void Feedback(string message, bool error = false)
     {
         C<TextBlock>("FeedbackText").Text = message;
-        C<TextBlock>("FeedbackText").Foreground = global::Avalonia.Media.Brush.Parse(error ? "#F0A9B5" : "#AAB8D0");
+        C<TextBlock>("FeedbackText").Foreground = Appearance.Color(this, error ? "Error" : "Muted");
+        C<TextBlock>("FeedbackText").IsVisible = !string.IsNullOrWhiteSpace(message);
     }
 
     private async Task RunAsync(Func<Task> action)
@@ -116,6 +120,7 @@ public partial class ChatWindow : Window
         }
 
         _busy = true;
+        C<Border>("ActionMenu").IsVisible = false;
         UpdateControls();
         Feedback("Chargement…");
         try
@@ -146,6 +151,7 @@ public partial class ChatWindow : Window
     {
         C<StackPanel>("EmptyState").IsVisible = _messages.Count == 0 && _generation is null
             && !C<Expander>("StreamingPanel").IsVisible && !C<Border>("PendingUserPanel").IsVisible;
+        C<Button>("NewButton").IsEnabled = !_busy && !_project.Archived;
         C<Button>("ActiveModelButton").IsVisible = _current is not null;
         C<Button>("ActiveModelButton").IsEnabled = !_busy && _current is not null;
         C<TextBlock>("EmptyHint").Text = _current is null
@@ -158,7 +164,11 @@ public partial class ChatWindow : Window
             C<Button>(name).IsEnabled = !_busy;
         C<ListBox>("ConversationList").IsEnabled = !_busy;
         C<Button>("RefreshButton").IsEnabled = !_busy;
-        C<Grid>("ConversationHeader").IsEnabled = !_busy && _current is not null;
+        C<Button>("ContextButton").IsEnabled = !_busy && _current is not null;
+        C<Button>("MoreButton").IsEnabled = !_busy && _current is not null;
+        C<Button>("SendButton").IsVisible = _generation is null;
+        C<Button>("FilesButton").IsEnabled = !_busy && (_current is not null || _project.Id.HasValue);
+        C<Button>("InstructionsButton").IsEnabled = !_busy && _project.Id.HasValue;
         C<Button>("UploadButton").IsEnabled = !_busy && _current is not null;
         C<Button>("FolderButton").IsEnabled = !_busy && _current is not null;
         C<Button>("SendButton").IsEnabled = !_busy && _current is not null && !string.IsNullOrWhiteSpace(C<TextBox>("MessageInput").Text);
@@ -170,6 +180,7 @@ public partial class ChatWindow : Window
 
     private async Task InitializeAsync()
     {
+        await RefreshProjectsAsync(_project.Id);
         // Load persisted history even when Ollama is temporarily unavailable.
         await RefreshConversationsAsync(_current?.Id);
         if (_current is not null)
@@ -179,19 +190,19 @@ public partial class ChatWindow : Window
 
         var models = await _client.ModelsAsync(_lifetime.Token);
         var selector = C<ComboBox>("ModelSelector");
-        var selected = selector.SelectedItem as string;
+        var selected = selector.SelectedItem as string ?? Appearance.Current.DefaultModel;
         selector.ItemsSource = models;
         selector.SelectedItem = models.Contains(selected) ? selected : models.FirstOrDefault();
         Feedback(models.Length == 0
             ? "Aucun modèle génératif local. Les modèles d’embeddings ne peuvent pas discuter. Installez un modèle génératif avec ollama pull, puis actualisez."
-            : "Prêt à discuter." + (_drafts.Error is null ? "" : " " + _drafts.Error));
+            : _drafts.Error ?? "");
     }
 
     private async Task RefreshConversationsAsync(Guid? selectId)
     {
         SaveDraft();
         _searchQuery = C<TextBox>("SearchInput").Text ?? "";
-        var page = await _client.SearchAsync(_searchQuery, 0, _lifetime.Token);
+        var page = await _client.SearchAsync(_searchQuery, 0, _lifetime.Token, _project.Id, true);
         var conversations = page.Items;
         C<Button>("MoreConversationsButton").IsVisible = page.HasMore;
         var list = C<ListBox>("ConversationList");
@@ -201,7 +212,8 @@ public partial class ChatWindow : Window
         {
             // Keep a newly created or renamed conversation visible even if a search filter excludes it.
             selected = (await _client.SettingsAsync(selectId.Value, _lifetime.Token)).Conversation;
-            list.ItemsSource = new[] { selected }.Concat(conversations).ToArray();
+            if (selected.WorkspaceId == _project.Id) list.ItemsSource = new[] { selected }.Concat(conversations).ToArray();
+            else selected = conversations.FirstOrDefault();
         }
         _current = selected;
         _loadingDraft = true;
@@ -218,7 +230,8 @@ public partial class ChatWindow : Window
             C<SelectableTextBlock>("StreamingToolText").Text = "";
             C<SelectableTextBlock>("PendingUserText").Text = "";
             C<TextBox>("TitleInput").Text = "";
-            C<TextBlock>("ConversationDetails").Text = "Créez une conversation pour commencer.";
+            C<TextBlock>("ViewHeading").Text = "Conversation";
+            C<TextBlock>("ConversationDetails").Text = "";
             C<Button>("OlderButton").IsVisible = false;
         }
     }
@@ -226,6 +239,8 @@ public partial class ChatWindow : Window
     private async Task LoadAsync(ConversationSummary conversation)
     {
         SaveDraft();
+        CloseInspector();
+        _evidence = null;
         var page = await _client.MessagesAsync(conversation.Id, null, _lifetime.Token);
         _current = page.Conversation;
         _loadingDraft = true;
@@ -235,9 +250,10 @@ public partial class ChatWindow : Window
         C<Border>("PendingUserPanel").IsVisible = false;
         _followOutput = true; C<Button>("LatestButton").IsVisible = false;
         C<TextBox>("TitleInput").Text = _current.Title;
-        C<Button>("ActiveModelButton").Content = $"Modèle actif : {_current.Model} ▾";
+        ShowChat();
+        C<Button>("ActiveModelButton").Content = _current.Model;
         C<TextBlock>("ConversationDetails").Text = $"{_current.MessageCount} messages"
-            + (_current.MemoryThroughSequence > 0 ? $" · mémoire : messages 1–{_current.MemoryThroughSequence}" : " · contexte local");
+           ;
         _messages.Clear();
         foreach (var message in Timeline(page))
         {
@@ -246,7 +262,7 @@ public partial class ChatWindow : Window
 
         C<Button>("OlderButton").IsVisible = page.HasMore;
         ScrollToEnd();
-        Feedback("Historique chargé.");
+        Feedback("");
     }
 
     private async Task LoadOlderAsync()
@@ -275,9 +291,14 @@ public partial class ChatWindow : Window
             return;
         }
 
+        if (_project.Id is Guid project)
+        {
+            var defaults = await _client.ProjectAsync(project, _lifetime.Token);
+            if (defaults.DefaultModel.Length > 0) model = defaults.DefaultModel;
+        }
         var title = C<TextBox>("NewTitleInput").Text;
         var conversation = await _client.CreateAsync(string.IsNullOrWhiteSpace(title) ? "Nouvelle conversation" : title,
-            model, C<TextBox>("SystemPromptInput").Text, _lifetime.Token);
+            model, C<TextBox>("SystemPromptInput").Text, _lifetime.Token, _project.Id);
         await RefreshConversationsAsync(conversation.Id);
         await LoadAsync(conversation);
         C<TextBox>("NewTitleInput").Text = "";
@@ -296,6 +317,7 @@ public partial class ChatWindow : Window
         var conversation = await _client.RenameAsync(_current.Id, C<TextBox>("TitleInput").Text ?? "", _lifetime.Token);
         await RefreshConversationsAsync(conversation.Id);
         C<TextBox>("TitleInput").Text = conversation.Title;
+        ShowChat();
         Feedback("Conversation renommée.");
     }
 
@@ -366,7 +388,7 @@ public partial class ChatWindow : Window
         using var generation = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
         _generation = generation;
         UpdateControls();
-        Feedback($"Ollama prépare la réponse avec {_current.Model}… Le premier chargement peut prendre du temps.");
+        Feedback("");
         var streamed = new System.Text.StringBuilder();
         var lastRender = DateTime.UtcNow;
         var hasThinking = false;
@@ -385,7 +407,7 @@ public partial class ChatWindow : Window
             var result = await _client.StreamMessageAsync(_current.Id, _pendingId, text, _current.Revision, delta =>
             {
                 if (delta.Status is not null)
-                { Feedback(delta.Status); C<TextBlock>("StreamingStatus").Text = delta.Status; }
+                { C<TextBlock>("StreamingStatus").Text = delta.Status; }
                 if (delta.Tool is { } tool)
                 {
                     C<Expander>("StreamingTools").IsVisible = true;
@@ -415,12 +437,7 @@ public partial class ChatWindow : Window
                 await LoadAsync(_current);
             }
 
-            Feedback(result.Replayed ? "Échange déjà enregistré : aucun doublon ajouté."
-                : $"Réponse enregistrée · {result.HistoryMessagesIncluded} messages et {result.FilesIncluded} extraits initiaux · "
-                    + (result.Usage is { } usage ? $"{usage.Calls.Count} appels · {usage.InputTokens?.ToString() ?? "?"} tokens entrants cumulés · {usage.OutputTokens?.ToString() ?? "?"} sortants cumulés" : $"{result.Stats?.OutputTokens?.ToString() ?? "?"} tokens (dernier appel)")
-                    + (result.Stats is { EvaluationNanoseconds: > 0, OutputTokens: { } count } stats
-                        ? $" · {count * 1_000_000_000.0 / stats.EvaluationNanoseconds.Value:F1} tok/s" : "")
-                    + (result.Stats?.DoneReason == "length" ? " · limite de sortie atteinte" : ""));
+            Feedback(result.Stats?.DoneReason == "length" ? "Limite de sortie atteinte." : "");
         }
         finally
         {

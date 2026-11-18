@@ -24,7 +24,7 @@ public sealed partial class ChatApiClient
 
     private HttpRequestMessage CreateRequest(HttpMethod method, string path, object? body)
     {
-        var url = _baseUrl ?? Environment.GetEnvironmentVariable("ALYCIA_API_BASE_URL") ?? "http://127.0.0.1:8080";
+        var url = _baseUrl ?? Environment.GetEnvironmentVariable("ALYCIA_API_BASE_URL") ?? (string.IsNullOrWhiteSpace(Appearance.Current.ApiUrl) ? "http://127.0.0.1:8080" : Appearance.Current.ApiUrl);
         if (!Uri.TryCreate(url, UriKind.Absolute, out var origin) || !origin.IsLoopback
             || origin.Scheme is not ("http" or "https") || origin.AbsolutePath != "/"
             || origin.UserInfo.Length > 0 || origin.Query.Length > 0 || origin.Fragment.Length > 0)
@@ -52,8 +52,9 @@ public sealed partial class ChatApiClient
         SendAsync<PromptItem>(id.HasValue ? HttpMethod.Put : HttpMethod.Post,
             id.HasValue ? $"/prompts/{id}" : "/prompts", new { name, systemPrompt }, ct);
     public Task DeletePromptAsync(Guid id, CancellationToken ct) => SendAsync<object>(HttpMethod.Delete, $"/prompts/{id}", null, ct);
-    public Task<ConversationSearch> SearchAsync(string query, int offset, CancellationToken ct) =>
-        SendAsync<ConversationSearch>(HttpMethod.Get, $"/search?q={Uri.EscapeDataString(query)}&offset={offset}", null, ct);
+    public Task<ConversationSearch> SearchAsync(string query, int offset, CancellationToken ct, Guid? workspaceId = null, bool scoped = false) =>
+        SendAsync<ConversationSearch>(HttpMethod.Get, $"/search?q={Uri.EscapeDataString(query)}&offset={offset}"
+            + (workspaceId.HasValue ? "&workspaceId=" + workspaceId.Value : scoped ? "&unassigned=true" : ""), null, ct);
     public Task<byte[]> ExportAsync(Guid id, string format, CancellationToken ct) =>
         SendAsync<byte[]>(HttpMethod.Get, $"/conversations/{id}/export?format={format}", null, ct);
     public Task<ConversationSummary> ImportConversationAsync(byte[] json, CancellationToken ct) =>

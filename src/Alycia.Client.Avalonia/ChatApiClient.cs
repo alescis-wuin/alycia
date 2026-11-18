@@ -16,11 +16,12 @@ namespace Alycia.Client.Avalonia;
 public sealed record ConversationSummary(Guid Id, string Title, string Model, string SystemPrompt,
     DateTimeOffset CreatedAtUtc, DateTimeOffset UpdatedAtUtc, int Revision, int MessageCount,
     string ContextNotes = "", string SettingsJson = "{}", string MemoryText = "", int MemoryThroughSequence = 0,
-    string MemorySourceHash = "", string MemoryModel = "", string MemoryLedgerJson = "{}");
+    string MemorySourceHash = "", string MemoryModel = "", string MemoryLedgerJson = "{}", Guid? WorkspaceId = null);
 
 public sealed record ChatMessageItem(Guid ConversationId, int Sequence, Guid RequestId, string Role,
     string Content, DateTimeOffset CreatedAtUtc, Guid? AttachmentId = null, string ToolTraceJson = "[]", string DiagnosticsJson = "{}")
 {
+    public bool HasEvidence => HasDiagnostics || HasToolTrace;
     public bool HasDiagnostics => IsAssistant && DiagnosticsJson != "{}";
     public string DiagnosticsTitle => ResponseDiagnostics.Title(TurnDiagnostics.Read(DiagnosticsJson));
     public string DiagnosticsText => ResponseDiagnostics.Describe(TurnDiagnostics.Read(DiagnosticsJson));
@@ -45,8 +46,9 @@ public sealed record MessagePage(ConversationSummary Conversation, ChatMessageIt
 public sealed record ChatSendResult(ChatMessageItem[] Messages, int? HistoryMessagesIncluded, bool Replayed, int FilesIncluded = 0,
     int? EstimatedInputTokens = null, Alycia.Modules.Chat.Application.GenerationStats? Stats = null, GenerationUsage? Usage = null);
 public sealed record FileItem(Guid Id, string Name, long Size, string Status, int AnchorSequence,
-    DateTimeOffset CreatedAtUtc, Guid? ArchiveId, string Sha256, string ContextMode = "window", Guid BatchId = default, string SourceCreatedAt = "", string SourceModifiedAt = "", string MetadataSource = "unknown")
+    DateTimeOffset CreatedAtUtc, Guid? ArchiveId, string Sha256, string ContextMode = "window", Guid BatchId = default, string SourceCreatedAt = "", string SourceModifiedAt = "", string MetadataSource = "unknown", Guid? WorkspaceId = null)
 {
+    public override string ToString() => Name;
     public ChatMessageItem ToMessage(Guid conversation) => new(conversation, AnchorSequence, Guid.Empty, "file",
         $"{Name}\n{Size / 1024.0:N1} Kio · {Status}", CreatedAtUtc, Id);
 }
@@ -81,8 +83,8 @@ public sealed partial class ChatApiClient
     public Task<ConversationSummary[]> ListAsync(CancellationToken ct) =>
         SendAsync<ConversationSummary[]>(HttpMethod.Get, "/conversations", null, ct);
 
-    public Task<ConversationSummary> CreateAsync(string title, string model, string? systemPrompt, CancellationToken ct) =>
-        SendAsync<ConversationSummary>(HttpMethod.Post, "/conversations", new { title, model, systemPrompt }, ct);
+    public Task<ConversationSummary> CreateAsync(string title, string model, string? systemPrompt, CancellationToken ct, Guid? workspaceId = null) =>
+        SendAsync<ConversationSummary>(HttpMethod.Post, "/conversations", new { title, model, systemPrompt, workspaceId }, ct);
 
     public Task<MessagePage> MessagesAsync(Guid id, int? before, CancellationToken ct) =>
         SendAsync<MessagePage>(HttpMethod.Get, $"/conversations/{id}/messages"
@@ -97,7 +99,7 @@ public sealed partial class ChatApiClient
     public Task<ChatSendResult> SendMessageAsync(Guid id, Guid requestId, string content, CancellationToken ct) =>
         SendAsync<ChatSendResult>(HttpMethod.Post, $"/conversations/{id}/messages", new { requestId, content }, ct);
 
-    public async Task<FileItem[]> UploadAsync(Guid conversation, Guid batch, IReadOnlyList<UploadFile> files, CancellationToken ct)
+    public async Task<FileItem[]> UploadAsync(Guid conversation, Guid batch, IReadOnlyList<UploadFile> files, CancellationToken ct, bool project = false)
     {
         using var form = new MultipartFormDataContent();
         foreach (var file in files) form.Add(new StreamContent(file.Content), "files", file.Name);
@@ -105,7 +107,7 @@ public sealed partial class ChatApiClient
         if (System.Linq.Enumerable.Any(metadata))
             form.Add(new StringContent(JsonSerializer.Serialize(System.Linq.Enumerable.Select(metadata,
                 f => new { f.Name, f.CreatedAt, f.ModifiedAt }), Json)), "metadata");
-        return await SendAsync<FileItem[]>(HttpMethod.Post, $"/conversations/{conversation}/files/{batch}", form, ct);
+        return await SendAsync<FileItem[]>(HttpMethod.Post, $"/{(project ? "projects" : "conversations")}/{conversation}/files/{batch}", form, ct);
     }
 
     public Task DeleteFileAsync(Guid conversation, Guid file, CancellationToken ct) =>

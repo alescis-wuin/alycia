@@ -24,7 +24,7 @@ public partial class ChatWindow
         C<Button>("ProjectToolsButton").Click += async (_, _) => await RunAsync(ProjectToolsAsync);
         C<Button>("SettingsButton").Click += async (_, _) => await RunAsync(SettingsAsync);
         C<Button>("ActiveModelButton").Click += async (_, _) => await RunAsync(SettingsAsync);
-        C<Button>("ContextButton").Click += async (_, _) => await RunAsync(PreviewAsync);
+        C<Button>("ContextButton").Click += async (_, _) => await RunAsync(() => OpenInspectorAsync("context"));
         C<Button>("FilesButton").Click += async (_, _) => await RunAsync(ManageFilesAsync);
         C<Button>("ForkButton").Click += async (_, _) => await RunAsync(() => ForkAsync(false));
         C<Button>("RegenerateButton").Click += async (_, _) => await RunAsync(() => ForkAsync(true));
@@ -40,7 +40,7 @@ public partial class ChatWindow
         {
             var list = C<ListBox>("ConversationList");
             var items = list.ItemsSource?.Cast<ConversationSummary>().ToArray() ?? [];
-            var page = await _client.SearchAsync(_searchQuery, items.Length, _lifetime.Token);
+            var page = await _client.SearchAsync(_searchQuery, items.Length, _lifetime.Token, _project.Id, true);
             list.ItemsSource = items.Concat(page.Items).DistinctBy(c => c.Id).ToArray();
             list.SelectedItem = _current;
             C<Button>("MoreConversationsButton").IsVisible = page.HasMore;
@@ -73,7 +73,7 @@ public partial class ChatWindow
         var cancel = new Button { Content = "Fermer" };
         var save = new Button { Content = action };
         cancel.Click += (_, _) => dialog.Close(false);
-        var error = new TextBlock { Foreground = Brush.Parse("#F2A9B5"), TextWrapping = TextWrapping.Wrap, IsVisible = false };
+        var error = new TextBlock { Foreground = Appearance.Color(this, "Error"), TextWrapping = TextWrapping.Wrap, IsVisible = false };
         save.Click += (_, _) =>
         {
             var message = validate?.Invoke();
