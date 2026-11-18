@@ -1,10 +1,70 @@
-<Application xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             x:Class="Alycia.Client.Avalonia.App"
-             RequestedThemeVariant="Dark">
-
-
-    <Application.Styles>
-        <FluentTheme />
-    </Application.Styles>
+<Application xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Alycia.Client.Avalonia.App" RequestedThemeVariant="Default">
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+          <SolidColorBrush x:Key="BorealCanvas">#F5F6FB</SolidColorBrush>
+          <SolidColorBrush x:Key="BorealSurface">#FFFFFF</SolidColorBrush>
+          <SolidColorBrush x:Key="BorealSoft">#EAE6FF</SolidColorBrush>
+          <SolidColorBrush x:Key="BorealInk">#182334</SolidColorBrush>
+          <SolidColorBrush x:Key="BorealMuted">#526079</SolidColorBrush>
+          <SolidColorBrush x:Key="BorealIris">#6047B8</SolidColorBrush>
+          <SolidColorBrush x:Key="BorealOnIris">#FFFFFF</SolidColorBrush>
+          <SolidColorBrush x:Key="BorealJade">#00705F</SolidColorBrush>
+          <SolidColorBrush x:Key="BorealAmber">#8A5600</SolidColorBrush>
+          <SolidColorBrush x:Key="BorealError">#B23750</SolidColorBrush>
+          <SolidColorBrush x:Key="BorealOutline">#718198</SolidColorBrush>
+          <SolidColorBrush x:Key="BorealRule">#DFE3EE</SolidColorBrush>
+          <SolidColorBrush x:Key="BorealCode">#F0F2F8</SolidColorBrush>
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Dark">
+          <SolidColorBrush x:Key="BorealCanvas">#0E1420</SolidColorBrush>
+          <SolidColorBrush x:Key="BorealSurface">#182334</SolidColorBrush>
+          <SolidColorBrush x:Key="BorealSoft">#272B43</SolidColorBrush>
+          <SolidColorBrush x:Key="BorealInk">#F2F5FA</SolidColorBrush>
+          <SolidColorBrush x:Key="BorealMuted">#B8C4D8</SolidColorBrush>
+          <SolidColorBrush x:Key="BorealIris">#B5A0FF</SolidColorBrush>
+          <SolidColorBrush x:Key="BorealOnIris">#0E1420</SolidColorBrush>
+          <SolidColorBrush x:Key="BorealJade">#58D6C1</SolidColorBrush>
+          <SolidColorBrush x:Key="BorealAmber">#F3BE72</SolidColorBrush>
+          <SolidColorBrush x:Key="BorealError">#FF8C9B</SolidColorBrush>
+          <SolidColorBrush x:Key="BorealOutline">#75859B</SolidColorBrush>
+          <SolidColorBrush x:Key="BorealRule">#2C384B</SolidColorBrush>
+          <SolidColorBrush x:Key="BorealCode">#141D2C</SolidColorBrush>
+        </ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
+      <FontFamily x:Key="Luciole">avares://Alycia.Client.Avalonia/Assets/Fonts/Luciole#Luciole</FontFamily>
+      <FontFamily x:Key="Hack">avares://Alycia.Client.Avalonia/Assets/Fonts/Hack#Hack</FontFamily>
+      <x:Boolean x:Key="WrapCode">False</x:Boolean>
+      <x:Double x:Key="ReadingSize">18</x:Double>
+      <StreamGeometry x:Key="GlyphSend">M11,21 L11,7 5.5,12.5 4,11 12,3 20,11 18.5,12.5 13,7 13,21 Z</StreamGeometry>
+      <StreamGeometry x:Key="GlyphStop">M5,5 H19 V19 H5 Z</StreamGeometry>
+      <StreamGeometry x:Key="GlyphMenu">M3,5 H21 V7 H3 Z M3,11 H21 V13 H3 Z M3,17 H21 V19 H3 Z</StreamGeometry>
+      <StreamGeometry x:Key="GlyphInspect">M3,3 H21 V21 H3 Z M5,5 V19 H14 V5 Z M16,5 V19 H19 V5 Z</StreamGeometry>
+      <StreamGeometry x:Key="GlyphMore">M3,10 H7 V14 H3 Z M10,10 H14 V14 H10 Z M17,10 H21 V14 H17 Z</StreamGeometry>
+      <StreamGeometry x:Key="GlyphPlus">M11,3 H13 V11 H21 V13 H13 V21 H11 V13 H3 V11 H11 Z</StreamGeometry>
+      <StreamGeometry x:Key="GlyphCopy">M7,3 H21 V17 H18 V6 H7 Z M3,8 H16 V22 H3 Z M5,10 V20 H14 V10 Z</StreamGeometry>
+      <StreamGeometry x:Key="GlyphClose">M5,6.5 L6.5,5 12,10.5 17.5,5 19,6.5 13.5,12 19,17.5 17.5,19 12,13.5 6.5,19 5,17.5 10.5,12 Z</StreamGeometry>
+      <StreamGeometry x:Key="GlyphAttach">M16.5,3 C19.8,3 21.5,7 19,9.5 L10.5,18 C8.5,20 5,18.5 5,16 C5,15 5.4,14 6.2,13.2 L14.5,5 16,6.5 7.7,14.7 C6,16.4 8,18 9,16.8 L17.6,8.1 C19.1,6.6 17.4,4 15.7,5.5 L5.2,16 C2.4,19 6.6,23 9.5,20 L19,10.5 20.5,12 11,21.5 C6,26 0,19.5 3.6,14.6 L14.2,4 C15,3.4 15.7,3 16.5,3 Z</StreamGeometry>
+      <StreamGeometry x:Key="GlyphMark">M2,20 L10.2,3 H14 L22,20 H17.6 L12,7.6 8.8,15 H14 L15.5,18.4 H7.1 L6.4,20 Z</StreamGeometry>
+    </ResourceDictionary>
+  </Application.Resources>
+  <Application.Styles>
+    <FluentTheme />
+    <Style Selector="Window">
+      <Setter Property="FontFamily" Value="{StaticResource Luciole}" />
+      <Setter Property="FontSize" Value="15" />
+      <Setter Property="Background" Value="{DynamicResource BorealCanvas}" />
+      <Setter Property="Foreground" Value="{DynamicResource BorealInk}" />
+    </Style>
+    <Style Selector="Button.primary">
+      <Setter Property="Background" Value="{DynamicResource BorealIris}" />
+      <Setter Property="Foreground" Value="{DynamicResource BorealOnIris}" />
+      <Setter Property="CornerRadius" Value="10" />
+    </Style>
+    <Style Selector="Button.quiet"><Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /></Style>
+    <Style Selector="Button.icon"><Setter Property="Width" Value="40" /><Setter Property="Height" Value="40" /><Setter Property="Padding" Value="9" /></Style>
+    <Style Selector="PathIcon"><Setter Property="Width" Value="19" /><Setter Property="Height" Value="19" /></Style>
+  </Application.Styles>
 </Application>
