@@ -85,7 +85,7 @@ public partial class ChatWindow
         try { unit = await _client.KnowledgeAsync(owner, project, file, key, _lifetime.Token); }
         catch (ChatApiException) { panel.Children.Add(Label("Synthèse indisponible pour ce document.")); return; }
         var level = unit.Level switch { "document" => "Document", "section" => "Section", "passage" => "Passage", _ => unit.Level };
-        var state = unit.State switch { "generated" => "synthèse du modèle", "extractive" => "extraction", "extractive_fallback" => "extraction de secours", "empty" => "vide", _ => unit.State };
+        var state = unit.State switch { "generated" => "synthèse du modèle", "extractive" => "extraction", "extractive_fallback" => "extraction de secours", "timeout_fallback" => "extraction de secours · délai de synthèse dépassé", "empty" => "vide", _ => unit.State };
         panel.Children.Add(Label($"{unit.Labels.Title} · {level} · {state}"));
         panel.Children.Add(new MarkdownView { Text = unit.Labels.Summary, IsMarkdown = false });
         panel.Children.Add(Label($"{IndexedKnowledge.Terms(unit.Labels)}\n{unit.Identity} · {unit.IndexedAt:O}"));

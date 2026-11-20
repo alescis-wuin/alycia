@@ -159,3 +159,45 @@ Pour récupérer le correctif et poursuivre la recette complète sous fish ou Ba
 ```bash
 git pull --ff-only origin feature/local-client-v4-context-quality-20261117 && bash scripts/check-context-v2.sh --pgvector
 ```
+
+## Correctif des délais d’indexation
+
+Le journal du 20 novembre à 11:14 UTC contient des réponses HTTP 200 du suivi d’indexation et d’Ollama, mais aucune exception de timeout. Il ne permet donc pas d’attribuer avec certitude l’incident à une étape. L’analyse du code a cependant révélé un défaut reproductible : l’attente du verrou d’inférence consommait le délai de génération. Une annotation en attente d’un autre document, du chat ou d’un lot d’embeddings pouvait expirer avant son envoi à Ollama. Un second chronomètre dans le constructeur des connaissances reproduisait ce problème.
+
+Le délai de génération démarre maintenant après l’acquisition du verrou. Il en va de même pour les embeddings et le premier événement du chat en streaming. L’annulation de l’appelant reste active pendant l’attente ; les délais d’exécution restent actifs une fois le verrou acquis. Le fournisseur applique le délai de l’annotation, sans chronomètre englobant la file d’attente. La vérification ultérieure de l’identité conserve son propre délai.
+
+Une synthèse qui expire réellement conserve une extraction utilisable et l’état `timeout_fallback`, consultable dans les synthèses documentaires. La relance manuelle reprend les unités de secours et garde les unités réussies. Les anciennes extractions de secours ne sont pas reclassées rétroactivement. Un lot d’embeddings qui dépasse 180 secondes signale désormais clairement de réduire sa taille et de relancer ; les lots déjà stockés sont conservés.
+
+Fermer le client et arrêter l’API en cours avec `Ctrl+C`, puis récupérer et reconstruire depuis le dépôt local (fish ou Bash) :
+
+```bash
+cd /developpement/seynax/Alycia
+git switch feature/local-client-v4-context-quality-20261117
+git pull --ff-only origin feature/local-client-v4-context-quality-20261117
+make demo-api
+```
+
+Dans un second terminal :
+
+```bash
+cd /developpement/seynax/Alycia
+make demo-client
+```
+
+Dans Documents, relancer l’indexation du périmètre concerné. Pour une conversation, les valeurs proviennent de ses réglages ; pour un projet, le dialogue d’indexation affiche ses paramètres. Si les synthèses expirent encore, augmenter « Délai par appel · secondes » dans « Indexation des connaissances » (jusqu’à 600), ou choisir un résumeur plus petit. Si le message concerne les embeddings, diminuer « Passages par lot ». Augmenter le budget d’appels ne modifie pas un délai réseau ou d’inférence. Le pourcentage porte sur les sources terminées : un gros document peut demander de nombreux appels avant de faire avancer ce compteur.
+
+Contrôle ciblé des appels Ollama :
+
+```bash
+dotnet test tests/Alycia.Modules.Chat.Tests --filter 'FullyQualifiedName~OllamaChatModelTests|FullyQualifiedName~StreamingTests'
+```
+
+Pour inclure la reprise persistante et les autres contrôles de livraison sur une base de test jetable :
+
+```bash
+bash scripts/check-context-v2.sh --pgvector
+```
+
+Si le problème persiste, conserver le message exact affiché dans le client et les journaux couvrant l’échec, ainsi que les noms des modèles utilisés et les paramètres d’indexation. Le journal Compose peut être récupéré avec `docker compose -f compose.yaml -f compose.demo.yaml logs --since 15m chat-api > alycia-indexation.log`.
+
+Validation du correctif : les deux cas d’expiration en file d’attente échouent avec l’ancien code. Après correction, 34 tests Ollama/streaming et 6 tests du pipeline de connaissances et des embeddings persistants réussissent ; ces derniers utilisent PostgreSQL 17.11 avec authentification SCRAM et pgvector. L’annulation, le timeout pendant l’inférence, la libération du verrou et le remplacement des extractions de secours sont vérifiés. Le client Avalonia compile sans avertissement ni erreur et le lint réussit. Les appels Ollama sont simulés : aucune validation avec les modèles réels sur le portable n’a été effectuée pour ce correctif.

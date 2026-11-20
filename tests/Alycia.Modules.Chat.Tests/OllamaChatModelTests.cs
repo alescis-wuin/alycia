@@ -8,6 +8,104 @@ namespace Alycia.Modules.Chat.Tests;
 
 public sealed class OllamaChatModelTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task WaitingForOllamaDoesNotConsumeGenerationTimeout(bool streaming)
+    {
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var http = Client(async (request, ct) =>
+        {
+            var path = request.RequestUri!.AbsolutePath;
+            if (path == "/api/tags") return Json("{\"models\":[{\"name\":\"demo\"}]}");
+            if (path == "/api/show") return Json("{\"capabilities\":[\"completion\"]}");
+            if (path == "/api/embed")
+            {
+                entered.TrySetResult();
+                await release.Task.WaitAsync(ct);
+                return Json("{\"embeddings\":[[1,0]]}");
+            }
+            return Json("{\"done\":true,\"done_reason\":\"stop\",\"message\":{\"role\":\"assistant\",\"content\":\"ok\"}}\n");
+        });
+        using var cancel = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        var blocking = new OllamaEmbeddings(http).EmbedAsync("embed", ["source"], cancel.Token);
+        Task<GenerationReply>? queued = null;
+        try
+        {
+            await entered.Task.WaitAsync(cancel.Token);
+            var model = new OllamaChatModel(http, new());
+            var settings = new ChatOptions { TimeoutSeconds = 1, CallPurpose = "annotation" };
+            queued = streaming ? model.StreamAsync("demo", [], settings, _ => Task.CompletedTask, cancel.Token)
+                : model.GenerateReplyAsync("demo", [], settings, cancel.Token);
+            await Task.Delay(1300, cancel.Token);
+            Assert.False(queued.IsCompleted, "Waiting for another inference must not exhaust the generation deadline.");
+        }
+        finally
+        {
+            release.TrySetResult();
+            await blocking;
+            if (queued is not null) Assert.Equal("ok", (await queued).Content);
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ActiveInferenceStillTimesOutAndReleasesTheGate(bool streaming)
+    {
+        var stall = true;
+        using var http = Client(async (request, ct) =>
+        {
+            if (request.RequestUri!.AbsolutePath == "/api/tags") return Json("{\"models\":[{\"name\":\"demo\"}]}");
+            if (request.RequestUri.AbsolutePath == "/api/show") return Json("{\"capabilities\":[\"completion\"]}");
+            if (stall) await Task.Delay(Timeout.Infinite, ct);
+            return Json("{\"done\":true,\"done_reason\":\"stop\",\"message\":{\"role\":\"assistant\",\"content\":\"ok\"}}\n");
+        });
+        var model = new OllamaChatModel(http, new());
+        var settings = new ChatOptions { TimeoutSeconds = 1, CallPurpose = "annotation" };
+        using var cancel = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        var error = await Assert.ThrowsAsync<ChatModelException>(() => streaming
+            ? model.StreamAsync("demo", [], settings, _ => Task.CompletedTask, cancel.Token)
+            : model.GenerateReplyAsync("demo", [], settings, cancel.Token));
+        Assert.Equal(ChatModelFailure.Timeout, error.Failure);
+        if (!streaming) Assert.Contains("délai d’enrichissement", error.Message);
+        stall = false;
+        Assert.Equal("ok", await model.GenerateAsync("demo", [], settings, cancel.Token));
+    }
+
+    [Fact]
+    public async Task WaitingForOllamaCanStillBeCancelledWithoutLeakingTheGate()
+    {
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var http = Client(async (request, ct) =>
+        {
+            if (request.RequestUri!.AbsolutePath == "/api/embed")
+            {
+                entered.TrySetResult();
+                await release.Task.WaitAsync(ct);
+                return Json("{\"embeddings\":[[1,0]]}");
+            }
+            if (request.RequestUri.AbsolutePath == "/api/tags") return Json("{\"models\":[{\"name\":\"demo\"}]}");
+            if (request.RequestUri.AbsolutePath == "/api/show") return Json("{\"capabilities\":[\"completion\"]}");
+            return Json("{\"done\":true,\"done_reason\":\"stop\",\"message\":{\"role\":\"assistant\",\"content\":\"ok\"}}");
+        });
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        var model = new OllamaChatModel(http, new());
+        var blocking = new OllamaEmbeddings(http).EmbedAsync("embed", ["source"], deadline.Token);
+        try
+        {
+            await entered.Task.WaitAsync(deadline.Token);
+            using var cancel = new CancellationTokenSource();
+            var queued = model.GenerateAsync("demo", [], cancel.Token);
+            await cancel.CancelAsync();
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => queued);
+        }
+        finally { release.TrySetResult(); await blocking; }
+        Assert.Equal("ok", await model.GenerateAsync("demo", [], deadline.Token));
+    }
+
     [Fact]
     public async Task GenerationsAndEmbeddingsShareTheLocalInferenceLimit()
     {

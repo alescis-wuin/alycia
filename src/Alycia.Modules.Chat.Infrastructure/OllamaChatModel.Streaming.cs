@@ -20,10 +20,11 @@ public sealed partial class OllamaChatModel
     {
         settings.Validate();
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeout.CancelAfter(TimeSpan.FromSeconds(settings.TimeoutSeconds));
         try
         {
-            using var inference = await OllamaInferenceGate.EnterAsync(timeout.Token);
+            // Queue time belongs to the caller, not to the inference deadline.
+            using var inference = await OllamaInferenceGate.EnterAsync(cancellationToken);
+            timeout.CancelAfter(TimeSpan.FromSeconds(settings.TimeoutSeconds));
             var details = await ValidateChatModelAsync(model, timeout.Token);
             if (useTools && !details.Capabilities!.Contains("tools", StringComparer.Ordinal))
                 throw new ChatModelException("Ce modèle n’annonce pas la capacité tools. Choisissez un modèle compatible ou désactivez les outils.");
@@ -90,7 +91,7 @@ public sealed partial class OllamaChatModel
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            throw new ChatModelException("Ollama est resté inactif trop longtemps. La génération a été interrompue.");
+            throw new ChatModelException("Ollama est resté inactif trop longtemps. La génération a été interrompue.", failure: ChatModelFailure.Timeout);
         }
         catch (HttpRequestException) { throw new ChatModelException("La connexion avec Ollama a été interrompue."); }
         catch (IOException) { throw new ChatModelException("Le flux Ollama a été interrompu."); }

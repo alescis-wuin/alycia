@@ -29,17 +29,25 @@ public sealed class OllamaEmbeddings(HttpClient http) : ILocalEmbeddings
     }
     public async Task<EmbeddingBatch> EmbedAsync(string model, IReadOnlyList<string> input, CancellationToken ct)
     {
+        using var inference = await OllamaInferenceGate.EnterAsync(ct);
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct); timeout.CancelAfter(TimeSpan.FromSeconds(180));
-        using var inference = await OllamaInferenceGate.EnterAsync(timeout.Token);
-        using var response = await http.PostAsJsonAsync("api/embed", new { model, input, truncate = false }, timeout.Token);
-        if (!response.IsSuccessStatusCode) throw new ChatModelException("Embeddings refusés : vérifiez le modèle local, sa fenêtre ou choisissez la recherche lexicale.");
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(timeout.Token));
-        var root = document.RootElement;
-        var vectors = root.GetProperty("embeddings").Deserialize<float[][]>()!;
-        if (vectors is null || vectors.Length != input.Count || vectors.Any(v => v is null || v.Length is < 1 or > 8192
-                || v.Any(x => !float.IsFinite(x))) || vectors.Any(v => v.Length != vectors[0].Length)) throw new ChatModelException("Vecteurs locaux invalides.");
-        int? count = root.TryGetProperty("prompt_eval_count", out var p) ? p.GetInt32() : null;
-        long? duration = root.TryGetProperty("total_duration", out var d) ? d.GetInt64() : null;
-        return new(vectors, new(count, 0, duration, null, "embedding"));
+        try
+        {
+            using var response = await http.PostAsJsonAsync("api/embed", new { model, input, truncate = false }, timeout.Token);
+            if (!response.IsSuccessStatusCode) throw new ChatModelException("Embeddings refusés : vérifiez le modèle local, sa fenêtre ou choisissez la recherche lexicale.");
+            using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(timeout.Token));
+            var root = document.RootElement;
+            var vectors = root.GetProperty("embeddings").Deserialize<float[][]>()!;
+            if (vectors is null || vectors.Length != input.Count || vectors.Any(v => v is null || v.Length is < 1 or > 8192
+                    || v.Any(x => !float.IsFinite(x))) || vectors.Any(v => v.Length != vectors[0].Length)) throw new ChatModelException("Vecteurs locaux invalides.");
+            int? count = root.TryGetProperty("prompt_eval_count", out var p) ? p.GetInt32() : null;
+            long? duration = root.TryGetProperty("total_duration", out var d) ? d.GetInt64() : null;
+            return new(vectors, new(count, 0, duration, null, "embedding"));
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            throw new ChatModelException("Le lot d’embeddings a dépassé 180 s. Réduisez le nombre de passages par lot dans les réglages d’indexation, puis relancez. Les lots terminés sont conservés.",
+                failure: ChatModelFailure.Timeout);
+        }
     }
 }

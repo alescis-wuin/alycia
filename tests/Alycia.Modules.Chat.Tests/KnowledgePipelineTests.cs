@@ -128,6 +128,21 @@ public sealed class KnowledgePipelineTests
             Assert.True(oldChild!.HasFallback);
             Assert.Null(await notes.ChildAsync(added.Id, recovered, oldChild.Key, default));
 
+            // A provider timeout is visible in stored notes and retry replaces only fallback units.
+            var timed = Assert.Single(await importer.ImportAsync(owner.Id, Guid.NewGuid(), [Source("lent.txt", "Source à réessayer.")], default));
+            model.TimesOut = true;
+            await worker.DiscoverAsync(default); await Complete();
+            var timedNote = await notes.DocumentAsync(timed.Id, timed.Sha256, options.Enrichment.Profile, default);
+            Assert.Equal("timeout_fallback", timedNote!.State);
+            Assert.True(timedNote.HasFallback);
+            model.TimesOut = false;
+            await jobs.QueueAsync(owner.Id, false, options, default, retry: true);
+            await Complete();
+            var retried = await notes.DocumentAsync(timed.Id, timed.Sha256, options.Enrichment.Profile, default);
+            Assert.Equal("generated", retried!.State);
+            Assert.False(retried.HasFallback);
+            Assert.NotEqual(timedNote.Key, retried.Key);
+
             var removed = Assert.Single(await importer.ImportAsync(owner.Id, Guid.NewGuid(), [Source("retire.txt", "Retrait pendant la génération.")], default));
             var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -306,6 +321,7 @@ public sealed class KnowledgePipelineTests
     {
         public ConcurrentQueue<string> Prompts { get; } = new();
         public bool Invalid;
+        public bool TimesOut;
         public Func<Task>? Hold;
         public Task<ChatOptions> PrepareOptionsAsync(string model, ChatOptions options, CancellationToken ct)
         { var copy = options.Copy(); copy.ModelIdentity = "fixture:digest"; return Task.FromResult(copy); }
@@ -315,6 +331,7 @@ public sealed class KnowledgePipelineTests
             if (Hold is { } hold) await hold();
             var text = messages[^1].Content;
             Prompts.Enqueue(text);
+            if (TimesOut) throw new ChatModelException("Délai de synthèse dépassé.", failure: ChatModelFailure.Timeout);
             if (Invalid) return "{\"summary\":\"inventé\"}";
             var ids = JsonSerializer.Deserialize<string[]>(text.Split("sourceUnitIds=")[1].Split('\n')[0])!;
             var result = new UnitLabels("Note", "", ["quasar"], [], [], "texte", [], "fr", "Sujet quasar", [], [], [], ids);

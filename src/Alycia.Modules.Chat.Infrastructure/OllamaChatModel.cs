@@ -100,10 +100,11 @@ public sealed partial class OllamaChatModel(HttpClient http, ChatOptions options
     {
         settings.Validate();
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeout.CancelAfter(TimeSpan.FromSeconds(settings.TimeoutSeconds));
         try
         {
-            using var inference = await OllamaInferenceGate.EnterAsync(timeout.Token);
+            // Queue time belongs to the caller, not to the inference deadline.
+            using var inference = await OllamaInferenceGate.EnterAsync(cancellationToken);
+            timeout.CancelAfter(TimeSpan.FromSeconds(settings.TimeoutSeconds));
             await ValidateChatModelAsync(model, timeout.Token);
 
             var request = new Dictionary<string, object>
@@ -142,7 +143,10 @@ public sealed partial class OllamaChatModel(HttpClient http, ChatOptions options
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            throw new ChatModelException("Le délai de génération Ollama est dépassé. Essayez un modèle plus petit ou augmentez Chat__TimeoutSeconds.");
+            throw new ChatModelException(settings.CallPurpose == "annotation"
+                ? $"Synthèse d’indexation interrompue après {settings.TimeoutSeconds} s. Augmentez le délai d’enrichissement dans les réglages d’indexation ou choisissez un modèle plus petit."
+                : $"Le délai de génération Ollama ({settings.TimeoutSeconds} s) est dépassé. Augmentez le délai dans les réglages de la conversation ou choisissez un modèle plus petit.",
+                failure: ChatModelFailure.Timeout);
         }
         catch (HttpRequestException)
         {

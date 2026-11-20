@@ -52,6 +52,7 @@ public interface IChatModel
         throw new ChatModelException("Ce fournisseur ne prend pas en charge les outils.");
     Task<IReadOnlyList<string>> ListModelsAsync(CancellationToken cancellationToken);
     Task<string> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages, CancellationToken cancellationToken);
+    // Providers enforce settings.TimeoutSeconds after acquiring their inference slot; ct cancels queueing too.
     Task<string> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages, ChatOptions settings, CancellationToken ct)
         => GenerateAsync(model, messages, ct);
     async Task<GenerationReply> StreamAsync(string model, IReadOnlyList<PromptMessage> messages,
@@ -65,7 +66,7 @@ public interface IChatModel
 
 public sealed class ChatConflictException() : Exception("La conversation a changé. Rechargez-la puis réessayez.");
 public sealed class ConversationNotFoundException() : Exception("Conversation introuvable.");
-public enum ChatModelFailure { Other, EmptyContent }
+public enum ChatModelFailure { Other, EmptyContent, Timeout }
 public sealed class ChatModelException(string message, GenerationStats? stats = null, ChatModelFailure failure = ChatModelFailure.Other) : Exception(message)
 {
     public GenerationStats? Stats { get; } = stats;

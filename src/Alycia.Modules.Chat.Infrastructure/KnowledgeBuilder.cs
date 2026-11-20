@@ -142,23 +142,24 @@ public sealed class KnowledgePass(KnowledgeStore store, IChatModel model, Enrich
                     used++;
                     try
                     {
-                        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
-                        timeout.CancelAfter(TimeSpan.FromSeconds(config.TimeoutSeconds));
-                        var output = await model.GenerateAsync(config.Model, prompt, counter, timeout.Token);
+                        // The provider applies the per-inference deadline after waiting for Ollama.
+                        var output = await model.GenerateAsync(config.Model, prompt, counter, ct);
                         if (IndexedKnowledge.Validate(output, refs, config.TargetTokens, counter) is not { } valid) continue;
                         var verify = counter.Copy(); verify.ModelIdentity = null;
-                        var current = await model.PrepareOptionsAsync(config.Model, verify, timeout.Token);
+                        var current = await model.PrepareOptionsAsync(config.Model, verify, ct);
                         if (current.ModelIdentity != Identity) throw new IndexSliceEnded("Modèle modifié. Reprise avec la nouvelle identité.");
                         labels = valid; state = "generated"; break;
                     }
                     catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+                    catch (ChatModelException ex) when (ex.Failure == ChatModelFailure.Timeout)
+                    { state = "timeout_fallback"; break; }
                     catch (Exception ex) when (ex is ChatModelException or HttpRequestException or OperationCanceledException) { break; }
                 }
         }
         var publishedKey = IndexedKnowledge.Key(key, state, JsonSerializer.Serialize(labels), string.Join('|', children));
         var node = new IndexedNote(publishedKey, level, profile ?? config.Profile, Identity, hash, labels, state, children, role, assertion,
             first, last, date, DateTimeOffset.UtcNow, used, used == 0 ? 0 : cost, complete && (state != "generated" || input.Length == text.Length),
-            file?.SourceCreatedAt, file?.SourceModifiedAt, file?.CreatedAtUtc, childFallback || state == "extractive_fallback",
+            file?.SourceCreatedAt, file?.SourceModifiedAt, file?.CreatedAtUtc, childFallback || state is "extractive_fallback" or "timeout_fallback",
             StructuredMemory.Hash(text), file?.Name, file?.MetadataSource, TargetTokens: config.TargetTokens, ReservedOutputTokens: config.OutputTokens);
         if (!await active(file?.Id, ct)) throw new IndexSliceEnded("Portée modifiée pendant le traitement.");
         await store.SaveAsync(file?.Id, owner, node, key, ct);
