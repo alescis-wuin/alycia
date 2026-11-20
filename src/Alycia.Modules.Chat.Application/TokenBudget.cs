@@ -35,8 +35,8 @@ public sealed record GenerationUsage(IReadOnlyList<ModelCallUsage> Calls, string
 // Per operation, never static: simultaneous conversations cannot mix their measurements.
 public sealed class MeteredChatModel(IChatModel inner) : IChatModel
 {
-    private readonly List<ModelCallUsage> _calls = [];
-    public void AddCalls(IEnumerable<ModelCallUsage> calls) => _calls.AddRange(calls);
+    private readonly System.Collections.Concurrent.ConcurrentQueue<ModelCallUsage> _calls = new();
+    public void AddCalls(IEnumerable<ModelCallUsage> calls) { foreach (var call in calls) _calls.Enqueue(call); }
     public GenerationUsage Snapshot(ChatOptions options) => new(_calls.ToArray(), options.ModelIdentity, TokenBudget.Description(options),
         _calls.All(c => c.Stats?.PromptTokens is not null) ? _calls.Sum(c => (long)c.Stats!.PromptTokens!.Value) : null,
         _calls.All(c => c.Stats?.OutputTokens is not null) ? _calls.Sum(c => (long)c.Stats!.OutputTokens!.Value) : null,
@@ -73,7 +73,7 @@ public sealed class MeteredChatModel(IChatModel inner) : IChatModel
         {
             var duration = timer.Elapsed.TotalMilliseconds;
             var vram = options.AdaptiveInferenceEnabled && reply is not null && !ct.IsCancellationRequested ? await inner.ResidentVramAsync(model, ct) : null;
-            _calls.Add(new(purpose ?? options.CallPurpose, InferenceWindow.InputCost(messages, options, purpose == "tools"), duration,
+            _calls.Enqueue(new(purpose ?? options.CallPurpose, InferenceWindow.InputCost(messages, options, purpose == "tools"), duration,
                 reply?.Stats ?? failureStats, firstContent?.Invoke(), effective.ContextTokens, options.AdaptiveInferenceEnabled ? Environment.WorkingSet : null, vram));
         }
     }

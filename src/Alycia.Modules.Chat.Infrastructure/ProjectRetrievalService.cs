@@ -31,7 +31,21 @@ public sealed class ProjectRetrievalService(IProjectIndex index, IIndexedEmbeddi
         var cachedLexical = _lexical.Get(conversation, snapshot.Chunks);
         var lexical = cachedLexical.Index.Score(query);
         var ranked = ProjectRetrieval.Rank(snapshot.Chunks, query, similarities, lexical);
-        if (settings.QueryRewriteEnabled && settings.SearchPlan is { Queries.Length: > 1 } plan)
+        var hits = new Dictionary<string, List<QueryHit>>(StringComparer.Ordinal);
+        var coordinates = settings.FacetPlanningEnabled ? snapshot.Chunks.Select((chunk, i) => (chunk, i)).ToDictionary(x => x.chunk, x => x.i) : null;
+        void Record(int number, IReadOnlyList<SourceChunk> ordered, double[] terms, double[]? vectors)
+        {
+            if (coordinates is null) return;
+            for (var n = 0; n < Math.Min(ordered.Count, settings.RerankCandidateLimit); n++)
+            {
+                var chunk = ordered[n]; var key = ProjectRetrieval.Reference(chunk);
+                if (!hits.TryGetValue(key, out var list)) hits[key] = list = [];
+                var position = coordinates[chunk];
+                list.Add(new(number, n + 1, terms[position], vectors?[position]));
+            }
+        }
+        Record(0, ranked, lexical, similarities);
+        if ((settings.QueryRewriteEnabled || settings.FacetPlanningEnabled || settings.QueryBriefModelEnabled) && settings.SearchPlan is { Queries.Length: > 1 } plan)
         {
             var lists = new List<IReadOnlyList<SourceChunk>> { ranked };
             foreach (var term in plan.Queries.Skip(1))
@@ -46,21 +60,32 @@ public sealed class ProjectRetrievalService(IProjectIndex index, IIndexedEmbeddi
                         var c = snapshot.Chunks[n];
                         if (c.Text.Contains(term.Text, StringComparison.Ordinal) || c.Path.Contains(term.Text, StringComparison.Ordinal)
                             || c.Symbol.Contains(term.Text, StringComparison.Ordinal)) terms[n] += 20;
+                        else if (settings.FacetPlanningEnabled) terms[n] = 0;
                     }
                 }
-                else if (settings.RetrievalMode == "hybrid" && semantic is not null)
+                else if (term.Kind != "lexical" && settings.RetrievalMode == "hybrid" && semantic is not null)
                 {
                     var result = await semantic.SearchAsync(conversation, term.Text, settings, snapshot.Chunks, ct);
                     vectors = result.Scores; calls.AddRange(result.Calls);
                     if (result.Warning is not null) omissions.Add(result.Warning);
                 }
-                lists.Add(ProjectRetrieval.Rank(snapshot.Chunks, term.Text, vectors, terms));
+                var variant = ProjectRetrieval.Rank(snapshot.Chunks, term.Text, vectors, terms);
+                Record(lists.Count, variant, terms, vectors);
+                lists.Add(variant);
             }
             ranked = lists.SelectMany(list => list.Select((c, rank) => (Chunk: c, Score: 1.0 / (61 + rank))))
                 .GroupBy(hit => ProjectRetrieval.Reference(hit.Chunk)).OrderByDescending(g => g.Sum(hit => hit.Score))
                 .ThenBy(g => g.First().Chunk.Path, StringComparer.Ordinal).ThenBy(g => g.First().Chunk.Start).Select(g => g.First().Chunk).ToArray();
         }
         if (settings.SearchPlan?.Ambiguous == true) omissions.Add("Référence antérieure ambiguë ou absente ; aucune source supposée.");
+        ClassificationReport? classification = null;
+        if (settings.ClassificationEnabled)
+        {
+            var brief = settings.SearchPlan?.Brief ?? PassageClassification.Brief(query, [], []);
+            Dictionary<string, double>? semanticScores = similarities is null ? null : snapshot.Chunks.Select((c, n) => (Key: ProjectRetrieval.Reference(c), Score: similarities[n]))
+                .GroupBy(p => p.Key).ToDictionary(g => g.Key, g => g.Max(p => p.Score));
+            (ranked, classification) = PassageClassification.Apply(query, brief, ranked, settings, semanticScores);
+        }
         RerankReport? rerank = null;
         if (settings.RerankEnabled && ranked.Count > 0)
         {
@@ -96,11 +121,11 @@ public sealed class ProjectRetrievalService(IProjectIndex index, IIndexedEmbeddi
         var retained = ranked.Select(ProjectRetrieval.Reference).ToHashSet(StringComparer.Ordinal);
         var decisions = snapshot.Chunks.Select((c, i) => new RetrievalDecision(ProjectRetrieval.Reference(c), c.FileId,
             c.Sha256, c.Start, c.End, lexical[i], retained.Contains(ProjectRetrieval.Reference(c)) ? lexical[i] > 0 ? "lexical_match" : "semantic_match"
-                : lexical[i] > 0 ? "duplicate_filtered" : "no_match_filtered")).Take(256).ToArray();
+                : lexical[i] > 0 ? (classification is null ? "duplicate_filtered" : "rank_or_class_filtered") : "no_match_filtered", hits.GetValueOrDefault(ProjectRetrieval.Reference(c))?.ToArray())).Take(256).ToArray();
         return new(ranked,
             new(settings.RetrievalMode, snapshot.Chunks.Count, snapshot.IndexedFiles, snapshot.EligibleFiles, omissions,
                 lexical.Count(s => s == 0), indexMilliseconds, timer.Elapsed.TotalMilliseconds, decisions,
-                Math.Max(0, snapshot.Chunks.Count - decisions.Length), new(cachedLexical.Hit, vectorHits, vectorMisses, vectorWritten), rerank, settings.SearchPlan), calls);
+                Math.Max(0, snapshot.Chunks.Count - decisions.Length), new(cachedLexical.Hit, vectorHits, vectorMisses, vectorWritten), rerank, settings.SearchPlan, classification), calls);
     }
     public static double Cosine(float[] a, float[] b)
     {

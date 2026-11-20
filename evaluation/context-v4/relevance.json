@@ -1,0 +1,142 @@
+[
+  {
+    "id": "durée-originale",
+    "question": "Quelle est la durée de conservation des sauvegardes Orion ?",
+    "text": "La durée de conservation des sauvegardes Orion est de 37 jours.",
+    "expected": "relevant",
+    "relation": "unknown"
+  },
+  {
+    "id": "durée-hors-sujet",
+    "question": "Quelle est la durée de conservation des sauvegardes Orion ?",
+    "text": "La taille du logo est mesurée en pixels.",
+    "expected": "irrelevant",
+    "relation": "unknown"
+  },
+  {
+    "id": "durée-incomplète",
+    "question": "Quelle est la durée de conservation des sauvegardes Orion ?",
+    "text": "Orion utilise une licence communautaire.",
+    "expected": "uncertain_or_neutral",
+    "relation": "unknown"
+  },
+  {
+    "id": "contradiction",
+    "question": "Vérifie cette affirmation : « La conservation Orion est de 90 jours ».",
+    "text": "La conservation Orion est de 37 jours.",
+    "expected": "relevant",
+    "relation": "contradicts"
+  },
+  {
+    "id": "confirmation",
+    "question": "Vérifie cette affirmation : « La conservation Orion est de 37 jours ».",
+    "text": "La conservation Orion est de 37 jours.",
+    "expected": "relevant",
+    "relation": "supports"
+  },
+  {
+    "id": "historique",
+    "question": "Quand le port Postgres a-t-il changé ?",
+    "text": "Le 3 mars, le port Postgres a changé pour 5544.",
+    "expected": "relevant",
+    "relation": "unknown"
+  },
+  {
+    "id": "proposition",
+    "question": "Quand le port Postgres a-t-il changé ?",
+    "text": "Je propose Postgres pour le prochain projet.",
+    "expected": "uncertain_or_neutral",
+    "relation": "unknown"
+  },
+  {
+    "id": "indépendant",
+    "question": "Quand le port Postgres a-t-il changé ?",
+    "text": "Pluie intermittente sur le littoral.",
+    "expected": "irrelevant",
+    "relation": "unknown"
+  },
+  {
+    "id": "symbole",
+    "question": "Où LogEventAsync écrit-il le journal ?",
+    "text": "LogEventAsync écrit chaque événement du journal sur disque.",
+    "expected": "relevant",
+    "relation": "unknown"
+  },
+  {
+    "id": "symbole-distinct",
+    "question": "Où LogEventAsync écrit-il le journal ?",
+    "text": "La stratégie de rotation du journal sera révisée.",
+    "expected": "uncertain_or_neutral",
+    "relation": "unknown"
+  },
+  {
+    "id": "code-étranger",
+    "question": "Où LogEventAsync écrit-il le journal ?",
+    "text": "function drawTriangle(x, y) { return x + y; }",
+    "expected": "irrelevant",
+    "relation": "unknown"
+  },
+  {
+    "id": "facette",
+    "question": "Quel port utilise Atlas ? Puis comment Lyre compresse ses archives ?",
+    "text": "Lyre compresse ses archives avec zstd.",
+    "expected": "relevant",
+    "relation": "unknown"
+  },
+  {
+    "id": "facette-port",
+    "question": "Quel port utilise Atlas ? Puis comment Lyre compresse ses archives ?",
+    "text": "Atlas utilise le port 7443.",
+    "expected": "relevant",
+    "relation": "unknown"
+  },
+  {
+    "id": "implicite",
+    "question": "Comment fonctionne cette version ?",
+    "text": "La version n’est pas indiquée sur la couverture.",
+    "expected": "uncertain_or_neutral",
+    "relation": "unknown"
+  },
+  {
+    "id": "sans-corpus",
+    "question": "Bonjour !",
+    "text": "Intervalle mensuel de rotation des journaux.",
+    "expected": "irrelevant",
+    "relation": "unknown"
+  },
+  {
+    "id": "date-incomplète",
+    "question": "Combien de palettes Arès a-t-on livrées en 2025 ?",
+    "text": "L’inventaire des palettes date de janvier.",
+    "expected": "uncertain_or_neutral",
+    "relation": "unknown"
+  },
+  {
+    "id": "phrase-proche",
+    "question": "Quelle compression utilise le module Boréal ?",
+    "text": "Le module Boréal utilise Zstandard pour la compression.",
+    "expected": "relevant",
+    "relation": "unknown"
+  },
+  {
+    "id": "autre-langue",
+    "question": "Which storage driver handles archive rotation?",
+    "text": "Archive rotation uses the POSIX storage driver.",
+    "expected": "relevant",
+    "relation": "unknown"
+  },
+  {
+    "id": "langue-distincte",
+    "question": "Which storage driver handles archive rotation?",
+    "text": "Le bouton violet ouvre les réglages.",
+    "expected": "irrelevant",
+    "relation": "unknown"
+  },
+  {
+    "id": "paraphrase",
+    "question": "Quelle commune héberge le siège ?",
+    "text": "Le bâtiment central se situe à Rouen.",
+    "expected": "relevant",
+    "relation": "unknown"
+  }
+]

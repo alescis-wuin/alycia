@@ -39,6 +39,8 @@ internal static partial class ChatEndpoints
         builder.Services.AddScoped<ProjectSourceReader>();
         builder.Services.AddScoped<IProjectIndex, ProjectIndexService>();
         builder.Services.AddSingleton<LexicalIndexCache>();
+        builder.Services.AddScoped<KnowledgeStore>();
+        builder.Services.AddScoped<KnowledgeBuilder>();
         builder.Services.AddScoped<PostgresEmbeddingStore>();
         builder.Services.AddScoped<TemporalMemoryStore>();
         builder.Services.AddScoped<ITemporalMemory>(sp => sp.GetRequiredService<TemporalMemoryStore>());

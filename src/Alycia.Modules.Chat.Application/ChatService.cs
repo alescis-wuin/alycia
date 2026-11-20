@@ -54,7 +54,7 @@ public sealed partial class ChatService(IChatRepository repository, IChatModel m
 
         if (revision.HasValue) ConversationConfiguration.CheckRevision(conversation, revision.Value);
         var settings = await model.PrepareOptionsAsync(conversation.Model, ConversationConfiguration.Options(conversation, options), cancellationToken);
-        using var priority = settings.AdaptiveInferenceEnabled ? GenerationGate.Shared.PreferForeground() : null;
+        using var priority = GenerationGate.Shared.PreferForeground();
         var measured = new MeteredChatModel(model);
         if (onDelta is not null && retrieval is not null) await onDelta(new("", Status: "Préparation du contexte…"));
         await QueryRouting.PrepareAsync(repository, conversation, text, settings, retrieval, measured, cancellationToken, temporal);
@@ -76,6 +76,7 @@ public sealed partial class ChatService(IChatRepository repository, IChatModel m
             var files = await repository.ContextFilesAsync(id, Math.Max(1, conversation.MessageCount - settings.MaxHistoryTurns * 2 + 1), cancellationToken);
             window = FileContext.Build(ConversationConfiguration.System(conversation, settings), history, text, contextSettings, files, conversation.MessageCount + 1);
         }
+        window = await ContextGuides.AddAsync(window, contextSettings, measured, true, cancellationToken);
         if (useTools) window = window with { ToolReserve = contextSettings.SafetyTokens - settings.SafetyTokens };
         var generated = useTools ? await ProjectAgent.RunAsync(measured, activeTools!, id, conversation.Model, window, settings, onDelta, cancellationToken)
             : onDelta is null
@@ -88,8 +89,10 @@ public sealed partial class ChatService(IChatRepository repository, IChatModel m
             throw new ChatModelException("Ollama a renvoyé une réponse vide ou invalide. Essayez un autre modèle.");
         }
 
-        var suppliedTexts = (generated.EvidenceTexts ?? []).Concat(window.MemoryTexts ?? []).ToArray();
         var citations = CitationAudit.Check(reply, window.Sources, generated.Tools, window.Temporal?.Sources);
+        var admitted = citations.Supplied.Where(s => s.Origin != "tool_compacted").Select(s => s.Reference)
+            .Concat((citations.Historical ?? []).Select(s => s.Reference)).ToHashSet(StringComparer.Ordinal);
+        var suppliedTexts = (generated.EvidenceTexts ?? []).Where(e => admitted.Contains(e.Reference)).Concat(window.MemoryTexts ?? []).ToArray();
         var claims = settings.ClaimVerificationEnabled ? SemanticClaimAudit.Check(reply, window.Sources, suppliedTexts)
             : ClaimAudit.Check(reply, window.Sources, suppliedTexts);
         VerificationFollowup? followup = null;
@@ -123,7 +126,8 @@ public sealed partial class ChatService(IChatRepository repository, IChatModel m
         }
         var usage = measured.Snapshot(settings);
         assistant.SetDiagnostics(System.Text.Json.JsonSerializer.Serialize(new TurnDiagnostics(usage, settings.RetrievalReport, window.Memory, citations, generated.Warnings,
-            claims, conversation.WorkspaceId, conversation.ProjectSnapshot?.Revision, settings.Route, window.Assembly, window.Temporal, generated.Research, followup), ProjectToolCatalog.Json));
+            claims, conversation.WorkspaceId, conversation.ProjectSnapshot?.Revision, settings.Route, window.Assembly, window.Temporal, generated.Research, followup, window.Guides, window.HistoryMessagesIncluded,
+            window.Messages.Any(m => m.Role == "system")), ProjectToolCatalog.Json));
         conversation.CompleteTurn();
         // One atomic SaveChanges for both messages and the revision. A failed
         // model call/cancellation never leaves an orphan user message in storage.

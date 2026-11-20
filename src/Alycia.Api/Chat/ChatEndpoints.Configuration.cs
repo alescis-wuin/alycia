@@ -56,6 +56,7 @@ internal static partial class ChatEndpoints
                 var files = await repository.ContextFilesAsync(id, Math.Max(1, conversation.MessageCount - options.MaxHistoryTurns * 2 + 1), ct);
                 context = FileContext.Build(ConversationConfiguration.System(conversation, options), history, text, contextOptions, files, conversation.MessageCount + 1);
             }
+            context = await ContextGuides.AddAsync(context, contextOptions, measurements, false, ct);
             return Results.Ok(new
             {
                 context = context with { Route = options.Route, ToolReserve = contextOptions.SafetyTokens - options.SafetyTokens },

@@ -87,6 +87,8 @@ def summarize(rows):
     return {"completed": len(done), "failed": len(rows) - len(done),
             "retrieval": {k: rate((r.get("retrieval") or {}).get(k) for r in done) for k in ("recall", "ndcg", "mrr")},
             "generationSeconds": distribution(r.get("generationSeconds") for r in done),
+            "indexSeconds": distribution(r.get("indexSeconds") for r in done),
+            "indexedSourcesPerSecond": distribution(r.get("indexedSourcesPerSecond") for r in done),
             "firstContentMs": distribution(c.get("firstContentMilliseconds") for c in calls),
             "estimatedPromptTokens": distribution(c.get("estimatedInputTokens") for c in calls),
             "providerPromptTokens": distribution((c.get("stats") or {}).get("promptTokens") for c in calls),
@@ -181,6 +183,8 @@ def run(args):
                     if args.embedding_model: requested["embeddingModel"] = args.embedding_model
                     if args.counter: requested["tokenCounting"] = args.counter
                     if args.memory: requested["structuredMemory"] = args.memory == "structured"
+                    if isinstance(requested.get("enrichment"), dict):
+                        requested["enrichment"] = {**(options.get("enrichment") or {}), **requested["enrichment"]}
                     options.update(requested)
                     call("PUT", prefix + "/settings", {"revision": conversation["revision"], "model": args.model,
                         "systemPrompt": conversation["systemPrompt"], "contextNotes": "", "options": options})
@@ -195,17 +199,35 @@ def run(args):
                     call("POST", prefix + "/files/" + str(uuid.uuid4()), raw=body,
                          headers={"Content-Type": "multipart/form-data; boundary=" + boundary})
                     row["importMilliseconds"] = (time.monotonic() - importing) * 1000
-                    if applied.get("retrievalMode") == "hybrid" and args.index_wait > 0:
+                    enriched = (applied.get("enrichment") or {}).get("enabled", False)
+                    if (applied.get("retrievalMode") == "hybrid" or enriched) and args.index_wait > 0:
+                        index_started = time.monotonic()
                         call("POST", "/indexing", {"owner": cid, "project": False}, expected=202)
                         deadline = time.monotonic() + args.index_wait
                         while True:
                             jobs = call("GET", f"/indexing?owner={cid}&project=false")
                             if jobs and jobs[0]["state"] == "completed":
                                 row["indexProgress"] = jobs[0]
+                                seconds = time.monotonic() - index_started
+                                row["indexSeconds"] = seconds
+                                row["indexedSourcesPerSecond"] = jobs[0]["completed"] / seconds if seconds else None
                                 break
                             if time.monotonic() >= deadline or jobs and jobs[0]["state"] in ("paused", "failed"):
                                 raise RuntimeError("Indexation incomplète pendant la campagne")
                             time.sleep(1)
+                    if enriched and args.index_wait > 0:
+                        sources = call("GET", prefix + "/files")
+                        sample = next((f for f in sources if f["contextMode"] != "excluded"
+                                       and f["name"].lower().endswith((".md", ".cs", ".txt", ".py"))), None)
+                        if sample:
+                            base = f'/indexing/knowledge?owner={cid}&project=false&file={sample["id"]}'
+                            note = call("GET", base)
+                            row["annotationSample"] = {"path": sample["name"], "root": note}
+                            while note["children"]:
+                                note = call("GET", base + "&unit=" + note["children"][0])
+                            row["annotationSample"]["leaf"] = note
+                            row["annotationSample"]["original"] = call("GET", prefix + f'/files/{sample["id"]}/preview'
+                                + f'?sha={sample["sha256"]}&start={note["first"]}&end={note["last"]}')["text"]
                     row["historyTurns"] = []
                     for turn in case.get("turns", []):
                         revision = call("GET", prefix + "/settings")["conversation"]["revision"]
@@ -271,6 +293,8 @@ def offline_campaign(args):
     bench = ROOT / "benchmarks/Alycia.ContextBenchmarks"
     suite = ROOT / "evaluation/context-v3"
     factors = json.loads((suite / "candidate.json").read_text())
+    if args.pipeline_v2:
+        factors.update(facetPlanningEnabled=True, classificationEnabled=True)
     if args.rerank:
         factors["rerankEnabled"] = True
     variants = {"reference": {}, **{k: {k: v} for k, v in factors.items()}, "combined": factors}
@@ -294,9 +318,22 @@ def offline_campaign(args):
         if any(run[k] + 1e-12 < baseline[k] for k in ("meanRecall", "meanNdcg", "mrr")):
             failures.append(label)
     claims = json.loads(subprocess.check_output(command + ["--claims", str(suite / "claims.json")], cwd=ROOT, text=True))
+    extra = {}
+    if args.pipeline_v2:
+        v4 = ROOT / "evaluation/context-v4"
+        extra["classification"] = json.loads(subprocess.check_output(command + ["--classify", str(v4 / "relevance.json")], cwd=ROOT, text=True))
+        extra["stress"] = {}
+        with tempfile.TemporaryDirectory() as tmp:
+            for name, options in {"reference": {}, "combined": factors}.items():
+                path = Path(tmp) / "options.json"
+                path.write_text(json.dumps(options), encoding="utf-8")
+                extra["stress"][name] = json.loads(subprocess.check_output(command + ["--offline", str(v4 / "retrieval.json"), str(path)], cwd=ROOT, text=True))
+        for metric in ("meanRecall", "meanNdcg", "mrr"):
+            if extra["stress"]["combined"][metric] + 1e-12 < extra["stress"]["reference"][metric]:
+                failures.append("stress." + metric)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with args.output.open("x", encoding="utf-8") as dest:
-        json.dump({"schemaVersion": 1, "factors": factors, "runs": runs, "claims": claims, "failedThresholds": failures},
+        json.dump({"schemaVersion": 1, "factors": factors, "runs": runs, "claims": claims, **extra, "failedThresholds": failures},
                   dest, ensure_ascii=False, indent=2)
         dest.write("\n")
     if failures:
@@ -323,7 +360,7 @@ if __name__ == "__main__":
     r.add_argument("--counter", choices=("auto", "conservative"))
     r.add_argument("--memory", choices=("structured", "recursive"))
     r.add_argument("--hardware", help="Description du matériel de l’API et d’Ollama pour cette campagne")
-    r.add_argument("--index-wait", type=int, default=300, help="Attente maximale de l’index hybride en secondes (0 pour étudier une indexation à froid)")
+    r.add_argument("--index-wait", type=int, default=300, help="Attente maximale de l’index vectoriel ou des synthèses en secondes (0 pour étudier une indexation à froid)")
     r.add_argument("--tools", action="store_true")
     r.add_argument("--seed", type=int, default=42)
     r.add_argument("--repeats", type=int, choices=range(1, 6), default=1)
@@ -334,6 +371,7 @@ if __name__ == "__main__":
     c.add_argument("--single-factor", action="store_true")
     offline = sub.add_parser("offline", help="Comparer la référence, les ablations et leur combinaison sur la recherche C#")
     offline.add_argument("--output", type=Path, required=True)
+    offline.add_argument("--pipeline-v2", action="store_true", help="Ajouter facettes, classification annotée et corpus de documents voisins")
     offline.add_argument("--rerank", action="store_true", help="Exiger le reclassement ONNX avec les poids locaux de l’opérateur")
     args = parser.parse_args()
     if args.action == "validate":

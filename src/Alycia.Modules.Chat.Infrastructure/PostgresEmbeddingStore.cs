@@ -6,16 +6,16 @@ using NpgsqlTypes;
 
 namespace Alycia.Modules.Chat.Infrastructure;
 
-public sealed record EmbeddingSettings(string Model, int BatchSize, int ChunkCharacters, bool History, string SourceRevision = "", bool Hierarchical = false, string DocumentPrefix = "", string QueryPrefix = "")
+public sealed record EmbeddingSettings(string Model, int BatchSize, int ChunkCharacters, bool History, string SourceRevision = "", bool Hierarchical = false, string DocumentPrefix = "", string QueryPrefix = "", EnrichmentOptions? Enrichment = null)
 {
-    public static EmbeddingSettings From(ChatOptions options) => new(options.EmbeddingModel, options.EmbeddingBatchSize,
+    public static EmbeddingSettings From(ChatOptions options) => new(options.RetrievalMode == "hybrid" || !options.Enrichment.Enabled ? options.EmbeddingModel : "", options.EmbeddingBatchSize,
         options.EmbeddingChunkCharacters, options.EmbedHistory, Hierarchical: options.HierarchicalIndexEnabled,
-        DocumentPrefix: options.EmbeddingDocumentPrefix, QueryPrefix: options.EmbeddingQueryPrefix);
+        DocumentPrefix: options.EmbeddingDocumentPrefix, QueryPrefix: options.EmbeddingQueryPrefix, Enrichment: options.Enrichment.Enabled ? options.Enrichment : null);
     public bool Versioned => Hierarchical || DocumentPrefix.Length > 0 || QueryPrefix.Length > 0;
     public string VectorSpace(string digest, int dimensions) => !Versioned ? digest : digest + ":pipeline-v4:" + dimensions + ":"
         + StructuredMemory.Hash(JsonSerializer.Serialize(new { Hierarchical, ChunkCharacters, DocumentPrefix, QueryPrefix, Normalization = "cosine" }));
 }
-public sealed record EmbeddingJob(EmbeddingProgress Progress, EmbeddingSettings Settings, int Revision, string Fingerprint);
+public sealed record EmbeddingJob(EmbeddingProgress Progress, EmbeddingSettings Settings, int Revision, string Fingerprint, DateTimeOffset? RetryAt = null, string? VectorDigest = null, int? VectorDimensions = null);
 
 // A separate short-lived connection avoids writing indexing state into a chat's repeatable-read snapshot.
 public sealed class PostgresEmbeddingStore(ChatDbContext database)
@@ -30,14 +30,14 @@ public sealed class PostgresEmbeddingStore(ChatDbContext database)
     public async Task QueueAsync(Guid owner, bool project, ChatOptions options, CancellationToken ct, bool retry = false, string sourceRevision = "")
     {
         options.Validate();
-        if (string.IsNullOrWhiteSpace(options.EmbeddingModel)) return;
+        if (string.IsNullOrWhiteSpace(options.EmbeddingModel) && !options.Enrichment.Enabled) return;
         await using var connection = await OpenAsync(ct);
         await using var command = new NpgsqlCommand("""
             INSERT INTO chat.embedding_jobs(owner_id, is_project, options_json) VALUES ($1, $2, $3)
             ON CONFLICT(owner_id, is_project) DO UPDATE SET options_json = EXCLUDED.options_json,
-                revision = chat.embedding_jobs.revision + 1,
+                revision = chat.embedding_jobs.revision + 1, retry_at = CASE WHEN $4 THEN now() ELSE chat.embedding_jobs.retry_at END,
                 state = CASE WHEN chat.embedding_jobs.state = 'paused' AND NOT $4 THEN 'paused' ELSE 'queued' END,
-                detail = '', fingerprint = '', updated_at = now()
+                detail = '', fingerprint = '', cycle_calls = 0, updated_at = now()
             WHERE chat.embedding_jobs.options_json <> EXCLUDED.options_json OR $4
             """, connection);
         command.Parameters.AddWithValue(owner); command.Parameters.AddWithValue(project);
@@ -49,15 +49,16 @@ public sealed class PostgresEmbeddingStore(ChatDbContext database)
     public async Task<EmbeddingJob[]> JobsAsync(CancellationToken ct)
     {
         await using var connection = await OpenAsync(ct);
-        await using var command = new NpgsqlCommand("SELECT owner_id, is_project, state, completed, total, detail, options_json, updated_at, revision, fingerprint FROM chat.embedding_jobs ORDER BY updated_at", connection);
+        await using var command = new NpgsqlCommand("SELECT owner_id, is_project, state, completed, total, detail, options_json, updated_at, revision, fingerprint,retry_at,cycle_calls,vector_digest,vector_dimensions FROM chat.embedding_jobs ORDER BY updated_at", connection);
         await using var reader = await command.ExecuteReaderAsync(ct);
         var jobs = new List<EmbeddingJob>();
         while (await reader.ReadAsync(ct))
         {
             var settings = JsonSerializer.Deserialize<EmbeddingSettings>(reader.GetString(6), ProjectToolCatalog.Json)!;
             jobs.Add(new(new(reader.GetGuid(0), reader.GetBoolean(1), reader.GetString(2), reader.GetInt32(3),
-                reader.GetInt32(4), reader.GetString(5), settings.Model, reader.GetFieldValue<DateTimeOffset>(7)),
-                settings, reader.GetInt32(8), reader.GetString(9)));
+                reader.GetInt32(4), reader.GetString(5), settings.Model, reader.GetFieldValue<DateTimeOffset>(7), CycleCalls: reader.GetInt32(11)),
+                settings, reader.GetInt32(8), reader.GetString(9), reader.IsDBNull(10) ? null : reader.GetFieldValue<DateTimeOffset>(10),
+                reader.IsDBNull(12) ? null : reader.GetString(12), reader.IsDBNull(13) ? null : reader.GetInt32(13)));
         }
         return jobs.Select(j => j with
         {
@@ -67,9 +68,34 @@ public sealed class PostgresEmbeddingStore(ChatDbContext database)
                 ChunkCharacters = j.Settings.ChunkCharacters,
                 Hierarchical = j.Settings.Hierarchical,
                 DocumentPrefix = j.Settings.DocumentPrefix,
-                QueryPrefix = j.Settings.QueryPrefix
+                QueryPrefix = j.Settings.QueryPrefix,
+                Enrichment = j.Settings.Enrichment
             }
         }).ToArray();
+    }
+
+    public async Task<bool> ActiveAsync(EmbeddingJob job, CancellationToken ct)
+    {
+        await using var connection = await OpenAsync(ct);
+        await using var query = new NpgsqlCommand("""
+            SELECT EXISTS(SELECT 1 FROM chat.embedding_jobs WHERE owner_id=$1 AND is_project=$2 AND revision=$3 AND state<>'paused'
+                AND ($4='' OR $4 = CASE WHEN is_project THEN
+                    (SELECT p."Revision"::text FROM chat.workspace_profiles p WHERE p."Id"=$1 AND NOT p."Archived")
+                ELSE (SELECT c."Revision"::text || ':' || coalesce(p."Revision",0)::text FROM chat.conversations c
+                      LEFT JOIN chat.workspace_profiles p ON c."WorkspaceId"=p."Id" AND NOT p."Archived" WHERE c."Id"=$1) END))
+            """, connection);
+        query.Parameters.AddWithValue(job.Progress.OwnerId); query.Parameters.AddWithValue(job.Progress.IsProject); query.Parameters.AddWithValue(job.Revision);
+        query.Parameters.AddWithValue(job.Settings.SourceRevision);
+        return await query.ExecuteScalarAsync(ct) is true;
+    }
+
+    public async Task SetDimensionsAsync(EmbeddingJob job, string digest, int dimensions, CancellationToken ct)
+    {
+        await using var connection = await OpenAsync(ct);
+        await using var command = new NpgsqlCommand("UPDATE chat.embedding_jobs SET vector_digest=$1, vector_dimensions=$2 WHERE owner_id=$3 AND is_project=$4 AND revision=$5", connection);
+        command.Parameters.AddWithValue(digest); command.Parameters.AddWithValue(dimensions); command.Parameters.AddWithValue(job.Progress.OwnerId);
+        command.Parameters.AddWithValue(job.Progress.IsProject); command.Parameters.AddWithValue(job.Revision);
+        await command.ExecuteNonQueryAsync(ct);
     }
 
     public async Task PauseAsync(Guid owner, bool project, CancellationToken ct)
@@ -81,17 +107,18 @@ public sealed class PostgresEmbeddingStore(ChatDbContext database)
     }
 
     public async Task<bool> ProgressAsync(EmbeddingJob job, string state, int completed, int total, string detail,
-        string fingerprint, CancellationToken ct)
+        string fingerprint, CancellationToken ct, int? cycleCalls = null)
     {
         await using var connection = await OpenAsync(ct);
         await using var command = new NpgsqlCommand("""
-            UPDATE chat.embedding_jobs SET state = $1, completed = $2, total = $3, detail = $4, fingerprint = $5, updated_at = now()
+            UPDATE chat.embedding_jobs SET state = $1, completed = $2, total = $3, detail = $4, fingerprint = $5, updated_at = now(), cycle_calls=coalesce($9,cycle_calls)
             WHERE owner_id = $6 AND is_project = $7 AND revision = $8
             """, connection);
         command.Parameters.AddWithValue(state); command.Parameters.AddWithValue(completed); command.Parameters.AddWithValue(total);
         command.Parameters.AddWithValue(detail); command.Parameters.AddWithValue(fingerprint);
         command.Parameters.AddWithValue(job.Progress.OwnerId); command.Parameters.AddWithValue(job.Progress.IsProject);
         command.Parameters.AddWithValue(job.Revision);
+        command.Parameters.Add(new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Integer, Value = (object?)cycleCalls ?? DBNull.Value });
         return await command.ExecuteNonQueryAsync(ct) == 1;
     }
 

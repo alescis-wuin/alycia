@@ -40,8 +40,8 @@ public static class RecursiveContext
         var reducer = new RecursiveSummarizer(model, conversation.Model, options, progress);
         int MemoryCost() => memory.Length == 0 ? 0 : TokenBudget.Count(MemoryLabel + memory, options);
         int PendingCost() => pending.Sum(m => TokenBudget.Count(m.Content, options));
-        int Target() => memoryBudget - TokenBudget.Count(MemoryLabel, options);
-        if (MemoryCost() > memoryBudget)
+        int Target() => (options.MemoryContextTokens > 0 ? Math.Min(memoryBudget, options.MemoryContextTokens) : memoryBudget) - TokenBudget.Count(MemoryLabel, options);
+        if (MemoryCost() > memoryBudget || options.MemoryContextTokens > 0 && MemoryCost() > options.MemoryContextTokens)
         {
             if (!summarize) { needsSummary = true; memory = ""; }
             else { memory = await reducer.ReduceAsync([new("Mémoire précédente", memory)], Target(), ct); changed = true; }
@@ -56,7 +56,7 @@ public static class RecursiveContext
                 var user = page[index]; var assistant = page[index + 1];
                 ValidatePair(user, assistant);
                 pending.Add(user); pending.Add(assistant);
-                if (MemoryCost() + PendingCost() <= memoryBudget) continue;
+                if (MemoryCost() + PendingCost() <= memoryBudget && (options.HistoryContextTokens == 0 || PendingCost() <= options.HistoryContextTokens)) continue;
                 if (!summarize) { needsSummary = true; pending.RemoveRange(pending.Count - 2, 2); break; }
                 var sources = new List<SummarySource>();
                 if (memory.Length > 0) sources.Add(new($"Mémoire des messages 1 à {through}", memory));

@@ -23,6 +23,7 @@ public static class SlidingContext
             throw new ArgumentException("Le message et l’instruction système dépassent le budget de contexte. Raccourcissez-les.");
         }
 
+        var historyCost = 0;
         var selected = new List<PromptMessage>();
         // Add complete recent turns only, in chronological order. Never keep
         // an assistant answer without its user question or skip a newer turn.
@@ -39,11 +40,12 @@ public static class SlidingContext
             }
 
             var cost = TokenBudget.Count(user.Content, options) + TokenBudget.Count(assistant.Content, options);
-            if (used + cost > budget)
+            if (used + cost > budget || options.HistoryContextTokens > 0 && historyCost + cost > options.HistoryContextTokens)
             {
                 break;
             }
 
+            historyCost += cost;
             used += cost;
             start -= 2;
         }

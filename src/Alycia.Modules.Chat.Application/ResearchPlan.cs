@@ -19,7 +19,7 @@ public sealed class ResearchPlan
         _limit = options.ToolMaxCalls > 0 ? Math.Min(options.ToolMaxCalls, options.AgentPlanMaxCalls) : options.AgentPlanMaxCalls;
         _history = options.Route?.Mode == "memory";
         var queries = options.SearchPlan?.Queries ?? [];
-        var targeted = queries.Skip(1).Select(q => q.Text).ToArray();
+        var targeted = options.SearchPlan?.Brief?.Facets.Select(f => f.Question).ToArray() ?? queries.Skip(1).Select(q => q.Text).ToArray();
         if (targeted.Length == 0) targeted = [options.SearchPlan?.Original ?? context.Messages.LastOrDefault()?.Content ?? ""];
         _goals = targeted.Where(q => !string.IsNullOrWhiteSpace(q)).Take(options.MaxSearchQueries).Select(q =>
         {

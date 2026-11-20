@@ -71,6 +71,12 @@ public partial class ChatWindow
                     preview.Text = source.Text.Length == 0 ? "Aucun texte extrait." : source.Text;
                 }));
                 details.Children.Add(preview);
+                if (file.ContextMode != "excluded")
+                {
+                    var annotation = new StackPanel { Spacing = 8 };
+                    details.Children.Add(ActionButton("Lire la synthèse indexée", () => ShowNoteAsync(annotation, owner, project, file.Id, null)));
+                    details.Children.Add(annotation);
+                }
                 details.Children.Add(new Expander { Header = "Version et taille", Content = Label($"{file.Size:N0} octets\nSHA-256 {file.Sha256}") });
             }
             if (profile?.Archived == true) return;

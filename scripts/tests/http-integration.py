@@ -77,6 +77,18 @@ class Ollama(BaseHTTPRequestHandler):
         assert self.path == "/api/chat" and request["model"] in ("demo", "tool-demo"), "Un modèle non génératif a reçu une demande de chat"
         prompt = json.dumps(request["messages"], ensure_ascii=False)
         assert "NE_JAMAIS_RESUMER_CE_CONTENU" not in prompt, "Un contenu exclu a été envoyé au modèle"
+        if isinstance(request.get("format"), dict) and "sourceUnitIds" in request["format"].get("properties", {}):
+            text = request["messages"][-1]["content"]
+            ids = json.loads(text.split("sourceUnitIds=", 1)[1].split("\n", 1)[0])
+            labels = {key: [] for key in ("keywords", "topics", "entities", "technicalSymbols", "facts", "dateMentions", "uncertainties")}
+            labels.update(title="Orion", description="", documentType="document", language="fr",
+                          summary="Conservation Orion", keywords=["Orion"], sourceUnitIds=ids)
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"message": {"role": "assistant", "content": json.dumps(labels)},
+                                        "done": True, "done_reason": "stop", "eval_count": 50}).encode())
+            return
         if request["messages"][-1]["content"].startswith("QA_ADVANCED"):
             import re
             marker = re.search(r"\[(S[0-9A-F]{12})\]", request["messages"][-1]["content"])
@@ -258,6 +270,59 @@ def verify_hybrid(call, checks):
         checks.append("background_indexing_progress_pause_and_query_only_embedding_cost")
     finally:
         call("DELETE", prefix, expected=204)
+
+
+def verify_knowledge(call, checks):
+    def create(title):
+        return call("POST", "/conversations", {"title": title, "model": "demo", "systemPrompt": "Consulte les originaux."}, expected=201)
+
+    owner, other = create("Synthèses indépendantes"), create("Portée distincte")
+    prefix = "/conversations/" + owner["id"]
+    try:
+        options = call("GET", prefix + "/settings")["options"]
+        options.update(enrichment=dict(options["enrichment"], enabled=True, model="demo"), facetPlanningEnabled=True,
+                       classificationEnabled=True, evidenceSelectionEnabled=True, hierarchicalIndexEnabled=True,
+                       maxOutputTokens=256, useProjectTools=False, querySummaryTokens=512)
+        call("PUT", prefix + "/settings", {"revision": owner["revision"], "model": "demo",
+             "systemPrompt": owner["systemPrompt"], "contextNotes": "", "options": options})
+        boundary = "notes-" + uuid.uuid4().hex
+        content = "# Orion\nLa conservation Orion vaut 37 jours."
+        body = (f'--{boundary}\r\nContent-Disposition: form-data; name="files"; filename="orion.md"\r\n'
+                f'Content-Type: text/plain\r\n\r\n{content}\r\n--{boundary}--\r\n').encode()
+        call("POST", prefix + "/files/" + str(uuid.uuid4()), raw=body, headers={"Content-Type": "multipart/form-data; boundary=" + boundary})
+        file = call("GET", prefix + "/files")[0]
+        selection = f'project=false&file={file["id"]}'
+        lookup = f'/indexing/knowledge?owner={owner["id"]}&{selection}'
+        for _ in range(200):
+            jobs = call("GET", f'/indexing?owner={owner["id"]}&project=false')
+            if jobs and jobs[0]["state"] == "completed":
+                break
+            assert not jobs or jobs[0]["state"] != "failed", jobs
+            time.sleep(.1)
+        else:
+            raise AssertionError("Synthèses non publiées")
+        root = call("GET", lookup)
+        assert root["level"] == "document" and root["state"] == "generated", root
+        section = call("GET", lookup + "&unit=" + root["children"][0])
+        leaf = call("GET", lookup + "&unit=" + section["children"][0])
+        ref = leaf["labels"]["sourceUnitIds"][0]
+        call("GET", f'/indexing/knowledge?owner={other["id"]}&{selection}&unit={leaf["key"]}', expected=404)
+        question = "Combien de jours de conservation pour Orion ?"
+        preview = call("POST", prefix + "/context", {"content": question})["context"]
+        assert preview["retrieval"]["plan"]["brief"]["original"] == question
+        assert preview["retrieval"]["classification"]["candidates"][0]["relevance"] == "relevant"
+        assert preview["guides"][0]["originalReference"] == ref and preview["guides"][0]["tokens"] <= 512
+        assert any(s["reference"] == ref for s in preview["sources"])
+        revision = call("GET", prefix + "/settings")["conversation"]["revision"]
+        call("PATCH", prefix + "/files/" + file["id"], {"revision": revision, "mode": "excluded"})
+        call("GET", lookup, expected=404)
+        preview = call("POST", prefix + "/context", {"content": question})["context"]
+        assert not preview.get("sources") and not preview.get("guides")
+        checks.extend(["independent_annotation_with_ollama_schema", "immutable_hierarchy_and_scope",
+                       "facets_classification_and_final_source_ledger", "immediate_exclusion_of_derivatives"])
+    finally:
+        call("DELETE", prefix, expected=204)
+        call("DELETE", "/conversations/" + other["id"], expected=204)
 
 
 def verify_import_settings(call, checks):
@@ -487,7 +552,7 @@ def verify_context_quality(call, checks):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--case", choices=("all", "tool-summary", "boreale", "indexing", "context-quality"), default="all")
+    parser.add_argument("--case", choices=("all", "tool-summary", "boreale", "indexing", "context-quality", "knowledge"), default="all")
     args = parser.parse_args()
     connection = os.environ.get("ALYCIA_CHAT_TEST_CONNECTION")
     if not connection:
@@ -559,6 +624,8 @@ def main():
                             client("DELETE", "/conversations/" + conversation, expected=204)
                     verify_structured_memory(client, checks)
                     checks.append("tool_citations_and_persisted_diagnostics")
+                if args.case in ("all", "knowledge"):
+                    verify_knowledge(client, checks)
                 if args.case in ("all", "context-quality"):
                     verify_context_quality(client, checks)
                 if args.case in ("all", "indexing"):

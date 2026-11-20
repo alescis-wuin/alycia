@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Alycia.Modules.Chat.Infrastructure;
 
-public sealed class TemporalMemoryStore(ChatDbContext database, IIndexedEmbeddings vectors, ChatOptions defaults) : ITemporalMemory
+public sealed class TemporalMemoryStore(ChatDbContext database, IIndexedEmbeddings vectors, ChatOptions defaults, KnowledgeStore? knowledge = null) : ITemporalMemory
 {
     private const int Version = 1;
 
@@ -70,14 +70,25 @@ public sealed class TemporalMemoryStore(ChatDbContext database, IIndexedEmbeddin
                     WHERE owner={owner} AND observed<{before} AND sequence<={through} AND sequence=ANY({ids}) AND version={Version}
                     """).ToListAsync(ct));
         }
+        var groupScores = settings.Enrichment.Enabled && settings.EmbedHistory && knowledge is not null
+            ? await knowledge.HistoryAsync(owner, question, settings.Enrichment.Profile, through, before, ct)
+            : new Dictionary<int, double>();
+        if (groupScores.Count > 0)
+        {
+            var sequences = groupScores.Keys.ToArray();
+            candidates.AddRange(await database.Database.SqlQuery<string>($"""
+                SELECT facts::text AS "Value" FROM chat.temporal_memory WHERE owner={owner} AND observed<{before}
+                AND sequence=ANY({sequences}) AND sequence<={through} AND version={Version}
+                """).ToArrayAsync(ct));
+        }
         var facts = Decode(candidates).Distinct().ToArray();
         if (facts.Length == 0) return new([], indexed, through, matches.Calls, matches.Warning);
         var semantic = matches.Scores; var calls = matches.Calls; var warning = matches.Warning;
         var chunks = facts.Select(f => new SourceChunk(owner, "", f.Sha256, f.Key, f.Kind, 0, f.Quote.Length, 1, 1, f.Quote, [], true)).ToArray();
         var ranked = ProjectRetrieval.Bm25(chunks, question);
-        var terms = Enumerable.Range(0, facts.Length).OrderByDescending(n => ranked[n] + 2 * Math.Max(0, semantic.GetValueOrDefault(facts[n].Sequence)))
+        var terms = Enumerable.Range(0, facts.Length).OrderByDescending(n => ranked[n] + groupScores.GetValueOrDefault(facts[n].Sequence) + 2 * Math.Max(0, semantic.GetValueOrDefault(facts[n].Sequence)))
             .ThenByDescending(n => facts[n].Sequence)
-            .Where(n => ranked[n] > 0 || semantic.GetValueOrDefault(facts[n].Sequence) > .25)
+            .Where(n => ranked[n] > 0 || groupScores.ContainsKey(facts[n].Sequence) || semantic.GetValueOrDefault(facts[n].Sequence) > .25)
             .Select(n => facts[n].Key).Distinct().Take(8).ToArray();
         if (terms.Length == 0) return new([], indexed, through, calls, warning);
         var variants = await database.Database.SqlQuery<string>($"""

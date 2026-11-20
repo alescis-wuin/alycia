@@ -38,7 +38,36 @@ internal static class OfflineEvaluation
         }, json));
     }
 
-    private sealed record Case(string Id, string Question, string[] Expected, string[] Turns);
+    private sealed record Pair(string Id, string Question, string Text, string Expected, string Relation);
+    public static void Classify(string path)
+    {
+        var json = new JsonSerializerOptions(JsonSerializerDefaults.Web) { WriteIndented = true };
+        var bytes = File.ReadAllBytes(path);
+        var pairs = JsonSerializer.Deserialize<Pair[]>(bytes, json)!;
+        var options = new ChatOptions();
+        var rows = pairs.Select(p =>
+        {
+            var doc = new SourceChunk(Guid.Empty, "", StructuredMemory.Hash(p.Text), "", "text", 0, p.Text.Length, 1, 1, p.Text, [], true);
+            var brief = QueryPlanning.Build(p.Question, [], [], 4, true).Brief!;
+            var verdict = PassageClassification.Apply(p.Question, brief, [doc], options).Report.Candidates.Single();
+            return new { p.Id, p.Expected, actual = verdict.Relevance, expectedRelation = p.Relation, verdict.Relation, verdict.Admitted };
+        }).ToArray();
+        string[] classes = ["relevant", "uncertain_or_neutral", "irrelevant"];
+        Console.WriteLine(JsonSerializer.Serialize(new
+        {
+            sha256 = Convert.ToHexString(SHA256.HashData(bytes)),
+            samples = rows.Length,
+            thresholds = new { options.RelevantThreshold, options.NeutralThreshold },
+            classes,
+            matrix = classes.Select(expected => classes.Select(actual => rows.Count(r => r.Expected == expected && r.actual == actual))),
+            correct = rows.Count(r => r.Expected == r.actual),
+            missedRelevant = rows.Where(r => r.Expected == "relevant" && !r.Admitted).Select(r => r.Id),
+            relationCorrect = rows.Count(r => r.expectedRelation == r.Relation),
+            rows
+        }, json));
+    }
+
+    private sealed record Case(string Id, string Question, string[] Expected, string[] Turns, string[][]? FacetTargets = null);
     private sealed record Suite(int Version, int K, int Budget, string[][] Documents, Case[] Cases, string[] Excluded);
     private sealed class Index(SourceChunk[] chunks, int files) : IProjectIndex
     {
@@ -92,6 +121,7 @@ internal static class OfflineEvaluation
         foreach (var item in suite.Cases)
         {
             var options = settings.Copy();
+            var allocated = GC.GetTotalAllocatedBytes();
             var timer = Stopwatch.StartNew();
             var history = item.Turns.Select((text, n) => new ChatMessage(conversation, n + 1, Guid.NewGuid(), "user", text)).ToArray();
             await QueryRouting.PrepareAsync(new FixtureRepository(files, history), owner, item.Question, options, service, new(new NoInference()), default);
@@ -111,7 +141,22 @@ internal static class OfflineEvaluation
             }
             else empty.Add(paths.Length == 0);
             costs.Add(tokens);
-            rows.Add(new { item.Id, paths, item.Expected, recall, ndcg, rr, tokens, route = options.Route?.Mode, rerank = options.RetrievalReport?.Rerank });
+            rows.Add(new
+            {
+                item.Id,
+                paths,
+                item.Expected,
+                recall,
+                ndcg,
+                rr,
+                tokens,
+                route = options.Route?.Mode,
+                rerank = options.RetrievalReport?.Rerank,
+                allocatedBytes = Math.Max(0, GC.GetTotalAllocatedBytes() - allocated),
+                facetsExpected = item.FacetTargets?.Length,
+                facetsCovered = item.FacetTargets?.Count(group => paths.Intersect(group).Any()),
+                classifications = options.RetrievalReport?.Classification?.Candidates.Length
+            });
         }
         var latency = elapsed.Order().ToArray();
         double Percentile(double p) => latency[(int)Math.Ceiling(p * latency.Length) - 1];

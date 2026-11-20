@@ -11,6 +11,8 @@ Alycia is a local generative AI client for Ollama. It combines an Avalonia deskt
 
 [Routage, reclassement ONNX, mémoire temporelle et vérification des preuves — réglages, commandes, mesures et limites](docs/Contextualisation-locale.md)
 
+[Indexation indépendante, budgets, facettes et provenance — guide et recette complète](docs/indexation-independante-v2.md)
+
 ## Local client V4 — this branch
 
 `feature/local-client-v4-context-quality-20261117` adds a frozen evaluation corpus,

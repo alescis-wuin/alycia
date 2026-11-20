@@ -102,7 +102,7 @@ public static class TemporalMemory
                 var until = corrections.FirstOrDefault(c => c.Sequence > f.Sequence && f.Role == "user");
                 body.AppendLine($"[H{f.Sequence}:{f.Sha256[..12]}] {f.Observed:O} · {f.Role} · {f.Kind}{(until is null ? "" : $" · remplacé au message {until.Sequence}")} : {f.Quote}");
             }
-            if (TokenBudget.Count(selected.ToString() + body, options) > free) continue;
+            if (TokenBudget.Count(selected.ToString() + body, options) > (options.MemoryContextTokens > 0 ? Math.Min(free, options.MemoryContextTokens) : free)) continue;
             selected.Append(body);
             foreach (var f in selectedGroup)
             {
@@ -120,11 +120,14 @@ public static class TemporalMemory
         if (selected.Length > 0) mandatory.Insert(insertion++, new("user", selected.ToString()));
         var prior = history.Take(history.Count - protectedCount).Chunk(2).Reverse();
         var included = protectedCount;
+        var extraHistoryCost = 0;
         foreach (var pair in prior)
         {
             if (cutoff.HasValue && pair.Any(m => m.CreatedAtUtc >= cutoff.Value)) continue;
             var prompts = pair.Select(m => new PromptMessage(m.Role, m.Content)).ToArray();
-            if (Cost(mandatory) + Cost(prompts) > maximum) break;
+            var cost = Cost(prompts);
+            if (Cost(mandatory) + cost > maximum || options.HistoryContextTokens > 0 && extraHistoryCost + cost > options.HistoryContextTokens) break;
+            extraHistoryCost += cost;
             mandatory.InsertRange(insertion, prompts); included += 2;
         }
         var used = Cost(mandatory);

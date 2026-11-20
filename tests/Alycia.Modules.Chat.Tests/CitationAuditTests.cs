@@ -26,6 +26,10 @@ public sealed class CitationAuditTests
         var valid = CitationAudit.Check("[S123456789ABC]", [], [denied with { Succeeded = true }]);
         Assert.Empty(valid.Unknown); Assert.Single(valid.Recognized);
         Assert.Equal("tool", valid.Supplied[0].Origin);
+        var removed = denied with { Succeeded = true, RetainedInFinalPrompt = false };
+        var compacted = CitationAudit.Check("[S123456789ABC]", [], [removed]);
+        Assert.Single(compacted.Unknown); Assert.Equal("tool_compacted", Assert.Single(compacted.Supplied).Origin);
+        Assert.Single(CitationAudit.Check("[S123456789ABC]", [], [removed, denied with { Succeeded = true }]).Recognized);
     }
 
     [Fact]
@@ -33,6 +37,7 @@ public sealed class CitationAuditTests
     {
         Assert.Null(TurnDiagnostics.Read("{\"usage\":{\"calls\":null}}"));
         Assert.Null(TurnDiagnostics.Read("{\"citations\":{\"supplied\":[null]}}"));
+        Assert.Null(TurnDiagnostics.Read("{\"retrieval\":{\"omissions\":[],\"classification\":{\"candidates\":null}}}"));
         Assert.NotNull(TurnDiagnostics.Read("{}"));
     }
 }

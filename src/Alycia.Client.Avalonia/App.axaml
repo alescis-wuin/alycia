@@ -4,6 +4,7 @@
     <ResourceDictionary>
       <ResourceDictionary.ThemeDictionaries>
         <ResourceDictionary x:Key="Light">
+          <SolidColorBrush x:Key="BorealBlue">#195D94</SolidColorBrush>
           <SolidColorBrush x:Key="BorealCanvas">#F5F6FB</SolidColorBrush>
           <SolidColorBrush x:Key="BorealSurface">#FFFFFF</SolidColorBrush>
           <SolidColorBrush x:Key="BorealSoft">#EAE6FF</SolidColorBrush>
@@ -19,6 +20,7 @@
           <SolidColorBrush x:Key="BorealCode">#F0F2F8</SolidColorBrush>
         </ResourceDictionary>
         <ResourceDictionary x:Key="Dark">
+          <SolidColorBrush x:Key="BorealBlue">#8BC8FF</SolidColorBrush>
           <SolidColorBrush x:Key="BorealCanvas">#0E1420</SolidColorBrush>
           <SolidColorBrush x:Key="BorealSurface">#182334</SolidColorBrush>
           <SolidColorBrush x:Key="BorealSoft">#272B43</SolidColorBrush>
@@ -51,6 +53,11 @@
   </Application.Resources>
   <Application.Styles>
     <FluentTheme />
+    <Style Selector="TextBlock.registryDocument"><Setter Property="Foreground" Value="{DynamicResource BorealBlue}" /></Style>
+    <Style Selector="TextBlock.registryHistory"><Setter Property="Foreground" Value="{DynamicResource BorealIris}" /></Style>
+    <Style Selector="TextBlock.registryMemory"><Setter Property="Foreground" Value="{DynamicResource BorealJade}" /></Style>
+    <Style Selector="TextBlock.registrySummary"><Setter Property="Foreground" Value="{DynamicResource BorealAmber}" /></Style>
+    <Style Selector="TextBlock.registryWarning"><Setter Property="Foreground" Value="{DynamicResource BorealError}" /></Style>
     <Style Selector="local|MarkdownView">
       <Setter Property="ReadingSize" Value="{DynamicResource ReadingSize}" />
       <Setter Property="WrapCode" Value="{DynamicResource WrapCode}" />

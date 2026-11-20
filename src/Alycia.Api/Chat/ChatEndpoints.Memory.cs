@@ -58,6 +58,7 @@ internal static partial class ChatEndpoints
             {
                 var result = await ConversationContext.BuildAsync(repository, measured, conversation, text, contextOptions, true,
                     status => WriteAsync(new { type = "delta", content = "", status }), ct);
+                var assembled = await ContextGuides.AddAsync(result.Context, contextOptions, measured, true, ct);
                 if (result.Changed)
                 {
                     if (result.LedgerJson is not null) conversation.SetMemoryLedger(result.LedgerJson);
@@ -69,7 +70,7 @@ internal static partial class ChatEndpoints
                     type = "done",
                     result = new
                     {
-                        context = result.Context with { Route = options.Route, ToolReserve = contextOptions.SafetyTokens - options.SafetyTokens },
+                        context = assembled with { Route = options.Route, ToolReserve = contextOptions.SafetyTokens - options.SafetyTokens },
                         options,
                         usage = measured.Snapshot(options),
                         conversation.Revision,

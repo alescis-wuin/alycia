@@ -32,7 +32,7 @@ public sealed record PromptMessage(string Role, string Content,
     [property: JsonPropertyName("tool_name"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? ToolName = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Thinking = null);
 public sealed record ContextWindow(IReadOnlyList<PromptMessage> Messages, int HistoryMessagesIncluded, int EstimatedInputTokens, int FilesIncluded = 0, bool NeedsSummary = false, int SummaryThroughSequence = 0, string SummaryText = "", int SummaryCalls = 0, IReadOnlyList<SourceExcerpt>? Sources = null, int FilesAvailable = 0, int ToolReserve = 0, RetrievalReport? Retrieval = null, MemoryReport? Memory = null, QueryRoute? Route = null, EvidenceAssembly? Assembly = null, TemporalReport? Temporal = null,
-    [property: JsonIgnore] IReadOnlyList<EvidenceText>? MemoryTexts = null);
+    [property: JsonIgnore] IReadOnlyList<EvidenceText>? MemoryTexts = null, UsedGuide[]? Guides = null);
 public sealed record GenerationStats(int? PromptTokens, int? OutputTokens, long? TotalNanoseconds,
     long? EvaluationNanoseconds, string? DoneReason, long? PromptEvaluationNanoseconds = null, long? LoadNanoseconds = null, int? CachedPromptTokens = null);
 public sealed record GenerationReply(string Content, GenerationStats? Stats = null, IReadOnlyList<ModelToolCall>? ToolCalls = null, string? Thinking = null, IReadOnlyList<ToolObservation>? Tools = null, IReadOnlyList<string>? Warnings = null,
@@ -93,6 +93,18 @@ public sealed class ChatOptions
     public bool QueryRewriteEnabled { get; set; }
     public int MaxSearchQueries { get; set; } = 3;
     [JsonIgnore] public SearchQueryPlan? SearchPlan { get; set; }
+    public EnrichmentOptions Enrichment { get; set; } = new();
+    public bool FacetPlanningEnabled { get; set; }
+    public bool QueryBriefModelEnabled { get; set; }
+    public bool ClassificationEnabled { get; set; }
+    public int ClassificationBudget { get; set; } = 120;
+    public int NeutralCandidates { get; set; } = 4;
+    public double RelevantThreshold { get; set; } = .45;
+    public double NeutralThreshold { get; set; } = .12;
+    public int QuerySummaryMaxCalls { get; set; } = 1;
+    public int QuerySummaryTokens { get; set; } = 0;
+    public int MemoryContextTokens { get; set; }
+    public int HistoryContextTokens { get; set; }
     public bool HierarchicalIndexEnabled { get; set; }
     public string EmbeddingDocumentPrefix { get; set; } = "";
     public string EmbeddingQueryPrefix { get; set; } = "";
@@ -131,6 +143,12 @@ public sealed class ChatOptions
 
     public void Validate()
     {
+        if (Enrichment is null || ClassificationBudget is < 1 or > 2048 || NeutralCandidates is < 0 or > 64
+            || !double.IsFinite(NeutralThreshold) || !double.IsFinite(RelevantThreshold) || NeutralThreshold < 0
+            || RelevantThreshold <= NeutralThreshold || RelevantThreshold > 1 || QuerySummaryTokens is < 0 or > 4096
+            || QuerySummaryMaxCalls is < 0 or > 8 || MemoryContextTokens < 0 || HistoryContextTokens < 0)
+            throw new ArgumentException("Réglages de classification ou de contexte invalides.");
+        Enrichment.Validate();
         if (AgentPlanMaxCalls is < 1 or > 64 || EmbeddingDocumentPrefix is null or { Length: > 256 } || EmbeddingQueryPrefix is null or { Length: > 256 } || MaxSearchQueries is < 1 or > 8 || RoutingMode is not ("off" or "auto" or "direct" or "memory" or "retrieval" or "explore") || RerankCandidateLimit is < 1 or > 64 || RerankTimeoutMs is < 50 or > 30000 || RetrievalMode is not ("legacy" or "lexical" or "hybrid") || EmbeddingModel is null || EmbeddingModel.Length > 200 || TokenCounting is not ("auto" or "conservative") || ToolMaxCalls is < 0 or > 4096 || SummaryMaxCalls is < 8 or > 2048 || MaxHistoryTurns is < 0 or > 100 || ContextTokens is < 1024 or > 131072
             || ToolContextTokens < 0 || ToolContextTokens >= ContextTokens || DocumentContextTokens < 0 || DocumentContextTokens >= ContextTokens
             || ToolResultBytes is < 1024 or > 131072 || IndexMaxCharacters < 0

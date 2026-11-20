@@ -7,6 +7,7 @@ using Npgsql;
 
 namespace Alycia.Modules.Chat.Tests;
 
+[Collection("Foreground indexing")]
 public sealed class PersistentEmbeddingTests
 {
     [PostgresFact]

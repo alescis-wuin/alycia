@@ -115,7 +115,7 @@ public sealed partial class OllamaChatModel(HttpClient http, ChatOptions options
             };
             // Auxiliary tasks have a bounded output budget; do not spend it on optional reasoning.
             // This does not change the reasoning setting of conversational/tool turns.
-            if (settings.CallPurpose is "summary" or "memory") request["think"] = false;
+            if (settings.CallPurpose is "summary" or "memory" or "annotation") request["think"] = false;
             if (settings.ResponseSchema is { } schema) request["format"] = schema;
             using var response = await http.PostAsJsonAsync("api/chat", request, timeout.Token);
             if (!response.IsSuccessStatusCode)

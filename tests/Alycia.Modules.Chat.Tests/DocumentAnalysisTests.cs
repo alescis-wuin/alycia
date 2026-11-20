@@ -80,6 +80,24 @@ public sealed class DocumentAnalysisTests
             await Assert.ThrowsAsync<ChatModelException>(() => service.AnalyzeAsync(conversation.Id,
                 conversation.Revision, null, 1024, null, default));
             Assert.Equal(2, await database.DocumentAnalyses.CountAsync());
+
+            model.Fail = false;
+            var optionsForSlice = new ChatOptions { SummaryMaxCalls = 8, Enrichment = new(true, Workers: 2) };
+            conversation.Configure(conversation.Model, conversation.SystemPrompt, "", ConversationConfiguration.Serialize(optionsForSlice));
+            await database.SaveChangesAsync();
+            var many = Enumerable.Range(0, 10).Select(i => new IncomingFile($"doc-{i:D2}.md",
+                new MemoryStream(Encoding.UTF8.GetBytes($"Document numéro {i}, contenu original distinct.")))).ToArray();
+            var batch = Guid.NewGuid();
+            await importer.ImportAsync(conversation.Id, batch, many, default);
+            var beforeSlice = model.Inputs.Count;
+            await Assert.ThrowsAsync<ChatModelException>(() => service.AnalyzeAsync(conversation.Id, conversation.Revision, batch, 1024, null, default));
+            Assert.Equal(8, model.Inputs.Count - beforeSlice);
+            var partial = Assert.Single(await service.RunsAsync(conversation.Id, default), r => r.ScopeBatchId == batch);
+            Assert.Equal("partial", partial.State);
+            var finished = await service.AnalyzeAsync(conversation.Id, conversation.Revision, batch, 1024, null, default, partial.Id);
+            Assert.Equal(10, finished.FileCount);
+            Assert.InRange(finished.SummaryCalls, 1, 8);
+            Assert.True((await service.RunsAsync(conversation.Id, default)).Single(r => r.Id == partial.Id).ReusedUnits > 0);
         }
         finally
         {
@@ -103,7 +121,7 @@ public sealed class DocumentAnalysisTests
 
     private sealed class Model : IChatModel
     {
-        public List<string> Inputs { get; } = [];
+        public System.Collections.Concurrent.ConcurrentQueue<string> Inputs { get; } = new();
         public bool Fail;
         public Task<ChatOptions> PrepareOptionsAsync(string model, ChatOptions options, CancellationToken ct)
         {
@@ -113,7 +131,7 @@ public sealed class DocumentAnalysisTests
         public Task<string> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages, CancellationToken ct)
         {
             if (Fail) throw new ChatModelException("Synthetic model failure");
-            Inputs.Add(string.Join("\n", messages.Select(m => m.Content)));
+            Inputs.Enqueue(string.Join("\n", messages.Select(m => m.Content)));
             return Task.FromResult("Résumé synthétique du projet et de ses limites.");
         }
     }

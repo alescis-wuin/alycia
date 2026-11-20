@@ -44,11 +44,49 @@ public partial class ChatWindow
             if (diagnostics?.WorkspaceRevision is int revision) body.Children.Add(Label($"Projet au moment de la réponse · révision {revision}"));
             var passages = diagnostics?.Citations?.Supplied ?? [];
             if (passages.Length == 0) body.Children.Add(Label("Aucun passage documentaire enregistré pour cette réponse."));
+            static TextBlock Entry(string text, string style)
+            {
+                var label = Label(text); label.Classes.Add(style); return label;
+            }
+            if (diagnostics?.HasSystemInstructions == true) body.Children.Add(Label("◆ Consignes protégées présentes"));
+            if (diagnostics?.HistoryMessages is > 0) body.Children.Add(Entry($"◷ Historique · {diagnostics.HistoryMessages} messages dans le contexte", "registryHistory"));
             var passage = new MarkdownView { IsMarkdown = false };
+            foreach (var memory in diagnostics?.Citations?.Historical ?? diagnostics?.Temporal?.Sources ?? [])
+            {
+                body.Children.Add(Entry($"◷ Mémoire · {(memory.Role == "user" ? "Vous" : "Alycia")} · [{memory.Reference}] · {memory.CreatedAtUtc.ToLocalTime():g}", "registryMemory"));
+                if (memory.ConversationId == chat.Id) body.Children.Add(ActionButton($"Ouvrir le message {memory.Sequence}", () => ReadHistoryAsync(passage, chat.Id, memory.Sequence, memory.Reference)));
+            }
+            foreach (var guide in diagnostics?.Guides ?? [])
+            {
+                body.Children.Add(Entry($"◇ Synthèse dérivée dans le contexte · [{guide.Reference}] · {guide.Identity} · {guide.Tokens} tokens{(guide.Partial ? " · partielle" : "")}", "registrySummary"));
+                if (guide.Sha256 is { } sha && guide.Path is { } path)
+                    body.Children.Add(ActionButton($"Ouvrir l’original · {path}", () => ReadPassageAsync(passage, chat.Id,
+                        new(guide.OriginalReference, guide.FileId, path, sha, 0, 0, guide.Start, guide.End, "guide", false))));
+            }
             foreach (var source in passages)
             {
                 var lines = source.StartLine > 0 ? $" · l. {source.StartLine}–{source.EndLine}" : "";
+                var origin = source.Origin switch { "initial" => "extrait dans le contexte", "tool" => "sortie d’outil présente", "tool_compacted" => "extrait retiré pendant la réduction des outils", _ => "vérification après réponse" };
+                var detail = source.Scope is null ? "" : $" · {source.Scope} · {source.Tokens} tokens";
+                if (source.Score is double score) detail += $" · score {score:F2}";
+                if (!string.IsNullOrWhiteSpace(source.Modified)) detail += " · modification " + source.Modified;
+                if (!string.IsNullOrWhiteSpace(source.Created)) detail += " · création " + source.Created;
+                if (source.Uploaded is { } imported) detail += $" · import {imported:O}";
+                body.Children.Add(Entry($"▤ Document · {origin}{detail}", "registryDocument"));
                 body.Children.Add(ActionButton($"[{source.Reference}] {source.Path}{lines}", () => ReadPassageAsync(passage, chat.Id, source)));
+            }
+            if (diagnostics?.Retrieval?.Classification is { } classification)
+            {
+                var classified = new StackPanel { Spacing = 6 };
+                foreach (var hit in classification.Candidates)
+                {
+                    var used = passages.Any(s => s.Origin == "initial" && (s.RankedReference ?? s.Reference) == hit.Reference);
+                    var facets = string.Join(", ", hit.Facets.Select(p => $"{p.Key} {p.Value:F2}"));
+                    var state = hit.Relevance switch { "relevant" => "pertinent", "irrelevant" => "hors sujet", _ => "incertain" };
+                    classified.Children.Add(Entry($"{hit.Reference} · {state} · {(used ? "utilisé" : "seulement classé")} · {facets}"
+                        + (hit.Relation == "contradicts" ? " · contradiction avec l’affirmation" : ""), hit.Relation == "contradicts" ? "registryWarning" : "registryDocument"));
+                }
+                body.Children.Add(new Expander { Header = $"Classement · {classification.Pairs} paires", Content = classified });
             }
             body.Children.Add(passage);
             if (message?.HasDiagnostics == true) body.Children.Add(new Expander { Header = "Détails de la réponse", Content = new MarkdownView { Text = message.DiagnosticsText, IsMarkdown = false } });
@@ -65,13 +103,23 @@ public partial class ChatWindow
             if (context.NeedsSummary) body.Children.Add(Label("Un résumé sera nécessaire avant l’envoi."));
             foreach (var source in context.Sources ?? []) body.Children.Add(Label($"{source.Path} · {source.Reason}"));
             foreach (var omission in context.Retrieval?.Omissions ?? []) body.Children.Add(Label(omission));
-            body.Children.Add(new Expander { Header = "Messages préparés", Content = new MarkdownView { IsMarkdown = false,
-                Text = string.Join("\n\n", context.Messages.Select(m => $"{m.Role}\n{m.Content}")) } });
+            body.Children.Add(new Expander
+            {
+                Header = "Messages préparés",
+                Content = new MarkdownView
+                {
+                    IsMarkdown = false,
+                    Text = string.Join("\n\n", context.Messages.Select(m => $"{m.Role}\n{m.Content}"))
+                }
+            });
             return;
         }
         var current = (await _client.SettingsAsync(chat.Id, ct)).Conversation;
         var entries = StructuredMemory.Read(current.MemoryLedgerJson).Entries;
         body.Children.Add(Label("Mémoire privée de la conversation"));
+        var history = new StackPanel { Spacing = 6 };
+        body.Children.Add(ActionButton("Synthèses des échanges", () => ShowHistoryNotesAsync(history, chat.Id)));
+        body.Children.Add(history);
         if (current.MemoryText.Length > 0) body.Children.Add(new MarkdownView { Text = current.MemoryText });
         if (entries.Length == 0 && current.MemoryText.Length == 0) body.Children.Add(Label("Aucune mémoire enregistrée."));
         var project = current.WorkspaceId is Guid id ? await _client.ProjectAsync(id, ct) : null;

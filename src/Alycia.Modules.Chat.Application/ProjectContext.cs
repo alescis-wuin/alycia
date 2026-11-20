@@ -6,7 +6,8 @@ namespace Alycia.Modules.Chat.Application;
 
 public sealed record SourceExcerpt(Guid Id, string Path, int Utf8Bytes, bool Partial, string Reason, string? Reference = null, int? StartLine = null, int? EndLine = null, string? Sha256 = null, int? Start = null, int? End = null,
     double? Score = null, string ScoreKind = "unavailable", string SourceType = "text", bool? CompleteSource = null,
-    [property: System.Text.Json.Serialization.JsonIgnore] string? Content = null);
+    [property: System.Text.Json.Serialization.JsonIgnore] string? Content = null, string? Scope = null, string? Created = null,
+    string? Modified = null, DateTimeOffset? Uploaded = null, int? Tokens = null, string? RankedReference = null);
 public sealed record ProjectExcerpts(string Text, IReadOnlyList<SourceExcerpt> Sources, int Available, EvidenceAssembly? Assembly = null);
 
 public static class ProjectContext

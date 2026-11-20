@@ -9,7 +9,7 @@ public sealed record ToolEvidence(string Path, string Sha256, int Offset, int? N
 public sealed record ProjectToolResult(string Text, bool IsError = false, ToolEvidence? Evidence = null, IReadOnlyList<ToolEvidence>? EvidenceItems = null, IReadOnlyList<HistoryEvidence>? History = null);
 public sealed record ToolObservation(int Number, string Name, string Arguments, bool Succeeded, int ResultBytes, ToolEvidence? Evidence = null, bool RepeatSuppressed = false, string? Error = null,
     IReadOnlyList<ToolEvidence>? EvidenceItems = null, double ElapsedMilliseconds = 0, IReadOnlyList<HistoryEvidence>? History = null,
-    int RetainedTokens = 0, int ContextBudgetTokens = 0);
+    int RetainedTokens = 0, int ContextBudgetTokens = 0, bool? RetainedInFinalPrompt = null);
 public interface IProjectTools
 {
     Task<bool> HasSourcesAsync(Guid conversation, CancellationToken ct);

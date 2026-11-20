@@ -6,20 +6,21 @@ using Microsoft.EntityFrameworkCore;
 namespace Alycia.Modules.Chat.Infrastructure;
 
 public sealed class BackgroundEmbeddingIndex(ChatDbContext database, PostgresEmbeddingStore store,
-    ProjectSourceReader reader, ILocalEmbeddings embeddings, ChatOptions defaults) : IIndexedEmbeddings
+    ProjectSourceReader reader, ILocalEmbeddings embeddings, ChatOptions defaults, KnowledgeBuilder? knowledge = null) : IIndexedEmbeddings
 {
     public async Task DiscoverAsync(CancellationToken ct)
     {
+        if (knowledge is not null) await knowledge.PurgeExcludedAsync(ct);
         var conversations = await database.Conversations.AsNoTracking().ToArrayAsync(ct);
         var projects = await database.WorkspaceProfiles.AsNoTracking().Where(p => !p.Archived).ToDictionaryAsync(p => p.Id, ct);
         foreach (var conversation in conversations)
         {
             var options = ConversationConfiguration.Options(conversation, defaults);
-            if (options.RetrievalMode == "hybrid" && !string.IsNullOrWhiteSpace(options.EmbeddingModel))
+            if (options.Enrichment.Enabled || options.RetrievalMode == "hybrid" && !string.IsNullOrWhiteSpace(options.EmbeddingModel))
                 await store.QueueAsync(conversation.Id, false, options, ct, sourceRevision: conversation.Revision + ":"
                     + (conversation.WorkspaceId is Guid project && projects.TryGetValue(project, out var profile) ? profile.Revision : 0));
         }
-        if (defaults.RetrievalMode == "hybrid" && !string.IsNullOrWhiteSpace(defaults.EmbeddingModel))
+        if (defaults.Enrichment.Enabled || defaults.RetrievalMode == "hybrid" && !string.IsNullOrWhiteSpace(defaults.EmbeddingModel))
         {
             var existing = (await store.JobsAsync(ct)).Where(j => j.Progress.IsProject).Select(j => j.Progress.OwnerId).ToHashSet();
             foreach (var project in projects.Values.Where(p => !existing.Contains(p.Id)))
@@ -30,6 +31,8 @@ public sealed class BackgroundEmbeddingIndex(ChatDbContext database, PostgresEmb
             if (!projects.TryGetValue(job.Progress.OwnerId, out var project)) { await store.DeleteJobAsync(job, ct); continue; }
             var options = defaults.Copy(); options.EmbeddingModel = job.Settings.Model; options.EmbeddingBatchSize = job.Settings.BatchSize;
             options.EmbeddingChunkCharacters = job.Settings.ChunkCharacters; options.EmbedHistory = job.Settings.History;
+            options.Enrichment = job.Settings.Enrichment ?? new();
+            if (job.Settings.Model.Length > 0) options.RetrievalMode = "hybrid";
             options.HierarchicalIndexEnabled = job.Settings.Hierarchical;
             options.EmbeddingDocumentPrefix = job.Settings.DocumentPrefix; options.EmbeddingQueryPrefix = job.Settings.QueryPrefix;
             await store.QueueAsync(project.Id, true, options, ct, sourceRevision: project.Revision.ToString());
@@ -46,7 +49,7 @@ public sealed class BackgroundEmbeddingIndex(ChatDbContext database, PostgresEmb
         if (conversation is not null)
         {
             var options = ConversationConfiguration.Options(conversation, defaults);
-            if (options.RetrievalMode != "hybrid" || string.IsNullOrWhiteSpace(options.EmbeddingModel))
+            if (!options.Enrichment.Enabled && (options.RetrievalMode != "hybrid" || string.IsNullOrWhiteSpace(options.EmbeddingModel)))
             { await store.DeleteJobAsync(job, ct); return; }
         }
         if (job.Progress.State is "failed" or "paused" || job.Progress.State == "completed"
@@ -54,6 +57,8 @@ public sealed class BackgroundEmbeddingIndex(ChatDbContext database, PostgresEmb
         await using var lease = await store.TryLockAsync(job, ct);
         if (lease is null) return;
         var completed = 0; var total = 0; var fingerprint = job.Fingerprint;
+        var budget = job.Settings.Enrichment is { Enabled: true } limits ? new IndexCallBudget(limits.JobCalls) : null;
+        void Reserve() { if (budget?.TryReserve() == false) throw new IndexSliceEnded("Budget de ce cycle atteint. Reprise automatique."); }
         try
         {
             var sources = project ? database.Attachments.AsNoTracking().Where(f => f.WorkspaceId == owner)
@@ -61,24 +66,68 @@ public sealed class BackgroundEmbeddingIndex(ChatDbContext database, PostgresEmb
             var files = await sources.Where(f => f.ContextMode != "excluded" && f.Text != "").OrderBy(f => f.Id).ToArrayAsync(ct);
             var messages = !project && job.Settings.History ? conversation!.MessageCount : 0;
             total = files.Length + messages;
-            var digest = await embeddings.IdentityAsync(job.Settings.Model, ct);
+            var vectorEnabled = !string.IsNullOrWhiteSpace(job.Settings.Model);
+            var pass = job.Settings.Enrichment is { Enabled: true } config && knowledge is not null
+                ? await knowledge.StartAsync(config, async (fileId, token) => await store.ActiveAsync(job, token)
+                    && (!fileId.HasValue || await knowledge.AllowedAsync(owner, project, fileId.Value, token)), ct, job.RetryAt, budget) : null;
+            var digest = ""; string? vectorWarning = null;
+            if (vectorEnabled)
+            {
+                try { digest = await embeddings.IdentityAsync(job.Settings.Model, ct); }
+                catch (Exception ex) when (pass is not null && (ex is ChatModelException or HttpRequestException or ArgumentException))
+                {
+                    vectorEnabled = false;
+                    vectorWarning = "Synthèses disponibles · embeddings indisponibles. Vérifiez le modèle.";
+                }
+            }
+
             // Probe only once per processing pass when the digest or job inputs require indexing.
             var identity = digest;
-            fingerprint = StructuredMemory.Hash($"{job.Settings.VectorSpace(digest, 0)}|{CodeStructure.Version}|{StructuredDocuments.Version}|{messages}|"
-                + string.Join('|', files.Select(f => $"{f.Id}:{f.Sha256}:{f.Name}:{f.ContextMode}")));
+            fingerprint = StructuredMemory.Hash($"{pass?.Identity}|{job.Settings.Enrichment?.Profile}|{job.Settings.VectorSpace(digest, 0)}|{CodeStructure.Version}|{StructuredDocuments.Version}|{messages}|"
+                + string.Join('|', files.Select(f => $"{f.Id}:{f.Sha256}:{f.Name}:{f.Status}:{f.SourceCreatedAt}:{f.SourceModifiedAt}:{f.ContextMode}")));
             if (job.Progress.State == "completed" && fingerprint == job.Fingerprint)
             { await store.ProgressAsync(job, "completed", total, total, job.Progress.Detail, fingerprint, ct); return; }
-            if (!await store.ProgressAsync(job, "running", 0, total, "Préparation des passages", fingerprint, ct)) return;
-            if (GenerationGate.Shared.ForegroundRequested) return;
-            var dimensions = 0;
-            if (total > 0 && job.Settings.Versioned)
+            if (!await store.ProgressAsync(job, "running", 0, total, "Préparation des passages", fingerprint, ct, 0)) return;
+            if (GenerationGate.Shared.ForegroundRequested)
             {
-                var probe = await embeddings.EmbedAsync(job.Settings.Model, [job.Settings.DocumentPrefix + "dimension"], ct);
-                dimensions = probe.Vectors.Single().Length;
+                await store.ProgressAsync(job, "queued", completed, total, "Indexation différée pendant une génération", fingerprint, ct, 0);
+                return;
+            }
+            var dimensions = 0;
+            if (vectorEnabled && total > 0 && job.Settings.Versioned)
+            {
+                if (job.VectorDigest == digest && job.VectorDimensions is > 0) dimensions = job.VectorDimensions.Value;
+                else
+                {
+                    Reserve();
+                    var probe = await embeddings.EmbedAsync(job.Settings.Model, [job.Settings.DocumentPrefix + "dimension"], ct);
+                    dimensions = probe.Vectors.Single().Length;
+                    await store.SetDimensionsAsync(job, digest, dimensions, ct);
+                }
                 identity = job.Settings.VectorSpace(digest, dimensions);
             }
             var omissions = 0;
-            foreach (var file in files)
+            if (pass is not null)
+            {
+                var readyFiles = 0;
+                string? deferred = null;
+                await Parallel.ForEachAsync(files, new ParallelOptions { MaxDegreeOfParallelism = job.Settings.Enrichment!.Workers, CancellationToken = ct },
+                    async (file, token) =>
+                    {
+                        if (Volatile.Read(ref deferred) is not null) return;
+                        try
+                        {
+                            await store.ProgressAsync(job, "running", Volatile.Read(ref readyFiles), total, "Synthèse · " + file.Name, fingerprint, token, budget?.Used);
+                            var root = await pass.FileAsync(file, reader, job.Settings.Hierarchical, token);
+                            if (!root.Complete || root.HasFallback) Interlocked.Increment(ref omissions);
+                            Interlocked.Increment(ref readyFiles);
+                        }
+                        catch (IndexSliceEnded e) { Interlocked.CompareExchange(ref deferred, e.Message, null); }
+                    });
+                if (!vectorEnabled) completed = readyFiles;
+                if (deferred is not null) throw new IndexSliceEnded(deferred);
+            }
+            foreach (var file in vectorEnabled ? files : [])
             {
                 ct.ThrowIfCancellationRequested();
                 var source = await reader.ReadAsync(file, ct);
@@ -94,18 +143,19 @@ public sealed class BackgroundEmbeddingIndex(ChatDbContext database, PostgresEmb
                 var page = await database.Messages.AsNoTracking().Where(m => m.ConversationId == owner && m.Sequence > after && m.Sequence <= messages)
                     .OrderBy(m => m.Sequence).Take(32).ToArrayAsync(ct);
                 if (page.Length == 0) break;
+                if (pass is not null) await pass.HistoryAsync(owner, page, ct);
                 foreach (var message in page)
                 {
                     var chunk = new SourceChunk(message.RequestId, "history/" + message.Sequence, StructuredMemory.Hash(message.Content),
                         message.Role, "history", 0, message.Content.Length, 1, 1 + message.Content.Count(c => c == '\n'), message.Content, [], true);
                     // Conversation ID is included even for imported/forked messages sharing a request ID.
                     chunk = chunk with { Path = owner.ToString("N") + "/" + chunk.Path };
-                    if (!await IndexAsync(EmbeddingChunks.Split(chunk, job.Settings.ChunkCharacters), owner, message.Sequence, "Message " + message.Sequence)) return;
+                    if (vectorEnabled && !await IndexAsync(EmbeddingChunks.Split(chunk, job.Settings.ChunkCharacters), owner, message.Sequence, "Message " + message.Sequence)) return;
                     completed++; after = message.Sequence;
                 }
             }
-            await store.ProgressAsync(job, "completed", completed, total, omissions == 0 ? "Indexation terminée"
-                : $"Indexation terminée · {omissions} extraction(s) documentaire(s) partielle(s)", fingerprint, ct);
+            await store.ProgressAsync(job, "completed", completed, total, vectorWarning ?? (omissions == 0 ? "Indexation terminée"
+                : $"Indexation terminée · {omissions} signalement(s) de source partielle ou de repli"), fingerprint, ct, budget?.Used);
 
             async Task<bool> IndexAsync(IEnumerable<SourceChunk> chunks, Guid? historyOwner, int sequence, string detail)
             {
@@ -117,11 +167,13 @@ public sealed class BackgroundEmbeddingIndex(ChatDbContext database, PostgresEmb
                         await store.ProgressAsync(job, "queued", completed, total, "Indexation différée pendant une génération", fingerprint, ct);
                         return false;
                     }
-                    if (!await store.ProgressAsync(job, "running", completed, total, $"{detail} · {passages} passages traités", fingerprint, ct)) return false;
+                    if (!await store.ProgressAsync(job, "running", completed, total, $"{detail} · {passages} passages traités", fingerprint, ct, budget?.Used)) return false;
                     var cached = await store.ReadAsync(identity, batch.Select(EmbeddingChunks.Key).ToArray(), ct);
                     var missing = batch.Where(c => !cached.ContainsKey(EmbeddingChunks.Key(c))).ToArray();
                     if (missing.Length > 0)
                     {
+                        if (!await store.ActiveAsync(job, ct) || (historyOwner is null && knowledge is not null && !await knowledge.AllowedAsync(owner, project, missing[0].FileId, ct))) return false;
+                        Reserve();
                         var result = await embeddings.EmbedAsync(job.Settings.Model, missing.Select(c => job.Settings.DocumentPrefix + EmbeddingChunks.Text(c)).ToArray(), ct);
                         if (result.Vectors.Length != missing.Length) throw new ChatModelException("Nombre de vecteurs inattendu.");
                         if (job.Settings.Versioned && (result.Vectors.Any(v => v.Length != dimensions)
@@ -133,6 +185,10 @@ public sealed class BackgroundEmbeddingIndex(ChatDbContext database, PostgresEmb
                 }
                 return true;
             }
+        }
+        catch (IndexSliceEnded e)
+        {
+            await store.ProgressAsync(job, "partial", completed, total, e.Message, fingerprint, ct, budget?.Used);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
         catch (Exception e) when (e is ArgumentException or ChatModelException or HttpRequestException or IOException or OperationCanceledException)

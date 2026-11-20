@@ -107,6 +107,13 @@ public static class ProjectAgent
                     warnings.Add(ToolMemoryFallback.Warning);
                     await Emit(new("", Status: ToolMemoryFallback.Warning));
                 }
+                var evicted = oldest.Count(m => m.Role == "tool");
+                for (var n = 0; n < observations.Count && evicted > 0; n++)
+                    if (observations[n].RetainedInFinalPrompt == true)
+                    {
+                        observations[n] = observations[n] with { RetainedInFinalPrompt = false };
+                        evicted--;
+                    }
                 rounds.RemoveAt(0);
                 // A compacted read may legitimately be requested again to recover omitted evidence.
                 foreach (var key in completedCalls.Where(p => ReferenceEquals(p.Value, oldest)).Select(p => p.Key).ToArray())
@@ -178,7 +185,7 @@ public static class ProjectAgent
                 var observation = new ToolObservation(observations.Count + 1, call.Function.Name,
                     call.Function.Arguments.GetRawText(), !result.IsError, Encoding.UTF8.GetByteCount(result.Text), result.Evidence, duplicate,
                     result.IsError ? ToolError(result.Text) : null, result.EvidenceItems, timer.Elapsed.TotalMilliseconds, result.History,
-                    RetainedCost(), toolBudget);
+                    RetainedCost(), toolBudget, RetainedInFinalPrompt: true);
                 observations.Add(observation);
                 await Emit(new("", Status: $"{call.Function.Name} · {(duplicate ? "répétition évitée" : result.IsError ? "refus ou erreur" : result.Evidence?.Path ?? "résultat reçu")}", Tool: observation));
             }

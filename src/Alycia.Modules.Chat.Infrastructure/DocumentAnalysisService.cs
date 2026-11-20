@@ -34,74 +34,101 @@ public sealed class DocumentAnalysisService(ChatDbContext database, IChatModel m
         var options = await model.PrepareOptionsAsync(conversation.Model, ConversationConfiguration.Options(conversation, defaults), ct);
         var measured = new MeteredChatModel(model);
         var eligible = files.Where(f => f.Text.Length > 0 && f.ContextMode != "excluded").ToArray();
-        if (eligible.Length + 2 > options.SummaryMaxCalls)
-            throw new ArgumentException("Le nombre de fichiers dépasse le budget d’appels de résumé. Choisissez un lot plus petit ou augmentez ce budget dans Réglages.");
         var inventory = ProjectInventory.Describe(files);
         var tree = ProjectInventory.Tree(inventory);
         var fingerprint = ProjectInventory.Fingerprint(inventory);
         var checkpoints = new AnalysisCheckpoints(reader.Storage);
         var identity = options.ModelIdentity ?? conversation.Model + ":identity-unavailable";
         var run = await checkpoints.StartAsync(id, batch, fingerprint, identity, budget, resumeRunId, ct);
+        var savedNodes = 0;
         try
         {
-            var reducer = new RecursiveSummarizer(measured, conversation.Model, options, progress);
+            var shared = new IndexCallBudget(options.SummaryMaxCalls);
+            using var serial = new SemaphoreSlim(1);
+            async Task Report(string status)
+            {
+                if (progress is null) return;
+                await serial.WaitAsync(ct);
+                try { await progress(status); } finally { serial.Release(); }
+            }
+            RecursiveSummarizer Reducer() => new(measured, conversation.Model, options, Report, shared,
+                async (key, token) => options.ModelIdentity is null ? null : (await checkpoints.ReadUnitAsync(id, key, token))?.Summary,
+                async (key, text, token) =>
+                {
+                    if (options.ModelIdentity is null) return;
+                    await checkpoints.SaveUnitAsync(id, new(key, text, true, "analysis-node", 0, 0), token);
+                    Interlocked.Increment(ref savedNodes);
+                });
+            var reducer = Reducer();
             var leaves = new List<SummarySource>();
             if (progress is not null) await progress("Lecture de tree.txt par fragments · " + files.Length + " fichiers inventoriés");
             var overviewKey = AnalysisCheckpoints.UnitKey(Guid.Empty, fingerprint, "tree.txt", "inventory", identity, budget, options);
             var overviewCache = options.ModelIdentity is null ? null : await checkpoints.ReadUnitAsync(id, overviewKey, ct);
-            var overview = overviewCache?.Summary ?? await reducer.ReduceAsync([new("tree.txt intégral", tree)], Math.Min(2048, budget), ct);
+            var authorizedTree = ProjectInventory.Tree(inventory.Where(f => f.ContextMode != "excluded").ToArray());
+            var overview = overviewCache?.Summary ?? await reducer.ReduceAsync([new("tree.txt intégral (périmètre autorisé)", authorizedTree)], Math.Min(2048, budget), ct);
             if (overviewCache is null) await checkpoints.SaveUnitAsync(id, new(overviewKey, overview, true, "inventory", tree.Length, System.Text.Encoding.UTF8.GetByteCount(tree)), ct);
             leaves.Add(new("Inventaire tree.txt", overview));
-            var fileSummaries = new List<object>();
+            var fileSummaries = new object[files.Length];
+            var summaries = new SummarySource?[files.Length];
             var complete = 0; var partial = 0; var codeSummarized = 0;
-            var completeness = new Dictionary<Guid, bool>();
-            foreach (var file in files)
+            var completeness = new System.Collections.Concurrent.ConcurrentDictionary<Guid, bool>();
+            var metadataById = inventory.ToDictionary(i => i.Id);
+            await Parallel.ForEachAsync(Enumerable.Range(0, files.Length), new ParallelOptions
             {
+                MaxDegreeOfParallelism = options.Enrichment.Enabled ? options.Enrichment.Workers : 1,
+                CancellationToken = ct
+            }, async (index, token) =>
+            {
+                var file = files[index];
                 ct.ThrowIfCancellationRequested();
-                var metadata = inventory.Single(item => item.Id == file.Id);
+                var metadata = metadataById[file.Id];
                 if (file.Text.Length == 0 || file.ContextMode == "excluded")
                 {
-                    fileSummaries.Add(new
+                    fileSummaries[index] = new
                     {
                         file.Id,
                         path = file.Name,
                         summarized = false,
                         reason = file.Status,
                         excluded = file.ContextMode == "excluded"
-                    });
-                    continue;
+                    };
+                    return;
                 }
-                if (progress is not null) await progress("Résumé du fichier : " + file.Name);
-                var source = await reader.ReadAsync(file, ct);
+                await Report("Résumé du fichier · " + file.Name);
+                var source = await reader.ReadAsync(file, token);
                 var isCode = ProjectContext.IsCode(file.Name);
                 var key = AnalysisCheckpoints.UnitKey(file.Id, file.Sha256, file.Name, file.Status, identity, budget, options);
                 // An unknown digest cannot establish cache compatibility across model calls.
-                var cached = options.ModelIdentity is null ? null : await checkpoints.ReadUnitAsync(id, key, ct);
+                var cached = options.ModelIdentity is null ? null : await checkpoints.ReadUnitAsync(id, key, token);
                 string summary;
                 if (cached is not null)
                 {
                     summary = cached.Summary;
-                    run = run with { ReusedUnits = run.ReusedUnits + 1 };
-                    if (progress is not null) await progress("Réutilisation vérifiée : " + file.Name);
+                    await Report("Réutilisation vérifiée · " + file.Name);
                 }
                 else
                 {
-                    summary = await reducer.ReduceAsync([new(file.Name,
+                    summary = await Reducer().ReduceAsync([new(file.Name,
                 ProjectInventory.Metadata(metadata) + (isCode
                     ? "\nCode : relever symboles, responsabilités, dépendances, flux et tests observés. Distinguer faits et hypothèses."
                     : "\nDocument : relever les faits utiles au projet.")
-                + "\nOrigine : " + source.Origin + "\nContenu :\n" + source.Text)], Math.Min(1024, budget), ct);
+                + "\nOrigine : " + source.Origin + "\nContenu :\n" + source.Text)], Math.Min(1024, budget), token);
 
                     await checkpoints.SaveUnitAsync(id, new(key, summary, source.Complete, source.Origin,
-                        source.Text.Length, System.Text.Encoding.UTF8.GetByteCount(source.Text)), ct);
+                        source.Text.Length, System.Text.Encoding.UTF8.GetByteCount(source.Text)), token);
                 }
-                run = run with { CompletedUnits = run.CompletedUnits + 1 };
-                await checkpoints.SaveRunAsync(run, ct);
-                if (source.Complete) complete++; else partial++;
+                await serial.WaitAsync(token);
+                try
+                {
+                    run = run with { CompletedUnits = run.CompletedUnits + 1, ReusedUnits = run.ReusedUnits + (cached is null ? 0 : 1) };
+                    await checkpoints.SaveRunAsync(run, token);
+                }
+                finally { serial.Release(); }
+                if (source.Complete) Interlocked.Increment(ref complete); else Interlocked.Increment(ref partial);
                 completeness[file.Id] = source.Complete;
-                if (isCode) codeSummarized++;
-                leaves.Add(new(file.Name, summary));
-                fileSummaries.Add(new
+                if (isCode) Interlocked.Increment(ref codeSummarized);
+                summaries[index] = new(file.Name, summary);
+                fileSummaries[index] = new
                 {
                     file.Id,
                     path = file.Name,
@@ -113,8 +140,9 @@ public sealed class DocumentAnalysisService(ChatDbContext database, IChatModel m
                     code = isCode,
                     charactersRead = source.Text.Length,
                     utf8BytesRead = System.Text.Encoding.UTF8.GetByteCount(source.Text)
-                });
-            }
+                };
+            });
+            leaves.AddRange(summaries.OfType<SummarySource>());
             if (progress is not null) await progress("Réduction hiérarchique des résumés de fichiers…");
             var coverageText = $"Couverture : {complete}/{eligible.Length} sources textuelles lues intégralement, {partial} extraction(s) partielle(s), "
                 + $"{codeSummarized} fichier(s) de code analysé(s), {files.Count(f => f.ContextMode == "excluded")} fichier(s) exclu(s).\n\n";
@@ -129,7 +157,7 @@ public sealed class DocumentAnalysisService(ChatDbContext database, IChatModel m
                 TreeText = tree,
                 SummaryText = coverageText + final,
                 FileCount = files.Length,
-                SummaryCalls = reducer.Calls,
+                SummaryCalls = shared.Used,
                 UseInContext = true
             };
             analysis.ManifestJson = JsonSerializer.Serialize(new
@@ -185,7 +213,7 @@ public sealed class DocumentAnalysisService(ChatDbContext database, IChatModel m
         }
         catch (Exception error)
         {
-            var state = error is OperationCanceledException ? "cancelled" : run.CompletedUnits > 0 ? "partial" : "failed";
+            var state = error is OperationCanceledException ? "cancelled" : (run.CompletedUnits > 0 || savedNodes > 0) ? "partial" : "failed";
             try { await checkpoints.SaveRunAsync(run with { State = state, FailedUnits = error is OperationCanceledException ? 0 : 1 }, CancellationToken.None); }
             catch (IOException) { /* Validated unit files remain independently resumable. */ }
             throw;

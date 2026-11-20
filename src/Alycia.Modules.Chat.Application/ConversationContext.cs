@@ -57,6 +57,8 @@ public static class ConversationContext
         var files = await repository.ContextFilesAsync(conversation.Id, Math.Max(1, through + 1), ct);
         var available = maximum - fixedCost;
         var memoryBudget = available - (files.Count == 0 ? 0 : EvidenceComposer.DocumentReserve(available, options, 3));
+        var historyBudget = options.HistoryContextTokens > 0 ? Math.Min(memoryBudget, options.HistoryContextTokens) : memoryBudget;
+        if (options.MemoryContextTokens > 0) memoryBudget = Math.Min(memoryBudget, options.MemoryContextTokens);
         var ledger = StructuredMemory.Read(conversation.MemoryLedgerJson);
         var memoryIdentity = options.ModelIdentity ?? conversation.Model + ":identity-unavailable";
         var invalidated = ledger.Through > 0 && (ledger.Through > through || ledger.ModelIdentity != memoryIdentity || ledger.PromptVersion != StructuredMemory.PromptVersion);
@@ -74,7 +76,7 @@ public static class ConversationContext
                 foreach (var message in page)
                 {
                     cost += TokenBudget.Count(message.Content, options);
-                    if (cost > memoryBudget) { pressure = true; break; }
+                    if (cost > historyBudget) { pressure = true; break; }
                     pending.Add(message);
                 }
                 cursor = end;

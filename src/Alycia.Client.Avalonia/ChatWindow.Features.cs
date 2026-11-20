@@ -122,6 +122,7 @@ public partial class ChatWindow
         var timeout = Input(options.TimeoutSeconds.ToString(), 3);
         var calls = Input(options.SummaryMaxCalls.ToString(), 4);
         var toolCalls = Input(options.ToolMaxCalls.ToString(), 4);
+        var knowledge = new KnowledgeFields(options.Enrichment);
         var budgets = new (string Label, TextBox Input, Action<ChatOptions, int> Set)[]
         {
             ("Résultats d’outils conservés · tokens (0 : adaptatif)", Input(options.ToolContextTokens.ToString(), 6), (o, v) => o.ToolContextTokens = v),
@@ -132,6 +133,14 @@ public partial class ChatWindow
             ("Marge de sécurité · tokens", Input(options.SafetyTokens.ToString(), 6), (o, v) => o.SafetyTokens = v),
             ("Candidats à la recherche · caractères (0 : sans plafond global)", Input(options.IndexMaxCharacters.ToString(), 10), (o, v) => o.IndexMaxCharacters = v),
             ("Passages par lot d’embeddings · 1 à 64", Input(options.EmbeddingBatchSize.ToString(), 2), (o, v) => o.EmbeddingBatchSize = v),
+            ("Paires à classifier", Input(options.ClassificationBudget.ToString(), 4), (o, v) => o.ClassificationBudget = v),
+            ("Candidats incertains admis", Input(options.NeutralCandidates.ToString(), 2), (o, v) => o.NeutralCandidates = v),
+            ("Seuil pertinent · %", Input(((int)Math.Round(100 * options.RelevantThreshold)).ToString(), 3), (o, v) => o.RelevantThreshold = v / 100.0),
+            ("Seuil incertain · %", Input(((int)Math.Round(100 * options.NeutralThreshold)).ToString(), 3), (o, v) => o.NeutralThreshold = v / 100.0),
+            ("Synthèses dans la réponse · tokens (0 : désactivées)", Input(options.QuerySummaryTokens.ToString(), 4), (o, v) => o.QuerySummaryTokens = v),
+            ("Appels de synthèse à la demande (0 : cache seul)", Input(options.QuerySummaryMaxCalls.ToString(), 1), (o, v) => o.QuerySummaryMaxCalls = v),
+            ("Mémoire · tokens (0 : adaptatif)", Input(options.MemoryContextTokens.ToString(), 6), (o, v) => o.MemoryContextTokens = v),
+            ("Historique hors échanges protégés · tokens (0 : adaptatif)", Input(options.HistoryContextTokens.ToString(), 6), (o, v) => o.HistoryContextTokens = v),
             ("Sous-requêtes par demande · 1 à 8", Input(options.MaxSearchQueries.ToString(), 1), (o, v) => o.MaxSearchQueries = v),
             ("Candidats ONNX · 1 à 64", Input(options.RerankCandidateLimit.ToString(), 2), (o, v) => o.RerankCandidateLimit = v),
             ("Délai du reclassement · millisecondes", Input(options.RerankTimeoutMs.ToString(), 5), (o, v) => o.RerankTimeoutMs = v),
@@ -189,6 +198,9 @@ public partial class ChatWindow
         advanced.Children.Add(Label("Préfixe d’embedding des requêtes")); advanced.Children.Add(queryPrefix);
         var features = new (CheckBox Control, Action<ChatOptions, bool> Set)[]
         {
+            (new() { Content = "Préciser les questions ambiguës avec le modèle d’annotation", IsChecked = options.QueryBriefModelEnabled }, (o, v) => o.QueryBriefModelEnabled = v),
+            (new() { Content = "Rechercher par facettes lexicales et sémantiques", IsChecked = options.FacetPlanningEnabled }, (o, v) => o.FacetPlanningEnabled = v),
+            (new() { Content = "Classifier les passages avant reclassement", IsChecked = options.ClassificationEnabled }, (o, v) => o.ClassificationEnabled = v),
             (new() { Content = "Reclasser les passages avec le modèle ONNX local", IsChecked = options.RerankEnabled }, (o, v) => o.RerankEnabled = v),
             (new() { Content = "Résoudre les références et décomposer les comparaisons", IsChecked = options.QueryRewriteEnabled }, (o, v) => o.QueryRewriteEnabled = v),
             (new() { Content = "Diversifier les preuves sous le budget de contexte", IsChecked = options.EvidenceSelectionEnabled }, (o, v) => o.EvidenceSelectionEnabled = v),
@@ -201,6 +213,7 @@ public partial class ChatWindow
         };
         foreach (var feature in features) advanced.Children.Add(feature.Control);
         advanced.Children.Add(embedHistory);
+        advanced.Children.Add(knowledge.Panel);
         advanced.Children.Add(Label("L’indexation hybride est indépendante du budget de conversation. Les résultats retirés du contexte libèrent leur budget ; les originaux restent conservés."));
         panel.Children.Add(new Expander { Header = "Avancé", Content = advanced });
         ChatOptions? edited = null;
@@ -244,6 +257,7 @@ public partial class ChatWindow
             edited.EmbedHistory = embedHistory.IsChecked == true;
             try
             {
+                edited.Enrichment = knowledge.Read();
                 foreach (var feature in features) feature.Set(edited, feature.Control.IsChecked == true);
                 edited.Validate();
                 if (edited.UseProjectTools) ProjectAgent.ContextOptions(edited);

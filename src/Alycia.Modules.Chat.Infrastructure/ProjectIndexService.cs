@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Alycia.Modules.Chat.Infrastructure;
 
-public sealed class ProjectIndexService(ChatDbContext database, FileStorage storage, ProjectSourceReader reader, ChatOptions? defaults = null) : IProjectIndex
+public sealed class ProjectIndexService(ChatDbContext database, FileStorage storage, ProjectSourceReader reader, ChatOptions? defaults = null, KnowledgeStore? knowledge = null) : IProjectIndex
 {
     private sealed record Cached(int Version, string Sha256, string Path, string Status, SourceChunk[] Chunks, int ExtractorVersion = 0);
     public Task<ProjectIndexSnapshot> BuildAsync(Guid conversation, CancellationToken ct) => BuildScopedAsync(conversation, null, ct);
@@ -22,7 +22,7 @@ public sealed class ProjectIndexService(ChatDbContext database, FileStorage stor
         }
         var files = await sources.OrderBy(f => f.Name).ThenBy(f => f.Id).ToArrayAsync(ct);
         files = files.OrderByDescending(f => f.ContextMode == "pinned").DistinctBy(f => (f.Name, f.Sha256)).ToArray();
-        var chunks = new List<SourceChunk>(); var omissions = new List<string>(); var characters = 0; var indexed = 0; var reused = 0;
+        var chunks = new List<SourceChunk>(); var omissions = new List<string>(); long characters = 0; var indexed = 0; var reused = 0;
         var directory = Path.Combine(storage.DirectoryFor(conversation), settings.HierarchicalIndexEnabled ? "index-hierarchy-v1" : "index-v1");
         Directory.CreateDirectory(directory);
         foreach (var file in files)
@@ -58,10 +58,31 @@ public sealed class ProjectIndexService(ChatDbContext database, FileStorage stor
                     }
                     finally { if (File.Exists(temp)) File.Delete(temp); }
                 }
-                var size = parts.Sum(p => p.Text.Length);
+                var size = parts.Sum(p => (long)p.Text.Length);
                 if (maximum > 0 && (long)characters + size > maximum)
                 { omissions.Add(file.Name + " : budget d’index atteint ; original accessible par outils"); continue; }
                 if (parts.Any(c => !c.CompleteSource)) omissions.Add(file.Name + " : extraction documentaire partielle");
+                if (settings.Enrichment.Enabled && knowledge is not null)
+                {
+                    var root = await knowledge.DocumentAsync(file.Id, file.Sha256, settings.Enrichment.Profile, ct, settings.HierarchicalIndexEnabled);
+                    if (root is null) omissions.Add(file.Name + " · synthèse en attente, passages originaux disponibles");
+                    else
+                    {
+                        var notes = await knowledge.PassagesAsync(file.Id, root, ct);
+                        parts = parts.Select(c =>
+                        {
+                            var reference = ProjectRetrieval.Reference(c);
+                            if (!notes.TryGetValue(reference, out var leaf)) return c;
+                            var terms = IndexedKnowledge.Terms(leaf.Labels) + " " + root.Labels.Title + " " + IndexedKnowledge.Terms(root.Labels)
+                                + " " + root.Labels.Summary;
+                            return c with
+                            {
+                                Guide = new(reference, leaf.Labels.Summary, terms, leaf.Identity, leaf.State,
+                                file.SourceCreatedAt, file.SourceModifiedAt, file.CreatedAtUtc, leaf.IndexedAt, leaf.Key, leaf.Level, !leaf.Complete)
+                            };
+                        }).ToArray();
+                    }
+                }
                 characters += size; chunks.AddRange(parts); indexed++; if (valid) reused++;
             }
             catch (Exception e) when (e is ArgumentException or IOException or UnauthorizedAccessException)

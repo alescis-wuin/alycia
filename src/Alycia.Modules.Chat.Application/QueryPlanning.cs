@@ -1,11 +1,12 @@
 using System.Text.RegularExpressions;
+using System.Text.Json;
 using Alycia.Modules.Chat.Domain;
 
 namespace Alycia.Modules.Chat.Application;
 
 public sealed record SearchTerm(string Text, string Kind);
 public sealed record ResolvedReferent(string Text, int Sequence, string Reference);
-public sealed record SearchQueryPlan(string Original, SearchTerm[] Queries, ResolvedReferent[] Resolved, bool Ambiguous);
+public sealed record SearchQueryPlan(string Original, SearchTerm[] Queries, ResolvedReferent[] Resolved, bool Ambiguous, QueryBrief? Brief = null);
 
 public static class QueryPlanning
 {
@@ -13,7 +14,48 @@ public static class QueryPlanning
         RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(150));
     private static readonly Regex Anaphora = new(@"\b(cette version|ce fichier|cette méthode|celui-ci|celle-ci|et avant|et ensuite|this (?:version|file|method)|what about it|and before)\b",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(150));
-    public static SearchQueryPlan Build(string question, IReadOnlyList<ChatMessage> history, IReadOnlyList<Attachment> sources, int maximum)
+    public static async Task<QueryBrief> RefineAsync(QueryBrief brief, EnrichmentOptions config, MeteredChatModel model, CancellationToken ct)
+    {
+        var schema = JsonSerializer.SerializeToElement(new
+        {
+            type = "object",
+            required = new[] { "intent" },
+            additionalProperties = false,
+            properties = new { intent = new { type = "string", maxLength = 240 } }
+        });
+        const string instruction = "Sélectionne un extrait exact et continu de la question exprimant son intention. Ne déduis aucun référent manquant. JSON uniquement.";
+        try
+        {
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeout.CancelAfter(TimeSpan.FromSeconds(config.TimeoutSeconds));
+            var local = await model.PrepareOptionsAsync(config.Model, new ChatOptions
+            {
+                CallPurpose = "query-brief",
+                ContextTokens = config.InputTokens,
+                MaxOutputTokens = Math.Min(256, config.OutputTokens),
+                SafetyTokens = 128,
+                TimeoutSeconds = config.TimeoutSeconds,
+                GenerateUntilStop = false,
+                UseProjectTools = false,
+                Temperature = 0,
+                Seed = 0,
+                ResponseSchema = schema
+            }, timeout.Token);
+            if (local.ModelIdentity is null || TokenBudget.Count(instruction + brief.Original, local) + 64 > local.ContextTokens - local.MaxOutputTokens - local.SafetyTokens) return brief;
+            var output = await model.GenerateAsync(config.Model, [new("system", instruction), new("user", brief.Original)], local, timeout.Token);
+            if (output.Length > 2048) return brief;
+            using var document = JsonDocument.Parse(output);
+            if (document.RootElement.ValueKind != JsonValueKind.Object || document.RootElement.EnumerateObject().Count() != 1
+                || !document.RootElement.TryGetProperty("intent", out var intent) || intent.ValueKind != JsonValueKind.String) return brief;
+            var summary = intent.GetString()!.Trim();
+            if (summary.Length is < 2 or > 240 || !brief.Original.Contains(summary, StringComparison.Ordinal)) return brief;
+            return brief with { Summary = string.Join(" ", new[] { summary }.Concat(brief.Constraints ?? []).Concat(brief.Literals).Distinct()), Method = local.ModelIdentity };
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+        catch (Exception error) when (error is ChatModelException or HttpRequestException or OperationCanceledException or JsonException) { return brief; }
+    }
+
+    public static SearchQueryPlan Build(string question, IReadOnlyList<ChatMessage> history, IReadOnlyList<Attachment> sources, int maximum, bool facets = false)
     {
         var known = sources.Where(f => f.ContextMode != "excluded").Select(f => f.Name).ToArray();
         string[] Mentions(string text) => Literals.Matches(text).Select(m => m.Groups.Cast<Group>().Skip(1)
@@ -45,6 +87,13 @@ public static class QueryPlanning
         {
             var pieces = Regex.Split(question, @"\s+(?:et|and|avec|versus|vs\.?)\s+", RegexOptions.IgnoreCase);
             if (pieces.Length > 1) queries.AddRange(pieces.Select(s => new SearchTerm(s.Trim(), "semantic")));
+        }
+        if (facets)
+        {
+            var brief = PassageClassification.Brief(question, exact, refs.Select(r => r.Text), Math.Clamp(maximum, 1, 4));
+            var expanded = queries.Take(1).Concat(brief.Facets.SelectMany(f => new[] { new SearchTerm(f.Lexical, "lexical"), new SearchTerm(f.Semantic, "semantic") }))
+                .Concat(queries.Skip(1)).Where(t => t.Text.Length > 0).DistinctBy(t => (t.Kind, t.Text)).ToArray();
+            return new(question, expanded, refs.ToArray(), ambiguous, brief);
         }
         return new(question, queries.DistinctBy(q => q.Text, StringComparer.OrdinalIgnoreCase).Take(maximum).ToArray(), refs.ToArray(), ambiguous);
     }
