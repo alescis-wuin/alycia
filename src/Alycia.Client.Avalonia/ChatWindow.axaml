@@ -157,7 +157,9 @@
               Background="{DynamicResource BorealSurface}" BorderBrush="{DynamicResource BorealOutline}" BorderThickness="1" Padding="12" Margin="8" CornerRadius="12">
         <ScrollViewer HorizontalScrollBarVisibility="Disabled"><WrapPanel x:Name="ConversationTools" MaxWidth="300">
           <TextBox x:Name="TitleInput" Width="196" MaxLength="100" AutomationProperties.Name="Titre de la conversation" /><Button x:Name="RenameButton" Content="Renommer" />
-          <Button x:Name="SettingsButton" Content="Réglages de conversation" /><Button x:Name="FocusButton" Content="Mode concentration" ToolTip.Tip="Ctrl+Maj+F" />
+          <Button x:Name="SettingsButton" Content="Réglages de conversation" />
+          <Button x:Name="ExportConfigurationButton" Content="Exporter les réglages" />
+          <Button x:Name="ImportConfigurationButton" Content="Importer les réglages" /><Button x:Name="FocusButton" Content="Mode concentration" ToolTip.Tip="Ctrl+Maj+F" />
           <Button x:Name="MoveButton" Content="Changer de projet" />
           <Button x:Name="AnalysisButton" Content="Analyses" /><Button x:Name="ProjectToolsButton" Content="Outils et diagnostics" />
           <Button x:Name="ForkButton" Content="Dupliquer" /><Button x:Name="RegenerateButton" Content="Régénérer une copie" />

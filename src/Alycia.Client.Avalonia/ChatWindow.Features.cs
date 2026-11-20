@@ -22,6 +22,8 @@ public partial class ChatWindow
     {
         C<Button>("AnalysisButton").Click += async (_, _) => await RunAsync(AnalysesAsync);
         C<Button>("ProjectToolsButton").Click += async (_, _) => await RunAsync(ProjectToolsAsync);
+        C<Button>("ExportConfigurationButton").Click += async (_, _) => await RunAsync(ExportConfigurationAsync);
+        C<Button>("ImportConfigurationButton").Click += async (_, _) => await RunAsync(ImportConfigurationAsync);
         C<Button>("SettingsButton").Click += async (_, _) => await RunAsync(SettingsAsync);
         C<Button>("ActiveModelButton").Click += async (_, _) => await RunAsync(SettingsAsync);
         C<Button>("ContextButton").Click += async (_, _) => await RunAsync(() => OpenInspectorAsync("context"));
