@@ -16,8 +16,8 @@ public static class FileContext
 
         var available = options.ContextTokens - options.MaxOutputTokens - options.SafetyTokens
             - TokenBudget.Count(question, options) - (system.Length == 0 ? 0 : TokenBudget.Count(system, options));
-        if (available < 256) return original;
-        var reserve = options.DocumentContextTokens == 0 ? available / 2 : Math.Min(available, options.DocumentContextTokens);
+        if (available < 256 && !options.EvidenceSelectionEnabled) return original;
+        var reserve = EvidenceComposer.DocumentReserve(available, options, 2);
         // Use the original configured context but reserve part of its input budget for files.
         var reduced = options.Copy();
         reduced.SafetyTokens += reserve;
@@ -25,12 +25,12 @@ public static class FileContext
         var earliest = window.HistoryMessagesIncluded == 0 ? currentSequence
             : history[history.Count - window.HistoryMessagesIncluded].Sequence;
         var excerpts = ProjectContext.Select(files.Where(f => ProjectContext.Eligible(f, earliest, currentSequence)), question, reserve, options);
-        if (excerpts.Sources.Count == 0) return original with { FilesAvailable = excerpts.Available };
+        if (excerpts.Sources.Count == 0) return original with { FilesAvailable = excerpts.Available, Assembly = excerpts.Assembly };
         var messages = window.Messages.ToList();
         messages[^1] = messages[^1] with { Content = question + excerpts.Text };
         return new(messages, window.HistoryMessagesIncluded,
             messages.Sum(m => TokenBudget.Count(m.Content, options)), excerpts.Sources.Count,
-            Sources: excerpts.Sources, FilesAvailable: excerpts.Available, Retrieval: options.RetrievalReport);
+            Sources: excerpts.Sources, FilesAvailable: excerpts.Available, Retrieval: options.RetrievalReport, Assembly: excerpts.Assembly);
     }
 
     public static string Utf8Prefix(string text, int bytes)

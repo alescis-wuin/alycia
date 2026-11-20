@@ -95,6 +95,18 @@ public sealed class PersistentEmbeddingTests
             encoder.Identity = "local-embed:new-digest";
             Assert.Equal(0, (await resumed.SearchAsync(chat.Id, "Passage", options, snapshot.Chunks, default)).Hits);
             encoder.Identity = "local-embed:digest";
+            var enriched = options.Copy(); enriched.HierarchicalIndexEnabled = true;
+            enriched.EmbeddingDocumentPrefix = "passage: "; enriched.EmbeddingQueryPrefix = "query: ";
+            chat.Configure(chat.Model, chat.SystemPrompt, chat.ContextNotes, ConversationConfiguration.Serialize(enriched));
+            await database.SaveChangesAsync();
+            var hierarchical = await index.BuildAsync(chat.Id, default);
+            Assert.Equal(0, (await resumed.SearchAsync(chat.Id, "Passage", enriched, hierarchical.Chunks, default)).Hits);
+            await store.QueueAsync(chat.Id, false, enriched, default, retry: true);
+            await resumed.ProcessAsync(Assert.Single(await store.JobsAsync(default)), default);
+            Assert.Equal(hierarchical.Chunks.Count, (await resumed.SearchAsync(chat.Id, "Passage", enriched, hierarchical.Chunks, default)).Hits);
+            Assert.Equal(snapshot.Chunks.Count, (await resumed.SearchAsync(chat.Id, "Passage", options, snapshot.Chunks, default)).Hits);
+            Assert.Contains(encoder.Inputs, value => value.StartsWith("passage: "));
+            Assert.Contains(encoder.Inputs, value => value.StartsWith("query: "));
             var attachment = await database.Attachments.SingleAsync(f => f.Id == file.Id);
             attachment.ContextMode = "excluded"; await database.SaveChangesAsync();
             Assert.Empty((await index.BuildAsync(chat.Id, default)).Chunks);
@@ -135,6 +147,7 @@ public sealed class PersistentEmbeddingTests
     private sealed class Encoder : ILocalEmbeddings
     {
         public string Identity = "local-embed:digest";
+        public List<string> Inputs { get; } = [];
         public int FailAt; public int Calls; public int Texts;
         public int CancelAt; public Action? Cancel;
         public Task<string> IdentityAsync(string model, CancellationToken ct) => Task.FromResult(Identity);
@@ -142,6 +155,7 @@ public sealed class PersistentEmbeddingTests
         {
             if (++Calls == FailAt) throw new ChatModelException("Interruption simulée");
             if (Calls == CancelAt) { Cancel!(); ct.ThrowIfCancellationRequested(); }
+            Inputs.AddRange(input);
             Texts += input.Count;
             return Task.FromResult(new EmbeddingBatch(input.Select(_ => new float[] { 1, 0, 0 }).ToArray(), new(10, 0, 1, null, "embedding")));
         }

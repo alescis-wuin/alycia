@@ -28,7 +28,7 @@ public static class TokenBudget
         ?? "UTF-8 conservateur — tokenizer non disponible pour ce modèle";
 }
 
-public sealed record ModelCallUsage(string Purpose, int EstimatedInputTokens, double ElapsedMilliseconds, GenerationStats? Stats, double? FirstContentMilliseconds = null);
+public sealed record ModelCallUsage(string Purpose, int EstimatedInputTokens, double ElapsedMilliseconds, GenerationStats? Stats, double? FirstContentMilliseconds = null, int? EffectiveContextTokens = null, long? ApiWorkingSetBytes = null, long? ModelVramBytes = null);
 public sealed record GenerationUsage(IReadOnlyList<ModelCallUsage> Calls, string? ModelIdentity, string Counter,
     long? InputTokens, long? OutputTokens, double ElapsedMilliseconds, bool Complete);
 
@@ -46,33 +46,35 @@ public sealed class MeteredChatModel(IChatModel inner) : IChatModel
     public Task<IReadOnlyList<string>> ListModelsAsync(CancellationToken ct) => inner.ListModelsAsync(ct);
     public Task<string> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages, CancellationToken ct) => GenerateAsync(model, messages, new(), ct);
     public async Task<string> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages, ChatOptions options, CancellationToken ct) =>
-        (await Measure(() => inner.GenerateReplyAsync(model, messages, options, ct), messages, options)).Content;
+        (await Measure(effective => inner.GenerateReplyAsync(model, messages, effective, ct), model, messages, options, ct)).Content;
     public Task<GenerationReply> StreamAsync(string model, IReadOnlyList<PromptMessage> messages, ChatOptions options, Func<ModelDelta, Task> delta, CancellationToken ct) =>
-        MeasureStreaming(observer => inner.StreamAsync(model, messages, options, observer, ct), delta, messages, options);
+        MeasureStreaming((observer, effective) => inner.StreamAsync(model, messages, effective, observer, ct), delta, model, messages, options, ct);
     public Task<GenerationReply> StreamWithToolsAsync(string model, IReadOnlyList<PromptMessage> messages, ChatOptions options, Func<ModelDelta, Task> delta, CancellationToken ct) =>
-        MeasureStreaming(observer => inner.StreamWithToolsAsync(model, messages, options, observer, ct), delta, messages, options, "tools");
-    private Task<GenerationReply> MeasureStreaming(Func<Func<ModelDelta, Task>, Task<GenerationReply>> call,
-        Func<ModelDelta, Task> delta, IReadOnlyList<PromptMessage> messages, ChatOptions options, string? purpose = null)
+        MeasureStreaming((observer, effective) => inner.StreamWithToolsAsync(model, messages, effective, observer, ct), delta, model, messages, options, ct, "tools");
+    private Task<GenerationReply> MeasureStreaming(Func<Func<ModelDelta, Task>, ChatOptions, Task<GenerationReply>> call,
+        Func<ModelDelta, Task> delta, string model, IReadOnlyList<PromptMessage> messages, ChatOptions options, CancellationToken ct, string? purpose = null)
     {
         var timer = System.Diagnostics.Stopwatch.StartNew(); double? first = null;
-        return Measure(() => call(value =>
+        return Measure(effective => call(value =>
         {
             if (value.Content.Length > 0) first ??= timer.Elapsed.TotalMilliseconds;
             return delta(value);
-        }), messages, options, purpose, () => first);
+        }, effective), model, messages, options, ct, purpose, () => first);
     }
-    private async Task<GenerationReply> Measure(Func<Task<GenerationReply>> call, IReadOnlyList<PromptMessage> messages, ChatOptions options, string? purpose = null, Func<double?>? firstContent = null)
+    private async Task<GenerationReply> Measure(Func<ChatOptions, Task<GenerationReply>> call, string model, IReadOnlyList<PromptMessage> messages, ChatOptions options, CancellationToken ct, string? purpose = null, Func<double?>? firstContent = null)
     {
         var timer = System.Diagnostics.Stopwatch.StartNew();
         GenerationReply? reply = null;
         GenerationStats? failureStats = null;
-        try { reply = await call(); return reply; }
+        var effective = InferenceWindow.ForCall(options, messages, purpose == "tools");
+        try { reply = await call(effective); return reply; }
         catch (ChatModelException exception) { failureStats = exception.Stats; throw; }
         finally
         {
-            _calls.Add(new(purpose ?? options.CallPurpose, messages.Sum(m => TokenBudget.Count(m.Content, options) + Encoding.UTF8.GetByteCount(m.Thinking ?? "")
-            + (m.ToolCalls is null ? 0 : Encoding.UTF8.GetByteCount(System.Text.Json.JsonSerializer.Serialize(m.ToolCalls, ProjectToolCatalog.Json))))
-            + (purpose == "tools" ? TokenBudget.Count(System.Text.Json.JsonSerializer.Serialize(ProjectToolCatalog.OllamaTools(), ProjectToolCatalog.Json), options) : 0), timer.Elapsed.TotalMilliseconds, reply?.Stats ?? failureStats, firstContent?.Invoke()));
+            var duration = timer.Elapsed.TotalMilliseconds;
+            var vram = options.AdaptiveInferenceEnabled && reply is not null && !ct.IsCancellationRequested ? await inner.ResidentVramAsync(model, ct) : null;
+            _calls.Add(new(purpose ?? options.CallPurpose, InferenceWindow.InputCost(messages, options, purpose == "tools"), duration,
+                reply?.Stats ?? failureStats, firstContent?.Invoke(), effective.ContextTokens, options.AdaptiveInferenceEnabled ? Environment.WorkingSet : null, vram));
         }
     }
 }

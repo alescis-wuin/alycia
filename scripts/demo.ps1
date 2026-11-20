@@ -3,7 +3,8 @@
 param(
     [ValidateSet('All', 'Api', 'Client', 'Stop', 'Status')][string]$Action = 'All',
     [ValidatePattern('^[a-zA-Z0-9][a-zA-Z0-9._:/-]*$')][string]$Model = 'qwen2.5:1.5b',
-    [switch]$InstallPrerequisites
+    [switch]$InstallPrerequisites,
+    [switch]$PullModel
 )
 . (Join-Path $PSScriptRoot 'windows-common.ps1')
 Push-Location $script:RepoRoot
@@ -41,8 +42,10 @@ try {
             Start-Sleep -Seconds 2
         }
         if (-not $ready) { throw 'Ollama did not start. Inspect its Docker logs.' }
-        Write-Host "Preparing local model $Model (download on first launch)."
-        Invoke-Compose @('exec', '-T', 'ollama', 'ollama', 'pull', $Model)
+        if ($PullModel) {
+            Write-Host "Downloading the explicitly requested model $Model."
+            Invoke-Compose @('exec', '-T', 'ollama', 'ollama', 'pull', $Model)
+        }
         Invoke-Compose @('up', '-d', '--build', '--no-deps', 'chat-api')
         Wait-ChatApi
         Write-Host 'API ready at http://127.0.0.1:5187. PostgreSQL, files and models use persistent volumes.'

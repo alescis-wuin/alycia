@@ -3,7 +3,13 @@ using System.Runtime.InteropServices;
 using System.Text.Json;
 using Alycia.Modules.Chat.Application;
 
+if (args.Length == 2 && args[0] == "--claims") { OfflineEvaluation.Claims(args[1]); return; }
 if (args.Length == 3 && args[0] == "--documents") { DocumentBenchmark.Run(args[1], args[2]); return; }
+if (args.Length is 2 or 3 && args[0] == "--offline")
+{
+    await OfflineEvaluation.RunAsync(args[1], args.Length == 3 ? args[2] : null);
+    return;
+}
 const int repeats = 24;
 var cases = new List<object>();
 foreach (var count in new[] { 64, 512, 2048 })

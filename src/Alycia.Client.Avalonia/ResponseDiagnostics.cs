@@ -31,12 +31,37 @@ internal static class ResponseDiagnostics
             foreach (var group in usage.Calls.GroupBy(c => c.Purpose))
                 text.AppendLine($"  {group.Key} : {group.Count()} appel(s), {group.Sum(c => c.ElapsedMilliseconds) / 1000:F1} s");
         }
+        if (report.Route is { } route) text.AppendLine($"Routage · {route.Mode} · {route.Reason} ({route.Rules})");
+        if (report.Assembly is { } assembly)
+            text.AppendLine($"Preuves retenues · {assembly.Used}/{assembly.Budget} tokens · {assembly.Files} fichier(s) · {assembly.Decisions.Count(d => d.Reason == "budget")} passage(s) écarté(s) par le budget.");
+        if (report.Temporal is { } temporal)
+            text.AppendLine($"Mémoire temporelle · {temporal.Indexed}/{temporal.Total} messages indexés · {temporal.Sources.Length} extrait(s) · {temporal.Perspective}. {temporal.Warning}");
+        if (report.Research is { } plan)
+        {
+            text.AppendLine($"Exploration · {plan.Calls}/{plan.CallLimit} appels · {plan.StopReason}");
+            foreach (var goal in plan.Goals) text.AppendLine($"{goal.Query} · {goal.State} · {string.Join(", ", goal.References)}");
+        }
+        if (report.Verification is { } check) text.AppendLine($"Vérification complémentaire · {check.Status} · {string.Join(", ", check.References)}");
+        foreach (var call in report.Usage?.Calls.Where(c => c.EffectiveContextTokens.HasValue) ?? [])
+        {
+            text.AppendLine($"Fenêtre utilisée · {call.EffectiveContextTokens} tokens");
+            if (call.ApiWorkingSetBytes is long ram) text.AppendLine($"RAM du processus API · {ram / 1048576} Mio");
+            if (call.ModelVramBytes is long vram) text.AppendLine($"VRAM résidente du modèle · {vram / 1048576} Mio");
+            if (call.Stats is { OutputTokens: { } output, EvaluationNanoseconds: > 0 } stats)
+                text.AppendLine($"Génération · {output * 1e9 / stats.EvaluationNanoseconds:F1} tokens/s");
+        }
         if (report.Retrieval is { } retrieval)
         {
             text.AppendLine($"\nRecherche {retrieval.Mode} : {retrieval.IndexedFiles}/{retrieval.EligibleFiles} fichiers indexés, {retrieval.CandidateChunks} passages candidats.");
             text.AppendLine($"Index : {retrieval.IndexMilliseconds:F1} ms · classement : {retrieval.RankingMilliseconds:F1} ms · {retrieval.ZeroScoreChunks} scores lexicaux nuls.");
+            if (retrieval.Rerank is { } rr) text.AppendLine($"ONNX CPU · {rr.State} · {rr.Milliseconds:F1} ms · {rr.Scores?.Count ?? 0} scores");
+            if (retrieval.Plan is { } queries)
+            {
+                text.AppendLine("Requêtes · " + string.Join(" / ", queries.Queries.Select(q => q.Text)));
+                foreach (var anchor in queries.Resolved) text.AppendLine($"Référent · {anchor.Text} [{anchor.Reference}]");
+            }
             if (retrieval.Cache is { } cache)
-                text.AppendLine($"Cache lexical : {(cache.LexicalHit ? "réutilisé" : "construit")} · vecteurs : {cache.VectorHits} réutilisés, {cache.VectorMisses} calculés · {(cache.VectorWritten ? "cache écrit" : "aucune écriture vectorielle")}.");
+                text.AppendLine($"Cache lexical : {(cache.LexicalHit ? "réutilisé" : "construit")} · vecteurs : {cache.VectorHits} réutilisés, {cache.VectorMisses} manquants · {(cache.VectorWritten ? "cache écrit" : "aucune écriture vectorielle")}.");
             foreach (var group in (retrieval.Decisions ?? []).GroupBy(d => d.Reason))
                 text.AppendLine($"  {group.Key} : {group.Count()} passage(s)");
             if (retrieval.UnreportedDecisions > 0) text.AppendLine($"{retrieval.UnreportedDecisions} décisions supplémentaires non détaillées.");

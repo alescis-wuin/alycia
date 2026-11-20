@@ -30,6 +30,8 @@ public sealed class BackgroundEmbeddingIndex(ChatDbContext database, PostgresEmb
             if (!projects.TryGetValue(job.Progress.OwnerId, out var project)) { await store.DeleteJobAsync(job, ct); continue; }
             var options = defaults.Copy(); options.EmbeddingModel = job.Settings.Model; options.EmbeddingBatchSize = job.Settings.BatchSize;
             options.EmbeddingChunkCharacters = job.Settings.ChunkCharacters; options.EmbedHistory = job.Settings.History;
+            options.HierarchicalIndexEnabled = job.Settings.Hierarchical;
+            options.EmbeddingDocumentPrefix = job.Settings.DocumentPrefix; options.EmbeddingQueryPrefix = job.Settings.QueryPrefix;
             await store.QueueAsync(project.Id, true, options, ct, sourceRevision: project.Revision.ToString());
         }
     }
@@ -59,19 +61,29 @@ public sealed class BackgroundEmbeddingIndex(ChatDbContext database, PostgresEmb
             var files = await sources.Where(f => f.ContextMode != "excluded" && f.Text != "").OrderBy(f => f.Id).ToArrayAsync(ct);
             var messages = !project && job.Settings.History ? conversation!.MessageCount : 0;
             total = files.Length + messages;
-            var identity = await embeddings.IdentityAsync(job.Settings.Model, ct);
-            fingerprint = StructuredMemory.Hash($"{identity}|{CodeStructure.Version}|{StructuredDocuments.Version}|{messages}|"
+            var digest = await embeddings.IdentityAsync(job.Settings.Model, ct);
+            // Probe only once per processing pass when the digest or job inputs require indexing.
+            var identity = digest;
+            fingerprint = StructuredMemory.Hash($"{job.Settings.VectorSpace(digest, 0)}|{CodeStructure.Version}|{StructuredDocuments.Version}|{messages}|"
                 + string.Join('|', files.Select(f => $"{f.Id}:{f.Sha256}:{f.Name}:{f.ContextMode}")));
             if (job.Progress.State == "completed" && fingerprint == job.Fingerprint)
             { await store.ProgressAsync(job, "completed", total, total, job.Progress.Detail, fingerprint, ct); return; }
             if (!await store.ProgressAsync(job, "running", 0, total, "Préparation des passages", fingerprint, ct)) return;
+            if (GenerationGate.Shared.ForegroundRequested) return;
+            var dimensions = 0;
+            if (total > 0 && job.Settings.Versioned)
+            {
+                var probe = await embeddings.EmbedAsync(job.Settings.Model, [job.Settings.DocumentPrefix + "dimension"], ct);
+                dimensions = probe.Vectors.Single().Length;
+                identity = job.Settings.VectorSpace(digest, dimensions);
+            }
             var omissions = 0;
             foreach (var file in files)
             {
                 ct.ThrowIfCancellationRequested();
                 var source = await reader.ReadAsync(file, ct);
                 if (!source.Complete) omissions++;
-                var chunks = CodeStructure.Split(file.Id, file.Name, file.Sha256, source.Text, ct)
+                var chunks = CodeStructure.Split(file.Id, file.Name, file.Sha256, source.Text, ct, job.Settings.Hierarchical)
                     .SelectMany(c => EmbeddingChunks.Split(c with { CompleteSource = source.Complete }, job.Settings.ChunkCharacters));
                 if (!await IndexAsync(chunks, null, 0, file.Name)) return;
                 completed++;
@@ -100,13 +112,21 @@ public sealed class BackgroundEmbeddingIndex(ChatDbContext database, PostgresEmb
                 var passages = 0;
                 foreach (var batch in chunks.DistinctBy(EmbeddingChunks.Key).Chunk(job.Settings.BatchSize))
                 {
+                    if (GenerationGate.Shared.ForegroundRequested)
+                    {
+                        await store.ProgressAsync(job, "queued", completed, total, "Indexation différée pendant une génération", fingerprint, ct);
+                        return false;
+                    }
                     if (!await store.ProgressAsync(job, "running", completed, total, $"{detail} · {passages} passages traités", fingerprint, ct)) return false;
                     var cached = await store.ReadAsync(identity, batch.Select(EmbeddingChunks.Key).ToArray(), ct);
                     var missing = batch.Where(c => !cached.ContainsKey(EmbeddingChunks.Key(c))).ToArray();
                     if (missing.Length > 0)
                     {
-                        var result = await embeddings.EmbedAsync(job.Settings.Model, missing.Select(EmbeddingChunks.Text).ToArray(), ct);
+                        var result = await embeddings.EmbedAsync(job.Settings.Model, missing.Select(c => job.Settings.DocumentPrefix + EmbeddingChunks.Text(c)).ToArray(), ct);
                         if (result.Vectors.Length != missing.Length) throw new ChatModelException("Nombre de vecteurs inattendu.");
+                        if (job.Settings.Versioned && (result.Vectors.Any(v => v.Length != dimensions)
+                            || await embeddings.IdentityAsync(job.Settings.Model, ct) != digest))
+                            throw new ChatModelException("Identité ou dimension du modèle modifiée pendant l’indexation.");
                         for (var i = 0; i < missing.Length; i++) await store.WriteAsync(identity, missing[i], result.Vectors[i], historyOwner, sequence, ct);
                     }
                     passages += batch.Length;
@@ -136,26 +156,53 @@ public sealed class BackgroundEmbeddingIndex(ChatDbContext database, PostgresEmb
         IReadOnlyList<SourceChunk> chunks, CancellationToken ct)
     {
         var identity = await embeddings.IdentityAsync(settings.EmbeddingModel, ct);
+        var profile = EmbeddingSettings.From(settings);
         var parts = chunks.Select(c => EmbeddingChunks.Split(c, settings.EmbeddingChunkCharacters).ToArray()).ToArray();
         var keys = parts.SelectMany(p => p).Select(EmbeddingChunks.Key).Distinct().ToArray();
         var calls = new List<ModelCallUsage>();
         if (keys.Length == 0) return new(new double[chunks.Count], 0, calls);
+        var queryVectors = await QueryVectorsAsync(query, settings, profile, identity, calls, ct);
+        var scores = new Dictionary<string, double>();
+        foreach (var vector in queryVectors)
+            foreach (var pair in await store.SimilaritiesAsync(profile.VectorSpace(identity, vector.Length), keys, vector, ct))
+                scores[pair.Key] = Math.Max(scores.GetValueOrDefault(pair.Key, -1), pair.Value);
+        return new(parts.Select(p => p.Select(c => scores.GetValueOrDefault(EmbeddingChunks.Key(c), 0)).DefaultIfEmpty(0).Max()).ToArray(),
+            parts.Count(p => p.Length > 0 && p.All(c => scores.ContainsKey(EmbeddingChunks.Key(c)))), calls);
+    }
+
+    private async Task<List<float[]>> QueryVectorsAsync(string query, ChatOptions settings, EmbeddingSettings profile,
+        string identity, List<ModelCallUsage> calls, CancellationToken ct)
+    {
         // Query vectors only. Corpus vectors are produced by the durable worker, never by a chat request.
         var queryChunk = new SourceChunk(Guid.Empty, "", "", "", "query", 0, query.Length, 1, 1, query, [], true);
         var queryVectors = new List<float[]>();
         foreach (var batch in EmbeddingChunks.Split(queryChunk, settings.EmbeddingChunkCharacters).Chunk(settings.EmbeddingBatchSize))
         {
             var timer = System.Diagnostics.Stopwatch.StartNew();
-            var result = await embeddings.EmbedAsync(settings.EmbeddingModel, batch.Select(c => c.Text).ToArray(), ct);
+            var result = await embeddings.EmbedAsync(settings.EmbeddingModel, batch.Select(c => profile.QueryPrefix + c.Text).ToArray(), ct);
             calls.Add(new("embedding-query:" + identity, batch.Sum(c => Encoding.UTF8.GetByteCount(c.Text)), timer.Elapsed.TotalMilliseconds, result.Stats));
             queryVectors.AddRange(result.Vectors);
         }
-        var scores = new Dictionary<string, double>();
-        foreach (var vector in queryVectors)
-            foreach (var pair in await store.SimilaritiesAsync(identity, keys, vector, ct))
-                scores[pair.Key] = Math.Max(scores.GetValueOrDefault(pair.Key, -1), pair.Value);
-        return new(parts.Select(p => p.Select(c => scores.GetValueOrDefault(EmbeddingChunks.Key(c), 0)).DefaultIfEmpty(0).Max()).ToArray(),
-            parts.Count(p => p.Length > 0 && p.All(c => scores.ContainsKey(EmbeddingChunks.Key(c)))), calls);
+        if (profile.Versioned && await embeddings.IdentityAsync(settings.EmbeddingModel, ct) != identity)
+            throw new ChatModelException("Modèle modifié pendant la recherche.");
+        return queryVectors;
+    }
+
+    public async Task<MemoryVectorMatches> SearchMemoryAsync(Guid owner, string question, ChatOptions settings, int through, DateTimeOffset before, CancellationToken ct)
+    {
+        var calls = new List<ModelCallUsage>(); var scores = new Dictionary<int, double>();
+        try
+        {
+            var profile = EmbeddingSettings.From(settings);
+            var identity = await embeddings.IdentityAsync(settings.EmbeddingModel, ct);
+            foreach (var vector in await QueryVectorsAsync(question, settings, profile, identity, calls, ct))
+                foreach (var hit in await store.MemorySimilaritiesAsync(owner, profile.VectorSpace(identity, vector.Length), through, before, vector, ct))
+                    scores[hit.Key] = Math.Max(scores.GetValueOrDefault(hit.Key, -1), hit.Value);
+            return new(scores, calls);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+        catch (Exception ex) when (ex is ChatModelException or ArgumentException or HttpRequestException or OperationCanceledException)
+        { return new(scores, calls, "Vecteurs historiques indisponibles ; rappel lexical utilisé."); }
     }
 
     public Task<SemanticSearch> SearchHistoryAsync(Guid conversation, string query, ChatOptions settings,

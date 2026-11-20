@@ -2,13 +2,13 @@ using Alycia.Modules.Chat.Application;
 
 namespace Alycia.Modules.Chat.Infrastructure;
 
-public sealed class ProjectRetrievalService(IProjectIndex index, IIndexedEmbeddings? semantic = null, LexicalIndexCache? lexicalCache = null) : IProjectRetrieval
+public sealed class ProjectRetrievalService(IProjectIndex index, IIndexedEmbeddings? semantic = null, LexicalIndexCache? lexicalCache = null, IPassageReranker? reranker = null) : IProjectRetrieval
 {
     private readonly LexicalIndexCache _lexical = lexicalCache ?? new();
     public async Task<RetrievalPreparation> PrepareAsync(Guid conversation, string query, ChatOptions settings, CancellationToken ct)
     {
         var timer = System.Diagnostics.Stopwatch.StartNew();
-        var snapshot = await index.BuildAsync(conversation, ct);
+        var snapshot = await index.BuildScopedAsync(conversation, settings.EligibleSourceIds, ct);
         var indexMilliseconds = timer.Elapsed.TotalMilliseconds;
         var calls = new List<ModelCallUsage>();
         double[]? similarities = null;
@@ -31,6 +31,68 @@ public sealed class ProjectRetrievalService(IProjectIndex index, IIndexedEmbeddi
         var cachedLexical = _lexical.Get(conversation, snapshot.Chunks);
         var lexical = cachedLexical.Index.Score(query);
         var ranked = ProjectRetrieval.Rank(snapshot.Chunks, query, similarities, lexical);
+        if (settings.QueryRewriteEnabled && settings.SearchPlan is { Queries.Length: > 1 } plan)
+        {
+            var lists = new List<IReadOnlyList<SourceChunk>> { ranked };
+            foreach (var term in plan.Queries.Skip(1))
+            {
+                ct.ThrowIfCancellationRequested();
+                var terms = cachedLexical.Index.Score(term.Text);
+                double[]? vectors = null;
+                if (term.Kind == "exact")
+                {
+                    for (var n = 0; n < terms.Length; n++)
+                    {
+                        var c = snapshot.Chunks[n];
+                        if (c.Text.Contains(term.Text, StringComparison.Ordinal) || c.Path.Contains(term.Text, StringComparison.Ordinal)
+                            || c.Symbol.Contains(term.Text, StringComparison.Ordinal)) terms[n] += 20;
+                    }
+                }
+                else if (settings.RetrievalMode == "hybrid" && semantic is not null)
+                {
+                    var result = await semantic.SearchAsync(conversation, term.Text, settings, snapshot.Chunks, ct);
+                    vectors = result.Scores; calls.AddRange(result.Calls);
+                    if (result.Warning is not null) omissions.Add(result.Warning);
+                }
+                lists.Add(ProjectRetrieval.Rank(snapshot.Chunks, term.Text, vectors, terms));
+            }
+            ranked = lists.SelectMany(list => list.Select((c, rank) => (Chunk: c, Score: 1.0 / (61 + rank))))
+                .GroupBy(hit => ProjectRetrieval.Reference(hit.Chunk)).OrderByDescending(g => g.Sum(hit => hit.Score))
+                .ThenBy(g => g.First().Chunk.Path, StringComparer.Ordinal).ThenBy(g => g.First().Chunk.Start).Select(g => g.First().Chunk).ToArray();
+        }
+        if (settings.SearchPlan?.Ambiguous == true) omissions.Add("Référence antérieure ambiguë ou absente ; aucune source supposée.");
+        RerankReport? rerank = null;
+        if (settings.RerankEnabled && ranked.Count > 0)
+        {
+            var elapsed = System.Diagnostics.Stopwatch.StartNew();
+            var candidates = ranked.Take(settings.RerankCandidateLimit).ToArray();
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeout.CancelAfter(settings.RerankTimeoutMs);
+            try
+            {
+                if (reranker is null) throw new InvalidOperationException();
+                var scores = await reranker.ScoreAsync(query, candidates, timeout.Token);
+                timeout.Token.ThrowIfCancellationRequested();
+                if (scores.Values.Length != candidates.Length || scores.Values.Any(v => !double.IsFinite(v)))
+                    throw new InvalidDataException();
+                var order = Enumerable.Range(0, candidates.Length).OrderByDescending(n => scores.Values[n]).ThenBy(n => n);
+                ranked = order.Select(n => candidates[n]).Concat(ranked.Skip(candidates.Length)).ToArray();
+                rerank = new("applied", scores.Identity, elapsed.Elapsed.TotalMilliseconds, candidates
+                    .Select((c, n) => (Ref: ProjectRetrieval.Reference(c), Score: scores.Values[n])).ToDictionary(p => p.Ref, p => p.Score));
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+            catch (Exception ex) when (ex is not (OutOfMemoryException or AccessViolationException))
+            {
+                rerank = new(timeout.IsCancellationRequested ? "timeout" : "unavailable", null, elapsed.Elapsed.TotalMilliseconds);
+                omissions.Add("Reclassement local indisponible ou saturé. Ordre de recherche initial conservé.");
+            }
+        }
+        if (settings.PinnedSourceIds is { Count: > 0 } pins)
+        {
+            var represented = ranked.Select(c => c.FileId).ToHashSet();
+            ranked = ranked.Concat(snapshot.Chunks.Where(c => pins.Contains(c.FileId) && !represented.Contains(c.FileId))
+                .DistinctBy(c => c.FileId)).ToArray();
+        }
         var retained = ranked.Select(ProjectRetrieval.Reference).ToHashSet(StringComparer.Ordinal);
         var decisions = snapshot.Chunks.Select((c, i) => new RetrievalDecision(ProjectRetrieval.Reference(c), c.FileId,
             c.Sha256, c.Start, c.End, lexical[i], retained.Contains(ProjectRetrieval.Reference(c)) ? lexical[i] > 0 ? "lexical_match" : "semantic_match"
@@ -38,7 +100,7 @@ public sealed class ProjectRetrievalService(IProjectIndex index, IIndexedEmbeddi
         return new(ranked,
             new(settings.RetrievalMode, snapshot.Chunks.Count, snapshot.IndexedFiles, snapshot.EligibleFiles, omissions,
                 lexical.Count(s => s == 0), indexMilliseconds, timer.Elapsed.TotalMilliseconds, decisions,
-                Math.Max(0, snapshot.Chunks.Count - decisions.Length), new(cachedLexical.Hit, vectorHits, vectorMisses, vectorWritten)), calls);
+                Math.Max(0, snapshot.Chunks.Count - decisions.Length), new(cachedLexical.Hit, vectorHits, vectorMisses, vectorWritten), rerank, settings.SearchPlan), calls);
     }
     public static double Cosine(float[] a, float[] b)
     {

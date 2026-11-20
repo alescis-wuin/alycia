@@ -6,7 +6,7 @@ namespace Alycia.Modules.Chat.Application;
 public sealed record SuppliedSource(string Reference, Guid FileId, string Path, string Sha256, int StartLine, int EndLine,
     int Start, int End, string Origin, bool Partial);
 public sealed record CitationReport(string Status, SuppliedSource[] Supplied, string[] Recognized, string[] Unknown, HistoryEvidence[]? Historical = null);
-public sealed record TurnDiagnostics(GenerationUsage? Usage = null, RetrievalReport? Retrieval = null, MemoryReport? Memory = null, CitationReport? Citations = null, IReadOnlyList<string>? Warnings = null, ClaimReport? Claims = null, Guid? WorkspaceId = null, int? WorkspaceRevision = null)
+public sealed record TurnDiagnostics(GenerationUsage? Usage = null, RetrievalReport? Retrieval = null, MemoryReport? Memory = null, CitationReport? Citations = null, IReadOnlyList<string>? Warnings = null, ClaimReport? Claims = null, Guid? WorkspaceId = null, int? WorkspaceRevision = null, QueryRoute? Route = null, EvidenceAssembly? Assembly = null, TemporalReport? Temporal = null, ResearchReport? Research = null, VerificationFollowup? Verification = null)
 {
     public static TurnDiagnostics? Read(string json)
     {
@@ -27,7 +27,7 @@ public sealed record TurnDiagnostics(GenerationUsage? Usage = null, RetrievalRep
 public static class CitationAudit
 {
     private static readonly Regex Markers = new(@"\[(S[0-9a-f]{12}|H[0-9]+:[0-9a-f]{12})\]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
-    public static CitationReport Check(string answer, IReadOnlyList<SourceExcerpt>? excerpts, IReadOnlyList<ToolObservation>? tools)
+    public static CitationReport Check(string answer, IReadOnlyList<SourceExcerpt>? excerpts, IReadOnlyList<ToolObservation>? tools, IReadOnlyList<HistoryEvidence>? memory = null)
     {
         var supplied = new List<SuppliedSource>();
         foreach (var source in excerpts ?? [])
@@ -39,7 +39,7 @@ public static class CitationAudit
                     supplied.Add(new(source.Reference, id, source.Path, source.Sha256, first, last, source.Offset, end, "tool", true));
         var unique = supplied.DistinctBy(s => s.Reference).ToArray();
         var known = unique.Select(s => s.Reference).ToHashSet(StringComparer.Ordinal);
-        var historical = (tools ?? []).Where(t => t.Succeeded).SelectMany(t => t.History ?? []).Distinct().ToArray();
+        var historical = (tools ?? []).Where(t => t.Succeeded).SelectMany(t => t.History ?? []).Concat(memory ?? []).Distinct().ToArray();
         known.UnionWith(historical.Select(h => h.Reference));
         var markers = Markers.Matches(answer).Select(m => m.Groups[1].Value.ToUpperInvariant()).Distinct(StringComparer.Ordinal).ToArray();
         var unknown = markers.Where(m => !known.Contains(m)).ToArray();

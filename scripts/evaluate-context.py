@@ -7,6 +7,9 @@ import io
 import json
 import math
 import re
+import platform
+import subprocess
+import tempfile
 import time
 import uuid
 import zipfile
@@ -44,7 +47,7 @@ def indicators(case, answer):
     return {"factPatternHits": [bool(re.search(p, answer, re.I | re.S)) for p in case["factPatterns"]],
             "forbiddenPatternHits": [bool(re.search(p, answer, re.I | re.S)) for p in case["forbiddenPatterns"]],
             "expectedPathsMentioned": [p in answer or Path(p).name in answer for p in case["expectedSources"]],
-            "humanReview": {"correctFacts": None, "missingFacts": None, "unsupportedClaims": None, "notes": ""}}
+            "humanReview": {"correctFacts": None, "missingFacts": None, "unsupportedClaims": None, "factualFidelity": None, "citationRelevance": None, "abstained": None, "notes": ""}}
 
 
 def retrieval_metrics(case, sources, k=5):
@@ -60,10 +63,43 @@ def retrieval_metrics(case, sources, k=5):
             "recall": found / len(expected) if expected else None,
             "precision": found / len(ranked) if ranked else None,
             "ndcg": dcg / ideal if ideal else None,
+            "mrr": next((1 / (i + 1) for i, hit in enumerate(hits) if hit), 0) if expected else None,
             "noAnswerCorrectlyEmpty": not ranked if not expected else None}
 
 
-def compare(left, right):
+def distribution(values):
+    values = sorted(v for v in values if isinstance(v, (int, float)) and math.isfinite(v))
+    return {"n": len(values), **{name: values[math.ceil(len(values) * p) - 1] if values else None
+                                 for name, p in (("p50", .5), ("p95", .95))}}
+
+
+def summarize(rows):
+    done = [r for r in rows if not r.get("error")]
+    diagnostics = [json.loads(r["diagnostics"]) for r in done if r.get("diagnostics")]
+    citations = [d["citations"] for d in diagnostics if d.get("citations")]
+    refs = sum(len(c["recognized"]) + len(c["unknown"]) for c in citations)
+    goals = [g for d in diagnostics for g in (d.get("research") or {}).get("goals", [])]
+    calls = [c for r in done for c in (r.get("usage") or {}).get("calls", []) if c.get("purpose") in ("chat", "tools")]
+    annotations = [(r.get("indicators") or {}).get("humanReview", {}) for r in done]
+    def rate(values):
+        values = [v for v in values if v is not None]
+        return {"n": len(values), "mean": sum(values) / len(values) if values else None}
+    return {"completed": len(done), "failed": len(rows) - len(done),
+            "retrieval": {k: rate((r.get("retrieval") or {}).get(k) for r in done) for k in ("recall", "ndcg", "mrr")},
+            "generationSeconds": distribution(r.get("generationSeconds") for r in done),
+            "firstContentMs": distribution(c.get("firstContentMilliseconds") for c in calls),
+            "estimatedPromptTokens": distribution(c.get("estimatedInputTokens") for c in calls),
+            "providerPromptTokens": distribution((c.get("stats") or {}).get("promptTokens") for c in calls),
+            "processRamBytes": distribution(c.get("apiWorkingSetBytes") for c in calls),
+            "residentModelVramBytes": distribution(c.get("modelVramBytes") for c in calls),
+            "subquestionEvidenceCoverage": rate(g["state"] in ("supplied", "passages_read") for g in goals),
+            "recognizedReferenceFraction": sum(len(c["recognized"]) for c in citations) / refs if refs else None,
+            "annotatedFactualFidelity": rate(a.get("factualFidelity") for a in annotations),
+            "annotatedCitationRelevance": rate(a.get("citationRelevance") for a in annotations),
+            "annotatedAbstention": rate(a.get("abstained") for a in annotations)}
+
+
+def compare(left, right, single_factor=False):
     keys = ("suiteSha256", "model", "contextTokens", "maxOutputTokens", "toolMaxCalls", "tools", "seed", "repeats", "split")
     mismatch = [k for k in keys if left.get(k) != right.get(k)]
     if mismatch:
@@ -78,7 +114,16 @@ def compare(left, right):
         raise ValueError("Résultats dupliqués")
     if not a or any(r.get("error") for r in [*a.values(), *b.values()]):
         raise ValueError("Run vide ou incomplet")
-    return {"labels": [left["label"], right["label"]], "sameProtocol": True,
+    changed = set()
+    for key in a:
+        opts_a, opts_b = a[key].get("options") or {}, b[key].get("options") or {}
+        changed.update(k for k in opts_a.keys() | opts_b.keys() if opts_a.get(k) != opts_b.get(k))
+    if single_factor and len(changed) != 1:
+        raise ValueError("Une ablation exige exactement une option différente : " + ", ".join(sorted(changed)))
+    if left.get("hardware") != right.get("hardware"):
+        raise ValueError("Matériel déclaré différent")
+    return {"labels": [left["label"], right["label"]], "sameProtocol": True, "changedOptions": sorted(changed),
+            "summaries": [summarize(list(a.values())), summarize(list(b.values()))],
             "modelIdentityRequiresReview": left.get("modelIdentity") is None or right.get("modelIdentity") is None,
             "rows": [{"id": key[0], "repeat": key[1], "elapsedSeconds": [a[key]["elapsedSeconds"], b[key]["elapsedSeconds"]],
                       "indicators": [a[key].get("indicators"), b[key].get("indicators")],
@@ -106,7 +151,8 @@ def run(args):
     report = {"schemaVersion": 1, "label": args.label, "model": args.model, "modelIdentity": None,
               "suiteSha256": fingerprint, "contextTokens": args.context, "maxOutputTokens": args.output_tokens,
               "toolMaxCalls": args.calls, "tools": args.tools, "seed": args.seed, "repeats": args.repeats,
-              "split": args.split, "results": [], "cleaned": False}
+              "split": args.split, "results": [], "cleaned": False, "hardware": args.hardware,
+              "harnessPython": platform.python_version(), "hostPlatform": platform.platform()}
     report_path = args.output / "run.json"
 
     def save():
@@ -130,7 +176,7 @@ def run(args):
                     options.update(contextTokens=args.context, maxOutputTokens=args.output_tokens, temperature=0,
                                    seed=args.seed, generateUntilStop=False, useProjectTools=args.tools, toolMaxCalls=args.calls,
                                    safetyTokens=256, summaryMaxCalls=256)
-                    requested = {}
+                    requested = json.loads(args.options.read_text(encoding="utf-8")) if args.options else {}
                     if args.retrieval: requested["retrievalMode"] = args.retrieval
                     if args.embedding_model: requested["embeddingModel"] = args.embedding_model
                     if args.counter: requested["tokenCounting"] = args.counter
@@ -149,6 +195,17 @@ def run(args):
                     call("POST", prefix + "/files/" + str(uuid.uuid4()), raw=body,
                          headers={"Content-Type": "multipart/form-data; boundary=" + boundary})
                     row["importMilliseconds"] = (time.monotonic() - importing) * 1000
+                    if applied.get("retrievalMode") == "hybrid" and args.index_wait > 0:
+                        call("POST", "/indexing", {"owner": cid, "project": False}, expected=202)
+                        deadline = time.monotonic() + args.index_wait
+                        while True:
+                            jobs = call("GET", f"/indexing?owner={cid}&project=false")
+                            if jobs and jobs[0]["state"] == "completed":
+                                row["indexProgress"] = jobs[0]
+                                break
+                            if time.monotonic() >= deadline or jobs and jobs[0]["state"] in ("paused", "failed"):
+                                raise RuntimeError("Indexation incomplète pendant la campagne")
+                            time.sleep(1)
                     row["historyTurns"] = []
                     for turn in case.get("turns", []):
                         revision = call("GET", prefix + "/settings")["conversation"]["revision"]
@@ -163,7 +220,9 @@ def run(args):
                     row["retrieval"] = retrieval_metrics(case, row["preview"].get("sources") or [])
                     row["previewUsage"] = preview.get("usage")
                     revision = call("GET", prefix + "/settings")["conversation"]["revision"]
+                    generating = time.monotonic()
                     events = call("POST", prefix + "/stream", {"requestId": str(uuid.uuid4()), "revision": revision, "content": case["question"]})
+                    row["generationSeconds"] = time.monotonic() - generating
                     if not events or events[-1]["type"] != "done":
                         raise RuntimeError("Réponse non terminée : " + str(events[-1].get("message", "") if events else "flux vide"))
                     result = events[-1]["result"]
@@ -174,6 +233,10 @@ def run(args):
                     if case.get("requireRecallPatterns") and not all(row["indicators"]["factPatternHits"]):
                         raise RuntimeError("Rappel historique attendu absent ; revue humaine nécessaire")
                     if row["usage"]:
+                        row["embeddingIdentities"] = sorted({c["purpose"].split(":", 1)[1] for c in row["usage"].get("calls", [])
+                                                            if c["purpose"].startswith("embedding-query:")})
+                        diagnostic = json.loads(row["diagnostics"]) if row.get("diagnostics") else {}
+                        row["rerankerIdentity"] = ((diagnostic.get("retrieval") or {}).get("rerank") or {}).get("identity")
                         identity = row["usage"].get("modelIdentity")
                         if identity:
                             if report["modelIdentity"] not in (None, identity):
@@ -196,11 +259,48 @@ def run(args):
                 remaining.remove(cid)
             except Exception:
                 pass
+        report["summary"] = summarize(report["results"])
         report["cleaned"] = not remaining
         report["remainingConversations"] = remaining
         save()
     if remaining or any("error" in r for r in report["results"]):
         raise SystemExit("Run incomplet : consulter run.json")
+
+
+def offline_campaign(args):
+    bench = ROOT / "benchmarks/Alycia.ContextBenchmarks"
+    suite = ROOT / "evaluation/context-v3"
+    factors = json.loads((suite / "candidate.json").read_text())
+    if args.rerank:
+        factors["rerankEnabled"] = True
+    variants = {"reference": {}, **{k: {k: v} for k, v in factors.items()}, "combined": factors}
+    command = ["dotnet", "run", "--no-build", "--project", str(bench), "--"]
+    runs = {}
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / "options.json"
+        for name, options in variants.items():
+            path.write_text(json.dumps(options), encoding="utf-8")
+            raw = subprocess.check_output(command + ["--offline", str(suite / "offline.json"), str(path)], cwd=ROOT, text=True)
+            runs[name] = json.loads(raw)
+            if options.get("rerankEnabled") and not any((row.get("rerank") or {}).get("state") == "applied" for row in runs[name]["rows"]):
+                raise ValueError("Reclassement ONNX demandé mais non mesuré")
+    baseline = runs["reference"]
+    failures = []
+    for label, run in runs.items():
+        if (run["sha256"], run["k"], run["samples"]) != (baseline["sha256"], baseline["k"], baseline["samples"]):
+            raise ValueError("Corpus ou protocole modifié")
+        run["regressions"] = [a["id"] for a, b in zip(baseline["rows"], run["rows"], strict=True)
+                              if a["id"] != b["id"] or any((a[k] or 0) > (b[k] or 0) for k in ("recall", "ndcg", "rr"))]
+        if any(run[k] + 1e-12 < baseline[k] for k in ("meanRecall", "meanNdcg", "mrr")):
+            failures.append(label)
+    claims = json.loads(subprocess.check_output(command + ["--claims", str(suite / "claims.json")], cwd=ROOT, text=True))
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    with args.output.open("x", encoding="utf-8") as dest:
+        json.dump({"schemaVersion": 1, "factors": factors, "runs": runs, "claims": claims, "failedThresholds": failures},
+                  dest, ensure_ascii=False, indent=2)
+        dest.write("\n")
+    if failures:
+        raise SystemExit("Régression sur un seuil préétabli : " + ", ".join(failures))
 
 
 if __name__ == "__main__":
@@ -219,8 +319,11 @@ if __name__ == "__main__":
     r.add_argument("--calls", type=int, default=12)
     r.add_argument("--retrieval", choices=("legacy", "lexical", "hybrid"))
     r.add_argument("--embedding-model")
+    r.add_argument("--options", type=Path, help="Surcharge JSON des options pour les campagnes par ablation")
     r.add_argument("--counter", choices=("auto", "conservative"))
     r.add_argument("--memory", choices=("structured", "recursive"))
+    r.add_argument("--hardware", help="Description du matériel de l’API et d’Ollama pour cette campagne")
+    r.add_argument("--index-wait", type=int, default=300, help="Attente maximale de l’index hybride en secondes (0 pour étudier une indexation à froid)")
     r.add_argument("--tools", action="store_true")
     r.add_argument("--seed", type=int, default=42)
     r.add_argument("--repeats", type=int, choices=range(1, 6), default=1)
@@ -228,14 +331,20 @@ if __name__ == "__main__":
     c = sub.add_parser("compare")
     c.add_argument("baseline", type=Path)
     c.add_argument("candidate", type=Path)
+    c.add_argument("--single-factor", action="store_true")
+    offline = sub.add_parser("offline", help="Comparer la référence, les ablations et leur combinaison sur la recherche C#")
+    offline.add_argument("--output", type=Path, required=True)
+    offline.add_argument("--rerank", action="store_true", help="Exiger le reclassement ONNX avec les poids locaux de l’opérateur")
     args = parser.parse_args()
     if args.action == "validate":
         files, cases, fingerprint = load_suite(args.suite)
         print(json.dumps({"files": len(files), "cases": len(cases), "sha256": fingerprint}))
+    elif args.action == "offline":
+        offline_campaign(args)
     elif args.action == "run":
         run(args)
     else:
         left, right = json.loads(args.baseline.read_text(encoding="utf-8")), json.loads(args.candidate.read_text(encoding="utf-8"))
         if left.get("modelIdentity") and right.get("modelIdentity") and left["modelIdentity"] != right["modelIdentity"]:
             raise SystemExit("Identité de modèle différente")
-        print(json.dumps(compare(left, right), indent=2, ensure_ascii=False))
+        print(json.dumps(compare(left, right, args.single_factor), indent=2, ensure_ascii=False))

@@ -40,7 +40,9 @@ public sealed class PostgresChatTests
             {
                 await schema.Database.MigrateAsync();
                 await schema.Database.MigrateAsync();
-                Assert.Equal(10, (await schema.Database.GetAppliedMigrationsAsync()).Count());
+                var migrations = (await schema.Database.GetAppliedMigrationsAsync()).ToArray();
+                Assert.Equal(11, migrations.Length);
+                Assert.Equal("20261120010000_TemporalMemory", migrations[^1]);
             }
 
             Guid id;

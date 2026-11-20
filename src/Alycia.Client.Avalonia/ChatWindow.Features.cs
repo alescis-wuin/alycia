@@ -132,6 +132,10 @@ public partial class ChatWindow
             ("Marge de sécurité · tokens", Input(options.SafetyTokens.ToString(), 6), (o, v) => o.SafetyTokens = v),
             ("Candidats à la recherche · caractères (0 : sans plafond global)", Input(options.IndexMaxCharacters.ToString(), 10), (o, v) => o.IndexMaxCharacters = v),
             ("Passages par lot d’embeddings · 1 à 64", Input(options.EmbeddingBatchSize.ToString(), 2), (o, v) => o.EmbeddingBatchSize = v),
+            ("Sous-requêtes par demande · 1 à 8", Input(options.MaxSearchQueries.ToString(), 1), (o, v) => o.MaxSearchQueries = v),
+            ("Candidats ONNX · 1 à 64", Input(options.RerankCandidateLimit.ToString(), 2), (o, v) => o.RerankCandidateLimit = v),
+            ("Délai du reclassement · millisecondes", Input(options.RerankTimeoutMs.ToString(), 5), (o, v) => o.RerankTimeoutMs = v),
+            ("Appels du plan d’exploration · 1 à 64", Input(options.AgentPlanMaxCalls.ToString(), 2), (o, v) => o.AgentPlanMaxCalls = v),
             ("Taille des passages d’embeddings · 128 à 3200 caractères", Input(options.EmbeddingChunkCharacters.ToString(), 4), (o, v) => o.EmbeddingChunkCharacters = v)
         };
         var embedHistory = new CheckBox { Content = "Indexer aussi les messages de cette conversation", IsChecked = options.EmbedHistory };
@@ -177,6 +181,25 @@ public partial class ChatWindow
             ("Délai d’inactivité en secondes", timeout), ("Appels de résumé par opération", calls), ("Garde-fou du nombre d’appels (0 : sans quota)", toolCalls) })
         { advanced.Children.Add(Label(label)); advanced.Children.Add(control); }
         foreach (var budget in budgets) { advanced.Children.Add(Label(budget.Label)); advanced.Children.Add(budget.Input); }
+        var routeMode = new ComboBox { ItemsSource = new[] { "off", "auto", "direct", "memory", "retrieval", "explore" }, SelectedItem = options.RoutingMode };
+        advanced.Children.Add(Label("Stratégie de routage")); advanced.Children.Add(routeMode);
+        var documentPrefix = Input(options.EmbeddingDocumentPrefix, 256);
+        var queryPrefix = Input(options.EmbeddingQueryPrefix, 256);
+        advanced.Children.Add(Label("Préfixe d’embedding des documents")); advanced.Children.Add(documentPrefix);
+        advanced.Children.Add(Label("Préfixe d’embedding des requêtes")); advanced.Children.Add(queryPrefix);
+        var features = new (CheckBox Control, Action<ChatOptions, bool> Set)[]
+        {
+            (new() { Content = "Reclasser les passages avec le modèle ONNX local", IsChecked = options.RerankEnabled }, (o, v) => o.RerankEnabled = v),
+            (new() { Content = "Résoudre les références et décomposer les comparaisons", IsChecked = options.QueryRewriteEnabled }, (o, v) => o.QueryRewriteEnabled = v),
+            (new() { Content = "Diversifier les preuves sous le budget de contexte", IsChecked = options.EvidenceSelectionEnabled }, (o, v) => o.EvidenceSelectionEnabled = v),
+            (new() { Content = "Indexer les sections parentes et les symboles", IsChecked = options.HierarchicalIndexEnabled }, (o, v) => o.HierarchicalIndexEnabled = v),
+            (new() { Content = "Retrouver les déclarations, corrections et propositions datées", IsChecked = options.TemporalMemoryEnabled }, (o, v) => o.TemporalMemoryEnabled = v),
+            (new() { Content = "Planifier les recherches et suivre les lacunes", IsChecked = options.AgentPlanningEnabled }, (o, v) => o.AgentPlanningEnabled = v),
+            (new() { Content = "Vérifier les affirmations après la génération", IsChecked = options.ClaimVerificationEnabled }, (o, v) => o.ClaimVerificationEnabled = v),
+            (new() { Content = "Autoriser une recherche complémentaire de vérification", IsChecked = options.VerificationSearchEnabled }, (o, v) => o.VerificationSearchEnabled = v),
+            (new() { Content = "Adapter la fenêtre d’inférence et prioriser la génération", IsChecked = options.AdaptiveInferenceEnabled }, (o, v) => o.AdaptiveInferenceEnabled = v)
+        };
+        foreach (var feature in features) advanced.Children.Add(feature.Control);
         advanced.Children.Add(embedHistory);
         advanced.Children.Add(Label("L’indexation hybride est indépendante du budget de conversation. Les résultats retirés du contexte libèrent leur budget ; les originaux restent conservés."));
         panel.Children.Add(new Expander { Header = "Avancé", Content = advanced });
@@ -193,6 +216,9 @@ public partial class ChatWindow
                 return "Un réglage numérique est invalide. Les valeurs saisies sont conservées.";
             edited = new ChatOptions
             {
+                RoutingMode = routeMode.SelectedItem as string ?? "off",
+                EmbeddingDocumentPrefix = documentPrefix.Text ?? "",
+                EmbeddingQueryPrefix = queryPrefix.Text ?? "",
                 RetrievalMode = retrieval.SelectedItem as string ?? "lexical",
                 EmbeddingModel = embedding.Text?.Trim() ?? "",
                 TokenCounting = tokenizer.IsChecked == true ? "auto" : "conservative",
@@ -218,6 +244,7 @@ public partial class ChatWindow
             edited.EmbedHistory = embedHistory.IsChecked == true;
             try
             {
+                foreach (var feature in features) feature.Set(edited, feature.Control.IsChecked == true);
                 edited.Validate();
                 if (edited.UseProjectTools) ProjectAgent.ContextOptions(edited);
                 var sample = Alycia.Modules.Chat.Domain.Conversation.Create("test", modelName, system.Text);

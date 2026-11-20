@@ -40,8 +40,10 @@ public static class ConversationContext
     public static async Task<PreparedContext> BuildAsync(IChatRepository repository, IChatModel model, Conversation conversation,
         string question, ChatOptions options, bool prepare, Func<string, Task>? progress, CancellationToken ct)
     {
+        if (options.Recall is not null)
+            return await TemporalMemory.BuildAsync(repository, conversation, question, options, ct);
         if (!options.StructuredMemory) return await RecursiveContext.BuildAsync(repository, model, conversation, question, options, prepare, progress, ct);
-        var system = ConversationConfiguration.System(conversation);
+        var system = ConversationConfiguration.System(conversation, options);
         var recent = (await repository.MessagesAsync(conversation.Id, options.ProtectedHistoryTurns * 2, null, ct)).ToArray();
         if (recent.Length != Math.Min(options.ProtectedHistoryTurns * 2, conversation.MessageCount) || recent.Length % 2 != 0) throw new ChatConflictException();
         for (var i = 0; i < recent.Length; i += 2)
@@ -54,8 +56,7 @@ public static class ConversationContext
         var through = conversation.MessageCount - recent.Length;
         var files = await repository.ContextFilesAsync(conversation.Id, Math.Max(1, through + 1), ct);
         var available = maximum - fixedCost;
-        var memoryBudget = available - (files.Count == 0 ? 0 : options.DocumentContextTokens == 0
-            ? available / 3 : Math.Min(available, options.DocumentContextTokens));
+        var memoryBudget = available - (files.Count == 0 ? 0 : EvidenceComposer.DocumentReserve(available, options, 3));
         var ledger = StructuredMemory.Read(conversation.MemoryLedgerJson);
         var memoryIdentity = options.ModelIdentity ?? conversation.Model + ":identity-unavailable";
         var invalidated = ledger.Through > 0 && (ledger.Through > through || ledger.ModelIdentity != memoryIdentity || ledger.PromptVersion != StructuredMemory.PromptVersion);
@@ -138,7 +139,7 @@ public static class ConversationContext
         if (used > maximum) throw new InvalidOperationException("Le contexte préparé dépasse son budget.");
         return new(new(messages, recent.Length + (pressure ? 0 : pending.Count), used, excerpts.Sources.Count,
             pressure && ledger.Through < through, ledger.Through, memory.Text, calls, excerpts.Sources, excerpts.Available,
-            Retrieval: options.RetrievalReport, Memory: memory.Report), memory.Text, ledger.Through, ledger.ChainHash, changed,
+            Retrieval: options.RetrievalReport, Memory: memory.Report, Assembly: excerpts.Assembly), memory.Text, ledger.Through, ledger.ChainHash, changed,
             changed ? StructuredMemory.Serialize(ledger) : null);
     }
 }

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 using Alycia.Modules.Chat.Application;
 
 namespace Alycia.Modules.Chat.Infrastructure;
@@ -10,7 +11,9 @@ public sealed partial class ProjectToolService
         var query = Query(args);
         var offset = Int(args, "offset", 0, 0, 100000);
         var limit = Int(args, "limit", 8, 1, 20);
-        var snapshot = await (index ?? new ProjectIndexService(database, reader.Storage, reader)).BuildAsync(conversation, ct);
+        var allowed = await (await SourcesAsync(conversation, ct)).Where(f => f.ContextMode != "excluded" && f.Text != "")
+            .Select(f => f.Id).ToArrayAsync(ct);
+        var snapshot = await (index ?? new ProjectIndexService(database, reader.Storage, reader, defaults)).BuildScopedAsync(conversation, allowed.ToHashSet(), ct);
         var lexical = ProjectRetrieval.Bm25(snapshot.Chunks, query);
         var scores = snapshot.Chunks.Select((c, i) => (c, score: lexical[i])).ToDictionary(x => ProjectRetrieval.Reference(x.c), x => x.score);
         var ranked = tool == "project_search_passages" ? ProjectRetrieval.Rank(snapshot.Chunks, query, lexicalScores: lexical)

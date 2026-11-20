@@ -40,9 +40,12 @@ internal static partial class ChatEndpoints
         builder.Services.AddScoped<IProjectIndex, ProjectIndexService>();
         builder.Services.AddSingleton<LexicalIndexCache>();
         builder.Services.AddScoped<PostgresEmbeddingStore>();
+        builder.Services.AddScoped<TemporalMemoryStore>();
+        builder.Services.AddScoped<ITemporalMemory>(sp => sp.GetRequiredService<TemporalMemoryStore>());
         builder.Services.AddScoped<BackgroundEmbeddingIndex>();
         builder.Services.AddScoped<IIndexedEmbeddings>(sp => sp.GetRequiredService<BackgroundEmbeddingIndex>());
         builder.Services.AddHostedService<EmbeddingWorker>();
+        builder.Services.AddSingleton<IPassageReranker>(_ => new OnnxPassageReranker(Environment.GetEnvironmentVariable("ALYCIA_RERANK_DIRECTORY")));
         builder.Services.AddScoped<IProjectRetrieval, ProjectRetrievalService>();
         builder.Services.AddHttpClient<ILocalEmbeddings, OllamaEmbeddings>(http =>
         { http.BaseAddress = uri; http.Timeout = Timeout.InfiniteTimeSpan; http.MaxResponseContentBufferSize = 8 * 1024 * 1024; })

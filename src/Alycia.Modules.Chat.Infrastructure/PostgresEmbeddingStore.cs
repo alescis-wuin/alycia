@@ -6,10 +6,14 @@ using NpgsqlTypes;
 
 namespace Alycia.Modules.Chat.Infrastructure;
 
-public sealed record EmbeddingSettings(string Model, int BatchSize, int ChunkCharacters, bool History, string SourceRevision = "")
+public sealed record EmbeddingSettings(string Model, int BatchSize, int ChunkCharacters, bool History, string SourceRevision = "", bool Hierarchical = false, string DocumentPrefix = "", string QueryPrefix = "")
 {
     public static EmbeddingSettings From(ChatOptions options) => new(options.EmbeddingModel, options.EmbeddingBatchSize,
-        options.EmbeddingChunkCharacters, options.EmbedHistory);
+        options.EmbeddingChunkCharacters, options.EmbedHistory, Hierarchical: options.HierarchicalIndexEnabled,
+        DocumentPrefix: options.EmbeddingDocumentPrefix, QueryPrefix: options.EmbeddingQueryPrefix);
+    public bool Versioned => Hierarchical || DocumentPrefix.Length > 0 || QueryPrefix.Length > 0;
+    public string VectorSpace(string digest, int dimensions) => !Versioned ? digest : digest + ":pipeline-v4:" + dimensions + ":"
+        + StructuredMemory.Hash(JsonSerializer.Serialize(new { Hierarchical, ChunkCharacters, DocumentPrefix, QueryPrefix, Normalization = "cosine" }));
 }
 public sealed record EmbeddingJob(EmbeddingProgress Progress, EmbeddingSettings Settings, int Revision, string Fingerprint);
 
@@ -55,7 +59,17 @@ public sealed class PostgresEmbeddingStore(ChatDbContext database)
                 reader.GetInt32(4), reader.GetString(5), settings.Model, reader.GetFieldValue<DateTimeOffset>(7)),
                 settings, reader.GetInt32(8), reader.GetString(9)));
         }
-        return jobs.Select(j => j with { Progress = j.Progress with { BatchSize = j.Settings.BatchSize, ChunkCharacters = j.Settings.ChunkCharacters } }).ToArray();
+        return jobs.Select(j => j with
+        {
+            Progress = j.Progress with
+            {
+                BatchSize = j.Settings.BatchSize,
+                ChunkCharacters = j.Settings.ChunkCharacters,
+                Hierarchical = j.Settings.Hierarchical,
+                DocumentPrefix = j.Settings.DocumentPrefix,
+                QueryPrefix = j.Settings.QueryPrefix
+            }
+        }).ToArray();
     }
 
     public async Task PauseAsync(Guid owner, bool project, CancellationToken ct)
@@ -133,6 +147,32 @@ public sealed class PostgresEmbeddingStore(ChatDbContext database)
         command.Parameters.AddWithValue(sequence); command.Parameters.AddWithValue(chunk.Start); command.Parameters.AddWithValue(chunk.End);
         command.Parameters.AddWithValue(chunk.Sha256); command.Parameters.AddWithValue(vector);
         await command.ExecuteNonQueryAsync(ct);
+    }
+
+    public async Task<Dictionary<int, double>> MemorySimilaritiesAsync(Guid owner, string identity, int through, DateTimeOffset before,
+        float[] query, CancellationToken ct)
+    {
+        await using var connection = await OpenAsync(ct);
+        await using var ext = new NpgsqlCommand("SELECT EXISTS(SELECT 1 FROM pg_extension WHERE extname='vector')", connection);
+        var pgvector = await ext.ExecuteScalarAsync(ct) is true;
+        // Both variants compute exact cosine over the eligible history. Transfer at most 32 ranks.
+        var distance = pgvector ? "1 - (v.embedding::vector <=> $5::real[]::vector)" : """
+            (SELECT sum(x::float8 * y) / nullif(sqrt(sum(x::float8*x) * sum(y::float8*y)),0)
+             FROM unnest(v.embedding,$5::real[]) AS pairs(x,y))
+            """;
+        await using var cmd = new NpgsqlCommand($"""
+            SELECT v.sequence, max({distance}) AS similarity
+            FROM chat.embedding_vectors v JOIN chat.temporal_memory t ON t.owner=v.conversation_id AND t.sequence=v.sequence
+            WHERE v.conversation_id=$1 AND v.identity=$2 AND v.sequence<=$3 AND t.observed<$4
+                AND cardinality(v.embedding)=cardinality($5::real[]) AND v.content_hash=t.facts->0->>'sha256'
+            GROUP BY v.sequence ORDER BY similarity DESC NULLS LAST, v.sequence DESC LIMIT 32
+            """, connection);
+        cmd.Parameters.AddWithValue(owner); cmd.Parameters.AddWithValue(identity); cmd.Parameters.AddWithValue(through);
+        cmd.Parameters.AddWithValue(before); cmd.Parameters.AddWithValue(query);
+        await using var reader = await cmd.ExecuteReaderAsync(ct);
+        var scores = new Dictionary<int, double>();
+        while (await reader.ReadAsync(ct)) if (!reader.IsDBNull(1)) scores[reader.GetInt32(0)] = reader.GetDouble(1);
+        return scores;
     }
 
     public async Task<Dictionary<string, double>> SimilaritiesAsync(string identity, string[] keys, float[] query, CancellationToken ct)

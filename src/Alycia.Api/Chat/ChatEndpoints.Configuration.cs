@@ -38,34 +38,27 @@ internal static partial class ChatEndpoints
         });
 
         routes.MapPost("/conversations/{id:guid}/context", async (Guid id, PreviewContext request,
-            IChatRepository repository, IChatModel model, IProjectTools tools, IProjectRetrieval retrieval, ChatOptions defaults, CancellationToken ct) =>
+            IChatRepository repository, IChatModel model, IProjectTools tools, IProjectRetrieval retrieval, ITemporalMemory memory, ChatOptions defaults, CancellationToken ct) =>
         {
             var conversation = await repository.FindAsync(id, ct) ?? throw new ConversationNotFoundException();
             var options = await model.PrepareOptionsAsync(conversation.Model, ConversationConfiguration.Options(conversation, defaults), ct);
             var text = Conversation.RequiredText(request.Content, 32000, "Le message");
             var measurements = new MeteredChatModel(model);
-            if (options.RetrievalMode != "legacy")
-            {
-                var selected = await retrieval.PrepareAsync(id, text, options, ct);
-                options.SourceCandidates = selected.Chunks; options.RetrievalReport = selected.Report; measurements.AddCalls(selected.Calls);
-            }
+            await QueryRouting.PrepareAsync(repository, conversation, text, options, retrieval, measurements, ct, memory);
             var useTools = options.UseProjectTools && await tools.HasSourcesAsync(id, ct) && await model.SupportsToolsAsync(conversation.Model, ct);
-            var protectedTokens = TokenBudget.Count(text, options) + TokenBudget.Count(ConversationConfiguration.System(conversation), options);
-            if (useTools && options.AutoSummarize)
-                protectedTokens += (await repository.MessagesAsync(id, options.ProtectedHistoryTurns * 2, null, ct)).Sum(m => TokenBudget.Count(m.Content, options));
-            var contextOptions = useTools ? ProjectAgent.ContextOptions(options, protectedTokens) : options;
+            var contextOptions = await ProjectAgent.ContextOptionsAsync(repository, conversation, text, options, useTools, ct);
             ContextWindow context;
-            if (options.AutoSummarize)
+            if (options.AutoSummarize || options.Recall is not null)
                 context = (await ConversationContext.BuildAsync(repository, model, conversation, text, contextOptions, false, null, ct)).Context;
             else
             {
                 var history = await repository.MessagesAsync(id, options.MaxHistoryTurns * 2, null, ct);
                 var files = await repository.ContextFilesAsync(id, Math.Max(1, conversation.MessageCount - options.MaxHistoryTurns * 2 + 1), ct);
-                context = FileContext.Build(ConversationConfiguration.System(conversation), history, text, contextOptions, files, conversation.MessageCount + 1);
+                context = FileContext.Build(ConversationConfiguration.System(conversation, options), history, text, contextOptions, files, conversation.MessageCount + 1);
             }
             return Results.Ok(new
             {
-                context = context with { ToolReserve = contextOptions.SafetyTokens - options.SafetyTokens },
+                context = context with { Route = options.Route, ToolReserve = contextOptions.SafetyTokens - options.SafetyTokens },
                 options,
                 conversation.Revision,
                 omittedMessages = conversation.MessageCount - context.HistoryMessagesIncluded,

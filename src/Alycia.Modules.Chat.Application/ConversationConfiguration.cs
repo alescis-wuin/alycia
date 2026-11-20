@@ -23,8 +23,10 @@ public static class ConversationConfiguration
         return JsonSerializer.Serialize(options, Json);
     }
 
-    public static string System(Conversation conversation) => (conversation.ProjectSnapshot?.SystemText() ?? "") + conversation.SystemPrompt
-        + (conversation.ContextNotes.Length == 0 ? "" : "\n\nNotes de référence fournies par l’utilisateur :\n" + conversation.ContextNotes);
+    public static string System(Conversation conversation, ChatOptions? options = null) => (conversation.ProjectSnapshot?.SystemText() ?? "") + conversation.SystemPrompt
+        + (conversation.ContextNotes.Length == 0 ? "" : "\n\nNotes de référence fournies par l’utilisateur :\n" + conversation.ContextNotes)
+        + (options?.Route?.Mode == "unavailable" ? "\n\nLe fichier demandé est indisponible pour cet échange. Signale cette limite et demande le document si nécessaire." : "")
+        + (options?.SearchPlan?.Ambiguous == true ? "\n\nAucun antécédent unique pour la référence de cette question. Demande une précision si la réponse en dépend." : "");
 
     public static void CheckRevision(Conversation conversation, int revision)
     {

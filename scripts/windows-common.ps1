@@ -5,6 +5,7 @@ $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $false
 $script:RepoRoot = Split-Path -Parent $PSScriptRoot
 $script:ComposeArgs = @('compose', '-f', 'compose.yaml', '-f', 'compose.windows.yaml')
+if ($env:ALYCIA_RERANK_MODEL_PATH) { $script:ComposeArgs += @('-f', 'compose.rerank.yaml') }
 
 function Invoke-Checked {
     param([string]$Program, [string[]]$Arguments, [switch]$Capture)

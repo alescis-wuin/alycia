@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 
 namespace Alycia.Modules.Chat.Application;
 
-public sealed record EvidenceText(string Reference, string Text);
+public sealed record EvidenceText(string Reference, string Text, string? Role = null);
 public sealed record ClaimFinding(string Text, string[] References, string Status, string Reason);
 public sealed record ClaimReport(ClaimFinding[] Findings, int Omitted, string Policy = "heuristic-v1; quotations and lexical overlap do not establish truth");
 
@@ -60,7 +60,7 @@ public static class ClaimAudit
             {
                 if (node.TryGetProperty("reference", out var reference) && reference.ValueKind == JsonValueKind.String
                     && allowed.Contains(reference.GetString()) && node.TryGetProperty("text", out var text) && text.ValueKind == JsonValueKind.String)
-                    found.Add(new(reference.GetString()!, text.GetString()!));
+                    found.Add(new(reference.GetString()!, text.GetString()!, (result.History ?? []).FirstOrDefault(h => h.Reference == reference.GetString())?.Role));
                 foreach (var property in node.EnumerateObject()) Visit(property.Value);
             }
             else if (node.ValueKind == JsonValueKind.Array) foreach (var item in node.EnumerateArray()) Visit(item);

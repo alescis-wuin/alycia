@@ -13,8 +13,9 @@ public sealed partial class ChatApiClient
 {
     public Task<EmbeddingProgress[]> IndexingAsync(Guid owner, bool project, CancellationToken ct) =>
         SendAsync<EmbeddingProgress[]>(HttpMethod.Get, $"/indexing?owner={owner}&project={project.ToString().ToLowerInvariant()}", null, ct);
-    public Task QueueIndexingAsync(Guid owner, bool project, string? model, CancellationToken ct, int? batchSize = null, int? chunkCharacters = null) =>
-        SendAsync<object>(HttpMethod.Post, "/indexing", new { owner, project, model, batchSize, chunkCharacters }, ct);
+    public Task QueueIndexingAsync(Guid owner, bool project, string? model, CancellationToken ct, int? batchSize = null, int? chunkCharacters = null,
+        bool? hierarchical = null, string? documentPrefix = null, string? queryPrefix = null) =>
+        SendAsync<object>(HttpMethod.Post, "/indexing", new { owner, project, model, batchSize, chunkCharacters, hierarchical, documentPrefix, queryPrefix }, ct);
     public Task PauseIndexingAsync(Guid owner, bool project, CancellationToken ct) =>
         SendAsync<object>(HttpMethod.Post, "/indexing/pause", new { owner, project }, ct);
 }
@@ -68,7 +69,7 @@ public partial class ChatWindow
 
     private async Task QueueIndexingAsync(Guid owner, bool project)
     {
-        string? model = null;
+        string? model = null; bool? hierarchical = null; string? documentPrefix = null, queryPrefix = null;
         int? batchSize = null; int? chunkCharacters = null;
         if (project)
         {
@@ -76,19 +77,22 @@ public partial class ChatWindow
             var input = Input(existing?.Model ?? "", 200);
             var batch = Input((existing?.BatchSize ?? 16).ToString(), 2);
             var chunk = Input((existing?.ChunkCharacters ?? 1600).ToString(), 4);
+            var enriched = new CheckBox { Content = "Indexer les sections parentes et les symboles", IsChecked = existing?.Hierarchical ?? false };
+            var doc = Input(existing?.DocumentPrefix ?? "", 256); var query = Input(existing?.QueryPrefix ?? "", 256);
             if (!await EditDialogAsync("Indexer les documents du projet", new StackPanel
             {
                 Spacing = 10,
                 Children = { Label("Nom exact du modèle d’embeddings installé dans Ollama"), input,
-                    Label("Passages par lot · 1 à 64"), batch, Label("Caractères par passage · 128 à 3200"), chunk }
+                    Label("Passages par lot · 1 à 64"), batch, Label("Caractères par passage · 128 à 3200"), chunk, enriched,
+                    Label("Préfixe des documents"), doc, Label("Préfixe des requêtes"), query }
             },
                 "Démarrer", () => string.IsNullOrWhiteSpace(input.Text) ? "Indiquez un modèle local d’embeddings."
                     : !int.TryParse(batch.Text, out var b) || b is < 1 or > 64 || !int.TryParse(chunk.Text, out var c) || c is < 128 or > 3200
                         ? "Vérifiez la taille des lots et des passages." : null)) return;
-            model = input.Text!.Trim();
+            model = input.Text!.Trim(); hierarchical = enriched.IsChecked == true; documentPrefix = doc.Text; queryPrefix = query.Text;
             batchSize = int.Parse(batch.Text!); chunkCharacters = int.Parse(chunk.Text!);
         }
-        await _client.QueueIndexingAsync(owner, project, model, _lifetime.Token, batchSize, chunkCharacters);
+        await _client.QueueIndexingAsync(owner, project, model, _lifetime.Token, batchSize, chunkCharacters, hierarchical, documentPrefix, queryPrefix);
         _indexingOwner = owner; _indexingProject = project;
         await RefreshIndexingAsync();
     }

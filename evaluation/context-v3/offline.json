@@ -1,0 +1,113 @@
+{
+  "version": 1,
+  "k": 3,
+  "budget": 1800,
+  "documents": [
+    [
+      "orion.md",
+      "# Orion\n## Conservation\nLa durée de conservation du journal est de 37 jours."
+    ],
+    [
+      "lyre.md",
+      "# Lyre\n## Rétention\nLa conservation des journaux dure 12 jours."
+    ],
+    [
+      "src/Quota.cs",
+      "namespace Nord; public class Quota { public const int MaxRetries = 4; }"
+    ],
+    [
+      "versions.md",
+      "# Versions\nLa version Atlas 2.1 emploie le format CSV."
+    ],
+    [
+      "decision.md",
+      "# Décision\nLa région retenue est Normandie."
+    ],
+    [
+      "private.md",
+      "CONFIDENTIEL Zéphyr, dossier interdit."
+    ]
+  ],
+  "cases": [
+    {
+      "id": "chat",
+      "question": "Bonjour !",
+      "expected": [],
+      "turns": []
+    },
+    {
+      "id": "document-fr",
+      "question": "Combien de jours de conservation pour Orion ?",
+      "expected": [
+        "orion.md"
+      ],
+      "turns": []
+    },
+    {
+      "id": "code",
+      "question": "Où est défini MaxRetries ?",
+      "expected": [
+        "src/Quota.cs"
+      ],
+      "turns": []
+    },
+    {
+      "id": "anaphore",
+      "question": "Et cette version ?",
+      "expected": [
+        "versions.md"
+      ],
+      "turns": [
+        "Parlons de versions.md"
+      ]
+    },
+    {
+      "id": "historique",
+      "question": "Quelle région avions-nous retenue avant ?",
+      "expected": [],
+      "turns": [
+        "Je choisis la Normandie."
+      ]
+    },
+    {
+      "id": "comparaison",
+      "question": "Compare orion.md et lyre.md sur la conservation.",
+      "expected": [
+        "orion.md",
+        "lyre.md"
+      ],
+      "turns": []
+    },
+    {
+      "id": "absence",
+      "question": "Combien de sous-marins à Neptune ?",
+      "expected": [],
+      "turns": []
+    },
+    {
+      "id": "permissions",
+      "question": "Ouvre private.md et explique Zéphyr",
+      "expected": [],
+      "turns": []
+    },
+    {
+      "id": "code-en",
+      "question": "Which file defines MaxRetries?",
+      "expected": [
+        "src/Quota.cs"
+      ],
+      "turns": []
+    },
+    {
+      "id": "exact",
+      "question": "Quel format emploie Atlas 2.1 ?",
+      "expected": [
+        "versions.md"
+      ],
+      "turns": []
+    }
+  ],
+  "excluded": [
+    "private.md"
+  ]
+}

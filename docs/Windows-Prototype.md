@@ -1,6 +1,6 @@
 # Windows launcher
 
-Branch: `prototype/conversation-files`. Target: Windows 11 x64, Windows PowerShell
+Branch: `feature/local-client-v4-context-quality-20261117`. Target: Windows 11 x64, Windows PowerShell
 5.1 or PowerShell 7, Docker Desktop with Linux containers. GNU Make, Bash, Python
 and a native Ollama installation are not required for this workflow.
 
@@ -9,7 +9,7 @@ and a native Ollama installation are not required for this workflow.
 Paste this **single command into PowerShell** under your usual Windows account:
 
 ```powershell
-& { $ErrorActionPreference = 'Stop'; $bootstrap = Join-Path $env:TEMP ('alycia-' + [guid]::NewGuid() + '.ps1'); Invoke-WebRequest -UseBasicParsing 'https://raw.githubusercontent.com/alescis-wuin/alycia/prototype/conversation-files/scripts/bootstrap-windows.ps1' -OutFile $bootstrap; try { powershell.exe -NoProfile -ExecutionPolicy Bypass -File $bootstrap; if ($LASTEXITCODE -ne 0) { throw 'Setup stopped. Read the message above, then rerun this command.' } } finally { Remove-Item -LiteralPath $bootstrap -Force } }
+& { $ErrorActionPreference = 'Stop'; $bootstrap = Join-Path $env:TEMP ('alycia-' + [guid]::NewGuid() + '.ps1'); Invoke-WebRequest -UseBasicParsing 'https://raw.githubusercontent.com/alescis-wuin/alycia/feature/local-client-v4-context-quality-20261117/scripts/bootstrap-windows.ps1' -OutFile $bootstrap; try { powershell.exe -NoProfile -ExecutionPolicy Bypass -File $bootstrap; if ($LASTEXITCODE -ne 0) { throw 'Setup stopped. Read the message above, then rerun this command.' } } finally { Remove-Item -LiteralPath $bootstrap -Force } }
 ```
 
 This downloads the repository's bootstrap into a temporary file and runs it in a
@@ -28,8 +28,8 @@ The bootstrap:
    where absent and preserves the existing PostgreSQL password.
 6. Starts PostgreSQL and Ollama, verifies database credentials and applies both
    modules' idempotent EF migrations.
-7. Downloads `qwen2.5:1.5b` into Ollama's persistent Docker volume, builds/starts
-   the API, checks authenticated database/model endpoints and opens Avalonia.
+7. Starts the API with the models already installed in Ollama's persistent Docker volume,
+   checks the endpoints and opens Avalonia. Pass `-PullModel -Model 'model:tag'` to explicitly download a model.
 
 Complete any Windows elevation, Docker Desktop first-run or restart prompts.
 There is no automatic reboot. If WinGet is absent, install/update Microsoft's
@@ -42,7 +42,7 @@ Ollama models are not copied into the Docker volume. GPU acceleration and Window
 ARM64 have not been validated in this prototype.
 
 For a different checkout path/model, download the bootstrap and pass its optional
-`-Destination 'C:\Projects\Alycia' -Model 'your-local-model:tag'` parameters.
+`-Destination 'C:\Projects\Alycia' -PullModel -Model 'your-local-model:tag'` parameters.
 
 ## Relaunch and maintenance
 

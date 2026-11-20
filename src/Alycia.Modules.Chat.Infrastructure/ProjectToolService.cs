@@ -51,8 +51,18 @@ public sealed partial class ProjectToolService(ChatDbContext database, ProjectSo
         catch (ArgumentException e) { return new(Json(new { error = e.Message }), true); }
     }
 
+    private async Task<IQueryable<Alycia.Modules.Chat.Domain.Attachment>> SourcesAsync(Guid id, CancellationToken ct)
+    {
+        var owner = await database.Conversations.AsNoTracking().SingleOrDefaultAsync(c => c.Id == id, ct) ?? throw new ConversationNotFoundException();
+        var options = ConversationConfiguration.Options(owner, defaults);
+        var sources = database.ModelSources(id);
+        if (!options.AgentPlanningEnabled && options.RoutingMode == "off" && !options.VerificationSearchEnabled) return sources;
+        var first = Math.Max(1, owner.MessageCount - 2 * (options.AutoSummarize ? options.ProtectedHistoryTurns : options.MaxHistoryTurns) + 1);
+        return sources.Where(f => f.ContextMode != "excluded" && f.Text != "" && f.AnchorSequence <= owner.MessageCount + 1 &&
+            (f.ContextMode == "pinned" || f.ContextMode == "project" || f.AnchorSequence >= first));
+    }
     private sealed record Entry(Guid Id, string Path, long Bytes, string Mode, string Status, bool Readable);
-    private Task<Entry[]> EntriesAsync(Guid id, CancellationToken ct) => database.ModelSources(id).OrderBy(f => f.Name).ThenBy(f => f.Id)
+    private async Task<Entry[]> EntriesAsync(Guid id, CancellationToken ct) => await (await SourcesAsync(id, ct)).OrderBy(f => f.Name).ThenBy(f => f.Id)
         .Select(f => new Entry(f.Id, f.Name, f.Size, f.ContextMode, f.Status, f.ContextMode != "excluded" && f.Text != "")).ToArrayAsync(ct);
 
     private async Task<ProjectToolResult> ListAsync(Guid id, JsonElement args, int budget, CancellationToken ct)
@@ -97,7 +107,7 @@ public sealed partial class ProjectToolService(ChatDbContext database, ProjectSo
     {
         if (!args.TryGetProperty("fileId", out var key) || key.ValueKind != JsonValueKind.String || !key.TryGetGuid(out var id))
             throw new ArgumentException("fileId doit être l’identifiant fourni par l’inventaire ou la recherche.");
-        var file = await database.ModelSources(conversation).SingleOrDefaultAsync(f => f.Id == id, ct)
+        var file = await (await SourcesAsync(conversation, ct)).SingleOrDefaultAsync(f => f.Id == id, ct)
             ?? throw new ArgumentException("Fichier introuvable dans cette conversation.");
         var source = await reader.ReadAsync(file, ct);
         if (source.Text.Length == 0) throw new ArgumentException("Aucun texte disponible : " + source.Origin);

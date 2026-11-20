@@ -1,12 +1,16 @@
 namespace Alycia.Modules.Chat.Application;
 
 public sealed record EmbeddingProgress(Guid OwnerId, bool IsProject, string State, int Completed, int Total,
-    string Detail, string Model, DateTimeOffset UpdatedAt, int BatchSize = 16, int ChunkCharacters = 1600);
+    string Detail, string Model, DateTimeOffset UpdatedAt, int BatchSize = 16, int ChunkCharacters = 1600,
+    bool Hierarchical = false, string DocumentPrefix = "", string QueryPrefix = "");
 public sealed record SemanticSearch(double[] Scores, int Hits, IReadOnlyList<ModelCallUsage> Calls, string? Warning = null);
+public sealed record MemoryVectorMatches(IReadOnlyDictionary<int, double> Scores, IReadOnlyList<ModelCallUsage> Calls, string? Warning = null);
 public interface IIndexedEmbeddings
 {
     Task<SemanticSearch> SearchAsync(Guid conversation, string query, ChatOptions settings,
         IReadOnlyList<SourceChunk> chunks, CancellationToken ct);
+    Task<MemoryVectorMatches> SearchMemoryAsync(Guid owner, string question, ChatOptions settings, int through, DateTimeOffset before, CancellationToken ct) =>
+        Task.FromResult(new MemoryVectorMatches(new Dictionary<int, double>(), [], "Index vectoriel historique indisponible."));
     Task<SemanticSearch> SearchHistoryAsync(Guid conversation, string query, ChatOptions settings,
         IReadOnlyList<Alycia.Modules.Chat.Domain.ChatMessage> messages, CancellationToken ct) =>
         Task.FromResult(new SemanticSearch(new double[messages.Count], 0, []));
@@ -14,7 +18,7 @@ public interface IIndexedEmbeddings
 
 public static class EmbeddingChunks
 {
-    public static string Text(SourceChunk c) => c.Path + "\n" + c.Symbol + "\n" + c.Text;
+    public static string Text(SourceChunk c) => c.Path + "\n" + c.Symbol + "\n" + (c.IndexContext is null ? "" : c.IndexContext + "\n") + c.Text;
     // Coordinates, content and extractor versions invalidate vectors without destroying originals.
     public static string Key(SourceChunk c) => StructuredMemory.Hash($"embeddings-v3|{c.FileId}|{c.Sha256}|{c.Start}|{c.End}|" + Text(c));
 

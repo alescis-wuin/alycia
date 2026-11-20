@@ -1,0 +1,4 @@
+<Project>
+  <!-- Replaces the transitive Avalonia.BuildServices compilation telemetry target. -->
+  <Target Name="AvaloniaStats" />
+</Project>

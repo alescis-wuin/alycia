@@ -8,6 +8,21 @@ namespace Alycia.Modules.Chat.Infrastructure;
 
 public sealed partial class OllamaChatModel
 {
+    public async Task<long?> ResidentVramAsync(string model, CancellationToken ct)
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeout.CancelAfter(TimeSpan.FromMilliseconds(250));
+        try
+        {
+            using var response = await http.GetAsync("api/ps", timeout.Token);
+            if (!response.IsSuccessStatusCode) return null;
+            using var json = JsonDocument.Parse(await response.Content.ReadAsByteArrayAsync(timeout.Token));
+            foreach (var item in json.RootElement.GetProperty("models").EnumerateArray())
+                if (item.GetProperty("name").GetString() == model && item.TryGetProperty("size_vram", out var bytes) && bytes.TryGetInt64(out var size)) return size;
+        }
+        catch (Exception e) when (e is HttpRequestException or JsonException or KeyNotFoundException or OperationCanceledException or InvalidOperationException) { }
+        return null;
+    }
     private sealed record CounterResult(ITextTokenCounter? Counter, int? ContextLimit);
     private static readonly ConcurrentDictionary<string, CounterResult> Counters = new();
     public async Task<ChatOptions> PrepareOptionsAsync(string model, ChatOptions settings, CancellationToken ct)

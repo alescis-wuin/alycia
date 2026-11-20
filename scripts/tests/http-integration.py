@@ -77,6 +77,17 @@ class Ollama(BaseHTTPRequestHandler):
         assert self.path == "/api/chat" and request["model"] in ("demo", "tool-demo"), "Un modèle non génératif a reçu une demande de chat"
         prompt = json.dumps(request["messages"], ensure_ascii=False)
         assert "NE_JAMAIS_RESUMER_CE_CONTENU" not in prompt, "Un contenu exclu a été envoyé au modèle"
+        if request["messages"][-1]["content"].startswith("QA_ADVANCED"):
+            import re
+            marker = re.search(r"\[(S[0-9A-F]{12})\]", request["messages"][-1]["content"])
+            assert marker and request["options"]["num_ctx"] < 8192 and request["options"]["num_predict"] == 256
+            reply = {"message": {"role": "assistant", "content": f"La conservation Orion est de 79 jours [{marker[1]}]."},
+                     "done": True, "done_reason": "stop", "eval_count": 12, "prompt_eval_count": 60}
+            self.send_response(200)
+            self.send_header("Content-Type", "application/x-ndjson")
+            self.end_headers()
+            self.wfile.write(json.dumps(reply).encode() + b"\n")
+            return
         if request["messages"][-1]["content"].startswith("BOR_TEST_SNAPSHOT"):
             assert "INSTRUCTION_V1" in prompt and "INSTRUCTION_V2" not in prompt
             Ollama.turn_started.set()
@@ -433,9 +444,50 @@ def verify_boreale(call, checks):
     checks.append("project_source_survives_chat_then_explicit_withdrawal_preserves_history")
 
 
+def verify_context_quality(call, checks):
+    conv = call("POST", "/conversations", {"title": "Contextualisation", "model": "demo", "systemPrompt": "Consulte les originaux."}, expected=201)
+    prefix = "/conversations/" + conv["id"]
+    try:
+        settings = call("GET", prefix + "/settings")
+        options = dict(settings["options"], routingMode="auto", queryRewriteEnabled=True, evidenceSelectionEnabled=True,
+                       rerankEnabled=True, hierarchicalIndexEnabled=True, temporalMemoryEnabled=True, claimVerificationEnabled=True,
+                       verificationSearchEnabled=True, adaptiveInferenceEnabled=True, generateUntilStop=False,
+                       maxOutputTokens=256, useProjectTools=False)
+        call("PUT", prefix + "/settings", {"revision": conv["revision"], "model": "demo",
+             "systemPrompt": conv["systemPrompt"], "contextNotes": "", "options": options})
+        boundary = "qc-" + uuid.uuid4().hex
+        body = (f'--{boundary}\r\nContent-Disposition: form-data; name="files"; filename="orion.md"\r\n'
+                'Content-Type: text/plain\r\n\r\n# Orion\nLa conservation Orion est de 37 jours.\r\n'
+                f'--{boundary}--\r\n').encode()
+        call("POST", prefix + "/files/" + str(uuid.uuid4()), raw=body, headers={"Content-Type": "multipart/form-data; boundary=" + boundary})
+        question = "QA_ADVANCED : lis orion.md et précise la conservation Orion."
+        preview = call("POST", prefix + "/context", {"content": question})["context"]
+        assert preview["route"]["search"] and preview["assembly"]["used"] <= preview["assembly"]["budget"]
+        assert preview["retrieval"]["plan"]["original"] == question
+        assert preview["retrieval"]["rerank"]["state"] == "unavailable"
+        request_id = str(uuid.uuid4())
+        revision = call("GET", prefix + "/settings")["conversation"]["revision"]
+        request = {"requestId": request_id, "revision": revision, "content": question}
+        events = call("POST", prefix + "/stream", request)
+        assert events[-1]["type"] == "done", events[-1]
+        assistant = events[-1]["result"]["messages"][-1]
+        assert assistant["content"] == "".join(e.get("content") or "" for e in events if e["type"] == "delta")
+        assert "Vérification après génération" in assistant["content"]
+        diagnostics = json.loads(assistant["diagnosticsJson"])
+        assert diagnostics["claims"]["findings"][0]["status"] == "contradicted"
+        assert diagnostics["verification"]["status"] == "supplementary_contradiction"
+        assert 0 < diagnostics["usage"]["calls"][-1]["effectiveContextTokens"] < options["contextTokens"]
+        replay = call("POST", prefix + "/stream", request)[-1]["result"]
+        assert replay["replayed"] and replay["messages"][-1]["content"] == assistant["content"]
+        checks.extend(["scope_preview_and_send", "onnx_fallback", "streamed_contradiction_and_bounded_second_search",
+                       "adaptive_ollama_payload", "quality_turn_idempotency"])
+    finally:
+        call("DELETE", prefix, expected=204)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--case", choices=("all", "tool-summary", "boreale", "indexing"), default="all")
+    parser.add_argument("--case", choices=("all", "tool-summary", "boreale", "indexing", "context-quality"), default="all")
     args = parser.parse_args()
     connection = os.environ.get("ALYCIA_CHAT_TEST_CONNECTION")
     if not connection:
@@ -448,6 +500,8 @@ def main():
         ALYCIA_CHAT_CONTAINER_MODE="false", ALYCIA_ENABLE_LOCAL_WORKSPACES="false",
         ALYCIA_ENABLE_LOCAL_CHAT="true", ASPNETCORE_ENVIRONMENT="Development", DOTNET_ENVIRONMENT="Development")
     env["ALYCIA_WORKSPACES_CONNECTION"] = env["ALYCIA_CHAT_CONNECTION"]
+    # This scenario exercises the fallback independently of any locally installed weights.
+    env.pop("ALYCIA_RERANK_DIRECTORY", None)
     ef = ["dotnet", "tool", "run", "dotnet-ef", "database"]
     ef_options = ["--project", "src/Alycia.Modules.Chat.Infrastructure", "--context", "ChatDbContext", "--no-build"]
     provider = ThreadingHTTPServer(("127.0.0.1", 0), Ollama)
@@ -505,6 +559,8 @@ def main():
                             client("DELETE", "/conversations/" + conversation, expected=204)
                     verify_structured_memory(client, checks)
                     checks.append("tool_citations_and_persisted_diagnostics")
+                if args.case in ("all", "context-quality"):
+                    verify_context_quality(client, checks)
                 if args.case in ("all", "indexing"):
                     verify_hybrid(client, checks)
                     verify_import_settings(client, checks)

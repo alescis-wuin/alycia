@@ -2,7 +2,7 @@ using Alycia.Modules.Chat.Domain;
 
 namespace Alycia.Modules.Chat.Application;
 
-public sealed partial class ChatService(IChatRepository repository, IChatModel model, ChatOptions options, IProjectTools? projectTools = null, IProjectRetrieval? retrieval = null, ISnapshotProjectTools? snapshotTools = null)
+public sealed partial class ChatService(IChatRepository repository, IChatModel model, ChatOptions options, IProjectTools? projectTools = null, IProjectRetrieval? retrieval = null, ISnapshotProjectTools? snapshotTools = null, ITemporalMemory? temporal = null)
 {
     public async Task<Conversation> CreateAsync(string? title, string? modelName, string? systemPrompt,
         CancellationToken cancellationToken, Guid? workspaceId = null)
@@ -54,25 +54,17 @@ public sealed partial class ChatService(IChatRepository repository, IChatModel m
 
         if (revision.HasValue) ConversationConfiguration.CheckRevision(conversation, revision.Value);
         var settings = await model.PrepareOptionsAsync(conversation.Model, ConversationConfiguration.Options(conversation, options), cancellationToken);
+        using var priority = settings.AdaptiveInferenceEnabled ? GenerationGate.Shared.PreferForeground() : null;
         var measured = new MeteredChatModel(model);
-        if (retrieval is not null && settings.RetrievalMode != "legacy")
-        {
-            if (onDelta is not null) await onDelta(new("", Status: "Recherche des sources pertinentes…"));
-            var sources = await retrieval.PrepareAsync(id, text, settings, cancellationToken);
-            settings.SourceCandidates = sources.Chunks; settings.RetrievalReport = sources.Report;
-            measured.AddCalls(sources.Calls);
-        }
+        if (onDelta is not null && retrieval is not null) await onDelta(new("", Status: "Préparation du contexte…"));
+        await QueryRouting.PrepareAsync(repository, conversation, text, settings, retrieval, measured, cancellationToken, temporal);
         var activeTools = conversation.WorkspaceId.HasValue && snapshotTools is not null ? snapshotTools : projectTools;
         var useTools = settings.UseProjectTools && activeTools is not null && await activeTools.HasSourcesAsync(id, cancellationToken)
             && await model.SupportsToolsAsync(conversation.Model, cancellationToken);
-        var protectedTokens = TokenBudget.Count(text, settings) + TokenBudget.Count(ConversationConfiguration.System(conversation), settings);
-        if (useTools && settings.AutoSummarize)
-            protectedTokens += (await repository.MessagesAsync(id, settings.ProtectedHistoryTurns * 2, null, cancellationToken))
-                .Sum(m => TokenBudget.Count(m.Content, settings));
-        var contextSettings = useTools ? ProjectAgent.ContextOptions(settings, protectedTokens) : settings;
+        var contextSettings = await ProjectAgent.ContextOptionsAsync(repository, conversation, text, settings, useTools, cancellationToken);
         PreparedContext? prepared = null;
         ContextWindow window;
-        if (settings.AutoSummarize)
+        if (settings.AutoSummarize || settings.Recall is not null)
         {
             prepared = await ConversationContext.BuildAsync(repository, measured, conversation, text, contextSettings, true,
                 onDelta is null ? null : status => onDelta(new("", Status: status)), cancellationToken);
@@ -82,7 +74,7 @@ public sealed partial class ChatService(IChatRepository repository, IChatModel m
         {
             var history = await repository.MessagesAsync(id, settings.MaxHistoryTurns * 2, null, cancellationToken);
             var files = await repository.ContextFilesAsync(id, Math.Max(1, conversation.MessageCount - settings.MaxHistoryTurns * 2 + 1), cancellationToken);
-            window = FileContext.Build(ConversationConfiguration.System(conversation), history, text, contextSettings, files, conversation.MessageCount + 1);
+            window = FileContext.Build(ConversationConfiguration.System(conversation, settings), history, text, contextSettings, files, conversation.MessageCount + 1);
         }
         if (useTools) window = window with { ToolReserve = contextSettings.SafetyTokens - settings.SafetyTokens };
         var generated = useTools ? await ProjectAgent.RunAsync(measured, activeTools!, id, conversation.Model, window, settings, onDelta, cancellationToken)
@@ -96,6 +88,31 @@ public sealed partial class ChatService(IChatRepository repository, IChatModel m
             throw new ChatModelException("Ollama a renvoyé une réponse vide ou invalide. Essayez un autre modèle.");
         }
 
+        var suppliedTexts = (generated.EvidenceTexts ?? []).Concat(window.MemoryTexts ?? []).ToArray();
+        var citations = CitationAudit.Check(reply, window.Sources, generated.Tools, window.Temporal?.Sources);
+        var claims = settings.ClaimVerificationEnabled ? SemanticClaimAudit.Check(reply, window.Sources, suppliedTexts)
+            : ClaimAudit.Check(reply, window.Sources, suppliedTexts);
+        VerificationFollowup? followup = null;
+        if (settings.ClaimVerificationEnabled && claims.Findings.FirstOrDefault(f => f.Status is "insufficient" or "contradicted") is { } gap)
+        {
+            followup = await SemanticClaimAudit.SearchAsync(gap, id, settings, retrieval, measured, cancellationToken);
+            var note = "\n\nVérification après génération — " + (gap.Status == "contradicted" ? "une affirmation contredit le passage cité" : "une affirmation manque de preuve")
+                + " : « " + FileContext.Utf8Prefix(gap.Text, 220) + " ».";
+            if (followup.Status == "supplementary_support")
+                note += " Une recherche complémentaire retrouve cette affirmation dans " + string.Join(", ", followup.References.Select(r => "[" + r + "]")) + ".";
+            if (followup.Status == "supplementary_support")
+            {
+                var extra = CitationAudit.Check(note, followup.Sources, []);
+                citations = citations with
+                {
+                    Supplied = citations.Supplied.Concat(extra.Supplied.Select(s => s with { Origin = "verification" })).DistinctBy(s => s.Reference).ToArray(),
+                    Recognized = citations.Recognized.Concat(followup.References).Distinct().ToArray(),
+                    Status = citations.Unknown.Length > 0 ? "unknown_references" : "references_recognized"
+                };
+            }
+            reply += note;
+            if (onDelta is not null) await onDelta(new(note));
+        }
         var user = new ChatMessage(id, conversation.MessageCount + 1, requestId, "user", text);
         var assistant = new ChatMessage(id, conversation.MessageCount + 2, requestId, "assistant", reply);
         if (generated.Tools is { Count: > 0 }) assistant.SetToolTrace(System.Text.Json.JsonSerializer.Serialize(generated.Tools, ProjectToolCatalog.Json));
@@ -105,8 +122,8 @@ public sealed partial class ChatService(IChatRepository repository, IChatModel m
             else conversation.SetMemory(prepared.Memory, prepared.Through, prepared.SourceHash, conversation.Model);
         }
         var usage = measured.Snapshot(settings);
-        assistant.SetDiagnostics(System.Text.Json.JsonSerializer.Serialize(new TurnDiagnostics(usage, settings.RetrievalReport, window.Memory, CitationAudit.Check(reply, window.Sources, generated.Tools), generated.Warnings,
-            ClaimAudit.Check(reply, window.Sources, generated.EvidenceTexts), conversation.WorkspaceId, conversation.ProjectSnapshot?.Revision), ProjectToolCatalog.Json));
+        assistant.SetDiagnostics(System.Text.Json.JsonSerializer.Serialize(new TurnDiagnostics(usage, settings.RetrievalReport, window.Memory, citations, generated.Warnings,
+            claims, conversation.WorkspaceId, conversation.ProjectSnapshot?.Revision, settings.Route, window.Assembly, window.Temporal, generated.Research, followup), ProjectToolCatalog.Json));
         conversation.CompleteTurn();
         // One atomic SaveChanges for both messages and the revision. A failed
         // model call/cancellation never leaves an orphan user message in storage.

@@ -25,6 +25,9 @@ internal static partial class ChatEndpoints
                 if (profile.Archived) throw new ArgumentException("Le projet est archivé.");
                 options = defaults.Copy();
                 options.EmbeddingModel = request.Model?.Trim() ?? options.EmbeddingModel;
+                options.HierarchicalIndexEnabled = request.Hierarchical ?? options.HierarchicalIndexEnabled;
+                options.EmbeddingDocumentPrefix = request.DocumentPrefix ?? options.EmbeddingDocumentPrefix;
+                options.EmbeddingQueryPrefix = request.QueryPrefix ?? options.EmbeddingQueryPrefix;
                 if (request.BatchSize.HasValue) options.EmbeddingBatchSize = request.BatchSize.Value;
                 if (request.ChunkCharacters.HasValue) options.EmbeddingChunkCharacters = request.ChunkCharacters.Value;
             }
@@ -67,5 +70,6 @@ internal static partial class ChatEndpoints
         });
     }
 
-    private sealed record QueueIndex(Guid Owner, bool Project, string? Model, int? BatchSize = null, int? ChunkCharacters = null);
+    private sealed record QueueIndex(Guid Owner, bool Project, string? Model, int? BatchSize = null, int? ChunkCharacters = null,
+        bool? Hierarchical = null, string? DocumentPrefix = null, string? QueryPrefix = null);
 }

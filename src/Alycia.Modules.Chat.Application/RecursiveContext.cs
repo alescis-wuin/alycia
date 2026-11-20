@@ -14,7 +14,7 @@ public static class RecursiveContext
         Conversation conversation, string question, ChatOptions options, bool summarize,
         Func<string, Task>? progress, CancellationToken ct)
     {
-        var system = ConversationConfiguration.System(conversation);
+        var system = ConversationConfiguration.System(conversation, options);
         var recent = (await repository.MessagesAsync(conversation.Id, options.ProtectedHistoryTurns * 2, null, ct)).TakeLast(options.ProtectedHistoryTurns * 2).ToArray();
         var budget = options.ContextTokens - options.MaxOutputTokens - options.SafetyTokens;
         var fixedCost = TokenBudget.Count(question, options) + recent.Sum(m => TokenBudget.Count(m.Content, options))
@@ -28,7 +28,7 @@ public static class RecursiveContext
         var throughLimit = conversation.MessageCount - recent.Length;
         var files = await repository.ContextFilesAsync(conversation.Id, Math.Max(1, throughLimit + 1), ct);
         var available = budget - fixedCost;
-        var documentsReserve = files.Count == 0 ? 0 : (options.DocumentContextTokens == 0 ? available / 4 : Math.Min(available, options.DocumentContextTokens));
+        var documentsReserve = files.Count == 0 ? 0 : EvidenceComposer.DocumentReserve(available, options, 4);
         var memoryBudget = available - documentsReserve;
         var valid = conversation.MemoryThroughSequence <= throughLimit && conversation.MemoryModel == conversation.Model;
         var memory = valid ? conversation.MemoryText : "";
@@ -80,7 +80,7 @@ public static class RecursiveContext
         used = messages.Sum(m => TokenBudget.Count(m.Content, options));
         if (used > budget) throw new InvalidOperationException("Le contexte préparé dépasse son budget.");
         return new(new(messages, pending.Count + recent.Length, used, excerpts.Sources.Count, needsSummary,
-            through, memory, reducer.Calls, excerpts.Sources, excerpts.Available, Retrieval: options.RetrievalReport), memory, through, hash, changed);
+            through, memory, reducer.Calls, excerpts.Sources, excerpts.Available, Retrieval: options.RetrievalReport, Assembly: excerpts.Assembly), memory, through, hash, changed);
     }
 
     private static void ValidatePair(ChatMessage user, ChatMessage assistant)

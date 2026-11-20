@@ -8,7 +8,7 @@ public sealed class LexicalIndex
     private readonly double _average;
     public LexicalIndex(IReadOnlyList<SourceChunk> chunks)
     {
-        _documents = chunks.Select(c => ProjectRetrieval.Tokens(c.Text + " " + c.Path + " " + c.Symbol + " " + c.Symbol + " " + c.Symbol)
+        _documents = chunks.Select(c => ProjectRetrieval.Tokens(c.Text + " " + c.Path + " " + c.Symbol + " " + c.Symbol + " " + c.Symbol + " " + c.IndexContext)
             .GroupBy(t => t).ToDictionary(g => g.Key, g => g.Count())).ToArray();
         _lengths = _documents.Select(d => d.Values.Sum()).ToArray();
         _average = Math.Max(1, _lengths.Length == 0 ? 1 : _lengths.Average());
@@ -38,7 +38,7 @@ public sealed class LexicalIndexCache
     public (LexicalIndex Index, bool Hit) Get(Guid conversation, IReadOnlyList<SourceChunk> chunks)
     {
         var fingerprint = StructuredMemory.Hash("lexical-v1\n" + string.Join('\n', chunks.Select(c =>
-            $"{c.FileId}:{c.Sha256}:{c.Start}:{c.End}:{c.Path}:{c.Symbol}:{StructuredMemory.Hash(c.Text)}")));
+            $"{c.FileId}:{c.Sha256}:{c.Start}:{c.End}:{c.Path}:{c.Symbol}:{c.IndexContext}:{StructuredMemory.Hash(c.Text)}")));
         lock (_gate)
         {
             if (_entries.TryGetValue(conversation, out var entry) && entry.Fingerprint == fingerprint)

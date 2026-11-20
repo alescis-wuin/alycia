@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using Alycia.Modules.Chat.Domain;
 
 namespace Alycia.Modules.Chat.Application;
 
@@ -12,8 +13,16 @@ public static class ProjectAgent
         + "Distingue déclarations utilisateur et propositions assistant. Seule une correction utilisateur explicite remplace une décision. "
         + "Propose une lecture ciblée si la preuve manque.";
     private static int SchemaCost(ChatOptions settings) => TokenBudget.Count(JsonSerializer.Serialize(ProjectToolCatalog.OllamaTools(), ProjectToolCatalog.Json), settings);
-    public static int Reserve(ChatOptions settings) => SchemaCost(settings) + TokenBudget.Count(Instruction, settings)
-        + (settings.ToolContextTokens == 0 ? Math.Max(2048, settings.ContextTokens / 4) : settings.ToolContextTokens);
+    public static async Task<ChatOptions> ContextOptionsAsync(IChatRepository repository, Conversation owner, string question,
+        ChatOptions settings, bool useTools, CancellationToken ct)
+    {
+        if (!useTools) return settings;
+        var protectedTokens = TokenBudget.Count(question, settings) + TokenBudget.Count(ConversationConfiguration.System(owner, settings), settings);
+        if (settings.AutoSummarize)
+            protectedTokens += (await repository.MessagesAsync(owner.Id, settings.ProtectedHistoryTurns * 2, null, ct))
+                .Sum(m => TokenBudget.Count(m.Content, settings));
+        return ContextOptions(settings, protectedTokens);
+    }
     public static ChatOptions ContextOptions(ChatOptions settings, int protectedTokens = 0)
     {
         var copy = settings.Copy();
@@ -53,12 +62,14 @@ public static class ProjectAgent
         var observations = new List<ToolObservation>();
         var evidenceTexts = new List<EvidenceText>();
         var answer = new StringBuilder();
+        var plan = settings.AgentPlanningEnabled ? new ResearchPlan(settings, context) : null;
         var summarySettings = settings.Copy();
         summarySettings.SummaryMaxCalls = Math.Max(0, settings.SummaryMaxCalls - context.SummaryCalls);
         var reducer = new RecursiveSummarizer(model, modelName, summarySettings,
             progress is null ? null : status => progress(new("", Status: "Mémoire des outils · " + status)));
         Task Emit(ModelDelta delta) => progress?.Invoke(delta) ?? Task.CompletedTask;
-        int Cost(IEnumerable<PromptMessage> messages) => SchemaCost(settings) + messages.Sum(m => TokenBudget.Count(m.Content, settings)
+        int Cost(IEnumerable<PromptMessage> messages) => settings.AdaptiveInferenceEnabled || settings.EvidenceSelectionEnabled || settings.AgentPlanningEnabled
+            ? InferenceWindow.InputCost(messages.ToArray(), settings, true) : SchemaCost(settings) + messages.Sum(m => TokenBudget.Count(m.Content, settings)
             + Encoding.UTF8.GetByteCount(m.Thinking ?? "")
             + (m.ToolCalls is null ? 0 : Encoding.UTF8.GetByteCount(JsonSerializer.Serialize(m.ToolCalls, ProjectToolCatalog.Json))));
         // Only outputs still in Input(), including their retained summary, consume this budget.
@@ -110,11 +121,30 @@ public static class ProjectAgent
             await MakeRoomAsync(0);
             var input = Input();
             if (answer.Length > 0) { answer.Append("\n\n"); await Emit(new("\n\n")); }
-            var reply = await model.StreamWithToolsAsync(modelName, input, settings, Emit, ct);
+            var forced = plan?.Next(observations.Count);
+            var finish = plan?.Exhausted(observations.Count) == true || (plan is not null && repeated >= 2);
+            if (finish)
+            {
+                var reason = repeated >= 2 ? "repeated_call" : "call_limit";
+                warnings.Add("Exploration arrêtée : " + reason + ". La réponse utilise les passages déjà lus.");
+                var final = await model.StreamAsync(modelName, input, settings, Emit, ct);
+                answer.Append(final.Content);
+                return new(answer.ToString(), final.Stats, Tools: observations, Warnings: warnings, EvidenceTexts: evidenceTexts, Research: plan!.Report(reason, observations.Count));
+            }
+            var reply = forced is null ? await model.StreamWithToolsAsync(modelName, input, settings, Emit, ct)
+                : new GenerationReply("", ToolCalls: [forced]);
             answer.Append(reply.Content);
             if (answer.Length > 1_000_000) throw new ChatModelException("Réponse cumulée trop volumineuse.");
             var calls = reply.ToolCalls ?? [];
-            if (calls.Count == 0) return new(answer.ToString(), reply.Stats, Tools: observations, Warnings: warnings, EvidenceTexts: evidenceTexts);
+            if (calls.Count == 0) return new(answer.ToString(), reply.Stats, Tools: observations, Warnings: warnings, EvidenceTexts: evidenceTexts, Research: plan?.Report("model_finished", observations.Count));
+            if (plan is not null && plan.Exhausted(observations.Count + calls.Count - 1))
+            {
+                warnings.Add("Groupe d’appels supérieur au budget restant. Les appels groupés ont été écartés.");
+                var final = await model.StreamAsync(modelName, input, settings, Emit, ct);
+                answer.Append(final.Content);
+                return new(answer.ToString(), final.Stats, Tools: observations, Warnings: warnings, EvidenceTexts: evidenceTexts,
+                    Research: plan.Report("group_over_limit", observations.Count));
+            }
             if (settings.ToolMaxCalls > 0 && observations.Count + calls.Count > settings.ToolMaxCalls)
                 throw new ChatModelException($"Limite de {settings.ToolMaxCalls} appels atteinte. Ciblez un sous-ensemble ou lancez Analyse du projet.");
             var current = new List<PromptMessage> { new("assistant", reply.Content, calls, Thinking: reply.Thinking) };
@@ -135,10 +165,14 @@ public static class ProjectAgent
                 await Emit(new("", Status: $"Outil {observations.Count + 1}{limit} · {call.Function.Name}"));
                 // Do not replay cached source content after permissions may have changed.
                 var timer = System.Diagnostics.Stopwatch.StartNew();
-                var result = duplicate ? new ProjectToolResult("{\"error\":\"Appel déjà réussi : utilisez le résultat conservé, un autre symbole ou nextOffset.\"}", true)
+                var forbidden = settings.Route?.Mode == "memory" && !call.Function.Name.StartsWith("history_", StringComparison.Ordinal);
+                var result = forbidden ? new ProjectToolResult("{\"error\":\"La stratégie mémoire autorise uniquement les outils historiques.\"}", true)
+                    : duplicate ? new ProjectToolResult("{\"error\":\"Appel déjà réussi : utilisez le résultat conservé, un autre symbole ou nextOffset.\"}", true)
                     : await tools.CallAsync(conversation, call.Function.Name, call.Function.Arguments, perCall, ct);
                 if (Encoding.UTF8.GetByteCount(result.Text) > perCall) throw new ChatModelException("Résultat d’outil supérieur au budget annoncé.");
                 if (!result.IsError) completedCalls[fingerprint] = current;
+                if (forced is not null) plan!.Observe(result);
+                else plan?.ObserveModelRead(call, result);
                 evidenceTexts.AddRange(ClaimAudit.ReadToolEvidence(result));
                 current.Add(new("tool", result.Text, ToolName: call.Function.Name));
                 var observation = new ToolObservation(observations.Count + 1, call.Function.Name,

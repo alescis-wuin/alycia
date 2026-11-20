@@ -1,11 +1,15 @@
 
 # Alycia
 
-Alycia is a local generative AI client. Multi-backend support and retrieval-augmented generation (RAG) are longer-term goals.
+Alycia is a local generative AI client for Ollama. It combines an Avalonia desktop interface, an ASP.NET Core API, PostgreSQL-backed conversations and retrieval from local documents and source code.
 
 ## Client Avalonia Boréale
 
 [Guide de démarrage et d’utilisation sur CachyOS](docs/boreale/guide-cachyos.md) · [Compte rendu et statut des vérifications](docs/boreale/compte-rendu.md) · [Phases et étapes](docs/boreale/plan.md)
+
+## Contextualisation locale
+
+[Routage, reclassement ONNX, mémoire temporelle et vérification des preuves — réglages, commandes, mesures et limites](docs/Contextualisation-locale.md)
 
 ## Local client V4 — this branch
 

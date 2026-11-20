@@ -6,10 +6,16 @@ using Alycia.Modules.Chat.Domain;
 namespace Alycia.Modules.Chat.Application;
 
 public sealed record RetrievalDecision(string Reference, Guid FileId, string Sha256, int Start, int End, double LexicalScore, string Reason);
+public sealed record RerankReport(string State, string? Identity, double Milliseconds, IReadOnlyDictionary<string, double>? Scores = null);
+public sealed record RerankScores(string Identity, double[] Values);
+public interface IPassageReranker
+{
+    Task<RerankScores> ScoreAsync(string question, IReadOnlyList<SourceChunk> passages, CancellationToken ct);
+}
 public sealed record RetrievalCacheReport(bool LexicalHit, int VectorHits, int VectorMisses, bool VectorWritten);
 public sealed record RetrievalReport(string Mode, int CandidateChunks, int IndexedFiles, int EligibleFiles, IReadOnlyList<string> Omissions,
     int ZeroScoreChunks = 0, double IndexMilliseconds = 0, double RankingMilliseconds = 0,
-    IReadOnlyList<RetrievalDecision>? Decisions = null, int UnreportedDecisions = 0, RetrievalCacheReport? Cache = null);
+    IReadOnlyList<RetrievalDecision>? Decisions = null, int UnreportedDecisions = 0, RetrievalCacheReport? Cache = null, RerankReport? Rerank = null, SearchQueryPlan? Plan = null);
 public sealed record RetrievalPreparation(IReadOnlyList<SourceChunk> Chunks, RetrievalReport Report, IReadOnlyList<ModelCallUsage> Calls);
 public interface IProjectRetrieval
 {
@@ -84,6 +90,7 @@ public static class ProjectRetrieval
 
     public static ProjectExcerpts Pack(IReadOnlyList<SourceChunk> ranked, IReadOnlyList<Attachment> files, int budget, ChatOptions options)
     {
+        if (options.EvidenceSelectionEnabled) return EvidenceComposer.Pack(ranked, files, budget, options);
         var allowed = files.Where(f => f.ContextMode != "excluded").ToDictionary(f => f.Id);
         var candidates = ranked.Where(c => allowed.TryGetValue(c.FileId, out var file) && file.Sha256 == c.Sha256)
             .OrderByDescending(c => allowed[c.FileId].ContextMode == "pinned").ToList();

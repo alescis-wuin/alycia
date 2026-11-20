@@ -2,7 +2,8 @@
 [CmdletBinding()]
 param(
     [string]$Destination = (Join-Path ([Environment]::GetFolderPath('UserProfile')) 'alycia'),
-    [ValidatePattern('^[a-zA-Z0-9][a-zA-Z0-9._:/-]*$')][string]$Model = 'qwen2.5:1.5b'
+    [ValidatePattern('^[a-zA-Z0-9][a-zA-Z0-9._:/-]*$')][string]$Model = 'qwen2.5:1.5b',
+    [switch]$PullModel
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -25,7 +26,7 @@ if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
     $env:Path = @([Environment]::GetEnvironmentVariable('Path', 'Machine'),
         [Environment]::GetEnvironmentVariable('Path', 'User'), $env:Path, "$env:ProgramFiles\Git\cmd") -join ';'
 }
-$branch = 'prototype/conversation-files'
+$branch = 'feature/local-client-v4-context-quality-20261117'
 if (-not (Test-Path -LiteralPath $Destination)) {
     Invoke-Git @('clone', '--branch', $branch, '--single-branch', 'https://github.com/alescis-wuin/alycia.git', $Destination)
 } else {
@@ -43,4 +44,4 @@ if (-not (Test-Path -LiteralPath $Destination)) {
     Invoke-Git @('-C', $Destination, 'switch', $branch)
     Invoke-Git @('-C', $Destination, 'merge', '--ff-only', "origin/$branch")
 }
-& (Join-Path $Destination 'scripts/demo.ps1') -Action All -Model $Model -InstallPrerequisites
+& (Join-Path $Destination 'scripts/demo.ps1') -Action All -Model $Model -InstallPrerequisites -PullModel:$PullModel

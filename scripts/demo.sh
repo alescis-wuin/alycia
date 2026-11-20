@@ -58,4 +58,6 @@ export ALYCIA_CHAT_CONNECTION
 export ASPNETCORE_ENVIRONMENT=Development
 export ALYCIA_ENABLE_LOCAL_CHAT=true
 echo 'Starting chat API with persistent file volume on http://127.0.0.1:5187 (Linux host networking).'
-exec docker compose -f compose.yaml -f compose.demo.yaml --profile files up --build --no-deps chat-api
+compose_args=(-f compose.yaml -f compose.demo.yaml)
+if [[ -n "${ALYCIA_RERANK_MODEL_PATH:-}" ]]; then compose_args+=(-f compose.rerank.yaml); fi
+exec docker compose "${compose_args[@]}" --profile files up --build --no-deps chat-api

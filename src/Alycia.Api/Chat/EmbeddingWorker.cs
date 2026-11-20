@@ -13,6 +13,7 @@ internal sealed class EmbeddingWorker(IServiceScopeFactory scopes, ILogger<Embed
                 await using var scope = scopes.CreateAsyncScope();
                 var index = scope.ServiceProvider.GetRequiredService<BackgroundEmbeddingIndex>();
                 var store = scope.ServiceProvider.GetRequiredService<PostgresEmbeddingStore>();
+                await scope.ServiceProvider.GetRequiredService<TemporalMemoryStore>().RefreshAsync(stoppingToken);
                 await index.DiscoverAsync(stoppingToken);
                 foreach (var job in await store.JobsAsync(stoppingToken)) await index.ProcessAsync(job, stoppingToken);
             }
