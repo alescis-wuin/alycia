@@ -12,12 +12,14 @@ public class TemporalMemoryIntegrationTests
     public async Task WorkerRebuildsFromOriginalsAndScopesCorrectionsAndHistoricalViews()
     {
         var name = "alycia_memory_" + Guid.NewGuid().ToString("N");
-        await using var admin = new NpgsqlConnection(Environment.GetEnvironmentVariable("ALYCIA_CHAT_TEST_CONNECTION"));
+        // Npgsql removes the password from ConnectionString after OpenAsync.
+        var testConnection = Environment.GetEnvironmentVariable("ALYCIA_CHAT_TEST_CONNECTION")!;
+        await using var admin = new NpgsqlConnection(testConnection);
         await admin.OpenAsync();
         await using (var create = new NpgsqlCommand($"CREATE DATABASE {name}", admin)) await create.ExecuteNonQueryAsync();
         try
         {
-            var connection = new NpgsqlConnectionStringBuilder(admin.ConnectionString) { Database = name, Pooling = false };
+            var connection = new NpgsqlConnectionStringBuilder(testConnection) { Database = name, Pooling = false };
             var dbOptions = new DbContextOptionsBuilder<ChatDbContext>().UseNpgsql(connection.ToString(), p => p.MigrationsHistoryTable("__EFMigrationsHistory", "chat")).Options;
             await using var db = new ChatDbContext(dbOptions);
             await db.Database.MigrateAsync();

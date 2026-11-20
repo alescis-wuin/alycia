@@ -16,10 +16,12 @@ public sealed class ProjectToolStorageTests
     public async Task MigrationOriginalReadsIsolationExclusionsCoverageAndRevocation()
     {
         var name = "alycia_tools_test_" + Guid.NewGuid().ToString("N");
-        await using var admin = new NpgsqlConnection(Environment.GetEnvironmentVariable("ALYCIA_CHAT_TEST_CONNECTION"));
+        // Npgsql removes the password from ConnectionString after OpenAsync.
+        var testConnection = Environment.GetEnvironmentVariable("ALYCIA_CHAT_TEST_CONNECTION")!;
+        await using var admin = new NpgsqlConnection(testConnection);
         await admin.OpenAsync();
         await using (var create = new NpgsqlCommand($"CREATE DATABASE {name}", admin)) await create.ExecuteNonQueryAsync();
-        var options = new DbContextOptionsBuilder<ChatDbContext>().UseNpgsql(new NpgsqlConnectionStringBuilder(admin.ConnectionString)
+        var options = new DbContextOptionsBuilder<ChatDbContext>().UseNpgsql(new NpgsqlConnectionStringBuilder(testConnection)
         { Database = name, Pooling = false }.ToString(), p => p.MigrationsHistoryTable("__EFMigrationsHistory", "chat")).Options;
         var storage = new FileStorage(Path.Combine(Path.GetTempPath(), "alycia-tools-" + Guid.NewGuid().ToString("N")));
         try

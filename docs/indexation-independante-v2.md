@@ -147,3 +147,15 @@ Le profil fourni utilise l’extraction sans modèle auxiliaire. Pour mesurer Qw
 **Contrôles exécutés.** La recette complète a compilé la solution sans avertissement ni erreur, validé le format et la cohérence EF, exécuté 225 tests .NET (44 client, 170 chat, 11 espaces de travail), 13 tests Python, 32 contrôles HTTP et la campagne hors ligne avec pgvector activé sur l’instance de test. Après l’ajout de deux cas de réduction, la solution a été recompilée et les 12 tests .NET directement concernés ont réussi, dont ces deux nouveaux cas. Le parcours HTTP des connaissances a aussi été rejoué. Cela représente 227 tests .NET distincts. La recette couvre la reprise d’un seul grand fichier et le comportement d’une synthèse à la demande lorsque l’enveloppe permet ou empêche de couvrir la source entière.
 
 **Périmètre de validation.** Les essais de livraison utilisent .NET SDK 10.0.404, PostgreSQL 17.11, pgvector 0.8.0 et un fournisseur Ollama simulé. La compilation inclut le client Avalonia. Les tests de l’interface utilisent le mode headless. Les poids de Qwen, des deux encodeurs et du reranker multilingue de production, les mesures RTX 4070, le rendu dans la session KDE et le démarrage Compose sur le portable restent à valider. Le démarrage du conteneur de test par Docker est fourni pour la machine de destination. La recette a ici utilisé une instance PostgreSQL jetable fournie au script. Le modèle NLI alternatif, les index HNSW et l’encodage de toutes les synthèses demeurent des expérimentations conditionnées à leurs mesures.
+
+## Correctif des tests avec authentification PostgreSQL
+
+Le journal CachyOS du 20 novembre montrait 225 réussites et deux échecs de connexion SCRAM. Les tests de mémoire temporelle et de stockage des outils construisaient la connexion de leur base isolée depuis celle du compte administrateur déjà ouverte. Npgsql en avait retiré le mot de passe. Ils utilisent désormais la chaîne fournie initialement par l’environnement.
+
+Les deux erreurs ont été reproduites avec le code précédent sur PostgreSQL 17.11 configuré avec authentification TCP SCRAM obligatoire. Les deux tests corrigés réussissent sur cette même configuration, avec .NET SDK 10.0.404 et pgvector disponible. Les validations précédentes sur une instance sans mot de passe avaient masqué ce défaut.
+
+Pour récupérer le correctif et poursuivre la recette complète sous fish ou Bash, exécuter à la racine du dépôt.
+
+```bash
+git pull --ff-only origin feature/local-client-v4-context-quality-20261117 && bash scripts/check-context-v2.sh --pgvector
+```
