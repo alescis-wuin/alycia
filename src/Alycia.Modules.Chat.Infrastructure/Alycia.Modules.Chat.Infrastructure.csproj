@@ -20,7 +20,6 @@
   <ItemGroup>
     <ProjectReference Include="../Alycia.Platform.Persistence/Alycia.Platform.Persistence.csproj" />
     <ProjectReference Include="../Alycia.Modules.Chat.Application/Alycia.Modules.Chat.Application.csproj" />
-    <ProjectReference Include="../Alycia.Modules.Workspaces.Domain/Alycia.Modules.Workspaces.Domain.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="Alycia.Contracts.Chat" />

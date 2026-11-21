@@ -70,6 +70,18 @@ public sealed class Inventory : DiagnosticAnalyzer
                         || token.StartsWith("SqlQuery", StringComparison.Ordinal))
                         Row("P", path, Line(node), token);
                 }
+                if (node is AssignmentExpressionSyntax assignment &&
+                    model.GetSymbolInfo(assignment.Left, analysis.CancellationToken).Symbol is IPropertySymbol { Name: "CommandText" } commandText &&
+                    commandText.ContainingNamespace.ToDisplayString() is "System.Data.Common" or "Npgsql")
+                {
+                    if (model.GetConstantValue(assignment.Right, analysis.CancellationToken).Value is string command)
+                    {
+                        foreach (System.Text.RegularExpressions.Match match in System.Text.RegularExpressions.Regex.Matches(command,
+                            @"(?i)\b(chat|workspaces)\.([a-z_][a-z0-9_]*)"))
+                            Row("S", path, Line(node), match.Value.ToLowerInvariant());
+                    }
+                    else Row("Y", path, Line(node), "CommandText resolved at runtime");
+                }
                 if (node is InvocationExpressionSyntax or ObjectCreationExpressionSyntax)
                 {
                     var operation = model.GetSymbolInfo(node, analysis.CancellationToken).Symbol as IMethodSymbol;

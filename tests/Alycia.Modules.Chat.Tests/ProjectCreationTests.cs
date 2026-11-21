@@ -1,3 +1,4 @@
+using Alycia.Platform.Persistence;
 using Alycia.Modules.Chat.Application;
 using Alycia.Modules.Chat.Infrastructure;
 using Alycia.Modules.Workspaces.Infrastructure;
@@ -8,6 +9,12 @@ namespace Alycia.Modules.Chat.Tests;
 
 public sealed class ProjectCreationTests
 {
+    private static ProjectCatalog Catalog(ChatDbContext database)
+    {
+        var session = new RelationalSession(database.Database);
+        return new(database, session, new WorkspaceIdentityDirectory(session));
+    }
+
     [PostgresFact]
     public Task CompetingCreatorsCommitExactlyOneMatchingWorkspaceAndProfile() =>
         WithDatabaseAsync(async (options, workspaces) =>
@@ -20,7 +27,7 @@ public sealed class ProjectCreationTests
             {
                 try
                 {
-                    return await new ProjectCatalog(db).CreateAsync(name, default);
+                    return await Catalog(db).CreateAsync(name, default);
                 }
                 catch (ArgumentException error)
                 {
@@ -81,7 +88,7 @@ public sealed class ProjectCreationTests
             try
             {
                 await using var failing = new ChatDbContext(options);
-                var error = await Assert.ThrowsAsync<DbUpdateException>(() => new ProjectCatalog(failing).CreateAsync(name, default));
+                var error = await Assert.ThrowsAsync<DbUpdateException>(() => Catalog(failing).CreateAsync(name, default));
                 var cause = Assert.IsType<PostgresException>(error.InnerException);
                 Assert.Equal("test_profile_insert_after_workspace", cause.MessageText);
                 Assert.Equal(0, await workspaces.Workspaces.CountAsync());
@@ -95,7 +102,7 @@ public sealed class ProjectCreationTests
                     """);
             }
 
-            var retry = await new ProjectCatalog(audit).CreateAsync(name, default);
+            var retry = await Catalog(audit).CreateAsync(name, default);
             Assert.Equal(retry.Id, (await workspaces.Workspaces.AsNoTracking().SingleAsync()).Id);
             Assert.Equal(retry.Id, (await audit.WorkspaceProfiles.AsNoTracking().SingleAsync()).Id);
         });

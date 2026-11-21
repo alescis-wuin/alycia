@@ -1,3 +1,6 @@
+using Alycia.Contracts.Workspaces;
+using Alycia.Platform.Persistence;
+using Alycia.Modules.Workspaces.Infrastructure;
 using Alycia.Modules.Chat.Application.Context;
 using Alycia.Modules.Chat.Application;
 using Alycia.Modules.Chat.Infrastructure;
@@ -55,6 +58,8 @@ internal static class ChatRegistration
 
     private static void RegisterProjects(IServiceCollection services)
     {
+        services.AddScoped(sp => new RelationalSession(sp.GetRequiredService<ChatDbContext>().Database));
+        services.AddScoped<IWorkspaceIdentityDirectory, WorkspaceIdentityDirectory>();
         services.AddScoped<IProjectCatalog, ProjectCatalog>();
         services.AddScoped<ProjectFiles>();
     }

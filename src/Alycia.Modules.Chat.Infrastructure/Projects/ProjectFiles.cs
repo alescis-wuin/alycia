@@ -1,3 +1,4 @@
+using Alycia.Contracts.Workspaces;
 using Alycia.Modules.Chat.Application;
 using Alycia.Modules.Chat.Domain;
 using Microsoft.EntityFrameworkCore;
@@ -6,7 +7,7 @@ namespace Alycia.Modules.Chat.Infrastructure;
 
 public sealed record SourcePreview(string Name, string Sha256, string Text, int Start, int End, bool Partial);
 
-public sealed class ProjectFiles(ChatDbContext db, FileImport importer, FileStorage storage, ProjectSourceReader reader)
+public sealed class ProjectFiles(ChatDbContext db, FileImport importer, FileStorage storage, ProjectSourceReader reader, IWorkspaceIdentityDirectory identities)
 {
     public async Task<IReadOnlyList<FileSummary>> ShareAsync(Guid conversation, Guid file, CancellationToken ct)
     {
@@ -23,7 +24,7 @@ public sealed class ProjectFiles(ChatDbContext db, FileImport importer, FileStor
 
     public async Task<FileSummary[]> ListAsync(Guid project, CancellationToken ct)
     {
-        await ProjectProfiles.RequireAsync(db, project, ct, archived: true);
+        await ProjectProfiles.RequireAsync(db, identities, project, ct, archived: true);
         return await db.Attachments.AsNoTracking().Where(f => f.WorkspaceId == project)
             .OrderBy(f => f.Name).ThenBy(f => f.Id).Select(f => new FileSummary(f.Id, f.Name, f.Size, f.Status, f.AnchorSequence,
                 f.CreatedAtUtc, f.ArchiveId, f.Sha256, f.ContextMode, f.BatchId, f.SourceCreatedAt, f.SourceModifiedAt, f.MetadataSource, f.WorkspaceId))
@@ -95,7 +96,7 @@ public sealed class ProjectFiles(ChatDbContext db, FileImport importer, FileStor
 
     private async Task<WorkspaceProfile> RequireRevisionAsync(Guid project, int revision, CancellationToken ct)
     {
-        var profile = await ProjectProfiles.RequireAsync(db, project, ct);
+        var profile = await ProjectProfiles.RequireAsync(db, identities, project, ct);
         ProjectProfiles.CheckRevision(profile, revision);
         return profile;
     }

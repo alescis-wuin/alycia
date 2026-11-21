@@ -14,6 +14,8 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="../Alycia.Platform.Persistence/Alycia.Platform.Persistence.csproj" />
+    <ProjectReference Include="../Alycia.Contracts/Alycia.Contracts.csproj" />
     <ProjectReference Include="../Alycia.Modules.Workspaces.Application/Alycia.Modules.Workspaces.Application.csproj" />
   </ItemGroup>
 </Project>

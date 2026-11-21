@@ -2,32 +2,25 @@ using System.Text.Json;
 using Alycia.Platform.Persistence;
 using Alycia.Modules.Chat.Application;
 using Alycia.Modules.Chat.Domain;
-using Alycia.Modules.Workspaces.Domain;
+using Alycia.Contracts.Workspaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace Alycia.Modules.Chat.Infrastructure;
 
-public sealed class ProjectCatalog(ChatDbContext db) : IProjectCatalog
+public sealed class ProjectCatalog(ChatDbContext db, RelationalSession session, IWorkspaceIdentityDirectory identities) : IProjectCatalog
 {
-    private sealed record ProjectName(Guid Id, string Name);
-
     public async Task<IReadOnlyList<ProjectEntry>> ListAsync(CancellationToken ct)
     {
-        var names = await db.Database.SqlQuery<ProjectName>($"""SELECT id AS "Id", name::text AS "Name" FROM workspaces.workspaces ORDER BY name""").ToArrayAsync(ct);
+        var names = await identities.ListAsync(ct);
         var profiles = await db.WorkspaceProfiles.AsNoTracking().ToDictionaryAsync(p => p.Id, ct);
         return names.Select(n => new ProjectEntry(n.Id, n.Name, profiles.GetValueOrDefault(n.Id)?.Archived ?? false)).ToArray();
     }
 
     public async Task<ProjectEntry> CreateAsync(string name, CancellationToken ct)
     {
-        var workspace = Workspace.Create(name);
-        return await new RelationalSession(db.Database).AtomicAsync(async token =>
+        return await session.AtomicAsync(async token =>
         {
-            var rows = await db.Database.ExecuteSqlInterpolatedAsync($"""
-                INSERT INTO workspaces.workspaces (id, name, created_at_utc) VALUES ({workspace.Id}, {workspace.Name}, {workspace.CreatedAtUtc})
-                ON CONFLICT (name) DO NOTHING
-                """, token);
-            if (rows == 0) throw new ArgumentException("Ce nom de projet existe déjà.");
+            var workspace = await identities.CreateAsync(name, token);
             db.WorkspaceProfiles.Add(new() { Id = workspace.Id });
             await db.SaveChangesAsync(token);
             return new ProjectEntry(workspace.Id, workspace.Name, false);
@@ -35,14 +28,14 @@ public sealed class ProjectCatalog(ChatDbContext db) : IProjectCatalog
     }
 
     public async Task<ProjectProfile> GetAsync(Guid id, bool allowArchived, CancellationToken ct) =>
-        Profile(await ProjectProfiles.RequireAsync(db, id, ct, allowArchived));
+        Profile(await ProjectProfiles.RequireAsync(db, identities, id, ct, allowArchived));
 
     public async Task<string> ActiveDefaultModelAsync(Guid id, CancellationToken ct) =>
-        (await ProjectProfiles.RequireAsync(db, id, ct)).DefaultModel;
+        (await ProjectProfiles.RequireAsync(db, identities, id, ct)).DefaultModel;
 
     public async Task<ProjectProfile> UpdateAsync(Guid id, int revision, string instructions, string defaultModel, bool archived, CancellationToken ct)
     {
-        var project = await ProjectProfiles.RequireAsync(db, id, ct, true);
+        var project = await ProjectProfiles.RequireAsync(db, identities, id, ct, true);
         ProjectProfiles.CheckRevision(project, revision);
         if (instructions is null || instructions.Length > 4000 || defaultModel is null
             || defaultModel.Length > 200 || instructions.Contains('\0') || defaultModel.Contains('\0'))
@@ -61,7 +54,7 @@ public sealed class ProjectCatalog(ChatDbContext db) : IProjectCatalog
         await using var tx = await db.Database.BeginTransactionAsync(ct);
         var conversation = await db.Conversations.SingleOrDefaultAsync(c => c.Id == id, ct) ?? throw new ConversationNotFoundException();
         ConversationConfiguration.CheckRevision(conversation, revision);
-        if (workspaceId is Guid destination) await ProjectProfiles.RequireAsync(db, destination, ct);
+        if (workspaceId is Guid destination) await ProjectProfiles.RequireAsync(db, identities, destination, ct);
         if (conversation.WorkspaceId != workspaceId)
         {
             await db.WorkspaceFileOverrides.Where(o => o.ConversationId == id).ExecuteDeleteAsync(ct);
@@ -74,7 +67,7 @@ public sealed class ProjectCatalog(ChatDbContext db) : IProjectCatalog
 
     public async Task<ProjectProfile> ChangeNoteAsync(Guid id, Guid? note, int revision, string text, Guid? originConversationId, int? originSequence, bool remove, CancellationToken ct)
     {
-        var profile = await ProjectProfiles.RequireAsync(db, id, ct);
+        var profile = await ProjectProfiles.RequireAsync(db, identities, id, ct);
         ProjectProfiles.CheckRevision(profile, revision);
         var notes = profile.ReadNotes().ToList();
         int index = notes.FindIndex(n => n.Id == note);

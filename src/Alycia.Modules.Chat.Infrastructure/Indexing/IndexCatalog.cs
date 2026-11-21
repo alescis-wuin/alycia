@@ -1,3 +1,4 @@
+using Alycia.Contracts.Workspaces;
 using Alycia.Modules.Chat.Application;
 using Microsoft.EntityFrameworkCore;
 
@@ -6,11 +7,11 @@ namespace Alycia.Modules.Chat.Infrastructure;
 public sealed record QueueIndex(Guid Owner, bool Project, string? Model, int? BatchSize = null, int? ChunkCharacters = null,
     bool? Hierarchical = null, string? DocumentPrefix = null, string? QueryPrefix = null, EnrichmentOptions? Enrichment = null);
 
-public sealed class IndexCatalog(ChatDbContext database, PostgresEmbeddingStore store, KnowledgeStore knowledge, ChatOptions defaults)
+public sealed class IndexCatalog(ChatDbContext database, PostgresEmbeddingStore store, KnowledgeStore knowledge, ChatOptions defaults, IWorkspaceIdentityDirectory identities)
 {
     private async Task RequireOwnerAsync(Guid owner, bool project, CancellationToken ct)
     {
-        if (project) await ProjectProfiles.RequireAsync(database, owner, ct);
+        if (project) await ProjectProfiles.RequireAsync(database, identities, owner, ct);
         else if (!await database.Conversations.AnyAsync(c => c.Id == owner, ct)) throw new ConversationNotFoundException();
     }
 
@@ -27,7 +28,7 @@ public sealed class IndexCatalog(ChatDbContext database, PostgresEmbeddingStore 
         var sources = database.ModelSources(owner);
         if (project)
         {
-            await ProjectProfiles.RequireAsync(database, owner, ct);
+            await ProjectProfiles.RequireAsync(database, identities, owner, ct);
             var settings = (await store.JobsAsync(ct)).FirstOrDefault(j => j.Progress.IsProject && j.Progress.OwnerId == owner)?.Settings;
             if (settings is null) return null;
             options = settings.Enrichment; hierarchical = settings.Hierarchical;
@@ -62,7 +63,7 @@ public sealed class IndexCatalog(ChatDbContext database, PostgresEmbeddingStore 
         ChatOptions options;
         if (request.Project)
         {
-            var profile = await ProjectProfiles.RequireAsync(database, request.Owner, ct);
+            var profile = await ProjectProfiles.RequireAsync(database, identities, request.Owner, ct);
             if (profile.Archived) throw new ArgumentException("Le projet est archivé.");
             options = defaults.Copy();
             options.EmbeddingModel = request.Model?.Trim() ?? options.EmbeddingModel;

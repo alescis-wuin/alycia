@@ -18,6 +18,8 @@ PROVIDER = re.compile(r"^(?:Microsoft\.EntityFrameworkCore|Npgsql|Microsoft\.ML\
 
 
 def forbidden(project, dependency):
+    if project == "Alycia.Modules.Chat.Infrastructure" and dependency.startswith("Alycia.Modules.Workspaces."):
+        return True
     if project == "Alycia.Contracts":
         return dependency.startswith(("Alycia.Modules.", "Alycia.Api", "Alycia.Client."))
     if project == "Alycia.Client.Avalonia":
@@ -93,7 +95,7 @@ def check_namespace(project, location, name):
 
 
 TABLE_OWNERS = {
-    "workspaces.workspaces": "Projects", "chat.workspace_profiles": "Projects",
+    "workspaces.workspaces": "Workspaces", "chat.workspace_profiles": "Projects",
     "chat.workspace_file_overrides": "Documents", "chat.attachments": "Documents", "chat.document_analyses": "Documents",
     "chat.conversations": "Conversations", "chat.messages": "Conversations",
     "chat.embedding_jobs": "Indexing", "chat.embedding_vectors": "Indexing", "chat.knowledge_units": "Indexing",
@@ -187,7 +189,7 @@ def check_records(rows, root):
             problems.add(f"{location}: endpoint persistence belongs in the database adapter ({fields[3]})")
         elif kind in ("S", "E", "Y") and "/Migrations/" not in path:
             resource = SETS.get(fields[4], fields[4]) if kind == "E" else fields[3]
-            area = owner(path) or ("Projects" if ".Workspaces." in project else project)
+            area = owner(path) or ("Workspaces" if ".Workspaces." in project else project)
             if kind != "Y" and (area == TABLE_OWNERS.get(resource)):
                 continue
             if (path, kind, resource) not in exceptions:

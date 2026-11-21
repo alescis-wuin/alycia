@@ -1,3 +1,4 @@
+using Alycia.Contracts.Workspaces;
 using Alycia.Modules.Chat.Application;
 using Alycia.Modules.Chat.Domain;
 using Microsoft.EntityFrameworkCore;
@@ -11,14 +12,13 @@ public static class ProjectProfiles
         if (profile.Revision != revision) throw new ChatConflictException();
     }
 
-    public static async Task<WorkspaceProfile> RequireAsync(ChatDbContext db, Guid id, CancellationToken ct, bool archived = false)
+    public static async Task<WorkspaceProfile> RequireAsync(ChatDbContext db, IWorkspaceIdentityDirectory identities, Guid id, CancellationToken ct, bool archived = false)
     {
         var profile = await db.WorkspaceProfiles.FindAsync([id], ct);
         if (profile is null)
         {
             // Projects created by the original Workspaces API acquire chat metadata on first use.
-            var exists = await db.Database.SqlQuery<bool>($"SELECT EXISTS (SELECT 1 FROM workspaces.workspaces WHERE id = {id}) AS \"Value\"").SingleAsync(ct);
-            if (!exists) throw new ArgumentException("Projet introuvable.");
+            if (!await identities.ExistsAsync(id, ct)) throw new ArgumentException("Projet introuvable.");
             await db.Database.ExecuteSqlInterpolatedAsync($"""
                 INSERT INTO chat.workspace_profiles ("Id", "Instructions", "DefaultModel", "NotesJson", "Archived", "Revision")
                 VALUES ({id}, '', '', '[]', FALSE, 0) ON CONFLICT ("Id") DO NOTHING
