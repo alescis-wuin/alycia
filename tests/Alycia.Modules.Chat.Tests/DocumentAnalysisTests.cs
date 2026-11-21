@@ -1,3 +1,4 @@
+using Alycia.Modules.Inference;
 using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
@@ -42,7 +43,7 @@ public sealed class DocumentAnalysisTests
             Assert.Equal("", code.SourceCreatedAt);
             Assert.Contains("fuseau non fourni", code.MetadataSource);
             var model = new Model();
-            var service = new DocumentAnalysisService(database, model, new(), new ProjectSourceReader(storage), ChatFixture.Gate, new AnalysisConversationOwner(database), ChatFixture.DocumentScope);
+            var service = new DocumentAnalysisService(database, model, new(), new ProjectSourceReader(storage), ChatFixture.Gate, new AnalysisConversationOwner(database), ChatFixture.DocumentScope, new ModelMeterFactory());
             var report = await service.AnalyzeAsync(conversation.Id, conversation.Revision, null, 1024, null, default);
             Assert.Equal(4, report.FileCount);
             Assert.Contains("Source : tree.txt intégral", string.Join("\n", model.Inputs));
@@ -146,10 +147,8 @@ public sealed class DocumentAnalysisTests
     {
         public System.Collections.Concurrent.ConcurrentQueue<string> Inputs { get; } = new();
         public bool Fail;
-        public Task<ChatOptions> PrepareOptionsAsync(string model, ChatOptions options, CancellationToken ct)
-        {
-            var copy = options.Copy(); copy.ModelIdentity = "synthetic:digest-v1"; return Task.FromResult(copy);
-        }
+        public Task<ModelTokenization> InspectAsync(string model, string tokenCounting, CancellationToken ct) =>
+            Task.FromResult(new ModelTokenization("synthetic:digest-v1"));
         public Task<IReadOnlyList<string>> ListModelsAsync(CancellationToken ct) => Task.FromResult<IReadOnlyList<string>>(["demo"]);
         public Task<string> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages, CancellationToken ct)
         {

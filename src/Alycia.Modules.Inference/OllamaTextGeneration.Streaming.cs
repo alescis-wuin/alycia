@@ -11,6 +11,8 @@ public sealed partial class OllamaTextGeneration
     public async Task<ModelReply> StreamAsync(string model, IReadOnlyList<PromptMessage> messages,
         GenerationParameters parameters, Func<ModelDelta, Task> onDelta, bool useTools, CancellationToken cancellationToken)
     {
+        messages = PromptSnapshot.Capture(messages);
+        parameters = parameters with { ResponseSchema = parameters.ResponseSchema?.Clone() };
         try
         {
             using var inference = await scheduler.AcquireAsync(TimeSpan.FromSeconds(parameters.TimeoutSeconds),

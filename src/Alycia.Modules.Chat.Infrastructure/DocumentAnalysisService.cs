@@ -8,7 +8,7 @@ namespace Alycia.Modules.Chat.Infrastructure;
 public sealed record AnalysisItem(Guid Id, string Title, DateTimeOffset CreatedAtUtc, string Model,
     int FileCount, int SummaryCalls, bool UseInContext, bool IsStale, Guid? ScopeBatchId);
 
-public sealed partial class DocumentAnalysisService(ChatDbContext database, IChatModel model, ChatOptions defaults, ProjectSourceReader reader, GenerationGate conversationGate, IAnalysisConversation conversations, DocumentScope scope)
+public sealed partial class DocumentAnalysisService(ChatDbContext database, IChatModel model, ChatOptions defaults, ProjectSourceReader reader, GenerationGate conversationGate, IAnalysisConversation conversations, DocumentScope scope, IModelMeterFactory meters)
 {
     public async Task<DocumentAnalysis> AnalyzeAsync(Guid id, int revision, Guid? batch, int budget,
         Func<string, Task>? progress, CancellationToken ct, Guid? resumeRunId = null)
@@ -30,7 +30,7 @@ public sealed partial class DocumentAnalysisService(ChatDbContext database, ICha
         var files = await scope.ReadAsync(database, id, false, true, q => q.Where(f => (!batch.HasValue || f.BatchId == batch)).OrderBy(f => f.Name).ThenBy(f => f.Id).ToArrayAsync(ct), ct);
         if (files.Length == 0) throw new ArgumentException("Aucun fichier dans ce périmètre. Importez un dossier ou une archive.");
         var options = await model.PrepareOptionsAsync(conversation.Model, ConversationConfiguration.Options(conversation.SettingsJson, defaults), ct);
-        var measured = new MeteredChatModel(model);
+        var measured = meters.Create(model);
         var eligible = files.Where(f => f.Text.Length > 0 && f.ContextMode != "excluded").ToArray();
         var inventory = ProjectInventory.Describe(files);
         var tree = ProjectInventory.Tree(inventory);
@@ -173,7 +173,7 @@ public sealed partial class DocumentAnalysisService(ChatDbContext database, ICha
                 analysis.ScopeBatchId,
                 analysis.SummaryCalls,
                 targetBytes = budget,
-                usage = measured.Snapshot(options),
+                usage = measured.Snapshot(options.ModelIdentity, options.TokenCounter),
                 coverage = new
                 {
                     inventoriedFiles = files.Length,

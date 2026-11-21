@@ -4,7 +4,7 @@ namespace Alycia.Modules.Chat.Application;
 public static class SemanticClaimAudit
 {
     public static async Task<VerificationFollowup> SearchAsync(ClaimFinding gap, Guid owner, ChatOptions settings,
-        IProjectRetrieval? retrieval, MeteredChatModel measured, CancellationToken ct)
+        IProjectRetrieval? retrieval, IModelMeter measured, CancellationToken ct)
     {
         if (!settings.VerificationSearchEnabled || retrieval is null || settings.RetrievalMode == "legacy" || settings.Route?.Search == false)
             return new("not_searched", gap.Text, []);

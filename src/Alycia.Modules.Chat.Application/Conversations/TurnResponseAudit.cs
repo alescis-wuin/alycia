@@ -8,13 +8,13 @@ public sealed record ReviewedReply(string Reply, CitationReport Citations, Claim
 public interface ITurnResponseAudit
 {
     Task<ReviewedReply> ReviewAsync(Guid id, GenerationReply generated, ContextWindow window, ChatOptions settings,
-        MeteredChatModel measured, Func<ModelDelta, Task>? onDelta, CancellationToken cancellationToken);
+        IModelMeter measured, Func<ModelDelta, Task>? onDelta, CancellationToken cancellationToken);
 }
 
 public sealed class TurnResponseAudit(IProjectRetrieval? retrieval = null) : ITurnResponseAudit
 {
     public async Task<ReviewedReply> ReviewAsync(Guid id, GenerationReply generated, ContextWindow window, ChatOptions settings,
-        MeteredChatModel measured, Func<ModelDelta, Task>? onDelta, CancellationToken cancellationToken)
+        IModelMeter measured, Func<ModelDelta, Task>? onDelta, CancellationToken cancellationToken)
     {
         var reply = generated.Content;
         cancellationToken.ThrowIfCancellationRequested();

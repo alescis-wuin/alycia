@@ -30,7 +30,7 @@ public sealed class StreamingTests
         { BaseAddress = new Uri("http://127.0.0.1:11434/") };
         var deltas = new List<ModelDelta>();
         var reply = await ChatFixture.Ollama(http, new()).StreamAsync("demo", [new("user", "hi")],
-            new() { Temperature = 0.1 }, delta => { deltas.Add(delta); return Task.CompletedTask; }, default);
+            new ChatOptions() { Temperature = 0.1 }.InferenceCall(), delta => { deltas.Add(delta); return Task.CompletedTask; }, default);
         Assert.Equal("Bonjour 🙂", reply.Content);
         Assert.Equal("réflexion", deltas[0].Thinking);
         Assert.Equal(5, reply.Stats!.OutputTokens);
@@ -49,7 +49,7 @@ public sealed class StreamingTests
                 : request.RequestUri.AbsolutePath == "/api/show" ? "{\"capabilities\":[\"completion\"]}" : payload))))
         { BaseAddress = new Uri("http://127.0.0.1:11434/") };
         await Assert.ThrowsAsync<ChatModelException>(() => ChatFixture.Ollama(http, new())
-            .StreamAsync("demo", [], new(), _ => Task.CompletedTask, default));
+            .StreamAsync("demo", [], new ChatOptions().InferenceCall(), _ => Task.CompletedTask, default));
     }
 
     [Theory]
@@ -64,10 +64,10 @@ public sealed class StreamingTests
                 : request.RequestUri.AbsolutePath == "/api/show" ? "{\"capabilities\":[\"completion\"]}" : payload))))
         { BaseAddress = new Uri("http://127.0.0.1:11434/") };
         await Assert.ThrowsAsync<ChatModelException>(() => ChatFixture.Ollama(http, new())
-            .StreamAsync("demo", [], new(), _ => Task.CompletedTask, default));
+            .StreamAsync("demo", [], new ChatOptions().InferenceCall(), _ => Task.CompletedTask, default));
         // Explicit bounded mode remains available, including for summarization.
         var bounded = await ChatFixture.Ollama(http, new()).StreamAsync("demo", [],
-            new() { GenerateUntilStop = false }, _ => Task.CompletedTask, default);
+            new ChatOptions() { GenerateUntilStop = false }.InferenceCall(), _ => Task.CompletedTask, default);
         Assert.Equal("partial", bounded.Content);
     }
 
@@ -80,7 +80,7 @@ public sealed class StreamingTests
                 : new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(new PacedStream()) })))
         { BaseAddress = new Uri("http://127.0.0.1:11434/") };
         var reply = await ChatFixture.Ollama(http, new()).StreamAsync("demo", [],
-            new() { TimeoutSeconds = 1 }, _ => Task.CompletedTask, default);
+            new ChatOptions() { TimeoutSeconds = 1 }.InferenceCall(), _ => Task.CompletedTask, default);
         Assert.Equal("continued", reply.Content);
     }
 
@@ -152,7 +152,7 @@ public sealed class StreamingTests
         public bool Fail { get; set; }
         public Task<IReadOnlyList<string>> ListModelsAsync(CancellationToken ct) => Task.FromResult<IReadOnlyList<string>>(["demo"]);
         public Task<string> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages, CancellationToken ct) => Task.FromResult("reply");
-        public async Task<GenerationReply> StreamAsync(string model, IReadOnlyList<PromptMessage> messages, ChatOptions settings,
+        public async Task<ModelReply> StreamAsync(string model, IReadOnlyList<PromptMessage> messages, InferenceCall settings,
             Func<ModelDelta, Task> onDelta, CancellationToken ct)
         {
             await onDelta(new("partial"));

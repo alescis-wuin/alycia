@@ -33,7 +33,10 @@ public sealed class TurnTools(IProjectTools? tools = null, ISnapshotProjectTools
         if (active is not null)
             return await ProjectAgent.RunAsync(measured, active, scope.ConversationId, scope.Model, window, settings, onDelta, ct);
         if (onDelta is not null)
-            return await measured.StreamAsync(scope.Model, window.Messages, settings, onDelta, ct);
-        return new(await measured.GenerateAsync(scope.Model, window.Messages, settings, ct));
+        {
+            var reply = await measured.StreamAsync(scope.Model, window.Messages, settings.InferenceCall(), onDelta, ct);
+            return new(reply.Content, reply.Stats, reply.ToolCalls, reply.Thinking);
+        }
+        return new(await measured.GenerateAsync(scope.Model, window.Messages, settings.InferenceCall(), ct));
     }
 }

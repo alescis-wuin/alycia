@@ -1,3 +1,4 @@
+using Alycia.Contracts.Chat;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -104,10 +105,44 @@ public sealed class TextGenerationContractTests
         Assert.Empty(deltas);
     }
 
-    private sealed class ProviderTransport : HttpMessageHandler
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Queued_request_keeps_its_messages_and_tool_arguments(bool streaming)
+    {
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        string? observed = null;
+        using var http = new HttpClient(new ProviderTransport(release.Task, body => observed = body))
+            { BaseAddress = new("http://localhost/") };
+        ITextGeneration provider = new OllamaTextGeneration(http, new(), new());
+        using var arguments = JsonDocument.Parse("""{"path":"initial"}""");
+        ModelToolCall[] calls = [new(new("read", arguments.RootElement))];
+        PromptMessage[] messages = [new("assistant", "initial", calls), new("user", "Bonjour")];
+        var pending = streaming
+            ? provider.StreamAsync("alycia-mock", messages, Settings, _ => Task.CompletedTask, false, deadline.Token)
+            : provider.GenerateAsync("alycia-mock", messages, Settings, deadline.Token);
+        calls[0] = new(new("changed", default));
+        messages[1] = new("user", "changed");
+        arguments.Dispose();
+        release.SetResult();
+
+        await pending;
+        using var request = JsonDocument.Parse(Assert.IsType<string>(observed));
+        var sent = request.RootElement.GetProperty("messages");
+        Assert.Equal("Bonjour", sent[1].GetProperty("content").GetString());
+        var call = sent[0].GetProperty("tool_calls")[0].GetProperty("function");
+        Assert.Equal("read", call.GetProperty("name").GetString());
+        Assert.Equal("initial", call.GetProperty("arguments").GetProperty("path").GetString());
+    }
+
+    private sealed class ProviderTransport(Task? gate = null, Action<string>? observe = null) : HttpMessageHandler
     {
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
         {
+            if (gate is not null && request.RequestUri!.AbsolutePath == "/api/tags") await gate.WaitAsync(ct);
+            if (observe is not null && request.RequestUri!.AbsolutePath == "/api/chat")
+                observe(await request.Content!.ReadAsStringAsync(ct));
             var text = request.RequestUri!.AbsolutePath switch
             {
                 "/api/tags" => """{"models":[{"name":"alycia-mock"},{"name":"embedding","digest":"fixture-v1"}]}""",

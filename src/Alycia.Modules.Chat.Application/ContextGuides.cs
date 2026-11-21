@@ -2,7 +2,7 @@ namespace Alycia.Modules.Chat.Application;
 
 public static class ContextGuides
 {
-    public static async Task<ContextWindow> AddAsync(ContextWindow window, ChatOptions settings, MeteredChatModel model,
+    public static async Task<ContextWindow> AddAsync(ContextWindow window, ChatOptions settings, IModelMeter model,
         bool generate, CancellationToken ct)
     {
         if (settings.QuerySummaryTokens == 0 || settings.SourceCandidates is not { Count: > 0 } candidates
@@ -73,7 +73,7 @@ public static class ContextGuides
     }
 
     private static async Task<string?> ReduceAsync(string text, EnrichmentOptions config, ChatOptions local, int target,
-        IndexCallBudget calls, MeteredChatModel model, CancellationToken ct)
+        IndexCallBudget calls, IModelMeter model, CancellationToken ct)
     {
         var instruction = $"Résume les données fournies en {target} tokens maximum. Conserve incertitudes, désaccords et termes exacts.";
         var perInput = local.ContextTokens - local.SafetyTokens - local.MaxOutputTokens - TokenBudget.Count(instruction, local) - 64;
@@ -92,7 +92,7 @@ public static class ContextGuides
             {
                 ct.ThrowIfCancellationRequested();
                 if (!calls.TryReserve()) return null;
-                var reply = (await model.GenerateAsync(config.Model, [new("system", instruction), new("user", part)], local, ct)).Trim();
+                var reply = (await model.GenerateAsync(config.Model, [new("system", instruction), new("user", part)], local.InferenceCall(), ct)).Trim();
                 if (reply.Length == 0 || reply.Contains('\0') || TokenBudget.Count(reply, local) > target) return null;
                 reduced.Add(reply);
             }

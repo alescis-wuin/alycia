@@ -84,7 +84,7 @@ public sealed class RecursiveSummarizer(IChatModel model, string modelName, Chat
             if (messages.Sum(m => SlidingContext.EstimateTokens(m.Content))
                 > options.ContextTokens - options.MaxOutputTokens - options.SafetyTokens)
                 throw new ArgumentException("Le fragment dépasse le budget de résumé.");
-            var reply = (await model.GenerateAsync(modelName, messages, options, ct)).Trim();
+            var reply = (await model.GenerateAsync(modelName, messages, options.InferenceCall(), ct)).Trim();
             if (reply.Length == 0) throw new ChatModelException("Le modèle a renvoyé un résumé vide.", failure: ChatModelFailure.EmptyContent);
             if (reply.Contains('\0')) throw new ChatModelException("Le modèle a renvoyé un résumé invalide.");
             var size = Encoding.UTF8.GetByteCount(reply);

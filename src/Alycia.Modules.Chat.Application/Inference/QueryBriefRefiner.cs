@@ -33,7 +33,7 @@ public sealed class QueryBriefRefiner(IChatModel model) : IQueryBriefRefiner
                 ResponseSchema = schema
             }, timeout.Token);
             if (local.ModelIdentity is null || TokenBudget.Count(instruction + brief.Original, local) + 64 > local.ContextTokens - local.MaxOutputTokens - local.SafetyTokens) return brief;
-            var output = await model.GenerateAsync(config.Model, [new("system", instruction), new("user", brief.Original)], local, timeout.Token);
+            var output = await model.GenerateAsync(config.Model, [new("system", instruction), new("user", brief.Original)], local.InferenceCall(), timeout.Token);
             if (output.Length > 2048) return brief;
             using var document = JsonDocument.Parse(output);
             if (document.RootElement.ValueKind != JsonValueKind.Object || document.RootElement.EnumerateObject().Count() != 1

@@ -112,7 +112,7 @@ public static class ConversationContext
                     if (batch.Count == 0) throw new ArgumentException("Budget insuffisant pour extraire la mémoire structurée. Augmentez la fenêtre ou choisissez la mémoire récursive.");
                     if (++calls > options.SummaryMaxCalls) throw new ChatModelException("Budget d’extraction de mémoire atteint. Les messages originaux et la mémoire précédente sont conservés.");
                     if (progress is not null) await progress($"Mémoire structurée · appel {calls}/{options.SummaryMaxCalls}");
-                    var output = await model.GenerateAsync(conversation.Model, Input(), extraction, ct);
+                    var output = await model.GenerateAsync(conversation.Model, Input(), extraction.InferenceCall(), ct);
                     var valid = StructuredMemory.Validate(output, batch); next.AddRange(valid);
                     foreach (var fragment in batch)
                     {

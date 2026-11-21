@@ -1,3 +1,4 @@
+using Alycia.Modules.Inference;
 using Alycia.Modules.Retrieval;
 using Alycia.Contracts.Indexing;
 using System.Collections.Concurrent;
@@ -290,8 +291,8 @@ public sealed class KnowledgePipelineTests
     private sealed class SummaryModel : IChatModel
     {
         public List<string> Inputs { get; } = [];
-        public Task<ChatOptions> PrepareOptionsAsync(string model, ChatOptions options, CancellationToken ct)
-        { var copy = options.Copy(); copy.ModelIdentity = "fixture"; return Task.FromResult(copy); }
+        public Task<ModelTokenization> InspectAsync(string model, string tokenCounting, CancellationToken ct) =>
+            Task.FromResult(new ModelTokenization("fixture"));
         public Task<IReadOnlyList<string>> ListModelsAsync(CancellationToken ct) => Task.FromResult<IReadOnlyList<string>>(["fixture"]);
         public Task<string> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages, CancellationToken ct)
         {
@@ -325,8 +326,8 @@ public sealed class KnowledgePipelineTests
         public bool Invalid;
         public bool TimesOut;
         public Func<Task>? Hold;
-        public Task<ChatOptions> PrepareOptionsAsync(string model, ChatOptions options, CancellationToken ct)
-        { var copy = options.Copy(); copy.ModelIdentity = "fixture:digest"; return Task.FromResult(copy); }
+        public Task<ModelTokenization> InspectAsync(string model, string tokenCounting, CancellationToken ct) =>
+            Task.FromResult(new ModelTokenization("fixture:digest"));
         public Task<IReadOnlyList<string>> ListModelsAsync(CancellationToken ct) => Task.FromResult<IReadOnlyList<string>>(["annotation-test"]);
         public async Task<string> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages, CancellationToken ct)
         {

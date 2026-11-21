@@ -1,3 +1,4 @@
+using Alycia.Modules.Inference;
 using System.Text;
 using System.Text.Json;
 using Alycia.Modules.Chat.Application;
@@ -116,7 +117,7 @@ public sealed class ProjectToolStorageTests
             using var pageJson = JsonDocument.Parse(page.Text);
             Assert.Equal(1, pageJson.RootElement.GetProperty("nextOffset").GetInt32());
             var model = new SummaryModel();
-            var report = await new DocumentAnalysisService(db, model, new(), reader, ChatFixture.Gate, new AnalysisConversationOwner(db), ChatFixture.DocumentScope).AnalyzeAsync(conversation.Id, conversation.Revision, null, 1024, null, default);
+            var report = await new DocumentAnalysisService(db, model, new(), reader, ChatFixture.Gate, new AnalysisConversationOwner(db), ChatFixture.DocumentScope, new ModelMeterFactory()).AnalyzeAsync(conversation.Id, conversation.Revision, null, 1024, null, default);
             Assert.Contains(model.Inputs, s => s.Contains("HiddenAtEnd"));
             Assert.DoesNotContain(model.Inputs, s => s.Contains("SECRET_NEVER_READ"));
             Assert.InRange(Encoding.UTF8.GetByteCount(report.SummaryText), 1, 1024);
