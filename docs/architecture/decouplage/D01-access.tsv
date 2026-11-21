@@ -1,0 +1,713 @@
+fichier	ligne	type	cible
+src/Alycia.Api/Chat/ChatEndpoints.Mcp.cs	18	C	ChatEndpoints | UseProjectTools
+src/Alycia.Api/Chat/ChatEndpoints.Mcp.cs	20	C	ChatEndpoints | ToolMaxCalls
+src/Alycia.Api/Chat/ChatEndpoints.Streaming.cs	36	Y	System.Exception.GetType()
+src/Alycia.Api/Chat/ChatEndpoints.cs	63	Y	System.Exception.GetType()
+src/Alycia.Api/Chat/ChatRegistration.cs	22	L	AddSingleton | Alycia.Api.Chat.LocalChatAccess
+src/Alycia.Api/Chat/ChatRegistration.cs	27	L	AddSingleton | Alycia.Modules.Chat.Application.ChatOptions
+src/Alycia.Api/Chat/ChatRegistration.cs	28	L	AddDbContext | Alycia.Modules.Chat.Infrastructure.ChatDbContext
+src/Alycia.Api/Chat/ChatRegistration.cs	42	L	AddScoped | Alycia.Modules.Chat.Application.IChatRepository, Alycia.Modules.Chat.Infrastructure.EfChatRepository
+src/Alycia.Api/Chat/ChatRegistration.cs	43	L	AddScoped | Alycia.Modules.Chat.Infrastructure.ConversationHistory
+src/Alycia.Api/Chat/ChatRegistration.cs	44	L	AddScoped | Alycia.Modules.Chat.Application.Context.ConversationSettingsService
+src/Alycia.Api/Chat/ChatRegistration.cs	45	L	AddScoped | Alycia.Modules.Chat.Infrastructure.PromptCatalog
+src/Alycia.Api/Chat/ChatRegistration.cs	46	L	AddScoped | Alycia.Modules.Chat.Application.Context.ConversationContextPreparation
+src/Alycia.Api/Chat/ChatRegistration.cs	47	L	AddScoped | Alycia.Modules.Chat.Application.Context.ITurnContext, Alycia.Modules.Chat.Application.Context.TurnContext
+src/Alycia.Api/Chat/ChatRegistration.cs	48	L	AddScoped | Alycia.Modules.Chat.Application.ITurnRouting, Alycia.Modules.Chat.Application.TurnRouting
+src/Alycia.Api/Chat/ChatRegistration.cs	49	L	AddScoped | Alycia.Modules.Chat.Application.ITurnResponseAudit, Alycia.Modules.Chat.Application.TurnResponseAudit
+src/Alycia.Api/Chat/ChatRegistration.cs	50	L	AddScoped | Alycia.Modules.Chat.Application.ChatService
+src/Alycia.Api/Chat/ChatRegistration.cs	58	L	AddScoped | Alycia.Modules.Chat.Application.IProjectCatalog, Alycia.Modules.Chat.Infrastructure.ProjectCatalog
+src/Alycia.Api/Chat/ChatRegistration.cs	59	L	AddScoped | Alycia.Modules.Chat.Infrastructure.ProjectFiles
+src/Alycia.Api/Chat/ChatRegistration.cs	64	L	AddScoped | Alycia.Modules.Chat.Application.IConversationMemory, Alycia.Modules.Chat.Application.ConversationMemory
+src/Alycia.Api/Chat/ChatRegistration.cs	65	L	AddScoped | Alycia.Modules.Chat.Application.Context.ConversationTemporalMemory
+src/Alycia.Api/Chat/ChatRegistration.cs	66	L	AddScoped | Alycia.Modules.Chat.Infrastructure.TemporalMemoryStore
+src/Alycia.Api/Chat/ChatRegistration.cs	67	L	AddScoped | Alycia.Modules.Chat.Application.ITemporalMemoryIndex
+src/Alycia.Api/Chat/ChatRegistration.cs	68	L	AddScoped | Alycia.Modules.Chat.Application.ITemporalMemory
+src/Alycia.Api/Chat/ChatRegistration.cs	73	L	AddScoped | Alycia.Modules.Chat.Application.ITurnTools, Alycia.Modules.Chat.Application.TurnTools
+src/Alycia.Api/Chat/ChatRegistration.cs	74	L	AddScoped | Alycia.Modules.Chat.Infrastructure.ProjectToolService
+src/Alycia.Api/Chat/ChatRegistration.cs	75	L	AddScoped | Alycia.Modules.Chat.Application.ISnapshotProjectTools
+src/Alycia.Api/Chat/ChatRegistration.cs	76	L	AddHttpClient | Alycia.Modules.Chat.Application.IProjectTools, Alycia.Api.Chat.ProjectMcpClient
+src/Alycia.Api/Chat/ChatRegistration.cs	82	L	AddScoped | Alycia.Modules.Chat.Application.IProjectIndex, Alycia.Modules.Chat.Infrastructure.ProjectIndexService
+src/Alycia.Api/Chat/ChatRegistration.cs	83	L	AddScoped | Alycia.Modules.Chat.Infrastructure.IndexCatalog
+src/Alycia.Api/Chat/ChatRegistration.cs	84	L	AddScoped | Alycia.Modules.Chat.Infrastructure.KnowledgeStore
+src/Alycia.Api/Chat/ChatRegistration.cs	85	L	AddScoped | Alycia.Modules.Chat.Infrastructure.KnowledgeBuilder
+src/Alycia.Api/Chat/ChatRegistration.cs	86	L	AddScoped | Alycia.Modules.Chat.Infrastructure.PostgresEmbeddingStore
+src/Alycia.Api/Chat/ChatRegistration.cs	87	L	AddScoped | Alycia.Modules.Chat.Infrastructure.BackgroundEmbeddingIndex
+src/Alycia.Api/Chat/ChatRegistration.cs	88	L	AddScoped | Alycia.Modules.Chat.Application.IEmbeddingSimilarityReader
+src/Alycia.Api/Chat/ChatRegistration.cs	89	L	AddScoped | Alycia.Modules.Chat.Application.IIndexedEmbeddings, Alycia.Modules.Chat.Infrastructure.IndexedEmbeddingSearch
+src/Alycia.Api/Chat/ChatRegistration.cs	90	L	AddScoped | Alycia.Modules.Chat.Application.IIndexMaintenance, Alycia.Modules.Chat.Infrastructure.IndexMaintenance
+src/Alycia.Api/Chat/ChatRegistration.cs	91	L	AddHostedService | Alycia.Api.Chat.EmbeddingWorker
+src/Alycia.Api/Chat/ChatRegistration.cs	96	L	AddSingleton | Alycia.Modules.Chat.Application.LexicalIndexCache
+src/Alycia.Api/Chat/ChatRegistration.cs	97	L	AddSingleton | Alycia.Modules.Chat.Application.IPassageReranker
+src/Alycia.Api/Chat/ChatRegistration.cs	98	L	AddScoped | Alycia.Modules.Chat.Application.IProjectRetrieval, Alycia.Modules.Chat.Infrastructure.ProjectRetrievalService
+src/Alycia.Api/Chat/ChatRegistration.cs	103	L	AddSingleton | Alycia.Modules.Chat.Infrastructure.FileStorage
+src/Alycia.Api/Chat/ChatRegistration.cs	105	L	AddScoped | Alycia.Modules.Chat.Infrastructure.ImportSettingsStore
+src/Alycia.Api/Chat/ChatRegistration.cs	106	L	AddScoped | Alycia.Modules.Chat.Infrastructure.FileImport
+src/Alycia.Api/Chat/ChatRegistration.cs	107	L	AddScoped | Alycia.Modules.Chat.Infrastructure.ConversationFiles
+src/Alycia.Api/Chat/ChatRegistration.cs	108	L	AddScoped | Alycia.Modules.Chat.Infrastructure.ConversationFileSettings
+src/Alycia.Api/Chat/ChatRegistration.cs	109	L	AddScoped | Alycia.Modules.Chat.Infrastructure.DocumentAnalysisService
+src/Alycia.Api/Chat/ChatRegistration.cs	110	L	AddScoped | Alycia.Modules.Chat.Infrastructure.ProjectSourceReader
+src/Alycia.Api/Chat/ChatRegistration.cs	117	L	AddHttpClient | Alycia.Modules.Chat.Application.ILocalEmbeddings, Alycia.Modules.Chat.Infrastructure.OllamaEmbeddings
+src/Alycia.Api/Chat/ChatRegistration.cs	120	L	AddHttpClient | Alycia.Modules.Chat.Application.IChatModel, Alycia.Modules.Chat.Infrastructure.OllamaChatModel
+src/Alycia.Api/Chat/EmbeddingWorker.cs	18	Y	System.Exception.GetType()
+src/Alycia.Api/Program.cs	109	L	AddDbContext | Alycia.Modules.Workspaces.Infrastructure.WorkspacesDbContext
+src/Alycia.Api/Program.cs	112	L	AddScoped | Alycia.Modules.Workspaces.Application.IWorkspaceRepository, Alycia.Modules.Workspaces.Infrastructure.EfWorkspaceRepository
+src/Alycia.Api/Program.cs	113	L	AddScoped | Alycia.Modules.Workspaces.Application.CreateWorkspaceService
+src/Alycia.Api/Program.cs	114	L	AddScoped | Alycia.Modules.Workspaces.Application.GetWorkspaceService
+src/Alycia.Api/Workspaces/WorkspaceEndpoints.cs	112	Y	System.Exception.GetType()
+src/Alycia.Api/Workspaces/WorkspaceEndpoints.cs	121	Y	System.Exception.GetType()
+src/Alycia.Api/Workspaces/WorkspaceEndpoints.cs	156	Y	System.Exception.GetType()
+src/Alycia.Api/Workspaces/WorkspaceEndpoints.cs	165	Y	System.Exception.GetType()
+src/Alycia.Client.Avalonia/ChatWindow.Analysis.cs	85	C	ChatWindow | AutoSummarize
+src/Alycia.Client.Avalonia/ChatWindow.Analysis.cs	91	C	ChatWindow | ContextTokens
+src/Alycia.Client.Avalonia/ChatWindow.Analysis.cs	91	C	ChatWindow | MaxOutputTokens
+src/Alycia.Client.Avalonia/ChatWindow.Analysis.cs	91	C	ChatWindow | SafetyTokens
+src/Alycia.Client.Avalonia/ChatWindow.Analysis.cs	107	C	ChatWindow | StructuredMemory
+src/Alycia.Client.Avalonia/ChatWindow.Analysis.cs	132	C	ChatWindow | AutoSummarize
+src/Alycia.Client.Avalonia/ChatWindow.Analysis.cs	189	C	ChatWindow | SummaryMaxCalls
+src/Alycia.Client.Avalonia/ChatWindow.axaml.cs	153	Y	System.Exception.GetType()
+src/Alycia.Client.Avalonia/MainWindow.axaml.cs	74	Y	System.Exception.GetType()
+src/Alycia.Client.Avalonia/MainWindow.axaml.cs	133	Y	System.Exception.GetType()
+src/Alycia.Client.Avalonia/MarkdownView.cs	142	Y	object.GetType()
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	31	C	ConversationSettingsEditor | ContextTokens
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	32	C	ConversationSettingsEditor | MaxOutputTokens
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	33	C	ConversationSettingsEditor | MaxHistoryTurns
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	34	C	ConversationSettingsEditor | Temperature
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	35	C	ConversationSettingsEditor | Seed
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	36	C	ConversationSettingsEditor | TimeoutSeconds
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	37	C	ConversationSettingsEditor | SummaryMaxCalls
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	38	C	ConversationSettingsEditor | ToolMaxCalls
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	39	C	ConversationSettingsEditor | Enrichment
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	42	C	ConversationSettingsEditor | ToolContextTokens
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	43	C	ConversationSettingsEditor | ToolResultBytes
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	44	C	ConversationSettingsEditor | ToolTimeoutSeconds
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	45	C	ConversationSettingsEditor | DocumentContextTokens
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	46	C	ConversationSettingsEditor | ProtectedHistoryTurns
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	47	C	ConversationSettingsEditor | SafetyTokens
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	48	C	ConversationSettingsEditor | IndexMaxCharacters
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	49	C	ConversationSettingsEditor | EmbeddingBatchSize
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	50	C	ConversationSettingsEditor | ClassificationBudget
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	51	C	ConversationSettingsEditor | NeutralCandidates
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	52	C	ConversationSettingsEditor | RelevantThreshold
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	53	C	ConversationSettingsEditor | NeutralThreshold
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	54	C	ConversationSettingsEditor | QuerySummaryTokens
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	55	C	ConversationSettingsEditor | QuerySummaryMaxCalls
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	56	C	ConversationSettingsEditor | MemoryContextTokens
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	57	C	ConversationSettingsEditor | HistoryContextTokens
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	58	C	ConversationSettingsEditor | MaxSearchQueries
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	59	C	ConversationSettingsEditor | RerankCandidateLimit
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	60	C	ConversationSettingsEditor | RerankTimeoutMs
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	61	C	ConversationSettingsEditor | AgentPlanMaxCalls
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	62	C	ConversationSettingsEditor | EmbeddingChunkCharacters
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	64	C	ConversationSettingsEditor | EmbedHistory
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	65	C	ConversationSettingsEditor | RetrievalMode
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	66	C	ConversationSettingsEditor | EmbeddingModel
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	67	C	ConversationSettingsEditor | TokenCounting
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	68	C	ConversationSettingsEditor | UseProjectTools
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	69	C	ConversationSettingsEditor | GenerateUntilStop
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	70	C	ConversationSettingsEditor | StructuredMemory
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	71	C	ConversationSettingsEditor | AutoSummarize
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	72	C	ConversationSettingsEditor | AutoSummarize
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	107	C	ConversationSettingsEditor | RoutingMode
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	109	C	ConversationSettingsEditor | EmbeddingDocumentPrefix
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	110	C	ConversationSettingsEditor | EmbeddingQueryPrefix
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	115	C	ConversationSettingsEditor | QueryBriefModelEnabled
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	116	C	ConversationSettingsEditor | FacetPlanningEnabled
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	117	C	ConversationSettingsEditor | ClassificationEnabled
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	118	C	ConversationSettingsEditor | RerankEnabled
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	119	C	ConversationSettingsEditor | QueryRewriteEnabled
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	120	C	ConversationSettingsEditor | EvidenceSelectionEnabled
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	121	C	ConversationSettingsEditor | HierarchicalIndexEnabled
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	122	C	ConversationSettingsEditor | TemporalMemoryEnabled
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	123	C	ConversationSettingsEditor | AgentPlanningEnabled
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	124	C	ConversationSettingsEditor | ClaimVerificationEnabled
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	125	C	ConversationSettingsEditor | VerificationSearchEnabled
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	126	C	ConversationSettingsEditor | AdaptiveInferenceEnabled
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	146	C	ConversationSettingsEditor | RoutingMode
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	147	C	ConversationSettingsEditor | EmbeddingDocumentPrefix
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	148	C	ConversationSettingsEditor | EmbeddingQueryPrefix
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	149	C	ConversationSettingsEditor | RetrievalMode
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	150	C	ConversationSettingsEditor | EmbeddingModel
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	151	C	ConversationSettingsEditor | TokenCounting
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	152	C	ConversationSettingsEditor | ContextTokens
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	153	C	ConversationSettingsEditor | MaxOutputTokens
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	154	C	ConversationSettingsEditor | MaxHistoryTurns
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	155	C	ConversationSettingsEditor | TimeoutSeconds
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	156	C	ConversationSettingsEditor | Temperature
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	157	C	ConversationSettingsEditor | SafetyTokens
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	158	C	ConversationSettingsEditor | SummaryMaxCalls
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	159	C	ConversationSettingsEditor | ToolMaxCalls
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	160	C	ConversationSettingsEditor | UseProjectTools
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	161	C	ConversationSettingsEditor | GenerateUntilStop
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	162	C	ConversationSettingsEditor | AutoSummarize
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	163	C	ConversationSettingsEditor | StructuredMemory
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	164	C	ConversationSettingsEditor | Seed
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	171	C	ConversationSettingsEditor | EmbedHistory
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	174	C	ConversationSettingsEditor | Enrichment
+src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	177	C	ConversationSettingsEditor | UseProjectTools
+src/Alycia.Contracts/ChatSettings.cs	62	C	ChatSettings | ClassificationBudget
+src/Alycia.Contracts/ChatSettings.cs	62	C	ChatSettings | Enrichment
+src/Alycia.Contracts/ChatSettings.cs	62	C	ChatSettings | NeutralCandidates
+src/Alycia.Contracts/ChatSettings.cs	63	C	ChatSettings | NeutralThreshold
+src/Alycia.Contracts/ChatSettings.cs	63	C	ChatSettings | RelevantThreshold
+src/Alycia.Contracts/ChatSettings.cs	64	C	ChatSettings | NeutralThreshold
+src/Alycia.Contracts/ChatSettings.cs	64	C	ChatSettings | QuerySummaryTokens
+src/Alycia.Contracts/ChatSettings.cs	64	C	ChatSettings | RelevantThreshold
+src/Alycia.Contracts/ChatSettings.cs	65	C	ChatSettings | HistoryContextTokens
+src/Alycia.Contracts/ChatSettings.cs	65	C	ChatSettings | MemoryContextTokens
+src/Alycia.Contracts/ChatSettings.cs	65	C	ChatSettings | QuerySummaryMaxCalls
+src/Alycia.Contracts/ChatSettings.cs	67	C	ChatSettings | Enrichment
+src/Alycia.Contracts/ChatSettings.cs	68	C	ChatSettings | AgentPlanMaxCalls
+src/Alycia.Contracts/ChatSettings.cs	68	C	ChatSettings | ContextTokens
+src/Alycia.Contracts/ChatSettings.cs	68	C	ChatSettings | EmbeddingDocumentPrefix
+src/Alycia.Contracts/ChatSettings.cs	68	C	ChatSettings | EmbeddingModel
+src/Alycia.Contracts/ChatSettings.cs	68	C	ChatSettings | EmbeddingQueryPrefix
+src/Alycia.Contracts/ChatSettings.cs	68	C	ChatSettings | MaxHistoryTurns
+src/Alycia.Contracts/ChatSettings.cs	68	C	ChatSettings | MaxSearchQueries
+src/Alycia.Contracts/ChatSettings.cs	68	C	ChatSettings | RerankCandidateLimit
+src/Alycia.Contracts/ChatSettings.cs	68	C	ChatSettings | RerankTimeoutMs
+src/Alycia.Contracts/ChatSettings.cs	68	C	ChatSettings | RetrievalMode
+src/Alycia.Contracts/ChatSettings.cs	68	C	ChatSettings | RoutingMode
+src/Alycia.Contracts/ChatSettings.cs	68	C	ChatSettings | SummaryMaxCalls
+src/Alycia.Contracts/ChatSettings.cs	68	C	ChatSettings | TokenCounting
+src/Alycia.Contracts/ChatSettings.cs	68	C	ChatSettings | ToolMaxCalls
+src/Alycia.Contracts/ChatSettings.cs	69	C	ChatSettings | ContextTokens
+src/Alycia.Contracts/ChatSettings.cs	69	C	ChatSettings | DocumentContextTokens
+src/Alycia.Contracts/ChatSettings.cs	69	C	ChatSettings | ToolContextTokens
+src/Alycia.Contracts/ChatSettings.cs	70	C	ChatSettings | IndexMaxCharacters
+src/Alycia.Contracts/ChatSettings.cs	70	C	ChatSettings | ToolResultBytes
+src/Alycia.Contracts/ChatSettings.cs	71	C	ChatSettings | ToolTimeoutSeconds
+src/Alycia.Contracts/ChatSettings.cs	72	C	ChatSettings | EmbeddingBatchSize
+src/Alycia.Contracts/ChatSettings.cs	72	C	ChatSettings | EmbeddingChunkCharacters
+src/Alycia.Contracts/ChatSettings.cs	73	C	ChatSettings | ProtectedHistoryTurns
+src/Alycia.Contracts/ChatSettings.cs	74	C	ChatSettings | MaxOutputTokens
+src/Alycia.Contracts/ChatSettings.cs	74	C	ChatSettings | SafetyTokens
+src/Alycia.Contracts/ChatSettings.cs	75	C	ChatSettings | ContextTokens
+src/Alycia.Contracts/ChatSettings.cs	75	C	ChatSettings | MaxOutputTokens
+src/Alycia.Contracts/ChatSettings.cs	75	C	ChatSettings | SafetyTokens
+src/Alycia.Contracts/ChatSettings.cs	76	C	ChatSettings | TimeoutSeconds
+src/Alycia.Contracts/ChatSettings.cs	77	C	ChatSettings | Temperature
+src/Alycia.Contracts/SettingsFileCodec.cs	70	C	SettingsFileCodec | UseProjectTools
+src/Alycia.Contracts/SettingsInput.cs	20	C	SettingsInput | ContextTokens
+src/Alycia.Contracts/SettingsInput.cs	20	C	SettingsInput | MaxOutputTokens
+src/Alycia.Contracts/SettingsInput.cs	20	C	SettingsInput | SafetyTokens
+src/Alycia.Modules.Chat.Application/ChatOptions.cs	19	C	ChatOptions | ContextTokens
+src/Alycia.Modules.Chat.Application/ChatOptions.cs	19	C	ChatOptions | MaxOutputTokens
+src/Alycia.Modules.Chat.Application/ChatOptions.cs	19	C	ChatOptions | SafetyTokens
+src/Alycia.Modules.Chat.Application/ChatOptions.cs	20	C	ChatOptions | RerankCandidateLimit
+src/Alycia.Modules.Chat.Application/ChatOptions.cs	20	C	ChatOptions | RerankEnabled
+src/Alycia.Modules.Chat.Application/ChatOptions.cs	20	C	ChatOptions | RerankTimeoutMs
+src/Alycia.Modules.Chat.Application/ChatOptions.cs	23	C	ChatOptions | HistoryContextTokens
+src/Alycia.Modules.Chat.Application/ChatOptions.cs	24	C	ChatOptions | MemoryContextTokens
+src/Alycia.Modules.Chat.Application/Context/TurnContext.cs	12	C	TurnContextBudget | SafetyTokens
+src/Alycia.Modules.Chat.Application/Context/TurnContext.cs	33	C	TurnContext | AutoSummarize
+src/Alycia.Modules.Chat.Application/Context/TurnContext.cs	35	C	TurnContext | ProtectedHistoryTurns
+src/Alycia.Modules.Chat.Application/Context/TurnContext.cs	39	C	TurnContext | SafetyTokens
+src/Alycia.Modules.Chat.Application/Context/TurnContext.cs	49	C	TurnContext | AutoSummarize
+src/Alycia.Modules.Chat.Application/Context/TurnContext.cs	49	C	TurnContext | Recall
+src/Alycia.Modules.Chat.Application/Context/TurnContext.cs	57	C	TurnContext | MaxHistoryTurns
+src/Alycia.Modules.Chat.Application/Context/TurnContext.cs	65	C	TurnContext | Route
+src/Alycia.Modules.Chat.Application/ContextGuides.cs	8	C	ContextGuides | QuerySummaryTokens
+src/Alycia.Modules.Chat.Application/ContextGuides.cs	8	C	ContextGuides | SourceCandidates
+src/Alycia.Modules.Chat.Application/ContextGuides.cs	10	C	ContextGuides | ContextTokens
+src/Alycia.Modules.Chat.Application/ContextGuides.cs	10	C	ContextGuides | MaxOutputTokens
+src/Alycia.Modules.Chat.Application/ContextGuides.cs	10	C	ContextGuides | SafetyTokens
+src/Alycia.Modules.Chat.Application/ContextGuides.cs	13	C	ContextGuides | QuerySummaryTokens
+src/Alycia.Modules.Chat.Application/ContextGuides.cs	14	C	ContextGuides | DocumentContextTokens
+src/Alycia.Modules.Chat.Application/ContextGuides.cs	17	C	ContextGuides | DocumentContextTokens
+src/Alycia.Modules.Chat.Application/ContextGuides.cs	20	C	ContextGuides | QuerySummaryMaxCalls
+src/Alycia.Modules.Chat.Application/ContextGuides.cs	29	C	ContextGuides | Enrichment
+src/Alycia.Modules.Chat.Application/ContextGuides.cs	35	C	ContextGuides | Enrichment
+src/Alycia.Modules.Chat.Application/ContextGuides.cs	37	C	ContextGuides | CallPurpose
+src/Alycia.Modules.Chat.Application/ContextGuides.cs	38	C	ContextGuides | ContextTokens
+src/Alycia.Modules.Chat.Application/ContextGuides.cs	38	C	ContextGuides | Enrichment
+src/Alycia.Modules.Chat.Application/ContextGuides.cs	39	C	ContextGuides | Enrichment
+src/Alycia.Modules.Chat.Application/ContextGuides.cs	39	C	ContextGuides | MaxOutputTokens
+src/Alycia.Modules.Chat.Application/ContextGuides.cs	40	C	ContextGuides | GenerateUntilStop
+src/Alycia.Modules.Chat.Application/ContextGuides.cs	41	C	ContextGuides | Temperature
+src/Alycia.Modules.Chat.Application/ContextGuides.cs	42	C	ContextGuides | Seed
+src/Alycia.Modules.Chat.Application/ContextGuides.cs	43	C	ContextGuides | UseProjectTools
+src/Alycia.Modules.Chat.Application/ContextGuides.cs	44	C	ContextGuides | Enrichment
+src/Alycia.Modules.Chat.Application/ContextGuides.cs	44	C	ContextGuides | TimeoutSeconds
+src/Alycia.Modules.Chat.Application/ContextGuides.cs	49	C	ContextGuides | ModelIdentity
+src/Alycia.Modules.Chat.Application/ContextGuides.cs	52	C	ContextGuides | Enrichment
+src/Alycia.Modules.Chat.Application/ContextGuides.cs	53	C	ContextGuides | ModelIdentity
+src/Alycia.Modules.Chat.Application/ContextGuides.cs	79	C	ContextGuides | ContextTokens
+src/Alycia.Modules.Chat.Application/ContextGuides.cs	79	C	ContextGuides | MaxOutputTokens
+src/Alycia.Modules.Chat.Application/ContextGuides.cs	79	C	ContextGuides | SafetyTokens
+src/Alycia.Modules.Chat.Application/ConversationConfiguration.cs	28	C	ConversationConfiguration | Route
+src/Alycia.Modules.Chat.Application/ConversationConfiguration.cs	29	C	ConversationConfiguration | SearchPlan
+src/Alycia.Modules.Chat.Application/ConversationContext.cs	43	C	ConversationContext | Recall
+src/Alycia.Modules.Chat.Application/ConversationContext.cs	45	C	ConversationContext | StructuredMemory
+src/Alycia.Modules.Chat.Application/ConversationContext.cs	47	C	ConversationContext | ProtectedHistoryTurns
+src/Alycia.Modules.Chat.Application/ConversationContext.cs	48	C	ConversationContext | ProtectedHistoryTurns
+src/Alycia.Modules.Chat.Application/ConversationContext.cs	52	C	ConversationContext | AvailableInputTokens
+src/Alycia.Modules.Chat.Application/ConversationContext.cs	62	C	ConversationContext | ModelIdentity
+src/Alycia.Modules.Chat.Application/ConversationContext.cs	86	C	ConversationContext | CallPurpose
+src/Alycia.Modules.Chat.Application/ConversationContext.cs	86	C	ConversationContext | GenerateUntilStop
+src/Alycia.Modules.Chat.Application/ConversationContext.cs	87	C	ConversationContext | ContextTokens
+src/Alycia.Modules.Chat.Application/ConversationContext.cs	87	C	ConversationContext | MaxOutputTokens
+src/Alycia.Modules.Chat.Application/ConversationContext.cs	87	C	ConversationContext | SafetyTokens
+src/Alycia.Modules.Chat.Application/ConversationContext.cs	88	C	ConversationContext | ResponseSchema
+src/Alycia.Modules.Chat.Application/ConversationContext.cs	88	C	ConversationContext | Temperature
+src/Alycia.Modules.Chat.Application/ConversationContext.cs	89	C	ConversationContext | ContextTokens
+src/Alycia.Modules.Chat.Application/ConversationContext.cs	89	C	ConversationContext | MaxOutputTokens
+src/Alycia.Modules.Chat.Application/ConversationContext.cs	89	C	ConversationContext | SafetyTokens
+src/Alycia.Modules.Chat.Application/ConversationContext.cs	113	C	ConversationContext | SummaryMaxCalls
+src/Alycia.Modules.Chat.Application/ConversationContext.cs	114	C	ConversationContext | SummaryMaxCalls
+src/Alycia.Modules.Chat.Application/ConversationContext.cs	136	C	ConversationContext | DocumentContextTokens
+src/Alycia.Modules.Chat.Application/ConversationContext.cs	137	C	ConversationContext | DocumentContextTokens
+src/Alycia.Modules.Chat.Application/ConversationContext.cs	143	C	ConversationContext | RetrievalReport
+src/Alycia.Modules.Chat.Application/ConversationSettingsTransfer.cs	16	C	ConversationSettingsTransfer | UseProjectTools
+src/Alycia.Modules.Chat.Application/Conversations/TurnResponseAudit.cs	29	C	TurnResponseAudit | ClaimVerificationEnabled
+src/Alycia.Modules.Chat.Application/Conversations/TurnResponseAudit.cs	32	C	TurnResponseAudit | ClaimVerificationEnabled
+src/Alycia.Modules.Chat.Application/Conversations/TurnResponseAudit.cs	64	C	TurnResponseAudit | RetrievalReport
+src/Alycia.Modules.Chat.Application/Conversations/TurnResponseAudit.cs	65	C	TurnResponseAudit | Route
+src/Alycia.Modules.Chat.Application/EvidenceComposer.cs	11	C	EvidenceComposer | DocumentContextTokens
+src/Alycia.Modules.Chat.Application/EvidenceComposer.cs	12	C	EvidenceComposer | PinnedSourceIds
+src/Alycia.Modules.Chat.Application/EvidenceComposer.cs	12	C	EvidenceComposer | Route
+src/Alycia.Modules.Chat.Application/EvidenceComposer.cs	13	C	EvidenceComposer | EvidenceSelectionEnabled
+src/Alycia.Modules.Chat.Application/EvidenceComposer.cs	14	C	EvidenceComposer | Route
+src/Alycia.Modules.Chat.Application/EvidenceComposer.cs	32	C	EvidenceComposer | RetrievalReport
+src/Alycia.Modules.Chat.Application/EvidenceComposer.cs	35	C	EvidenceComposer | RelevantThreshold
+src/Alycia.Modules.Chat.Application/EvidenceComposer.cs	110	C	EvidenceComposer | RetrievalReport
+src/Alycia.Modules.Chat.Application/EvidenceComposer.cs	111	C	EvidenceComposer | RetrievalReport
+src/Alycia.Modules.Chat.Application/EvidenceComposer.cs	112	C	EvidenceComposer | RetrievalReport
+src/Alycia.Modules.Chat.Application/FileContext.cs	17	C	FileContext | ContextTokens
+src/Alycia.Modules.Chat.Application/FileContext.cs	17	C	FileContext | MaxOutputTokens
+src/Alycia.Modules.Chat.Application/FileContext.cs	17	C	FileContext | SafetyTokens
+src/Alycia.Modules.Chat.Application/FileContext.cs	19	C	FileContext | EvidenceSelectionEnabled
+src/Alycia.Modules.Chat.Application/FileContext.cs	23	C	FileContext | SafetyTokens
+src/Alycia.Modules.Chat.Application/FileContext.cs	33	C	FileContext | RetrievalReport
+src/Alycia.Modules.Chat.Application/InferenceWindow.cs	17	C	InferenceWindow | AdaptiveInferenceEnabled
+src/Alycia.Modules.Chat.Application/InferenceWindow.cs	17	C	InferenceWindow | GenerateUntilStop
+src/Alycia.Modules.Chat.Application/InferenceWindow.cs	18	C	InferenceWindow | MaxOutputTokens
+src/Alycia.Modules.Chat.Application/InferenceWindow.cs	18	C	InferenceWindow | SafetyTokens
+src/Alycia.Modules.Chat.Application/InferenceWindow.cs	19	C	InferenceWindow | ContextTokens
+src/Alycia.Modules.Chat.Application/InferenceWindow.cs	22	C	InferenceWindow | ContextTokens
+src/Alycia.Modules.Chat.Application/Memory/TemporalMemory.cs	63	C	TemporalMemory | Recall
+src/Alycia.Modules.Chat.Application/Memory/TemporalMemory.cs	64	C	TemporalMemory | AutoSummarize
+src/Alycia.Modules.Chat.Application/Memory/TemporalMemory.cs	64	C	TemporalMemory | MaxHistoryTurns
+src/Alycia.Modules.Chat.Application/Memory/TemporalMemory.cs	64	C	TemporalMemory | ProtectedHistoryTurns
+src/Alycia.Modules.Chat.Application/Memory/TemporalMemory.cs	66	C	TemporalMemory | AutoSummarize
+src/Alycia.Modules.Chat.Application/Memory/TemporalMemory.cs	66	C	TemporalMemory | ProtectedHistoryTurns
+src/Alycia.Modules.Chat.Application/Memory/TemporalMemory.cs	82	C	TemporalMemory | ContextTokens
+src/Alycia.Modules.Chat.Application/Memory/TemporalMemory.cs	82	C	TemporalMemory | MaxOutputTokens
+src/Alycia.Modules.Chat.Application/Memory/TemporalMemory.cs	82	C	TemporalMemory | SafetyTokens
+src/Alycia.Modules.Chat.Application/Memory/TemporalMemory.cs	85	C	TemporalMemory | AutoSummarize
+src/Alycia.Modules.Chat.Application/Memory/TemporalMemory.cs	88	C	TemporalMemory | DocumentContextTokens
+src/Alycia.Modules.Chat.Application/Memory/TemporalMemory.cs	116	C	TemporalMemory | MemoryContextTokens
+src/Alycia.Modules.Chat.Application/Memory/TemporalMemory.cs	140	C	TemporalMemory | HistoryContextTokens
+src/Alycia.Modules.Chat.Application/Memory/TemporalMemory.cs	148	C	TemporalMemory | RetrievalReport
+src/Alycia.Modules.Chat.Application/Memory/TemporalMemory.cs	148	C	TemporalMemory | Route
+src/Alycia.Modules.Chat.Application/PassageClassification.cs	45	C	PassageClassification | ClassificationBudget
+src/Alycia.Modules.Chat.Application/PassageClassification.cs	46	C	PassageClassification | RerankCandidateLimit
+src/Alycia.Modules.Chat.Application/PassageClassification.cs	67	C	PassageClassification | RelevantThreshold
+src/Alycia.Modules.Chat.Application/PassageClassification.cs	68	C	PassageClassification | NeutralThreshold
+src/Alycia.Modules.Chat.Application/PassageClassification.cs	70	C	PassageClassification | PinnedSourceIds
+src/Alycia.Modules.Chat.Application/PassageClassification.cs	76	C	PassageClassification | NeutralCandidates
+src/Alycia.Modules.Chat.Application/PassageClassification.cs	81	C	PassageClassification | ClassificationBudget
+src/Alycia.Modules.Chat.Application/ProjectContext.cs	19	C	ProjectContext | SourceCandidates
+src/Alycia.Modules.Chat.Application/ProjectRetrieval.cs	87	C	ProjectRetrieval | ClassificationEnabled
+src/Alycia.Modules.Chat.Application/ProjectRetrieval.cs	87	C	ProjectRetrieval | EvidenceSelectionEnabled
+src/Alycia.Modules.Chat.Application/ProjectRetrieval.cs	127	C	ProjectRetrieval | RetrievalMode
+src/Alycia.Modules.Chat.Application/ProjectRetrieval.cs	129	C	ProjectRetrieval | RetrievalReport
+src/Alycia.Modules.Chat.Application/QueryPlanning.cs	29	C	QueryPlanning | CallPurpose
+src/Alycia.Modules.Chat.Application/QueryPlanning.cs	30	C	QueryPlanning | ContextTokens
+src/Alycia.Modules.Chat.Application/QueryPlanning.cs	31	C	QueryPlanning | MaxOutputTokens
+src/Alycia.Modules.Chat.Application/QueryPlanning.cs	32	C	QueryPlanning | SafetyTokens
+src/Alycia.Modules.Chat.Application/QueryPlanning.cs	33	C	QueryPlanning | TimeoutSeconds
+src/Alycia.Modules.Chat.Application/QueryPlanning.cs	34	C	QueryPlanning | GenerateUntilStop
+src/Alycia.Modules.Chat.Application/QueryPlanning.cs	35	C	QueryPlanning | UseProjectTools
+src/Alycia.Modules.Chat.Application/QueryPlanning.cs	36	C	QueryPlanning | Temperature
+src/Alycia.Modules.Chat.Application/QueryPlanning.cs	37	C	QueryPlanning | Seed
+src/Alycia.Modules.Chat.Application/QueryPlanning.cs	38	C	QueryPlanning | ResponseSchema
+src/Alycia.Modules.Chat.Application/QueryPlanning.cs	40	C	QueryPlanning | ContextTokens
+src/Alycia.Modules.Chat.Application/QueryPlanning.cs	40	C	QueryPlanning | MaxOutputTokens
+src/Alycia.Modules.Chat.Application/QueryPlanning.cs	40	C	QueryPlanning | ModelIdentity
+src/Alycia.Modules.Chat.Application/QueryPlanning.cs	40	C	QueryPlanning | SafetyTokens
+src/Alycia.Modules.Chat.Application/QueryPlanning.cs	48	C	QueryPlanning | ModelIdentity
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	12	C	QueryRouting | RoutingMode
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	35	C	QueryRouting | UseProjectTools
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	42	C	QueryRouting | AgentPlanningEnabled
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	42	C	QueryRouting | QueryRewriteEnabled
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	42	C	QueryRouting | RoutingMode
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	43	C	QueryRouting | ClassificationEnabled
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	43	C	QueryRouting | EvidenceSelectionEnabled
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	43	C	QueryRouting | FacetPlanningEnabled
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	43	C	QueryRouting | QueryBriefModelEnabled
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	43	C	QueryRouting | TemporalMemoryEnabled
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	43	C	QueryRouting | VerificationSearchEnabled
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	44	C	QueryRouting | AutoSummarize
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	44	C	QueryRouting | MaxHistoryTurns
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	44	C	QueryRouting | ProtectedHistoryTurns
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	46	C	QueryRouting | EligibleSourceIds
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	47	C	QueryRouting | EligibleSourceIds
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	47	C	QueryRouting | PinnedSourceIds
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	50	C	QueryRouting | AgentPlanningEnabled
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	50	C	QueryRouting | ClassificationEnabled
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	50	C	QueryRouting | FacetPlanningEnabled
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	50	C	QueryRouting | QueryBriefModelEnabled
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	50	C	QueryRouting | QueryRewriteEnabled
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	53	C	QueryRouting | SearchPlan
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	54	C	QueryRouting | EligibleSourceIds
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	54	C	QueryRouting | FacetPlanningEnabled
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	54	C	QueryRouting | MaxSearchQueries
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	54	C	QueryRouting | QueryBriefModelEnabled
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	55	C	QueryRouting | SearchPlan
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	57	C	QueryRouting | Enrichment
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	57	C	QueryRouting | QueryBriefModelEnabled
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	58	C	QueryRouting | Enrichment
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	59	C	QueryRouting | EligibleSourceIds
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	67	C	QueryRouting | SearchPlan
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	74	C	QueryRouting | RoutingMode
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	76	C	QueryRouting | EligibleSourceIds
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	77	C	QueryRouting | SearchPlan
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	78	C	QueryRouting | UseProjectTools
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	79	C	QueryRouting | Route
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	80	C	QueryRouting | UseProjectTools
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	85	C	QueryRouting | SearchPlan
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	86	C	QueryRouting | Route
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	86	C	QueryRouting | UseProjectTools
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	88	C	QueryRouting | Route
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	88	C	QueryRouting | TemporalMemoryEnabled
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	90	C	QueryRouting | Recall
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	91	C	QueryRouting | Recall
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	93	C	QueryRouting | Route
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	93	C	QueryRouting | SourceCandidates
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	94	C	QueryRouting | RetrievalMode
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	96	C	QueryRouting | SourceCandidates
+src/Alycia.Modules.Chat.Application/QueryRouting.cs	97	C	QueryRouting | RetrievalReport
+src/Alycia.Modules.Chat.Application/RecursiveContext.cs	18	C	RecursiveContext | ProtectedHistoryTurns
+src/Alycia.Modules.Chat.Application/RecursiveContext.cs	19	C	RecursiveContext | AvailableInputTokens
+src/Alycia.Modules.Chat.Application/RecursiveContext.cs	25	C	RecursiveContext | ProtectedHistoryTurns
+src/Alycia.Modules.Chat.Application/RecursiveContext.cs	43	C	RecursiveContext | MemoryContextTokens
+src/Alycia.Modules.Chat.Application/RecursiveContext.cs	44	C	RecursiveContext | MemoryContextTokens
+src/Alycia.Modules.Chat.Application/RecursiveContext.cs	59	C	RecursiveContext | HistoryContextTokens
+src/Alycia.Modules.Chat.Application/RecursiveContext.cs	77	C	RecursiveContext | DocumentContextTokens
+src/Alycia.Modules.Chat.Application/RecursiveContext.cs	83	C	RecursiveContext | RetrievalReport
+src/Alycia.Modules.Chat.Application/RecursiveSummarizer.cs	21	C	RecursiveSummarizer | ContextTokens
+src/Alycia.Modules.Chat.Application/RecursiveSummarizer.cs	21	C	RecursiveSummarizer | SafetyTokens
+src/Alycia.Modules.Chat.Application/RecursiveSummarizer.cs	32	C	RecursiveSummarizer | SummaryMaxCalls
+src/Alycia.Modules.Chat.Application/RecursiveSummarizer.cs	39	C	RecursiveSummarizer | Enrichment
+src/Alycia.Modules.Chat.Application/RecursiveSummarizer.cs	51	C	RecursiveSummarizer | Enrichment
+src/Alycia.Modules.Chat.Application/RecursiveSummarizer.cs	56	C	RecursiveSummarizer | ModelIdentity
+src/Alycia.Modules.Chat.Application/RecursiveSummarizer.cs	56	C	RecursiveSummarizer | Seed
+src/Alycia.Modules.Chat.Application/RecursiveSummarizer.cs	56	C	RecursiveSummarizer | TokenCounting
+src/Alycia.Modules.Chat.Application/RecursiveSummarizer.cs	61	C	RecursiveSummarizer | SummaryMaxCalls
+src/Alycia.Modules.Chat.Application/RecursiveSummarizer.cs	65	C	RecursiveSummarizer | SummaryMaxCalls
+src/Alycia.Modules.Chat.Application/RecursiveSummarizer.cs	68	C	RecursiveSummarizer | CallPurpose
+src/Alycia.Modules.Chat.Application/RecursiveSummarizer.cs	69	C	RecursiveSummarizer | TokenCounter
+src/Alycia.Modules.Chat.Application/RecursiveSummarizer.cs	70	C	RecursiveSummarizer | TokenCounting
+src/Alycia.Modules.Chat.Application/RecursiveSummarizer.cs	71	C	RecursiveSummarizer | ModelIdentity
+src/Alycia.Modules.Chat.Application/RecursiveSummarizer.cs	72	C	RecursiveSummarizer | GenerateUntilStop
+src/Alycia.Modules.Chat.Application/RecursiveSummarizer.cs	73	C	RecursiveSummarizer | AutoSummarize
+src/Alycia.Modules.Chat.Application/RecursiveSummarizer.cs	74	C	RecursiveSummarizer | ContextTokens
+src/Alycia.Modules.Chat.Application/RecursiveSummarizer.cs	75	C	RecursiveSummarizer | SafetyTokens
+src/Alycia.Modules.Chat.Application/RecursiveSummarizer.cs	76	C	RecursiveSummarizer | MaxOutputTokens
+src/Alycia.Modules.Chat.Application/RecursiveSummarizer.cs	77	C	RecursiveSummarizer | Temperature
+src/Alycia.Modules.Chat.Application/RecursiveSummarizer.cs	78	C	RecursiveSummarizer | Seed
+src/Alycia.Modules.Chat.Application/RecursiveSummarizer.cs	79	C	RecursiveSummarizer | TimeoutSeconds
+src/Alycia.Modules.Chat.Application/RecursiveSummarizer.cs	85	C	RecursiveSummarizer | ContextTokens
+src/Alycia.Modules.Chat.Application/RecursiveSummarizer.cs	85	C	RecursiveSummarizer | MaxOutputTokens
+src/Alycia.Modules.Chat.Application/RecursiveSummarizer.cs	85	C	RecursiveSummarizer | SafetyTokens
+src/Alycia.Modules.Chat.Application/RecursiveSummarizer.cs	106	C	RecursiveSummarizer | ContextTokens
+src/Alycia.Modules.Chat.Application/RecursiveSummarizer.cs	106	C	RecursiveSummarizer | SafetyTokens
+src/Alycia.Modules.Chat.Application/Retrieval/PassageRanking.cs	28	C	PassageRanking | FacetPlanningEnabled
+src/Alycia.Modules.Chat.Application/Retrieval/PassageRanking.cs	43	C	PassageRanking | FacetPlanningEnabled
+src/Alycia.Modules.Chat.Application/Retrieval/PassageRanking.cs	55	C	PassageRanking | RerankCandidateLimit
+src/Alycia.Modules.Chat.Application/Retrieval/PassageRanking.cs	69	C	PassageRanking | ClassificationEnabled
+src/Alycia.Modules.Chat.Application/Retrieval/PassageRanking.cs	71	C	PassageRanking | SearchPlan
+src/Alycia.Modules.Chat.Application/Retrieval/PassageRanking.cs	77	C	PassageRanking | PinnedSourceIds
+src/Alycia.Modules.Chat.Application/Retrieval/PassageRanking.cs	94	C	PassageRanking | Ranking
+src/Alycia.Modules.Chat.Application/SemanticClaimAudit.cs	32	C	SemanticClaimAudit | RetrievalMode
+src/Alycia.Modules.Chat.Application/SemanticClaimAudit.cs	32	C	SemanticClaimAudit | Route
+src/Alycia.Modules.Chat.Application/SemanticClaimAudit.cs	32	C	SemanticClaimAudit | VerificationSearchEnabled
+src/Alycia.Modules.Chat.Application/SemanticClaimAudit.cs	34	C	SemanticClaimAudit | QueryRewriteEnabled
+src/Alycia.Modules.Chat.Application/SemanticClaimAudit.cs	34	C	SemanticClaimAudit | RerankEnabled
+src/Alycia.Modules.Chat.Application/SemanticClaimAudit.cs	34	C	SemanticClaimAudit | SearchPlan
+src/Alycia.Modules.Chat.Application/SemanticClaimAudit.cs	35	C	SemanticClaimAudit | PinnedSourceIds
+src/Alycia.Modules.Chat.Application/SemanticClaimAudit.cs	35	C	SemanticClaimAudit | RetrievalMode
+src/Alycia.Modules.Chat.Application/SemanticClaimAudit.cs	37	C	SemanticClaimAudit | TimeoutSeconds
+src/Alycia.Modules.Chat.Application/SemanticClaimAudit.cs	43	C	SemanticClaimAudit | EligibleSourceIds
+src/Alycia.Modules.Chat.Application/SlidingContext.cs	18	C	SlidingContext | AvailableInputTokens
+src/Alycia.Modules.Chat.Application/SlidingContext.cs	31	C	SlidingContext | MaxHistoryTurns
+src/Alycia.Modules.Chat.Application/SlidingContext.cs	43	C	SlidingContext | HistoryContextTokens
+src/Alycia.Modules.Chat.Application/TokenBudget.cs	25	C	TokenBudget | TokenCounter
+src/Alycia.Modules.Chat.Application/TokenBudget.cs	26	C	TokenBudget | TokenCounter
+src/Alycia.Modules.Chat.Application/TokenBudget.cs	27	C	TokenBudget | TokenCounter
+src/Alycia.Modules.Chat.Application/TokenBudget.cs	37	C	MeteredChatModel | ModelIdentity
+src/Alycia.Modules.Chat.Application/TokenBudget.cs	72	C	MeteredChatModel | AdaptiveInferenceEnabled
+src/Alycia.Modules.Chat.Application/TokenBudget.cs	73	C	MeteredChatModel | CallPurpose
+src/Alycia.Modules.Chat.Application/TokenBudget.cs	74	C	MeteredChatModel | AdaptiveInferenceEnabled
+src/Alycia.Modules.Chat.Application/TokenBudget.cs	74	C	MeteredChatModel | ContextTokens
+src/Alycia.Modules.Chat.Application/Tools/HistoryTools.cs	43	C	HistoryTools | EmbedHistory
+src/Alycia.Modules.Chat.Application/Tools/HistoryTools.cs	43	C	HistoryTools | RetrievalMode
+src/Alycia.Modules.Chat.Application/Tools/ProjectAgent.cs	22	C	ProjectAgent | ToolTimeoutSeconds
+src/Alycia.Modules.Chat.Application/Tools/ProjectAgent.cs	35	C	ProjectAgent | ContextTokens
+src/Alycia.Modules.Chat.Application/Tools/ProjectAgent.cs	35	C	ProjectAgent | MaxOutputTokens
+src/Alycia.Modules.Chat.Application/Tools/ProjectAgent.cs	35	C	ProjectAgent | SafetyTokens
+src/Alycia.Modules.Chat.Application/Tools/ProjectAgent.cs	45	C	ProjectAgent | AgentPlanningEnabled
+src/Alycia.Modules.Chat.Application/Tools/ProjectAgent.cs	47	C	ProjectAgent | SummaryMaxCalls
+src/Alycia.Modules.Chat.Application/Tools/ProjectAgent.cs	51	C	ProjectAgent | AdaptiveInferenceEnabled
+src/Alycia.Modules.Chat.Application/Tools/ProjectAgent.cs	51	C	ProjectAgent | AgentPlanningEnabled
+src/Alycia.Modules.Chat.Application/Tools/ProjectAgent.cs	51	C	ProjectAgent | EvidenceSelectionEnabled
+src/Alycia.Modules.Chat.Application/Tools/ProjectAgent.cs	58	C	ProjectAgent | ToolContextTokens
+src/Alycia.Modules.Chat.Application/Tools/ProjectAgent.cs	135	C	ProjectAgent | ToolMaxCalls
+src/Alycia.Modules.Chat.Application/Tools/ProjectAgent.cs	136	C	ProjectAgent | ToolMaxCalls
+src/Alycia.Modules.Chat.Application/Tools/ProjectAgent.cs	142	C	ProjectAgent | ToolResultBytes
+src/Alycia.Modules.Chat.Application/Tools/ProjectAgent.cs	151	C	ProjectAgent | ToolMaxCalls
+src/Alycia.Modules.Chat.Application/Tools/ProjectAgent.cs	155	C	ProjectAgent | Route
+src/Alycia.Modules.Chat.Application/Tools/ResearchPlan.cs	16	C	ResearchPlan | AgentPlanMaxCalls
+src/Alycia.Modules.Chat.Application/Tools/ResearchPlan.cs	16	C	ResearchPlan | ToolMaxCalls
+src/Alycia.Modules.Chat.Application/Tools/ResearchPlan.cs	17	C	ResearchPlan | Route
+src/Alycia.Modules.Chat.Application/Tools/ResearchPlan.cs	18	C	ResearchPlan | SearchPlan
+src/Alycia.Modules.Chat.Application/Tools/ResearchPlan.cs	19	C	ResearchPlan | SearchPlan
+src/Alycia.Modules.Chat.Application/Tools/ResearchPlan.cs	20	C	ResearchPlan | SearchPlan
+src/Alycia.Modules.Chat.Application/Tools/ResearchPlan.cs	21	C	ResearchPlan | MaxSearchQueries
+src/Alycia.Modules.Chat.Application/Tools/TurnTools.cs	27	C	TurnTools | UseProjectTools
+src/Alycia.Modules.Chat.Infrastructure/Configuration/ConversationFileSettings.cs	10	E	ChatDbContext | Conversations | Conversation
+src/Alycia.Modules.Chat.Infrastructure/Configuration/ConversationFileSettings.cs	21	E	ChatDbContext | Attachments | Attachment
+src/Alycia.Modules.Chat.Infrastructure/Configuration/ConversationFileSettings.cs	24	E	ChatDbContext | WorkspaceFileOverrides | WorkspaceFileOverride
+src/Alycia.Modules.Chat.Infrastructure/Configuration/ConversationFileSettings.cs	25	E	ChatDbContext | WorkspaceFileOverrides | WorkspaceFileOverride
+src/Alycia.Modules.Chat.Infrastructure/Configuration/ConversationFileSettings.cs	31	E	ChatDbContext | Attachments | Attachment
+src/Alycia.Modules.Chat.Infrastructure/Configuration/PromptCatalog.cs	9	E	ChatDbContext | PromptProfiles | PromptProfile
+src/Alycia.Modules.Chat.Infrastructure/Configuration/PromptCatalog.cs	19	E	ChatDbContext | PromptProfiles | PromptProfile
+src/Alycia.Modules.Chat.Infrastructure/Configuration/PromptCatalog.cs	20	E	ChatDbContext | PromptProfiles | PromptProfile
+src/Alycia.Modules.Chat.Infrastructure/Configuration/PromptCatalog.cs	27	E	ChatDbContext | PromptProfiles | PromptProfile
+src/Alycia.Modules.Chat.Infrastructure/Configuration/PromptCatalog.cs	36	E	ChatDbContext | PromptProfiles | PromptProfile
+src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationHistory.cs	18	E	ChatDbContext | Conversations | Conversation
+src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationHistory.cs	19	E	ChatDbContext | Messages | ChatMessage
+src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationHistory.cs	31	E	ChatDbContext | Conversations | Conversation
+src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationHistory.cs	32	E	ChatDbContext | Messages | ChatMessage
+src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationHistory.cs	39	E	ChatDbContext | Conversations | Conversation
+src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationHistory.cs	49	E	ChatDbContext | Attachments | Attachment
+src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationHistory.cs	65	E	ChatDbContext | Conversations | Conversation
+src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationHistory.cs	69	E	ChatDbContext | WorkspaceFileOverrides | WorkspaceFileOverride
+src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationHistory.cs	105	S	chat.conversations
+src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationHistory.cs	106	E	ChatDbContext | Conversations | Conversation
+src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationHistory.cs	152	E	ChatDbContext | Conversations | Conversation
+src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationHistory.cs	156	E	ChatDbContext | Messages | ChatMessage
+src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationHistory.cs	164	E	ChatDbContext | Attachments | Attachment
+src/Alycia.Modules.Chat.Infrastructure/DocumentAnalysisService.Management.cs	19	E	ChatDbContext | DocumentAnalyses | DocumentAnalysis
+src/Alycia.Modules.Chat.Infrastructure/DocumentAnalysisService.Management.cs	32	E	ChatDbContext | DocumentAnalyses | DocumentAnalysis
+src/Alycia.Modules.Chat.Infrastructure/DocumentAnalysisService.Management.cs	39	E	ChatDbContext | DocumentAnalyses | DocumentAnalysis
+src/Alycia.Modules.Chat.Infrastructure/DocumentAnalysisService.Management.cs	52	E	ChatDbContext | DocumentAnalyses | DocumentAnalysis
+src/Alycia.Modules.Chat.Infrastructure/DocumentAnalysisService.Management.cs	54	E	ChatDbContext | DocumentAnalyses | DocumentAnalysis
+src/Alycia.Modules.Chat.Infrastructure/DocumentAnalysisService.Management.cs	62	E	ChatDbContext | Conversations | Conversation
+src/Alycia.Modules.Chat.Infrastructure/DocumentAnalysisService.Management.cs	67	E	ChatDbContext | Conversations | Conversation
+src/Alycia.Modules.Chat.Infrastructure/DocumentAnalysisService.Management.cs	86	E	ChatDbContext | DocumentAnalyses | DocumentAnalysis
+src/Alycia.Modules.Chat.Infrastructure/DocumentAnalysisService.cs	20	E	ChatDbContext | DocumentAnalyses | DocumentAnalysis
+src/Alycia.Modules.Chat.Infrastructure/DocumentAnalysisService.cs	28	E	ChatDbContext | DocumentAnalyses | DocumentAnalysis
+src/Alycia.Modules.Chat.Infrastructure/DocumentAnalysisService.cs	39	C	DocumentAnalysisService | ModelIdentity
+src/Alycia.Modules.Chat.Infrastructure/DocumentAnalysisService.cs	44	C	DocumentAnalysisService | SummaryMaxCalls
+src/Alycia.Modules.Chat.Infrastructure/DocumentAnalysisService.cs	53	C	DocumentAnalysisService | ModelIdentity
+src/Alycia.Modules.Chat.Infrastructure/DocumentAnalysisService.cs	56	C	DocumentAnalysisService | ModelIdentity
+src/Alycia.Modules.Chat.Infrastructure/DocumentAnalysisService.cs	64	C	DocumentAnalysisService | ModelIdentity
+src/Alycia.Modules.Chat.Infrastructure/DocumentAnalysisService.cs	76	C	DocumentAnalysisService | Enrichment
+src/Alycia.Modules.Chat.Infrastructure/DocumentAnalysisService.cs	100	C	DocumentAnalysisService | ModelIdentity
+src/Alycia.Modules.Chat.Infrastructure/DocumentAnalysisService.cs	204	E	ChatDbContext | DocumentAnalyses | DocumentAnalysis
+src/Alycia.Modules.Chat.Infrastructure/DocumentAnalysisService.cs	206	E	ChatDbContext | DocumentAnalyses | DocumentAnalysis
+src/Alycia.Modules.Chat.Infrastructure/Documents/ConversationFiles.cs	10	E	ChatDbContext | Attachments | Attachment
+src/Alycia.Modules.Chat.Infrastructure/Documents/ConversationFiles.cs	23	E	ChatDbContext | Conversations | Conversation
+src/Alycia.Modules.Chat.Infrastructure/Documents/ConversationFiles.cs	25	E	ChatDbContext | Attachments | Attachment
+src/Alycia.Modules.Chat.Infrastructure/Documents/ConversationFiles.cs	35	E	ChatDbContext | Attachments | Attachment
+src/Alycia.Modules.Chat.Infrastructure/EfChatRepository.cs	12	E	ChatDbContext | Conversations | Conversation
+src/Alycia.Modules.Chat.Infrastructure/EfChatRepository.cs	33	E	ChatDbContext | DocumentAnalyses | DocumentAnalysis
+src/Alycia.Modules.Chat.Infrastructure/EfChatRepository.cs	57	E	ChatDbContext | Messages | ChatMessage
+src/Alycia.Modules.Chat.Infrastructure/EfChatRepository.cs	61	E	ChatDbContext | Conversations | Conversation
+src/Alycia.Modules.Chat.Infrastructure/EfChatRepository.cs	66	E	ChatDbContext | Conversations | Conversation
+src/Alycia.Modules.Chat.Infrastructure/EfChatRepository.cs	68	E	ChatDbContext | WorkspaceProfiles | WorkspaceProfile
+src/Alycia.Modules.Chat.Infrastructure/EfChatRepository.cs	74	E	ChatDbContext | Conversations | Conversation
+src/Alycia.Modules.Chat.Infrastructure/EfChatRepository.cs	97	E	ChatDbContext | Conversations | Conversation
+src/Alycia.Modules.Chat.Infrastructure/EfChatRepository.cs	104	E	ChatDbContext | Messages | ChatMessage
+src/Alycia.Modules.Chat.Infrastructure/EfChatRepository.cs	113	E	ChatDbContext | Messages | ChatMessage
+src/Alycia.Modules.Chat.Infrastructure/EfChatRepository.cs	120	E	ChatDbContext | Messages | ChatMessage
+src/Alycia.Modules.Chat.Infrastructure/FileImport.cs	46	E	ChatDbContext | Conversations | Conversation
+src/Alycia.Modules.Chat.Infrastructure/FileImport.cs	48	E	ChatDbContext | WorkspaceProfiles | WorkspaceProfile
+src/Alycia.Modules.Chat.Infrastructure/FileImport.cs	50	E	ChatDbContext | Attachments | Attachment
+src/Alycia.Modules.Chat.Infrastructure/FileImport.cs	51	E	ChatDbContext | Attachments | Attachment
+src/Alycia.Modules.Chat.Infrastructure/FileImport.cs	79	E	ChatDbContext | Attachments | Attachment
+src/Alycia.Modules.Chat.Infrastructure/ImportSettingsStore.cs	14	S	chat.import_settings
+src/Alycia.Modules.Chat.Infrastructure/ImportSettingsStore.cs	24	S	chat.import_settings
+src/Alycia.Modules.Chat.Infrastructure/Indexing/BackgroundEmbeddingIndex.cs	19	E	ChatDbContext | Conversations | Conversation
+src/Alycia.Modules.Chat.Infrastructure/Indexing/BackgroundEmbeddingIndex.cs	20	E	ChatDbContext | WorkspaceProfiles | WorkspaceProfile
+src/Alycia.Modules.Chat.Infrastructure/Indexing/BackgroundEmbeddingIndex.cs	36	E	ChatDbContext | Attachments | Attachment
+src/Alycia.Modules.Chat.Infrastructure/Indexing/BackgroundEmbeddingIndex.cs	115	E	ChatDbContext | Messages | ChatMessage
+src/Alycia.Modules.Chat.Infrastructure/Indexing/EmbeddingJobDiscovery.cs	11	E	ChatDbContext | Conversations | Conversation
+src/Alycia.Modules.Chat.Infrastructure/Indexing/EmbeddingJobDiscovery.cs	12	E	ChatDbContext | WorkspaceProfiles | WorkspaceProfile
+src/Alycia.Modules.Chat.Infrastructure/Indexing/EmbeddingJobDiscovery.cs	29	C	EmbeddingJobDiscovery | EmbeddingBatchSize
+src/Alycia.Modules.Chat.Infrastructure/Indexing/EmbeddingJobDiscovery.cs	29	C	EmbeddingJobDiscovery | EmbeddingModel
+src/Alycia.Modules.Chat.Infrastructure/Indexing/EmbeddingJobDiscovery.cs	30	C	EmbeddingJobDiscovery | EmbedHistory
+src/Alycia.Modules.Chat.Infrastructure/Indexing/EmbeddingJobDiscovery.cs	30	C	EmbeddingJobDiscovery | EmbeddingChunkCharacters
+src/Alycia.Modules.Chat.Infrastructure/Indexing/EmbeddingJobDiscovery.cs	31	C	EmbeddingJobDiscovery | Enrichment
+src/Alycia.Modules.Chat.Infrastructure/Indexing/EmbeddingJobDiscovery.cs	32	C	EmbeddingJobDiscovery | RetrievalMode
+src/Alycia.Modules.Chat.Infrastructure/Indexing/EmbeddingJobDiscovery.cs	33	C	EmbeddingJobDiscovery | HierarchicalIndexEnabled
+src/Alycia.Modules.Chat.Infrastructure/Indexing/EmbeddingJobDiscovery.cs	34	C	EmbeddingJobDiscovery | EmbeddingDocumentPrefix
+src/Alycia.Modules.Chat.Infrastructure/Indexing/EmbeddingJobDiscovery.cs	34	C	EmbeddingJobDiscovery | EmbeddingQueryPrefix
+src/Alycia.Modules.Chat.Infrastructure/Indexing/IndexCatalog.cs	14	E	ChatDbContext | Conversations | Conversation
+src/Alycia.Modules.Chat.Infrastructure/Indexing/IndexCatalog.cs	34	E	ChatDbContext | Attachments | Attachment
+src/Alycia.Modules.Chat.Infrastructure/Indexing/IndexCatalog.cs	38	E	ChatDbContext | Conversations | Conversation
+src/Alycia.Modules.Chat.Infrastructure/Indexing/IndexCatalog.cs	41	C	IndexCatalog | Enrichment
+src/Alycia.Modules.Chat.Infrastructure/Indexing/IndexCatalog.cs	41	C	IndexCatalog | HierarchicalIndexEnabled
+src/Alycia.Modules.Chat.Infrastructure/Indexing/IndexCatalog.cs	52	E	ChatDbContext | Conversations | Conversation
+src/Alycia.Modules.Chat.Infrastructure/Indexing/IndexCatalog.cs	55	C	IndexCatalog | EmbedHistory
+src/Alycia.Modules.Chat.Infrastructure/Indexing/IndexCatalog.cs	55	C	IndexCatalog | Enrichment
+src/Alycia.Modules.Chat.Infrastructure/Indexing/IndexCatalog.cs	56	C	IndexCatalog | Enrichment
+src/Alycia.Modules.Chat.Infrastructure/Indexing/IndexCatalog.cs	57	C	IndexCatalog | Enrichment
+src/Alycia.Modules.Chat.Infrastructure/Indexing/IndexCatalog.cs	68	C	IndexCatalog | EmbeddingModel
+src/Alycia.Modules.Chat.Infrastructure/Indexing/IndexCatalog.cs	69	C	IndexCatalog | Enrichment
+src/Alycia.Modules.Chat.Infrastructure/Indexing/IndexCatalog.cs	70	C	IndexCatalog | EmbeddingModel
+src/Alycia.Modules.Chat.Infrastructure/Indexing/IndexCatalog.cs	70	C	IndexCatalog | RetrievalMode
+src/Alycia.Modules.Chat.Infrastructure/Indexing/IndexCatalog.cs	71	C	IndexCatalog | HierarchicalIndexEnabled
+src/Alycia.Modules.Chat.Infrastructure/Indexing/IndexCatalog.cs	72	C	IndexCatalog | EmbeddingDocumentPrefix
+src/Alycia.Modules.Chat.Infrastructure/Indexing/IndexCatalog.cs	73	C	IndexCatalog | EmbeddingQueryPrefix
+src/Alycia.Modules.Chat.Infrastructure/Indexing/IndexCatalog.cs	74	C	IndexCatalog | EmbeddingBatchSize
+src/Alycia.Modules.Chat.Infrastructure/Indexing/IndexCatalog.cs	75	C	IndexCatalog | EmbeddingChunkCharacters
+src/Alycia.Modules.Chat.Infrastructure/Indexing/IndexCatalog.cs	79	E	ChatDbContext | Conversations | Conversation
+src/Alycia.Modules.Chat.Infrastructure/Indexing/IndexCatalog.cs	82	C	IndexCatalog | Enrichment
+src/Alycia.Modules.Chat.Infrastructure/Indexing/IndexCatalog.cs	82	C	IndexCatalog | RetrievalMode
+src/Alycia.Modules.Chat.Infrastructure/Indexing/IndexCatalog.cs	84	C	IndexCatalog | EmbeddingModel
+src/Alycia.Modules.Chat.Infrastructure/Indexing/IndexCatalog.cs	84	C	IndexCatalog | Enrichment
+src/Alycia.Modules.Chat.Infrastructure/Indexing/KnowledgeBuilder.cs	17	C	KnowledgeBuilder | ContextTokens
+src/Alycia.Modules.Chat.Infrastructure/Indexing/KnowledgeBuilder.cs	18	C	KnowledgeBuilder | MaxOutputTokens
+src/Alycia.Modules.Chat.Infrastructure/Indexing/KnowledgeBuilder.cs	19	C	KnowledgeBuilder | SafetyTokens
+src/Alycia.Modules.Chat.Infrastructure/Indexing/KnowledgeBuilder.cs	20	C	KnowledgeBuilder | TimeoutSeconds
+src/Alycia.Modules.Chat.Infrastructure/Indexing/KnowledgeBuilder.cs	21	C	KnowledgeBuilder | CallPurpose
+src/Alycia.Modules.Chat.Infrastructure/Indexing/KnowledgeBuilder.cs	22	C	KnowledgeBuilder | GenerateUntilStop
+src/Alycia.Modules.Chat.Infrastructure/Indexing/KnowledgeBuilder.cs	23	C	KnowledgeBuilder | UseProjectTools
+src/Alycia.Modules.Chat.Infrastructure/Indexing/KnowledgeBuilder.cs	24	C	KnowledgeBuilder | Temperature
+src/Alycia.Modules.Chat.Infrastructure/Indexing/KnowledgeBuilder.cs	25	C	KnowledgeBuilder | Seed
+src/Alycia.Modules.Chat.Infrastructure/Indexing/KnowledgeBuilder.cs	26	C	KnowledgeBuilder | ResponseSchema
+src/Alycia.Modules.Chat.Infrastructure/Indexing/KnowledgeBuilder.cs	33	C	KnowledgeBuilder | ModelIdentity
+src/Alycia.Modules.Chat.Infrastructure/Indexing/KnowledgeBuilder.cs	45	C	KnowledgePass | ModelIdentity
+src/Alycia.Modules.Chat.Infrastructure/Indexing/KnowledgeBuilder.cs	126	C	KnowledgePass | ContextTokens
+src/Alycia.Modules.Chat.Infrastructure/Indexing/KnowledgeBuilder.cs	126	C	KnowledgePass | MaxOutputTokens
+src/Alycia.Modules.Chat.Infrastructure/Indexing/KnowledgeBuilder.cs	126	C	KnowledgePass | SafetyTokens
+src/Alycia.Modules.Chat.Infrastructure/Indexing/KnowledgeBuilder.cs	133	C	KnowledgePass | ModelIdentity
+src/Alycia.Modules.Chat.Infrastructure/Indexing/KnowledgeBuilder.cs	148	C	KnowledgePass | ModelIdentity
+src/Alycia.Modules.Chat.Infrastructure/Indexing/KnowledgeBuilder.cs	150	C	KnowledgePass | ModelIdentity
+src/Alycia.Modules.Chat.Infrastructure/Indexing/KnowledgeStore.cs	13	S	chat.attachments
+src/Alycia.Modules.Chat.Infrastructure/Indexing/KnowledgeStore.cs	13	S	chat.knowledge_units
+src/Alycia.Modules.Chat.Infrastructure/Indexing/KnowledgeStore.cs	21	E	ChatDbContext | Attachments | Attachment
+src/Alycia.Modules.Chat.Infrastructure/Indexing/KnowledgeStore.cs	21	E	ChatDbContext | WorkspaceProfiles | WorkspaceProfile
+src/Alycia.Modules.Chat.Infrastructure/Indexing/KnowledgeStore.cs	30	S	chat.knowledge_units
+src/Alycia.Modules.Chat.Infrastructure/Indexing/KnowledgeStore.cs	39	S	chat.knowledge_units
+src/Alycia.Modules.Chat.Infrastructure/Indexing/KnowledgeStore.cs	60	S	chat.knowledge_units
+src/Alycia.Modules.Chat.Infrastructure/Indexing/KnowledgeStore.cs	70	S	chat.knowledge_units
+src/Alycia.Modules.Chat.Infrastructure/Indexing/KnowledgeStore.cs	83	S	chat.knowledge_units
+src/Alycia.Modules.Chat.Infrastructure/Indexing/KnowledgeStore.cs	96	S	chat.knowledge_units
+src/Alycia.Modules.Chat.Infrastructure/Indexing/KnowledgeStore.cs	108	S	chat.knowledge_units
+src/Alycia.Modules.Chat.Infrastructure/Indexing/KnowledgeStore.cs	122	S	chat.knowledge_units
+src/Alycia.Modules.Chat.Infrastructure/Indexing/PostgresEmbeddingStore.cs	46	C	PostgresEmbeddingStore | EmbeddingModel
+src/Alycia.Modules.Chat.Infrastructure/Indexing/PostgresEmbeddingStore.cs	46	C	PostgresEmbeddingStore | Enrichment
+src/Alycia.Modules.Chat.Infrastructure/Indexing/PostgresEmbeddingStore.cs	48	S	chat.embedding_jobs
+src/Alycia.Modules.Chat.Infrastructure/Indexing/PostgresEmbeddingStore.cs	65	S	chat.embedding_jobs
+src/Alycia.Modules.Chat.Infrastructure/Indexing/PostgresEmbeddingStore.cs	93	S	chat.conversations
+src/Alycia.Modules.Chat.Infrastructure/Indexing/PostgresEmbeddingStore.cs	93	S	chat.embedding_jobs
+src/Alycia.Modules.Chat.Infrastructure/Indexing/PostgresEmbeddingStore.cs	93	S	chat.workspace_profiles
+src/Alycia.Modules.Chat.Infrastructure/Indexing/PostgresEmbeddingStore.cs	108	S	chat.embedding_jobs
+src/Alycia.Modules.Chat.Infrastructure/Indexing/PostgresEmbeddingStore.cs	117	S	chat.embedding_jobs
+src/Alycia.Modules.Chat.Infrastructure/Indexing/PostgresEmbeddingStore.cs	126	S	chat.embedding_jobs
+src/Alycia.Modules.Chat.Infrastructure/Indexing/PostgresEmbeddingStore.cs	141	S	chat.embedding_jobs
+src/Alycia.Modules.Chat.Infrastructure/Indexing/PostgresEmbeddingStore.cs	167	S	chat.embedding_vectors
+src/Alycia.Modules.Chat.Infrastructure/Indexing/PostgresEmbeddingStore.cs	179	S	chat.embedding_vectors
+src/Alycia.Modules.Chat.Infrastructure/Indexing/PostgresEmbeddingStore.cs	203	S	chat.embedding_vectors
+src/Alycia.Modules.Chat.Infrastructure/Indexing/PostgresEmbeddingStore.cs	203	S	chat.temporal_memory
+src/Alycia.Modules.Chat.Infrastructure/Indexing/PostgresEmbeddingStore.cs	203	Y	NpgsqlCommand with interpolated SQL
+src/Alycia.Modules.Chat.Infrastructure/Indexing/PostgresEmbeddingStore.cs	229	S	chat.embedding_vectors
+src/Alycia.Modules.Chat.Infrastructure/Indexing/ProjectIndexService.cs	11	E	ChatDbContext | Conversations | Conversation
+src/Alycia.Modules.Chat.Infrastructure/Indexing/ProjectIndexService.cs	14	C	ProjectIndexService | IndexMaxCharacters
+src/Alycia.Modules.Chat.Infrastructure/Indexing/ProjectIndexService.cs	24	C	ProjectIndexService | HierarchicalIndexEnabled
+src/Alycia.Modules.Chat.Infrastructure/Indexing/ProjectIndexService.cs	37	C	ProjectIndexService | HierarchicalIndexEnabled
+src/Alycia.Modules.Chat.Infrastructure/Indexing/ProjectIndexService.cs	44	C	ProjectIndexService | Enrichment
+src/Alycia.Modules.Chat.Infrastructure/Indexing/ProjectIndexService.cs	46	C	ProjectIndexService | Enrichment
+src/Alycia.Modules.Chat.Infrastructure/Indexing/ProjectIndexService.cs	46	C	ProjectIndexService | HierarchicalIndexEnabled
+src/Alycia.Modules.Chat.Infrastructure/Inference/OllamaChatModel.Budget.cs	43	C	OllamaChatModel | ModelIdentity
+src/Alycia.Modules.Chat.Infrastructure/Inference/OllamaChatModel.Budget.cs	44	C	OllamaChatModel | TokenCounting
+src/Alycia.Modules.Chat.Infrastructure/Inference/OllamaChatModel.Budget.cs	47	C	OllamaChatModel | TokenCounter
+src/Alycia.Modules.Chat.Infrastructure/Inference/OllamaChatModel.Budget.cs	48	C	OllamaChatModel | ContextTokens
+src/Alycia.Modules.Chat.Infrastructure/Inference/OllamaChatModel.Budget.cs	51	C	OllamaChatModel | TokenCounting
+src/Alycia.Modules.Chat.Infrastructure/Inference/OllamaChatModel.Budget.cs	58	C	OllamaChatModel | TokenCounting
+src/Alycia.Modules.Chat.Infrastructure/Inference/OllamaChatModel.Budget.cs	65	C	OllamaChatModel | TokenCounter
+src/Alycia.Modules.Chat.Infrastructure/Inference/OllamaChatModel.Budget.cs	66	C	OllamaChatModel | ContextTokens
+src/Alycia.Modules.Chat.Infrastructure/Inference/OllamaChatModel.Streaming.cs	24	C	OllamaChatModel | TimeoutSeconds
+src/Alycia.Modules.Chat.Infrastructure/Inference/OllamaChatModel.Streaming.cs	25	C	OllamaChatModel | CallPurpose
+src/Alycia.Modules.Chat.Infrastructure/Inference/OllamaChatModel.cs	104	C	OllamaChatModel | TimeoutSeconds
+src/Alycia.Modules.Chat.Infrastructure/Inference/OllamaChatModel.cs	105	C	OllamaChatModel | CallPurpose
+src/Alycia.Modules.Chat.Infrastructure/Inference/OllamaChatModel.cs	117	C	OllamaChatModel | CallPurpose
+src/Alycia.Modules.Chat.Infrastructure/Inference/OllamaChatModel.cs	118	C	OllamaChatModel | ResponseSchema
+src/Alycia.Modules.Chat.Infrastructure/Inference/OllamaChatModel.cs	126	C	OllamaChatModel | CallPurpose
+src/Alycia.Modules.Chat.Infrastructure/Inference/OllamaChatModel.cs	144	C	OllamaChatModel | CallPurpose
+src/Alycia.Modules.Chat.Infrastructure/Inference/OllamaChatModel.cs	145	C	OllamaChatModel | TimeoutSeconds
+src/Alycia.Modules.Chat.Infrastructure/Inference/OllamaChatModel.cs	146	C	OllamaChatModel | TimeoutSeconds
+src/Alycia.Modules.Chat.Infrastructure/Inference/OllamaChatModel.cs	184	C	OllamaChatModel | GenerateUntilStop
+src/Alycia.Modules.Chat.Infrastructure/Memory/TemporalMemoryStore.cs	15	E	ChatDbContext | Conversations | Conversation
+src/Alycia.Modules.Chat.Infrastructure/Memory/TemporalMemoryStore.cs	16	C	TemporalMemoryStore | TemporalMemoryEnabled
+src/Alycia.Modules.Chat.Infrastructure/Memory/TemporalMemoryStore.cs	18	S	chat.messages
+src/Alycia.Modules.Chat.Infrastructure/Memory/TemporalMemoryStore.cs	18	S	chat.temporal_memory
+src/Alycia.Modules.Chat.Infrastructure/Memory/TemporalMemoryStore.cs	25	E	ChatDbContext | Messages | ChatMessage
+src/Alycia.Modules.Chat.Infrastructure/Memory/TemporalMemoryStore.cs	33	S	chat.conversations
+src/Alycia.Modules.Chat.Infrastructure/Memory/TemporalMemoryStore.cs	33	S	chat.temporal_memory
+src/Alycia.Modules.Chat.Infrastructure/Memory/TemporalMemoryStore.cs	47	S	chat.temporal_memory
+src/Alycia.Modules.Chat.Infrastructure/Memory/TemporalMemoryStore.cs	52	S	chat.temporal_memory
+src/Alycia.Modules.Chat.Infrastructure/Memory/TemporalMemoryStore.cs	58	C	TemporalMemoryStore | EmbedHistory
+src/Alycia.Modules.Chat.Infrastructure/Memory/TemporalMemoryStore.cs	58	C	TemporalMemoryStore | EmbeddingModel
+src/Alycia.Modules.Chat.Infrastructure/Memory/TemporalMemoryStore.cs	58	C	TemporalMemoryStore | RetrievalMode
+src/Alycia.Modules.Chat.Infrastructure/Memory/TemporalMemoryStore.cs	63	S	chat.temporal_memory
+src/Alycia.Modules.Chat.Infrastructure/Memory/TemporalMemoryStore.cs	68	C	TemporalMemoryStore | EmbedHistory
+src/Alycia.Modules.Chat.Infrastructure/Memory/TemporalMemoryStore.cs	68	C	TemporalMemoryStore | Enrichment
+src/Alycia.Modules.Chat.Infrastructure/Memory/TemporalMemoryStore.cs	69	C	TemporalMemoryStore | Enrichment
+src/Alycia.Modules.Chat.Infrastructure/Memory/TemporalMemoryStore.cs	74	S	chat.temporal_memory
+src/Alycia.Modules.Chat.Infrastructure/Memory/TemporalMemoryStore.cs	89	S	chat.temporal_memory
+src/Alycia.Modules.Chat.Infrastructure/Memory/TemporalMemoryStore.cs	101	S	chat.temporal_memory
+src/Alycia.Modules.Chat.Infrastructure/Memory/TemporalMemoryStore.cs	107	S	chat.temporal_memory
+src/Alycia.Modules.Chat.Infrastructure/ProjectRetrievalService.cs	12	C	ProjectRetrievalService | EligibleSourceIds
+src/Alycia.Modules.Chat.Infrastructure/ProjectRetrievalService.cs	18	C	ProjectRetrievalService | RetrievalMode
+src/Alycia.Modules.Chat.Infrastructure/ProjectRetrievalService.cs	34	C	ProjectRetrievalService | FacetPlanningEnabled
+src/Alycia.Modules.Chat.Infrastructure/ProjectRetrievalService.cs	34	C	ProjectRetrievalService | QueryBriefModelEnabled
+src/Alycia.Modules.Chat.Infrastructure/ProjectRetrievalService.cs	34	C	ProjectRetrievalService | QueryRewriteEnabled
+src/Alycia.Modules.Chat.Infrastructure/ProjectRetrievalService.cs	34	C	ProjectRetrievalService | SearchPlan
+src/Alycia.Modules.Chat.Infrastructure/ProjectRetrievalService.cs	40	C	ProjectRetrievalService | RetrievalMode
+src/Alycia.Modules.Chat.Infrastructure/ProjectRetrievalService.cs	50	C	ProjectRetrievalService | SearchPlan
+src/Alycia.Modules.Chat.Infrastructure/ProjectRetrievalService.cs	55	C	ProjectRetrievalService | RetrievalMode
+src/Alycia.Modules.Chat.Infrastructure/ProjectRetrievalService.cs	58	C	ProjectRetrievalService | SearchPlan
+src/Alycia.Modules.Chat.Infrastructure/Projects/ProjectCatalog.cs	15	S	workspaces.workspaces
+src/Alycia.Modules.Chat.Infrastructure/Projects/ProjectCatalog.cs	16	E	ChatDbContext | WorkspaceProfiles | WorkspaceProfile
+src/Alycia.Modules.Chat.Infrastructure/Projects/ProjectCatalog.cs	24	S	workspaces.workspaces
+src/Alycia.Modules.Chat.Infrastructure/Projects/ProjectCatalog.cs	29	E	ChatDbContext | WorkspaceProfiles | WorkspaceProfile
+src/Alycia.Modules.Chat.Infrastructure/Projects/ProjectCatalog.cs	60	E	ChatDbContext | Conversations | Conversation
+src/Alycia.Modules.Chat.Infrastructure/Projects/ProjectCatalog.cs	65	E	ChatDbContext | WorkspaceFileOverrides | WorkspaceFileOverride
+src/Alycia.Modules.Chat.Infrastructure/Projects/ProjectCatalog.cs	84	E	ChatDbContext | Conversations | Conversation
+src/Alycia.Modules.Chat.Infrastructure/Projects/ProjectCatalog.cs	86	E	ChatDbContext | Messages | ChatMessage
+src/Alycia.Modules.Chat.Infrastructure/Projects/ProjectFiles.cs	13	E	ChatDbContext | Conversations | Conversation
+src/Alycia.Modules.Chat.Infrastructure/Projects/ProjectFiles.cs	16	E	ChatDbContext | Attachments | Attachment
+src/Alycia.Modules.Chat.Infrastructure/Projects/ProjectFiles.cs	27	E	ChatDbContext | Attachments | Attachment
+src/Alycia.Modules.Chat.Infrastructure/Projects/ProjectFiles.cs	36	E	ChatDbContext | Attachments | Attachment
+src/Alycia.Modules.Chat.Infrastructure/Projects/ProjectFiles.cs	50	E	ChatDbContext | Attachments | Attachment
+src/Alycia.Modules.Chat.Infrastructure/Projects/ProjectFiles.cs	61	E	ChatDbContext | Attachments | Attachment
+src/Alycia.Modules.Chat.Infrastructure/Projects/ProjectFiles.cs	71	E	ChatDbContext | Conversations | Conversation
+src/Alycia.Modules.Chat.Infrastructure/Projects/ProjectFiles.cs	73	E	ChatDbContext | WorkspaceFileOverrides | WorkspaceFileOverride
+src/Alycia.Modules.Chat.Infrastructure/Projects/ProjectFiles.cs	82	E	ChatDbContext | Attachments | Attachment
+src/Alycia.Modules.Chat.Infrastructure/Projects/ProjectProfiles.cs	16	E	ChatDbContext | WorkspaceProfiles | WorkspaceProfile
+src/Alycia.Modules.Chat.Infrastructure/Projects/ProjectProfiles.cs	20	S	workspaces.workspaces
+src/Alycia.Modules.Chat.Infrastructure/Projects/ProjectProfiles.cs	22	S	chat.workspace_profiles
+src/Alycia.Modules.Chat.Infrastructure/Projects/ProjectProfiles.cs	26	E	ChatDbContext | WorkspaceProfiles | WorkspaceProfile
+src/Alycia.Modules.Chat.Infrastructure/Tools/ProjectToolService.cs	12	E	ChatDbContext | Messages | ChatMessage
+src/Alycia.Modules.Chat.Infrastructure/Tools/ProjectToolService.cs	17	E	ChatDbContext | Conversations | Conversation
+src/Alycia.Modules.Chat.Infrastructure/Tools/ProjectToolService.cs	21	C	ProjectToolService | UseProjectTools
+src/Alycia.Modules.Chat.Infrastructure/Tools/ProjectToolService.cs	56	E	ChatDbContext | Conversations | Conversation
+src/Alycia.Modules.Chat.Infrastructure/Tools/ProjectToolService.cs	59	C	ProjectToolService | AgentPlanningEnabled
+src/Alycia.Modules.Chat.Infrastructure/Tools/ProjectToolService.cs	59	C	ProjectToolService | RoutingMode
+src/Alycia.Modules.Chat.Infrastructure/Tools/ProjectToolService.cs	59	C	ProjectToolService | VerificationSearchEnabled
+src/Alycia.Modules.Chat.Infrastructure/Tools/ProjectToolService.cs	60	C	ProjectToolService | AutoSummarize
+src/Alycia.Modules.Chat.Infrastructure/Tools/ProjectToolService.cs	60	C	ProjectToolService | MaxHistoryTurns
+src/Alycia.Modules.Chat.Infrastructure/Tools/ProjectToolService.cs	60	C	ProjectToolService | ProtectedHistoryTurns
+src/Alycia.Modules.Chat.Infrastructure/WorkspaceSources.cs	11	E	ChatDbContext | Attachments | Attachment
+src/Alycia.Modules.Chat.Infrastructure/WorkspaceSources.cs	13	E	ChatDbContext | Conversations | Conversation
+src/Alycia.Modules.Chat.Infrastructure/WorkspaceSources.cs	14	E	ChatDbContext | WorkspaceFileOverrides | WorkspaceFileOverride
+src/Alycia.Modules.Chat.Infrastructure/WorkspaceSources.cs	20	E	ChatDbContext | Attachments | Attachment
+src/Alycia.Modules.Chat.Infrastructure/WorkspaceSources.cs	30	E	ChatDbContext | Attachments | Attachment
+src/Alycia.Modules.Chat.Infrastructure/WorkspaceSources.cs	32	E	ChatDbContext | Conversations | Conversation
+src/Alycia.Modules.Workspaces.Infrastructure/EfWorkspaceRepository.cs	16	E	WorkspacesDbContext | Workspaces | Workspace
+src/Alycia.Modules.Workspaces.Infrastructure/EfWorkspaceRepository.cs	24	E	WorkspacesDbContext | Workspaces | Workspace
+src/Alycia.Modules.Workspaces.Infrastructure/EfWorkspaceRepository.cs	32	E	WorkspacesDbContext | Workspaces | Workspace

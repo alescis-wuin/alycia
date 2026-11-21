@@ -1,0 +1,8 @@
+<Project>
+  <ItemGroup>
+    <Analyzer Include="$(AlyciaArchitectureAnalyzer)" />
+    <CompilerVisibleProperty Include="AlyciaArchitectureOutput" />
+    <CompilerVisibleProperty Include="AlyciaArchitectureRoot" />
+    <CompilerVisibleProperty Include="MSBuildProjectFullPath" />
+  </ItemGroup>
+</Project>
