@@ -5,10 +5,10 @@ namespace Alycia.Modules.Chat.Application;
 
 public static class FileContext
 {
-    public static ContextWindow Build(string system, IReadOnlyList<ChatMessage> history, string question,
+    public static ContextWindow Build(Alycia.Contracts.Context.ISlidingHistory policy, string system, IReadOnlyList<ChatMessage> history, string question,
         ChatOptions options, IReadOnlyList<Attachment> files, int currentSequence)
     {
-        var original = SlidingContext.Build(system, history, question, options);
+        var original = SlidingContext.Build(policy, system, history, question, options);
         var originalStart = original.HistoryMessagesIncluded == 0 ? currentSequence
             : history[history.Count - original.HistoryMessagesIncluded].Sequence;
         if (!files.Any(f => ProjectContext.Eligible(f, originalStart, currentSequence)))
@@ -21,7 +21,7 @@ public static class FileContext
         // Use the original configured context but reserve part of its input budget for files.
         var reduced = options.Copy();
         reduced.SafetyTokens += reserve;
-        var window = SlidingContext.Build(system, history, question, reduced);
+        var window = SlidingContext.Build(policy, system, history, question, reduced);
         var earliest = window.HistoryMessagesIncluded == 0 ? currentSequence
             : history[history.Count - window.HistoryMessagesIncluded].Sequence;
         var excerpts = ProjectContext.Select(files.Where(f => ProjectContext.Eligible(f, earliest, currentSequence)), question, reserve, options);

@@ -1,4 +1,5 @@
 using System.Text;
+using Alycia.Contracts.Memory;
 using System.Text.RegularExpressions;
 using Alycia.Modules.Chat.Domain;
 
@@ -15,7 +16,9 @@ public interface ITemporalMemory
 public static class TemporalMemory
 {
     private static readonly Regex Topic = new(@"(?:^|\n)(?:Décision|Decision|Contrainte|Constraint|Fait|Fact|Proposition|Correction)\s*\[([\p{L}\p{N}_.-]{1,48})\]\s*:", RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
-    public static TemporalFact[] Extract(ChatMessage m)
+    private static TemporalMessage Snapshot(ChatMessage m) => new(m.Sequence, m.Role, m.Content, m.CreatedAtUtc);
+    public static TemporalFact[] Extract(ChatMessage message) => Extract(Snapshot(message));
+    private static TemporalFact[] Extract(TemporalMessage m)
     {
         var anchors = Topic.Matches(m.Content).Cast<Match>().Take(16).ToArray();
         var hash = StructuredMemory.Hash(m.Content);
@@ -35,7 +38,9 @@ public static class TemporalMemory
         }).ToArray();
     }
 
-    public static TemporalFact[] IndexFacts(ChatMessage message, IEnumerable<MemoryEntry> entries)
+    public static TemporalFact[] IndexFacts(ChatMessage message, IEnumerable<MemoryEntry> entries) => IndexFacts(Snapshot(message), entries);
+
+    public static TemporalFact[] IndexFacts(TemporalMessage message, IEnumerable<MemoryEntry> entries)
     {
         var extracted = Extract(message);
         var hash = extracted[0].Sha256;

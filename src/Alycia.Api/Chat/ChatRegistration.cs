@@ -82,6 +82,9 @@ internal static class ChatRegistration
     {
         services.AddScoped<IConversationMemory, ConversationMemory>();
         services.AddScoped<ConversationTemporalMemory>();
+        services.AddScoped<Alycia.Contracts.Memory.ITemporalFactStorage>(sp => new Alycia.Modules.Memory.TemporalFactStorage(sp.GetRequiredService<ChatDbContext>().Database));
+        services.AddScoped<Alycia.Contracts.Memory.ITemporalHistorySources, TemporalHistorySources>();
+        services.AddSingleton<Alycia.Contracts.Context.ISlidingHistory, Alycia.Modules.Context.SlidingHistory>();
         services.AddScoped<TemporalMemoryStore>();
         services.AddScoped<ITemporalMemoryIndex>(sp => sp.GetRequiredService<TemporalMemoryStore>());
         services.AddScoped<ITemporalMemory>(sp => sp.GetRequiredService<TemporalMemoryStore>());

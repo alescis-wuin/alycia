@@ -10,7 +10,7 @@ public static class ProjectAgent
     private static int SchemaCost(ChatOptions settings) => TokenBudget.Count(JsonSerializer.Serialize(ProjectToolCatalog.OllamaTools(), ProjectToolCatalog.Json), settings);
     public static async Task<ChatOptions> ContextOptionsAsync(IChatRepository repository, Conversation owner, string question,
         ChatOptions settings, bool useTools, CancellationToken ct) =>
-        (await new TurnContext(repository).AllocateAsync(owner, question, settings, useTools, ct)).Options;
+        (await TurnContext.AllocateAsync(repository, owner, question, settings, useTools, ct)).Options;
 
     public static ChatOptions ContextOptions(ChatOptions settings, int protectedTokens = 0) =>
         TurnContextBudget.WithToolReserve(settings, protectedTokens);
