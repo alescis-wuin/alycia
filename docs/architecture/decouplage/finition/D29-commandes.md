@@ -80,7 +80,7 @@ done
 python3 scripts/build-isolated-modules.py --require-complete
 ```
 
-Le dernier contrôle compile et teste les projets enregistrés. Il sort avec le code 1 tant que l’autonomie de Chat.Application et Chat.Infrastructure reste ouverte. Pour mesurer uniquement les modules déjà isolés, exécuter `python3 scripts/build-isolated-modules.py`.
+Le dernier contrôle compile et teste les projets enregistrés, puis tente aussi de compiler les assemblies restantes dans des répertoires privés de toute implémentation voisine. Il sort avec le code 1 tant que l’autonomie de Chat.Application et Chat.Infrastructure reste ouverte. Pour mesurer uniquement les modules déjà isolés, exécuter `python3 scripts/build-isolated-modules.py`.
 
 Ollama doit écouter sur loopback. Dans un terminal, lancer `ollama serve` si le service est arrêté. Dans le terminal de recette, avec la connexion de test encore définie, exécuter les commandes suivantes. Les identités de la campagne figurent dans D29-preuves.json. Le résultat indique le délai réel jusqu’au premier événement delta.
 
@@ -129,6 +129,8 @@ Pour lancer l’API hors conteneur, utiliser une **base de développement** dist
 ```bash
 : "${ALYCIA_CHAT_CONNECTION:?Connexion à la base de développement requise}"
 export ALYCIA_WORKSPACES_CONNECTION="$ALYCIA_CHAT_CONNECTION"
+dotnet tool run dotnet-ef database update --project src/Alycia.Modules.Workspaces.Infrastructure --context WorkspacesDbContext --no-build
+dotnet tool run dotnet-ef database update --project src/Alycia.Modules.Chat.Infrastructure --context ChatDbContext --no-build
 export ASPNETCORE_ENVIRONMENT=Development ALYCIA_ENABLE_LOCAL_CHAT=true ALYCIA_ENABLE_LOCAL_WORKSPACES=true
 export ALYCIA_OLLAMA_BASE_URL=http://127.0.0.1:11434
 dotnet run --no-build --project src/Alycia.Api --urls http://127.0.0.1:5187

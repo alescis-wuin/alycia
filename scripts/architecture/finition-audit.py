@@ -103,7 +103,8 @@ def main():
             raise ValueError("Conformité non vérifiée: " + port + " (" + proof + ")")
         status = "VALIDÉ" if ran else ("EXCLU" if category != "comportemental" else "OUVERT")
         detail = initial["raison"] if status == "EXCLU" else (proof or "Suite commune et double à démontrer")
-        contracts.append([initial["propriétaire"] if initial else (exporter.OWNERS.get(name) or area(path, name) or Path(path).parent.name),
+        module = initial["propriétaire"] if initial else (exporter.OWNERS.get(name) or area(path, name) or Path(path).parent.name)
+        contracts.append(["Workspaces" if module == "Projects" else module,
                           port, "D20" if initial else "ajouté", category, status, path, " | ".join(sorted(groups["src"])),
                           " | ".join(sorted(groups["double"])), detail])
     write(args.out / "D29-ports.tsv", ["propriétaire","port","origine","classe","statut","déclaration","adaptateurs","doubles","preuve ou justification"], contracts)
