@@ -1,0 +1,48 @@
+type	ressource	appelant	propriétaire cible	phase	action	test	criticité	sites
+Y	System.Exception.GetType()	Transport	System	D29	Examiner le symbole et borner son usage	architecture_guard_tests	à auditer	src/Alycia.Api/Chat/ChatEndpoints.Streaming.cs:36
+Y	System.Exception.GetType()	Transport	System	D29	Examiner le symbole et borner son usage	architecture_guard_tests	à auditer	src/Alycia.Api/Chat/ChatEndpoints.cs:63
+Y	System.Exception.GetType()	Transport	System	D29	Examiner le symbole et borner son usage	architecture_guard_tests	à auditer	src/Alycia.Api/Chat/EmbeddingWorker.cs:18
+Y	System.Exception.GetType()	Transport	System	D29	Examiner le symbole et borner son usage	architecture_guard_tests	à auditer	src/Alycia.Api/Workspaces/WorkspaceEndpoints.cs:112,121,156,165
+Y	System.Exception.GetType()	Transport	System	D29	Examiner le symbole et borner son usage	architecture_guard_tests	à auditer	src/Alycia.Client.Avalonia/ChatWindow.axaml.cs:153
+Y	System.Exception.GetType()	Transport	System	D29	Examiner le symbole et borner son usage	architecture_guard_tests	à auditer	src/Alycia.Client.Avalonia/MainWindow.axaml.cs:74,133
+Y	object.GetType()	Transport	object	D29	Examiner le symbole et borner son usage	architecture_guard_tests	à auditer	src/Alycia.Client.Avalonia/MarkdownView.cs:142
+E	chat.attachments	Configuration	Documents	D21	Projection immuable par consommateur	ConversationSettingsTransferTests	élevée	src/Alycia.Modules.Chat.Infrastructure/Configuration/ConversationFileSettings.cs:21,31
+E	chat.conversations	Configuration	Conversations	D21	Projection immuable par consommateur	ConversationSettingsTransferTests	élevée	src/Alycia.Modules.Chat.Infrastructure/Configuration/ConversationFileSettings.cs:10
+E	chat.workspace_file_overrides	Configuration	Documents	D21	Projection immuable par consommateur	ConversationSettingsTransferTests	élevée	src/Alycia.Modules.Chat.Infrastructure/Configuration/ConversationFileSettings.cs:24,25
+E	chat.attachments	Conversations	Documents	D27	Commande du tour ou lecture de messages bornée	StreamingTests	élevée	src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationHistory.cs:49,164
+E	chat.workspace_file_overrides	Conversations	Documents	D27	Commande du tour ou lecture de messages bornée	StreamingTests	élevée	src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationHistory.cs:69
+E	chat.conversations	Documents	Conversations	D23	Source autorisée par propriétaire, ID et empreinte	ProjectFilesTests	élevée	src/Alycia.Modules.Chat.Infrastructure/DocumentAnalysisService.Management.cs:62,67
+E	chat.conversations	Documents	Conversations	D23	Source autorisée par propriétaire, ID et empreinte	ProjectFilesTests	élevée	src/Alycia.Modules.Chat.Infrastructure/Documents/ConversationFiles.cs:23
+E	chat.document_analyses	Conversations	Documents	D27	Commande du tour ou lecture de messages bornée	StreamingTests	élevée	src/Alycia.Modules.Chat.Infrastructure/EfChatRepository.cs:58
+E	chat.workspace_profiles	Conversations	Projects	D27	Commande du tour ou lecture de messages bornée	StreamingTests	élevée	src/Alycia.Modules.Chat.Infrastructure/EfChatRepository.cs:93
+E	chat.conversations	Documents	Conversations	D23	Source autorisée par propriétaire, ID et empreinte	ProjectFilesTests	élevée	src/Alycia.Modules.Chat.Infrastructure/FileImport.cs:29
+E	chat.workspace_profiles	Documents	Projects	D23	Source autorisée par propriétaire, ID et empreinte	ProjectFilesTests	élevée	src/Alycia.Modules.Chat.Infrastructure/FileImport.cs:31
+E	chat.attachments	Indexing	Documents	D24	Découverte paginée et publication versionnée	EmbeddingIndexBoundaryTests	élevée	src/Alycia.Modules.Chat.Infrastructure/Indexing/BackgroundEmbeddingIndex.cs:36
+E	chat.conversations	Indexing	Conversations	D24	Découverte paginée et publication versionnée	EmbeddingIndexBoundaryTests	élevée	src/Alycia.Modules.Chat.Infrastructure/Indexing/BackgroundEmbeddingIndex.cs:19
+E	chat.messages	Indexing	Conversations	D24	Découverte paginée et publication versionnée	EmbeddingIndexBoundaryTests	élevée	src/Alycia.Modules.Chat.Infrastructure/Indexing/BackgroundEmbeddingIndex.cs:115
+E	chat.workspace_profiles	Indexing	Projects	D24	Découverte paginée et publication versionnée	EmbeddingIndexBoundaryTests	élevée	src/Alycia.Modules.Chat.Infrastructure/Indexing/BackgroundEmbeddingIndex.cs:20
+E	chat.attachments	Indexing	Documents	D24	Découverte paginée et publication versionnée	EmbeddingIndexBoundaryTests	élevée	src/Alycia.Modules.Chat.Infrastructure/Indexing/IndexCatalog.cs:35
+E	chat.conversations	Indexing	Conversations	D24	Découverte paginée et publication versionnée	EmbeddingIndexBoundaryTests	élevée	src/Alycia.Modules.Chat.Infrastructure/Indexing/IndexCatalog.cs:15,39,53,80
+E	chat.attachments	Indexing	Documents	D24	Découverte paginée et publication versionnée	EmbeddingIndexBoundaryTests	élevée	src/Alycia.Modules.Chat.Infrastructure/Indexing/KnowledgeStore.cs:21
+E	chat.workspace_profiles	Indexing	Projects	D24	Découverte paginée et publication versionnée	EmbeddingIndexBoundaryTests	élevée	src/Alycia.Modules.Chat.Infrastructure/Indexing/KnowledgeStore.cs:21
+S	chat.attachments	Indexing	Documents	D24	Découverte paginée et publication versionnée	EmbeddingIndexBoundaryTests	élevée	src/Alycia.Modules.Chat.Infrastructure/Indexing/KnowledgeStore.cs:13
+S	chat.conversations	Indexing	Conversations	D24	Découverte paginée et publication versionnée	EmbeddingIndexBoundaryTests	élevée	src/Alycia.Modules.Indexing/PostgresEmbeddingStore.cs:89
+S	chat.temporal_memory	Indexing	Memory	D24	Découverte paginée et publication versionnée	EmbeddingIndexBoundaryTests	élevée	src/Alycia.Modules.Indexing/PostgresEmbeddingStore.cs:199
+S	chat.workspace_profiles	Indexing	Projects	D24	Découverte paginée et publication versionnée	EmbeddingIndexBoundaryTests	élevée	src/Alycia.Modules.Indexing/PostgresEmbeddingStore.cs:89
+Y	NpgsqlCommand with interpolated SQL	Indexing	NpgsqlCommand with interpolated SQL	D29	Examiner le symbole et borner son usage	architecture_guard_tests	à auditer	src/Alycia.Modules.Indexing/PostgresEmbeddingStore.cs:199
+E	chat.conversations	Indexing	Conversations	D24	Découverte paginée et publication versionnée	EmbeddingIndexBoundaryTests	élevée	src/Alycia.Modules.Chat.Infrastructure/Indexing/ProjectIndexService.cs:11
+E	chat.conversations	Memory	Conversations	D25	Projection de rappel et préparation du ledger	TemporalMemoryIntegrationTests	élevée	src/Alycia.Modules.Chat.Infrastructure/Memory/TemporalMemoryStore.cs:15
+E	chat.messages	Memory	Conversations	D25	Projection de rappel et préparation du ledger	TemporalMemoryIntegrationTests	élevée	src/Alycia.Modules.Chat.Infrastructure/Memory/TemporalMemoryStore.cs:25
+S	chat.conversations	Memory	Conversations	D25	Projection de rappel et préparation du ledger	TemporalMemoryIntegrationTests	élevée	src/Alycia.Modules.Chat.Infrastructure/Memory/TemporalMemoryStore.cs:33
+S	chat.messages	Memory	Conversations	D25	Projection de rappel et préparation du ledger	TemporalMemoryIntegrationTests	élevée	src/Alycia.Modules.Chat.Infrastructure/Memory/TemporalMemoryStore.cs:18
+E	chat.conversations	Projects	Conversations	D22	Lecture ou commande propriétaire du profil	ProjectCreationTests	élevée	src/Alycia.Modules.Chat.Infrastructure/Projects/ProjectCatalog.cs:55,79
+E	chat.messages	Projects	Conversations	D22	Lecture ou commande propriétaire du profil	ProjectCreationTests	élevée	src/Alycia.Modules.Chat.Infrastructure/Projects/ProjectCatalog.cs:81
+E	chat.workspace_file_overrides	Projects	Documents	D22	Lecture ou commande propriétaire du profil	ProjectCreationTests	élevée	src/Alycia.Modules.Chat.Infrastructure/Projects/ProjectCatalog.cs:60
+E	chat.attachments	Projects	Documents	D22	Lecture ou commande propriétaire du profil	ProjectCreationTests	élevée	src/Alycia.Modules.Chat.Infrastructure/Projects/ProjectFiles.cs:17,28,37,51,62,83
+E	chat.conversations	Projects	Conversations	D22	Lecture ou commande propriétaire du profil	ProjectCreationTests	élevée	src/Alycia.Modules.Chat.Infrastructure/Projects/ProjectFiles.cs:14,72
+E	chat.workspace_file_overrides	Projects	Documents	D22	Lecture ou commande propriétaire du profil	ProjectCreationTests	élevée	src/Alycia.Modules.Chat.Infrastructure/Projects/ProjectFiles.cs:74
+R	Documents.IncomingFile	Projects	Documents	D22	Supprimer la dérogation sans usage compilé et rejouer la garde	ProjectCreationTests	élevée	aucun
+R	Documents.ProjectSource	Projects	Documents	D22	Lecture ou commande propriétaire du profil	ProjectCreationTests	élevée	src/Alycia.Modules.Chat.Infrastructure/Projects/ProjectFiles.cs:88,90,92,93,94
+E	chat.attachments	Projects	Documents	D22	Lecture ou commande propriétaire du profil	ProjectCreationTests	élevée	src/Alycia.Modules.Chat.Infrastructure/WorkspaceSources.cs:11,20,30
+E	chat.conversations	Projects	Conversations	D22	Lecture ou commande propriétaire du profil	ProjectCreationTests	élevée	src/Alycia.Modules.Chat.Infrastructure/WorkspaceSources.cs:13,32
+E	chat.workspace_file_overrides	Projects	Documents	D22	Lecture ou commande propriétaire du profil	ProjectCreationTests	élevée	src/Alycia.Modules.Chat.Infrastructure/WorkspaceSources.cs:14
