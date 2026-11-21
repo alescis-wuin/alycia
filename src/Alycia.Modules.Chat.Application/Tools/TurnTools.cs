@@ -7,7 +7,7 @@ public interface ITurnTools
     Task<IProjectTools?> SelectAsync(ToolTurnScope scope, bool enabled, IChatModel model, CancellationToken ct);
     Task<bool> AvailableForContextAsync(ToolTurnScope scope, bool enabled, IChatModel model, CancellationToken ct);
     Task<GenerationReply> GenerateAsync(IChatModel measured, IProjectTools? active, ToolTurnScope scope,
-        ContextWindow window, ChatOptions settings, Func<ModelDelta, Task>? onDelta, CancellationToken ct);
+        ToolPrompt window, ToolGeneration settings, Func<ModelDelta, Task>? onDelta, CancellationToken ct);
 }
 
 public sealed class TurnTools(IProjectTools? tools = null, ISnapshotProjectTools? snapshots = null) : ITurnTools
@@ -28,15 +28,15 @@ public sealed class TurnTools(IProjectTools? tools = null, ISnapshotProjectTools
         && await model.SupportsToolsAsync(scope.Model, ct);
 
     public async Task<GenerationReply> GenerateAsync(IChatModel measured, IProjectTools? active, ToolTurnScope scope,
-        ContextWindow window, ChatOptions settings, Func<ModelDelta, Task>? onDelta, CancellationToken ct)
+        ToolPrompt window, ToolGeneration settings, Func<ModelDelta, Task>? onDelta, CancellationToken ct)
     {
         if (active is not null)
             return await ProjectAgent.RunAsync(measured, active, scope.ConversationId, scope.Model, window, settings, onDelta, ct);
         if (onDelta is not null)
         {
-            var reply = await measured.StreamAsync(scope.Model, window.Messages, settings.InferenceCall(), onDelta, ct);
+            var reply = await measured.StreamAsync(scope.Model, window.Messages, settings.Inference, onDelta, ct);
             return new(reply.Content, reply.Stats, reply.ToolCalls, reply.Thinking);
         }
-        return new(await measured.GenerateAsync(scope.Model, window.Messages, settings.InferenceCall(), ct));
+        return new(await measured.GenerateAsync(scope.Model, window.Messages, settings.Inference, ct));
     }
 }

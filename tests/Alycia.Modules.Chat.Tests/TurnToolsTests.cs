@@ -95,7 +95,7 @@ public sealed class TurnToolsTests
         }
 
         var reply = await new TurnTools().GenerateAsync(new Model(true), active ? new Sources(true) : null,
-            scope, window, new(), streaming ? OnDelta : null, default);
+            scope, window.ToolPrompt(), new ChatOptions().ToolGeneration(), streaming ? OnDelta : null, default);
 
         Assert.Equal(expected, reply.Content);
         if (streaming) Assert.Equal([expected], deltas);

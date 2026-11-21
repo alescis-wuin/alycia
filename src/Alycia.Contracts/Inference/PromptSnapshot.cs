@@ -1,9 +1,10 @@
 using System.Collections.Immutable;
 using System.Text.Json;
+using Alycia.Contracts.Chat;
 
-namespace Alycia.Modules.Inference;
+namespace Alycia.Contracts.Inference;
 
-internal static class PromptSnapshot
+public static class PromptSnapshot
 {
     public static ImmutableArray<PromptMessage> Capture(IReadOnlyList<PromptMessage> messages) =>
         messages.Select(m => m.ToolCalls is null ? m : m with

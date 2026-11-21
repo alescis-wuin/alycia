@@ -6,7 +6,7 @@ using System.Text.Json;
 namespace Alycia.Modules.Chat.Application;
 
 // Builds a bounded local lexical index from immutable messages. No cross-conversation lookup.
-public sealed class HistoryTools(IToolHistoryReader repository, IIndexedEmbeddings? semantic = null, ChatOptions? settings = null)
+public sealed class HistoryTools(IToolHistoryReader repository, IIndexedEmbeddings? semantic = null, EmbeddingQuery? embedding = null)
 {
     public const int MaxScanCharacters = 4_000_000;
     public const int MaxScanMessages = 4096;
@@ -41,9 +41,9 @@ public sealed class HistoryTools(IToolHistoryReader repository, IIndexedEmbeddin
             m.Role, "history", 0, m.Content.Length, 1, 1, m.Content, [], true)).ToArray();
         var scores = ProjectRetrieval.Bm25(chunks, query);
         var scoreKind = "BM25";
-        if (semantic is not null && settings is { RetrievalMode: "hybrid", EmbedHistory: true })
+        if (semantic is not null && embedding is not null)
         {
-            var found = await semantic.SearchHistoryAsync(conversation, query, EmbeddingQuery.Capture(settings), messages, ct);
+            var found = await semantic.SearchHistoryAsync(conversation, query, embedding, messages, ct);
             if (found.Hits > 0)
             {
                 var fused = new double[messages.Count];

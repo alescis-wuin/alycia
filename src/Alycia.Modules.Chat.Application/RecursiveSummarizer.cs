@@ -1,3 +1,4 @@
+using Alycia.Contracts.Context;
 using System.Text;
 
 namespace Alycia.Modules.Chat.Application;
@@ -5,7 +6,7 @@ namespace Alycia.Modules.Chat.Application;
 public sealed record SummarySource(string Key, string Text);
 
 // One instance per operation: the call budget covers every map and reduce step.
-public sealed class RecursiveSummarizer(IChatModel model, string modelName, ChatOptions settings,
+public sealed class RecursiveSummarizer(IChatModel model, string modelName, SummaryParameters settings,
     Func<string, Task>? progress = null, IndexCallBudget? sharedBudget = null,
     Func<string, CancellationToken, Task<string?>>? readNode = null, Func<string, string, CancellationToken, Task>? saveNode = null)
 {
@@ -19,7 +20,7 @@ public sealed class RecursiveSummarizer(IChatModel model, string modelName, Chat
         if (targetBytes < 128) throw new ArgumentException("Budget de résumé insuffisant : augmentez la fenêtre ou réduisez les éléments protégés.");
         var output = OutputBudget(targetBytes);
         var inputLimit = settings.ContextTokens - output - settings.SafetyTokens
-            - SlidingContext.EstimateTokens(Instruction) - 256;
+            - SettingsInput.Estimate(Instruction) - 256;
         if (inputLimit < 512) throw new ArgumentException("Fenêtre trop petite pour résumer : utilisez au moins 2048 tokens et une réserve adaptée.");
         var nodes = new List<string>();
         foreach (var source in sources)
@@ -29,14 +30,14 @@ public sealed class RecursiveSummarizer(IChatModel model, string modelName, Chat
             if (limit < 128) throw new ArgumentException("Identifiant de source trop long pour le budget de résumé.");
             foreach (var chunk in Chunks(source.Text, limit))
             {
-                if (readNode is null && nodes.Count >= settings.SummaryMaxCalls)
+                if (readNode is null && nodes.Count >= settings.MaxCalls)
                     throw new ChatModelException("Trop de fragments à résumer dans cette opération. Réduisez le périmètre ou augmentez le budget d’appels.");
                 nodes.Add(label + chunk);
             }
         }
         if (nodes.Count == 0) return "Aucun contenu textuel disponible.";
         if (readNode is not null && nodes.Count > 1) nodes = Pack(nodes, inputLimit);
-        for (var level = 0; level < settings.Enrichment.MaxDepth; level++)
+        for (var level = 0; level < settings.MaxDepth; level++)
         {
             if (nodes.Count == 1)
                 return await SummarizeNodeAsync(nodes[0], targetBytes, inputLimit, ct);
@@ -48,7 +49,7 @@ public sealed class RecursiveSummarizer(IChatModel model, string modelName, Chat
                 return await SummarizeNodeAsync(combined, targetBytes, inputLimit, ct);
             nodes = Pack(reduced, inputLimit);
         }
-        throw new ChatModelException($"Le résumé n’a pas convergé après {settings.Enrichment.MaxDepth} niveaux. Les sources originales sont conservées.");
+        throw new ChatModelException($"Le résumé n’a pas convergé après {settings.MaxDepth} niveaux. Les sources originales sont conservées.");
     }
 
     private async Task<string> SummarizeNodeAsync(string source, int target, int inputLimit, CancellationToken ct)
@@ -58,33 +59,19 @@ public sealed class RecursiveSummarizer(IChatModel model, string modelName, Chat
         for (var attempt = 0; attempt < 3; attempt++)
         {
             ct.ThrowIfCancellationRequested();
-            if (Calls >= settings.SummaryMaxCalls || sharedBudget?.TryReserve() == false)
+            if (Calls >= settings.MaxCalls || sharedBudget?.TryReserve() == false)
                 throw new ChatModelException(sharedBudget is null ? "Budget d’appels de résumé atteint. Aucune mémoire partielle n’est enregistrée."
                     : "Budget d’appels de cette analyse atteint. Reprenez l’analyse pour traiter les unités restantes.");
             Calls++;
-            if (progress is not null) await progress($"Résumé récursif · appel {sharedBudget?.Used ?? Calls}/{settings.SummaryMaxCalls}");
-            var options = new ChatOptions
-            {
-                CallPurpose = "summary",
-                TokenCounter = settings.TokenCounter,
-                TokenCounting = settings.TokenCounting,
-                ModelIdentity = settings.ModelIdentity,
-                GenerateUntilStop = false,
-                AutoSummarize = false,
-                ContextTokens = settings.ContextTokens,
-                SafetyTokens = settings.SafetyTokens,
-                MaxOutputTokens = OutputBudget(target),
-                Temperature = 0,
-                Seed = settings.Seed,
-                TimeoutSeconds = settings.TimeoutSeconds
-            };
+            if (progress is not null) await progress($"Résumé récursif · appel {sharedBudget?.Used ?? Calls}/{settings.MaxCalls}");
+            var generation = settings.Generation(OutputBudget(target));
             var prompt = $"Produis un résumé d’au plus {target} octets UTF-8 (environ {Math.Max(20, target / 8)} mots).\n\n"
                 + "Données à résumer :\n" + source;
             var messages = new PromptMessage[] { new("system", Instruction), new("user", prompt) };
-            if (messages.Sum(m => SlidingContext.EstimateTokens(m.Content))
-                > options.ContextTokens - options.MaxOutputTokens - options.SafetyTokens)
+            if (messages.Sum(m => SettingsInput.Estimate(m.Content))
+                > generation.Generation.ContextTokens - generation.Generation.MaxOutputTokens - generation.SafetyTokens)
                 throw new ArgumentException("Le fragment dépasse le budget de résumé.");
-            var reply = (await model.GenerateAsync(modelName, messages, options.InferenceCall(), ct)).Trim();
+            var reply = (await model.GenerateAsync(modelName, messages, generation, ct)).Trim();
             if (reply.Length == 0) throw new ChatModelException("Le modèle a renvoyé un résumé vide.", failure: ChatModelFailure.EmptyContent);
             if (reply.Contains('\0')) throw new ChatModelException("Le modèle a renvoyé un résumé invalide.");
             var size = Encoding.UTF8.GetByteCount(reply);

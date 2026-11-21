@@ -87,7 +87,7 @@ public class ContextQualityTests
             SearchPlan = QueryPlanning.Build("Compare A.cs et B.cs", [], [], 3)
         };
         var model = new FinalModel(); var tools = new EmptyTools();
-        var result = await ProjectAgent.RunAsync(model, tools, Guid.NewGuid(), "m", new([new("user", "Compare A.cs et B.cs")], 0, 40), options, null, default);
+        var result = await ProjectAgent.RunAsync(model, tools, Guid.NewGuid(), "m", new ContextWindow([new("user", "Compare A.cs et B.cs")], 0, 40).ToolPrompt(), options.ToolGeneration(), null, default);
         Assert.Equal("Réponse limitée", result.Content);
         Assert.Equal("call_limit", result.Research!.StopReason);
         Assert.Equal(new[] { "not_found", "not_searched" }, result.Research.Goals.Select(g => g.State));

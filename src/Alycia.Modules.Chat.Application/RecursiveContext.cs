@@ -40,7 +40,7 @@ public static class RecursiveContext
         var changed = !valid && conversation.MemoryText.Length > 0;
         var needsSummary = false;
         var pending = new List<HistoryMessage>();
-        var reducer = new RecursiveSummarizer(model, conversation.Model, options, progress);
+        var reducer = new RecursiveSummarizer(model, conversation.Model, options.Summary(), progress);
         int MemoryCost() => memory.Length == 0 ? 0 : TokenBudget.Count(MemoryLabel + memory, options);
         int PendingCost() => pending.Sum(m => TokenBudget.Count(m.Content, options));
         int Target() => (options.MemoryContextTokens > 0 ? Math.Min(memoryBudget, options.MemoryContextTokens) : memoryBudget) - TokenBudget.Count(MemoryLabel, options);

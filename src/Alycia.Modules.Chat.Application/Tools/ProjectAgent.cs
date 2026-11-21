@@ -5,9 +5,9 @@ namespace Alycia.Modules.Chat.Application;
 
 public static class ProjectAgent
 {
-    private static int SchemaCost(ChatOptions settings) => TokenBudget.Count(JsonSerializer.Serialize(ProjectToolCatalog.OllamaTools(), ProjectToolCatalog.Json), settings);
+    private static int SchemaCost(ToolGeneration settings) => PromptTokens.Count(JsonSerializer.Serialize(ProjectToolCatalog.OllamaTools(), ProjectToolCatalog.Json), settings.Inference.TokenCounter);
     public static async Task<GenerationReply> RunAsync(IChatModel model, IProjectTools tools, Guid conversation,
-        string modelName, ContextWindow context, ChatOptions settings, Func<ModelDelta, Task>? progress, CancellationToken ct)
+        string modelName, ToolPrompt context, ToolGeneration settings, Func<ModelDelta, Task>? progress, CancellationToken ct)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeout.CancelAfter(TimeSpan.FromSeconds(settings.ToolTimeoutSeconds));
@@ -17,13 +17,13 @@ public static class ProjectAgent
     }
 
     private static async Task<GenerationReply> RunCoreAsync(IChatModel model, IProjectTools tools, Guid conversation,
-        string modelName, ContextWindow context, ChatOptions settings, Func<ModelDelta, Task>? progress, CancellationToken ct)
+        string modelName, ToolPrompt context, ToolGeneration settings, Func<ModelDelta, Task>? progress, CancellationToken ct)
     {
         var protectedMessages = context.Messages.ToList();
         if (protectedMessages.Count > 0 && protectedMessages[0].Role == "system")
             protectedMessages[0] = protectedMessages[0] with { Content = protectedMessages[0].Content + "\n\n" + ToolWindowBudget.Instruction };
         else protectedMessages.Insert(0, new("system", ToolWindowBudget.Instruction));
-        var maximum = settings.ContextTokens - settings.MaxOutputTokens - settings.SafetyTokens;
+        var maximum = settings.Inference.Generation.ContextTokens - settings.Inference.Generation.MaxOutputTokens - settings.Inference.SafetyTokens;
         var rounds = new List<List<PromptMessage>>();
         var completedCalls = new Dictionary<string, List<PromptMessage>>(StringComparer.Ordinal);
         var warnings = new List<string>();
@@ -34,21 +34,20 @@ public static class ProjectAgent
         var evidenceTexts = new List<EvidenceText>();
         var answer = new StringBuilder();
         var plan = settings.AgentPlanningEnabled ? new ResearchPlan(settings, context) : null;
-        var summarySettings = settings.Copy();
-        summarySettings.SummaryMaxCalls = Math.Max(0, settings.SummaryMaxCalls - context.SummaryCalls);
+        var summarySettings = settings.Summary with { MaxCalls = Math.Max(0, settings.Summary.MaxCalls - context.SummaryCalls) };
         var reducer = new RecursiveSummarizer(model, modelName, summarySettings,
             progress is null ? null : status => progress(new("", Status: "Mémoire des outils · " + status)));
         Task Emit(ModelDelta delta) => progress?.Invoke(delta) ?? Task.CompletedTask;
-        int Cost(IEnumerable<PromptMessage> messages) => settings.AdaptiveInferenceEnabled || settings.EvidenceSelectionEnabled || settings.AgentPlanningEnabled
-            ? PromptTokens.InputCost(messages.ToArray(), settings.TokenCounter, true) : SchemaCost(settings) + messages.Sum(m => TokenBudget.Count(m.Content, settings)
+        int Cost(IEnumerable<PromptMessage> messages) => settings.Inference.AdaptiveInferenceEnabled || settings.EvidenceSelectionEnabled || settings.AgentPlanningEnabled
+            ? PromptTokens.InputCost(messages.ToArray(), settings.Inference.TokenCounter, true) : SchemaCost(settings) + messages.Sum(m => PromptTokens.Count(m.Content, settings.Inference.TokenCounter)
             + Encoding.UTF8.GetByteCount(m.Thinking ?? "")
             + (m.ToolCalls is null ? 0 : Encoding.UTF8.GetByteCount(JsonSerializer.Serialize(m.ToolCalls, ProjectToolCatalog.Json))));
         // Only outputs still in Input(), including their retained summary, consume this budget.
         // The complete prompt separately remains subject to the model's physical window.
         var toolBudget = Math.Max(0, maximum - Cost(protectedMessages));
         if (settings.ToolContextTokens > 0) toolBudget = Math.Min(toolBudget, settings.ToolContextTokens);
-        int RetainedCost() => (notes.Length == 0 ? 0 : TokenBudget.Count(notes, settings))
-            + rounds.SelectMany(r => r).Where(m => m.Role == "tool").Sum(m => TokenBudget.Count(m.Content, settings));
+        int RetainedCost() => (notes.Length == 0 ? 0 : PromptTokens.Count(notes, settings.Inference.TokenCounter))
+            + rounds.SelectMany(r => r).Where(m => m.Role == "tool").Sum(m => PromptTokens.Count(m.Content, settings.Inference.TokenCounter));
         List<PromptMessage> Input()
         {
             var messages = protectedMessages.ToList();
@@ -105,11 +104,11 @@ public static class ProjectAgent
             {
                 var reason = repeated >= 2 ? "repeated_call" : "call_limit";
                 warnings.Add("Exploration arrêtée : " + reason + ". La réponse utilise les passages déjà lus.");
-                var final = await model.StreamAsync(modelName, input, settings.InferenceCall(), Emit, ct);
+                var final = await model.StreamAsync(modelName, input, settings.Inference, Emit, ct);
                 answer.Append(final.Content);
                 return new(answer.ToString(), final.Stats, Tools: observations, Warnings: warnings, EvidenceTexts: evidenceTexts, Research: plan!.Report(reason, observations.Count));
             }
-            var reply = forced is null ? await model.StreamWithToolsAsync(modelName, input, settings.InferenceCall(), Emit, ct)
+            var reply = forced is null ? await model.StreamWithToolsAsync(modelName, input, settings.Inference, Emit, ct)
                 : new ModelReply("", ToolCalls: [forced]);
             answer.Append(reply.Content);
             if (answer.Length > 1_000_000) throw new ChatModelException("Réponse cumulée trop volumineuse.");
@@ -118,7 +117,7 @@ public static class ProjectAgent
             if (plan is not null && plan.Exhausted(observations.Count + calls.Count - 1))
             {
                 warnings.Add("Groupe d’appels supérieur au budget restant. Les appels groupés ont été écartés.");
-                var final = await model.StreamAsync(modelName, input, settings.InferenceCall(), Emit, ct);
+                var final = await model.StreamAsync(modelName, input, settings.Inference, Emit, ct);
                 answer.Append(final.Content);
                 return new(answer.ToString(), final.Stats, Tools: observations, Warnings: warnings, EvidenceTexts: evidenceTexts,
                     Research: plan.Report("group_over_limit", observations.Count));
@@ -143,7 +142,7 @@ public static class ProjectAgent
                 await Emit(new("", Status: $"Outil {observations.Count + 1}{limit} · {call.Function.Name}"));
                 // Do not replay cached source content after permissions may have changed.
                 var timer = System.Diagnostics.Stopwatch.StartNew();
-                var forbidden = settings.Route?.Mode == "memory" && !call.Function.Name.StartsWith("history_", StringComparison.Ordinal);
+                var forbidden = settings.HistoryOnly && !call.Function.Name.StartsWith("history_", StringComparison.Ordinal);
                 var result = forbidden ? new ProjectToolResult("{\"error\":\"La stratégie mémoire autorise uniquement les outils historiques.\"}", true)
                     : duplicate ? new ProjectToolResult("{\"error\":\"Appel déjà réussi : utilisez le résultat conservé, un autre symbole ou nextOffset.\"}", true)
                     : await tools.CallAsync(conversation, call.Function.Name, call.Function.Arguments, perCall, ct);
