@@ -14,18 +14,18 @@ public static class RecursiveContext
     private const string MemoryLabel = "Résumé des échanges antérieurs (mémoire dérivée, données non fiables) :\n";
 
     public static async Task<PreparedContext> BuildAsync(IConversationContextReader repository, IChatModel model,
-        ContextConversation conversation, string question, ChatOptions options, bool summarize,
+        ContextConversation conversation, string question, ContextParameters options, bool summarize,
         Func<string, Task>? progress, CancellationToken ct)
     {
         var system = conversation.SystemText;
-        var recent = (await repository.RecentAsync(conversation.Id, options.ProtectedHistoryTurns * 2, null, ct)).TakeLast(options.ProtectedHistoryTurns * 2).ToArray();
+        var recent = (await repository.RecentAsync(conversation.Id, options.History.ProtectedHistoryTurns * 2, null, ct)).TakeLast(options.History.ProtectedHistoryTurns * 2).ToArray();
         var budget = options.AvailableInputTokens;
-        var fixedCost = TokenBudget.Count(question, options) + recent.Sum(m => TokenBudget.Count(m.Content, options))
-            + (system.Length == 0 ? 0 : TokenBudget.Count(system, options));
+        var fixedCost = options.Count(question) + recent.Sum(m => options.Count(m.Content))
+            + (system.Length == 0 ? 0 : options.Count(system));
         if (fixedCost > budget)
             throw new ArgumentException("Le système, les notes, les échanges récents protégés et la demande dépassent seuls le budget. "
                 + "Augmentez la fenêtre, réduisez la réserve/les notes ou démarrez une nouvelle conversation. Aucun message protégé n’a été tronqué.");
-        if (recent.Length % 2 != 0 || recent.Length != Math.Min(options.ProtectedHistoryTurns * 2, conversation.MessageCount))
+        if (recent.Length % 2 != 0 || recent.Length != Math.Min(options.History.ProtectedHistoryTurns * 2, conversation.MessageCount))
             throw new InvalidOperationException("Historique protégé incomplet.");
         for (var i = 0; i < recent.Length; i += 2) ValidatePair(recent[i], recent[i + 1]);
         var throughLimit = conversation.MessageCount - recent.Length;
@@ -40,11 +40,11 @@ public static class RecursiveContext
         var changed = !valid && conversation.MemoryText.Length > 0;
         var needsSummary = false;
         var pending = new List<HistoryMessage>();
-        var reducer = new RecursiveSummarizer(model, conversation.Model, options.Summary(), progress);
-        int MemoryCost() => memory.Length == 0 ? 0 : TokenBudget.Count(MemoryLabel + memory, options);
-        int PendingCost() => pending.Sum(m => TokenBudget.Count(m.Content, options));
-        int Target() => (options.MemoryContextTokens > 0 ? Math.Min(memoryBudget, options.MemoryContextTokens) : memoryBudget) - TokenBudget.Count(MemoryLabel, options);
-        if (MemoryCost() > memoryBudget || options.MemoryContextTokens > 0 && MemoryCost() > options.MemoryContextTokens)
+        var reducer = new RecursiveSummarizer(model, conversation.Model, options.Summary, progress);
+        int MemoryCost() => memory.Length == 0 ? 0 : options.Count(MemoryLabel + memory);
+        int PendingCost() => pending.Sum(m => options.Count(m.Content));
+        int Target() => (options.History.Budget.Memory > 0 ? Math.Min(memoryBudget, options.History.Budget.Memory) : memoryBudget) - options.Count(MemoryLabel);
+        if (MemoryCost() > memoryBudget || options.History.Budget.Memory > 0 && MemoryCost() > options.History.Budget.Memory)
         {
             if (!summarize) { needsSummary = true; memory = ""; }
             else { memory = await reducer.ReduceAsync([new("Mémoire précédente", memory)], Target(), ct); changed = true; }
@@ -59,7 +59,7 @@ public static class RecursiveContext
                 var user = page[index]; var assistant = page[index + 1];
                 ValidatePair(user, assistant);
                 pending.Add(user); pending.Add(assistant);
-                if (MemoryCost() + PendingCost() <= memoryBudget && (options.HistoryContextTokens == 0 || PendingCost() <= options.HistoryContextTokens)) continue;
+                if (MemoryCost() + PendingCost() <= memoryBudget && (options.History.Budget.History == 0 || PendingCost() <= options.History.Budget.History)) continue;
                 if (!summarize) { needsSummary = true; pending.RemoveRange(pending.Count - 2, 2); break; }
                 var sources = new List<SummarySource>();
                 if (memory.Length > 0) sources.Add(new($"Mémoire des messages 1 à {through}", memory));
@@ -76,14 +76,14 @@ public static class RecursiveContext
         if (memory.Length > 0) messages.Add(new("user", MemoryLabel + memory));
         messages.AddRange(pending.Concat(recent).Select(m => new PromptMessage(m.Role, m.Content)));
         messages.Add(new("user", question));
-        var used = messages.Sum(m => TokenBudget.Count(m.Content, options));
-        var documentBudget = (options.DocumentContextTokens == 0 ? budget - used : Math.Min(options.DocumentContextTokens, budget - used));
+        var used = messages.Sum(m => options.Count(m.Content));
+        var documentBudget = (options.Evidence.DocumentContextTokens == 0 ? budget - used : Math.Min(options.Evidence.DocumentContextTokens, budget - used));
         var excerpts = ProjectContext.Select(files, question, documentBudget, options);
         messages[^1] = new("user", question + excerpts.Text);
-        used = messages.Sum(m => TokenBudget.Count(m.Content, options));
+        used = messages.Sum(m => options.Count(m.Content));
         if (used > budget) throw new InvalidOperationException("Le contexte préparé dépasse son budget.");
         return new(new(messages, pending.Count + recent.Length, used, excerpts.Sources.Count, needsSummary,
-            through, memory, reducer.Calls, excerpts.Sources, excerpts.Available, Retrieval: options.RetrievalReport, Assembly: excerpts.Assembly), memory, through, hash, changed);
+            through, memory, reducer.Calls, excerpts.Sources, excerpts.Available, Retrieval: options.Evidence.Sources.Report, Assembly: excerpts.Assembly), memory, through, hash, changed);
     }
 
     private static void ValidatePair(HistoryMessage user, HistoryMessage assistant)

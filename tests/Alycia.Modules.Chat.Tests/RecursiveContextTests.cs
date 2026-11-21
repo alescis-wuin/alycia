@@ -15,7 +15,7 @@ public sealed class RecursiveContextTests
         var model = new Model();
         var options = new ChatOptions { ContextTokens = 4096, MaxOutputTokens = 512 };
         var prepared = await RecursiveContext.BuildAsync(repository, model, repository.Conversation.ForContext(options),
-            "Demande protégée", options, true, null, default);
+            "Demande protégée", options.Context(), true, null, default);
         Assert.True(prepared.Changed);
         Assert.True(model.Calls > 1);
         Assert.InRange(prepared.Context.EstimatedInputTokens, 1, 4096 - 512 - 256);
@@ -28,7 +28,7 @@ public sealed class RecursiveContextTests
         repository.Conversation.SetMemory(prepared.Memory, prepared.Through, prepared.SourceHash, "demo");
         var calls = model.Calls;
         var again = await RecursiveContext.BuildAsync(repository, model, repository.Conversation.ForContext(options),
-            "Demande protégée", options, true, null, default);
+            "Demande protégée", options.Context(), true, null, default);
         Assert.False(again.Changed);
         Assert.Equal(calls, model.Calls);
     }
@@ -41,7 +41,7 @@ public sealed class RecursiveContextTests
         var meter = new MeteredChatModel(model);
         var turn = new TurnContext(repository, new Alycia.Modules.Context.SlidingHistory());
         var options = new ChatOptions { ContextTokens = 2048, MaxOutputTokens = 256, StructuredMemory = false };
-        var budget = await turn.AllocateAsync(repository.Conversation.ForContext(options), "Question", options, false, default);
+        var budget = await turn.AllocateAsync(repository.Conversation.ForContext(options), "Question", options.Context(), false, default);
         var result = await turn.BuildAsync(repository.Conversation.ForContext(options), "Question", budget, model, meter,
             TurnContextMode.Preview, _ => throw new InvalidOperationException("Unexpected progress in preview"), default);
         Assert.True(result.Window.NeedsSummary);
@@ -62,7 +62,7 @@ public sealed class RecursiveContextTests
         var model = new Model();
         var meter = new MeteredChatModel(model);
         var turn = new TurnContext(repository, new Alycia.Modules.Context.SlidingHistory());
-        var budget = await turn.AllocateAsync(owner.ForContext(options), "Question", options, false, default);
+        var budget = await turn.AllocateAsync(owner.ForContext(options), "Question", options.Context(), false, default);
         var progress = new List<string>();
         var result = await turn.BuildAsync(owner.ForContext(options), "Question", budget, model, meter, mode,
             status => { progress.Add(status); return Task.CompletedTask; }, default);
@@ -101,7 +101,7 @@ public sealed class RecursiveContextTests
         };
         var model = new Model();
         var turn = new TurnContext(repository, new Alycia.Modules.Context.SlidingHistory());
-        var budget = await turn.AllocateAsync(owner.ForContext(options), "Question", options, true, default);
+        var budget = await turn.AllocateAsync(owner.ForContext(options), "Question", options.Context(), true, default);
         var result = await turn.BuildAsync(owner.ForContext(options), "Question", budget, model, new MeteredChatModel(model), mode, null, default);
 
         Assert.Null(result.Prepared);
@@ -126,7 +126,7 @@ public sealed class RecursiveContextTests
         var fact = Assert.Single(TemporalMemory.Extract(repository.Messages[0].ToTemporal()));
         var options = new ChatOptions { AutoSummarize = false, MaxHistoryTurns = 1, Recall = new([fact], 1, 1, []) };
         var turn = new TurnContext(repository, new Alycia.Modules.Context.SlidingHistory());
-        var budget = await turn.AllocateAsync(repository.Conversation.ForContext(options), "Question", options, false, default);
+        var budget = await turn.AllocateAsync(repository.Conversation.ForContext(options), "Question", options.Context(), false, default);
         var model = new Model();
         var result = await turn.BuildAsync(repository.Conversation.ForContext(options), "Question", budget, model, new MeteredChatModel(model), mode, null, default);
 
@@ -142,7 +142,7 @@ public sealed class RecursiveContextTests
         var repository = new Repository(3);
         var model = new Model();
         await Assert.ThrowsAsync<ArgumentException>(() => RecursiveContext.BuildAsync(repository, model,
-            repository.Conversation.ForContext(new()), new string('x', 3000), new() { ContextTokens = 2048, MaxOutputTokens = 256 },
+            repository.Conversation.ForContext(new()), new string('x', 3000), new ChatOptions() { ContextTokens = 2048, MaxOutputTokens = 256 }.Context(),
             true, null, default));
         Assert.Equal(0, model.Calls);
     }
@@ -153,7 +153,7 @@ public sealed class RecursiveContextTests
         var repository = new Repository(20);
         var model = new Model { DoesNotCompress = true };
         await Assert.ThrowsAsync<ChatModelException>(() => RecursiveContext.BuildAsync(repository, model,
-            repository.Conversation.ForContext(new()), "Question", new() { ContextTokens = 2048, MaxOutputTokens = 256 }, true, null, default));
+            repository.Conversation.ForContext(new()), "Question", new ChatOptions() { ContextTokens = 2048, MaxOutputTokens = 256 }.Context(), true, null, default));
         Assert.Equal("", repository.Conversation.MemoryText);
         Assert.Equal(40, repository.Messages.Count);
     }
@@ -165,7 +165,7 @@ public sealed class RecursiveContextTests
         var model = new Model();
         using var cancel = new CancellationTokenSource();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => RecursiveContext.BuildAsync(repository, model,
-            repository.Conversation.ForContext(new()), "Question", new() { ContextTokens = 2048, MaxOutputTokens = 256 }, true,
+            repository.Conversation.ForContext(new()), "Question", new ChatOptions() { ContextTokens = 2048, MaxOutputTokens = 256 }.Context(), true,
             _ => { cancel.Cancel(); return Task.CompletedTask; }, cancel.Token));
         Assert.Equal("", repository.Conversation.MemoryText);
         Assert.Equal(40, repository.Messages.Count);

@@ -99,9 +99,9 @@ public sealed class StructuredMemoryTests
     {
         var repo = new Repository(12); var model = new Model();
         var options = new ChatOptions { ContextTokens = 4096, MaxOutputTokens = 512 };
-        var preview = await ConversationContext.BuildAsync(repo, model, repo.Conversation.ForContext(options), "budget", options, false, null, default);
+        var preview = await ConversationContext.BuildAsync(repo, model, repo.Conversation.ForContext(options), "budget", options.Context(), false, null, default);
         Assert.True(preview.Context.NeedsSummary); Assert.Equal(0, model.Calls);
-        var result = await ConversationContext.BuildAsync(repo, model, repo.Conversation.ForContext(options), "budget", options, true, null, default);
+        var result = await ConversationContext.BuildAsync(repo, model, repo.Conversation.ForContext(options), "budget", options.Context(), true, null, default);
         Assert.True(result.Changed); Assert.NotNull(result.LedgerJson);
         Assert.Equal(20, result.Through);
         Assert.InRange(result.Context.EstimatedInputTokens, 1, 4096 - 512 - 256);
@@ -112,11 +112,11 @@ public sealed class StructuredMemoryTests
         Assert.All(ledger.Entries, e => Assert.Contains(e.Quote, repo.Messages.Single(m => m.Sequence == e.Sequence).Content));
         repo.Conversation.SetMemoryLedger(result.LedgerJson!);
         var calls = model.Calls;
-        var again = await ConversationContext.BuildAsync(repo, model, repo.Conversation.ForContext(options), "budget", options, true, null, default);
+        var again = await ConversationContext.BuildAsync(repo, model, repo.Conversation.ForContext(options), "budget", options.Context(), true, null, default);
         Assert.False(again.Changed); Assert.Equal(calls, model.Calls);
         Assert.Equal(24, repo.Messages.Count);
         var changedModel = options.Copy(); changedModel.ModelIdentity = "demo:new-digest";
-        var rebuilt = await ConversationContext.BuildAsync(repo, model, repo.Conversation.ForContext(changedModel), "budget", changedModel, true, null, default);
+        var rebuilt = await ConversationContext.BuildAsync(repo, model, repo.Conversation.ForContext(changedModel), "budget", changedModel.Context(), true, null, default);
         Assert.True(rebuilt.Changed); Assert.True(model.Calls > calls);
         Assert.Equal("demo:new-digest", StructuredMemory.Read(rebuilt.LedgerJson!).ModelIdentity);
         Assert.Equal(24, repo.Messages.Count);
@@ -127,7 +127,7 @@ public sealed class StructuredMemoryTests
     {
         var repo = new Repository(12); var model = new Model { Malformed = true };
         var options = new ChatOptions { ContextTokens = 4096, MaxOutputTokens = 512 };
-        var result = await ConversationContext.BuildAsync(repo, model, repo.Conversation.ForContext(options), "budget", options, true, null, default);
+        var result = await ConversationContext.BuildAsync(repo, model, repo.Conversation.ForContext(options), "budget", options.Context(), true, null, default);
         Assert.True(result.Context.Memory!.FallbackSegments > 0);
         Assert.All(StructuredMemory.Read(result.LedgerJson!).Entries, e => Assert.True(e.Fallback));
         Assert.Equal("{}", repo.Conversation.MemoryLedgerJson);
@@ -140,11 +140,11 @@ public sealed class StructuredMemoryTests
     public async Task SmallHistoryNeedsNoExtractionAndCancellationNeverPersistsPartialMemory()
     {
         var model = new Model(); var small = new Repository(3);
-        var result = await ConversationContext.BuildAsync(small, model, small.Conversation.ForContext(new()), "question", new(), true, null, default);
+        var result = await ConversationContext.BuildAsync(small, model, small.Conversation.ForContext(new()), "question", new ChatOptions().Context(), true, null, default);
         Assert.Equal(6, result.Context.HistoryMessagesIncluded); Assert.Equal(0, model.Calls);
         var large = new Repository(12); using var cancel = new CancellationTokenSource();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => ConversationContext.BuildAsync(large, model, large.Conversation.ForContext(new()),
-            "budget", new() { ContextTokens = 4096, MaxOutputTokens = 512 }, true, _ => { cancel.Cancel(); return Task.CompletedTask; }, cancel.Token));
+            "budget", new ChatOptions() { ContextTokens = 4096, MaxOutputTokens = 512 }.Context(), true, _ => { cancel.Cancel(); return Task.CompletedTask; }, cancel.Token));
         Assert.Equal("{}", large.Conversation.MemoryLedgerJson);
     }
 

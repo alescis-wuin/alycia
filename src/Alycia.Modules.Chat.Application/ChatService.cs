@@ -13,7 +13,7 @@ public sealed class ChatService(IChatRepository repository, IChatModel model, Ch
         var conversation = Conversation.Create(title, modelName, systemPrompt);
         conversation.AssignWorkspace(workspaceId);
         // Validate the system instruction before accepting a conversation.
-        SlidingContext.ValidatePrompt(conversation.SystemPrompt, "Bonjour", options);
+        SlidingContext.ValidatePrompt(conversation.SystemPrompt, "Bonjour", options.Context());
         var models = await model.ListModelsAsync(cancellationToken);
         if (!models.Contains(conversation.Model, StringComparer.Ordinal))
         {
@@ -67,7 +67,7 @@ public sealed class ChatService(IChatRepository repository, IChatModel model, Ch
         var toolScope = new ToolTurnScope(conversation.Id, conversation.WorkspaceId, conversation.Model);
         var activeTools = await tools.SelectAsync(toolScope, settings.UseProjectTools, model, cancellationToken);
         var contextOwner = conversation.ForContext(settings);
-        var budget = await turnContext.AllocateAsync(contextOwner, text, settings, activeTools is not null, cancellationToken);
+        var budget = await turnContext.AllocateAsync(contextOwner, text, settings.Context(), activeTools is not null, cancellationToken);
         var context = await turnContext.BuildAsync(contextOwner, text, budget, model, measured, TurnContextMode.Send,
             onDelta is null ? null : status => onDelta(new("", Status: status)), cancellationToken);
         var window = context.Window;

@@ -39,28 +39,28 @@ public static class ConversationContext
     });
 
     public static async Task<PreparedContext> BuildAsync(IConversationContextReader repository, IChatModel model, ContextConversation conversation,
-        string question, ChatOptions options, bool prepare, Func<string, Task>? progress, CancellationToken ct)
+        string question, ContextParameters options, bool prepare, Func<string, Task>? progress, CancellationToken ct)
     {
-        if (options.Recall is not null)
+        if (options.Evidence.Sources.Recall is not null)
             return await TemporalContext.BuildAsync(repository, conversation, question, options, ct);
-        if (!options.StructuredMemory) return await RecursiveContext.BuildAsync(repository, model, conversation, question, options, prepare, progress, ct);
+        if (!options.History.StructuredMemory) return await RecursiveContext.BuildAsync(repository, model, conversation, question, options, prepare, progress, ct);
         var system = conversation.SystemText;
-        var recent = (await repository.RecentAsync(conversation.Id, options.ProtectedHistoryTurns * 2, null, ct)).ToArray();
-        if (recent.Length != Math.Min(options.ProtectedHistoryTurns * 2, conversation.MessageCount) || recent.Length % 2 != 0) throw new ChatConflictException();
+        var recent = (await repository.RecentAsync(conversation.Id, options.History.ProtectedHistoryTurns * 2, null, ct)).ToArray();
+        if (recent.Length != Math.Min(options.History.ProtectedHistoryTurns * 2, conversation.MessageCount) || recent.Length % 2 != 0) throw new ChatConflictException();
         for (var i = 0; i < recent.Length; i += 2)
             if (recent[i].Role != "user" || recent[i + 1].Role != "assistant" || recent[i].RequestId != recent[i + 1].RequestId
                 || recent[i].Sequence + 1 != recent[i + 1].Sequence) throw new ChatConflictException();
         var maximum = options.AvailableInputTokens;
-        var fixedCost = TokenBudget.Count(question, options) + recent.Sum(m => TokenBudget.Count(m.Content, options))
-            + (system.Length == 0 ? 0 : TokenBudget.Count(system, options));
+        var fixedCost = options.Count(question) + recent.Sum(m => options.Count(m.Content))
+            + (system.Length == 0 ? 0 : options.Count(system));
         if (fixedCost > maximum) throw new ArgumentException("Le système, les notes, les échanges récents protégés et la demande dépassent seuls le budget. Augmentez la fenêtre : aucun message protégé n’a été tronqué.");
         var through = conversation.MessageCount - recent.Length;
         var files = await repository.ContextFilesAsync(conversation.Id, Math.Max(1, through + 1), ct);
         var available = maximum - fixedCost;
         var remaining = available - (files.Count == 0 ? 0 : EvidenceComposer.DocumentReserve(available, options, 3));
-        var (historyBudget, memoryBudget) = options.MemoryBudget.Within(remaining);
+        var (historyBudget, memoryBudget) = options.History.Budget.Within(remaining);
         var ledger = StructuredMemory.Read(conversation.MemoryLedgerJson);
-        var memoryIdentity = options.ModelIdentity ?? conversation.Model + ":identity-unavailable";
+        var memoryIdentity = options.Summary.ModelIdentity ?? conversation.Model + ":identity-unavailable";
         var invalidated = ledger.Through > 0 && (ledger.Through > through || ledger.ModelIdentity != memoryIdentity || ledger.PromptVersion != StructuredMemory.PromptVersion);
         if (ledger.Through > through || ledger.ModelIdentity != memoryIdentity || ledger.PromptVersion != StructuredMemory.PromptVersion)
             ledger = StructuredMemory.Empty with { ModelIdentity = memoryIdentity, PromptVersion = StructuredMemory.PromptVersion };
@@ -75,7 +75,7 @@ public static class ConversationContext
                 if (page.Count != end - cursor) throw new ChatConflictException();
                 foreach (var message in page)
                 {
-                    cost += TokenBudget.Count(message.Content, options);
+                    cost += options.Count(message.Content);
                     if (cost > historyBudget) { pressure = true; break; }
                     pending.Add(message);
                 }
@@ -84,12 +84,15 @@ public static class ConversationContext
         var calls = 0; var changed = invalidated;
         if (pressure && prepare)
         {
-            var extraction = options.Copy(); extraction.CallPurpose = "memory"; extraction.GenerateUntilStop = false;
-            extraction.MaxOutputTokens = Math.Min(1024, (extraction.ContextTokens - extraction.SafetyTokens) / 3);
-            extraction.Temperature = 0; extraction.ResponseSchema = Schema;
-            var inputBudget = extraction.ContextTokens - extraction.MaxOutputTokens - extraction.SafetyTokens;
+            var outputTokens = Math.Min(1024, (options.ContextTokens - options.SafetyTokens) / 3);
+            var extraction = options.Inference with
+            {
+                Generation = options.Inference.Generation with { CallPurpose = "memory", GenerateUntilStop = false,
+                    MaxOutputTokens = outputTokens, Temperature = 0, ResponseSchema = Schema }
+            };
+            var inputBudget = options.ContextTokens - outputTokens - options.SafetyTokens;
             // JSON escaping can consume six bytes per character. Final packed input is also counted.
-            var chunkBytes = Math.Clamp((inputBudget - TokenBudget.Count(Instruction, extraction) - 256) / 6, 32, 2400);
+            var chunkBytes = Math.Clamp((inputBudget - PromptTokens.Count(Instruction, extraction.TokenCounter) - 256) / 6, 32, 2400);
             for (var cursor = ledger.Through; cursor < through;)
             {
                 var end = Math.Min(through, cursor + 20);
@@ -106,14 +109,14 @@ public static class ConversationContext
                     while (index < fragments.Length && batch.Count < 8)
                     {
                         batch.Add(fragments[index]);
-                        if (Input().Sum(m => TokenBudget.Count(m.Content, extraction)) > inputBudget)
+                        if (Input().Sum(m => PromptTokens.Count(m.Content, extraction.TokenCounter)) > inputBudget)
                         { batch.RemoveAt(batch.Count - 1); break; }
                         index++;
                     }
                     if (batch.Count == 0) throw new ArgumentException("Budget insuffisant pour extraire la mémoire structurée. Augmentez la fenêtre ou choisissez la mémoire récursive.");
-                    if (++calls > options.SummaryMaxCalls) throw new ChatModelException("Budget d’extraction de mémoire atteint. Les messages originaux et la mémoire précédente sont conservés.");
-                    if (progress is not null) await progress($"Mémoire structurée · appel {calls}/{options.SummaryMaxCalls}");
-                    var output = await model.GenerateAsync(conversation.Model, Input(), extraction.InferenceCall(), ct);
+                    if (++calls > options.Summary.MaxCalls) throw new ChatModelException("Budget d’extraction de mémoire atteint. Les messages originaux et la mémoire précédente sont conservés.");
+                    if (progress is not null) await progress($"Mémoire structurée · appel {calls}/{options.Summary.MaxCalls}");
+                    var output = await model.GenerateAsync(conversation.Model, Input(), extraction.CheckWindow(), ct);
                     var valid = StructuredMemory.Validate(output, batch); next.AddRange(valid);
                     foreach (var fragment in batch)
                     {
@@ -126,22 +129,22 @@ public static class ConversationContext
                 ledger = StructuredMemory.Append(ledger, next, page, fallback); cursor = end; changed = true;
             }
         }
-        var memory = pressure ? StructuredMemory.Select(ledger, question, recent, memoryBudget, options.TokenCounter) : new MemorySelection("", new(0, 0, 0, 0, 0, 0));
+        var memory = pressure ? StructuredMemory.Select(ledger, question, recent, memoryBudget, options.Inference.TokenCounter) : new MemorySelection("", new(0, 0, 0, 0, 0, 0));
         var messages = new List<PromptMessage>();
         if (system.Length > 0) messages.Add(new("system", system));
         if (memory.Text.Length > 0) messages.Add(new("user", memory.Text));
         if (!pressure) messages.AddRange(pending.Select(m => new PromptMessage(m.Role, m.Content)));
         messages.AddRange(recent.Select(m => new PromptMessage(m.Role, m.Content)));
         messages.Add(new("user", question));
-        var used = messages.Sum(m => TokenBudget.Count(m.Content, options));
-        var excerpts = ProjectContext.Select(files, question, options.DocumentContextTokens == 0
-            ? maximum - used : Math.Min(options.DocumentContextTokens, maximum - used), options);
+        var used = messages.Sum(m => options.Count(m.Content));
+        var excerpts = ProjectContext.Select(files, question, options.Evidence.DocumentContextTokens == 0
+            ? maximum - used : Math.Min(options.Evidence.DocumentContextTokens, maximum - used), options);
         messages[^1] = new("user", question + excerpts.Text);
-        used = messages.Sum(m => TokenBudget.Count(m.Content, options));
+        used = messages.Sum(m => options.Count(m.Content));
         if (used > maximum) throw new InvalidOperationException("Le contexte préparé dépasse son budget.");
         return new(new(messages, recent.Length + (pressure ? 0 : pending.Count), used, excerpts.Sources.Count,
             pressure && ledger.Through < through, ledger.Through, memory.Text, calls, excerpts.Sources, excerpts.Available,
-            Retrieval: options.RetrievalReport, Memory: memory.Report, Assembly: excerpts.Assembly), memory.Text, ledger.Through, ledger.ChainHash, changed,
+            Retrieval: options.Evidence.Sources.Report, Memory: memory.Report, Assembly: excerpts.Assembly), memory.Text, ledger.Through, ledger.ChainHash, changed,
             changed ? StructuredMemory.Serialize(ledger) : null);
     }
 }

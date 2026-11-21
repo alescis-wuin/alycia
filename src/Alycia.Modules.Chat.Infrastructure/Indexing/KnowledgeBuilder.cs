@@ -124,7 +124,7 @@ public sealed class KnowledgePass(KnowledgeStore store, IChatModel model, Enrich
         var header = $"Type={level}, rôle={role}, nature={assertion}. Résumé maximum {config.TargetTokens} tokens. "
             + "sourceUnitIds=" + JsonSerializer.Serialize(refs) + "\n";
         var available = counter.ContextTokens - counter.SafetyTokens - counter.MaxOutputTokens;
-        var input = IndexedKnowledge.Fit(text, Math.Max(0, available - TokenBudget.Count(Instruction, counter) - TokenBudget.Count(header, counter) - 64), counter);
+        var input = PromptTokens.Fit(text, Math.Max(0, available - TokenBudget.Count(Instruction, counter) - TokenBudget.Count(header, counter) - 64), counter.TokenCounter);
         var prompt = new[] { new PromptMessage("system", Instruction), new PromptMessage("user", header + input) };
         var cost = prompt.Sum(m => TokenBudget.Count(m.Content, counter));
         if (config.Model.Length > 0 && text.Length > 0)
