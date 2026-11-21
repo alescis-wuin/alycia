@@ -54,6 +54,55 @@ public class RoutingAndRerankTests
         using var cancelled = new CancellationTokenSource(); cancelled.Cancel();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => delayed.PrepareAsync(id, "Orion", options, cancelled.Token));
     }
+    [Fact]
+    public async Task FacetEmbeddingsRerankerAndDiagnosticsOnlySeeAdmittedSources()
+    {
+        var visible = new SourceChunk(Guid.Parse("00000000-0000-0000-0000-000000000001"), "public.cs",
+            "public-hash", "Orion", "code", 0, 10, 1, 1, "Orion path", [], true);
+        var excluded = visible with
+        {
+            FileId = Guid.Parse("00000000-0000-0000-0000-000000000002"),
+            Path = "private.cs",
+            Text = "Orion private"
+        };
+        var provider = new RecordingRanker();
+        var service = new ProjectRetrievalService(new FixtureIndex([excluded, visible]), provider, reranker: provider);
+        var options = new ChatOptions
+        {
+            RetrievalMode = "hybrid",
+            FacetPlanningEnabled = true,
+            RerankEnabled = true,
+            EligibleSourceIds = new HashSet<Guid> { visible.FileId },
+            PinnedSourceIds = new HashSet<Guid> { excluded.FileId },
+            SearchPlan = new("Orion", [new("Orion", "lexical"), new("alternative", "semantic")], [], false)
+        };
+        var result = await service.PrepareAsync(Guid.NewGuid(), "Orion", options, default);
+        Assert.Equal(new[] { "Orion", "alternative" }, provider.Searches.Select(item => item.Query));
+        Assert.All(provider.Searches, search => Assert.Equal(visible.FileId, Assert.Single(search.Ids)));
+        Assert.Equal(visible.FileId, Assert.Single(provider.Reranked));
+        Assert.Equal(visible, Assert.Single(result.Chunks));
+        var decision = Assert.Single(result.Report.Decisions!);
+        Assert.Equal(ProjectRetrieval.Reference(visible), decision.Reference);
+        Assert.Equal(new[] { 0, 1 }, decision.Queries!.Select(hit => hit.Query));
+    }
+
+    private sealed class RecordingRanker : IIndexedEmbeddings, IPassageReranker
+    {
+        public List<(string Query, Guid[] Ids)> Searches { get; } = [];
+        public Guid[] Reranked { get; private set; } = [];
+        public Task<SemanticSearch> SearchAsync(Guid id, string query, ChatOptions settings, IReadOnlyList<SourceChunk> chunks, CancellationToken ct)
+        {
+            Searches.Add((query, chunks.Select(chunk => chunk.FileId).ToArray()));
+            return Task.FromResult(new SemanticSearch(Enumerable.Repeat(1.0, chunks.Count).ToArray(), chunks.Count, []));
+        }
+
+        public Task<RerankScores> ScoreAsync(string question, IReadOnlyList<SourceChunk> passages, CancellationToken ct)
+        {
+            Reranked = passages.Select(chunk => chunk.FileId).ToArray();
+            return Task.FromResult(new RerankScores("fixture", new double[passages.Count]));
+        }
+    }
+
     private sealed class FixtureIndex(SourceChunk[] chunks) : IProjectIndex
     {
         public Task<ProjectIndexSnapshot> BuildAsync(Guid owner, CancellationToken ct) =>
