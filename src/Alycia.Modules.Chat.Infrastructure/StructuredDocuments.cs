@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
 using Alycia.Modules.Chat.Application;
+using Alycia.Modules.Chat.Infrastructure.Documents;
 using UglyToad.PdfPig;
 
 namespace Alycia.Modules.Chat.Infrastructure;
@@ -19,7 +20,7 @@ public static class StructuredDocuments
     public static ExtractedDocument Extract(string name, byte[] bytes)
     {
         var segments = new List<DocumentSegment>(); var builder = new StringBuilder(); var complete = true;
-        var remaining = FileImport.MaxTextBytes;
+        var remaining = DocumentContent.MaxTextBytes;
         bool Add(string location, string text)
         {
             if (string.IsNullOrWhiteSpace(text)) return true;
