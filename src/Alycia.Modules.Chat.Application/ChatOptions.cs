@@ -85,6 +85,16 @@ public sealed class ChatOptions : ChatSettings
     public SummaryParameters Summary() => new(ContextTokens, SafetyTokens, SummaryMaxCalls, Enrichment.MaxDepth,
         Seed, TimeoutSeconds, TokenCounting, ModelIdentity, TokenCounter);
 
+    public ContextParameters Context()
+    {
+        var sources = new RoutingState(new PlannedQuery(UseProjectTools, Route, null, PinnedSourceIds?.ToFrozenSet(), null),
+            Recall, SourceCandidates, RetrievalReport);
+        return new(InferenceCall(), Summary(), ToolContextTokens,
+            new(AutoSummarize, StructuredMemory, MaxHistoryTurns, ProtectedHistoryTurns, MemoryBudget),
+            new(EvidenceSelectionEnabled, ClassificationEnabled, RelevantThreshold, RetrievalMode, DocumentContextTokens, sources),
+            new(QuerySummaryTokens, QuerySummaryMaxCalls, Enrichment));
+    }
+
     public ToolGeneration ToolGeneration()
     {
         var questions = SearchPlan?.Brief?.Facets.Select(f => f.Question)

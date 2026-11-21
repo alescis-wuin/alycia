@@ -12,7 +12,7 @@ public sealed class ToolCallingTests
     [Fact]
     public void DefaultWindowReservesAllNineToolsAndStillFitsTheProtectedQuestion()
     {
-        var options = TurnContextBudget.WithToolReserve(new());
+        var options = TurnContextBudget.WithToolReserve(new ChatOptions().Context());
         var context = SlidingContext.Build(new Alycia.Modules.Context.SlidingHistory(), "Réponds brièvement en français.", [], "Cherche le symbole ReadAsync puis lis son implémentation.", options);
         Assert.True(context.EstimatedInputTokens + options.MaxOutputTokens + options.SafetyTokens <= options.ContextTokens);
     }

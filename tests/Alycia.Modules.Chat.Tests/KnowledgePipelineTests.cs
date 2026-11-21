@@ -253,10 +253,10 @@ public sealed class KnowledgePipelineTests
         var window = new ContextWindow([new("user", text[..8])], 0, 24, 1, Sources: [excerpt]);
         var model = new SummaryModel();
         var meter = new MeteredChatModel(model);
-        Assert.Same(window, await ContextGuides.AddAsync(window, settings, meter, true, default));
+        Assert.Same(window, await ContextGuides.AddAsync(window, settings.Context(), meter, true, default));
         Assert.Empty(model.Inputs);
         settings.QuerySummaryMaxCalls = 8;
-        var withGuide = await ContextGuides.AddAsync(window, settings, meter, true, default);
+        var withGuide = await ContextGuides.AddAsync(window, settings.Context(), meter, true, default);
         var guide = Assert.Single(withGuide.Guides!);
         Assert.Equal("on_demand", guide.State);
         Assert.Equal(ProjectRetrieval.Reference(chunk), guide.OriginalReference);

@@ -1,3 +1,4 @@
+using Alycia.Contracts.Context;
 using Alycia.Contracts.Documents;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -10,10 +11,10 @@ public static class ProjectContext
 {
     public static bool IsCode(string path) => SourceFileType.IsCode(path);
 
-    public static ProjectExcerpts Select(IEnumerable<TurnFile> input, string question, int budget, ChatOptions? options = null)
+    public static ProjectExcerpts Select(IEnumerable<TurnFile> input, string question, int budget, ContextParameters? options = null)
     {
         var files = input.Where(f => f.ContextMode != "excluded" && f.Text.Length > 0).ToArray();
-        if (options?.SourceCandidates is { } candidates) return ProjectRetrieval.Pack(candidates, files, budget, options);
+        if (options?.Evidence.Sources.Chunks is { } candidates) return ProjectRetrieval.Pack(candidates, files, budget, options);
         var words = Regex.Matches(question, @"[\p{L}\p{N}_./-]{4,}").Select(m => m.Value)
             .Distinct(StringComparer.OrdinalIgnoreCase).Take(16).ToArray();
         int Score(TurnFile file) => (file.ContextMode == "pinned" ? 1000 : 0) + (IsCode(file.Name) ? 20 : 0)

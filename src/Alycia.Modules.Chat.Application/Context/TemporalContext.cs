@@ -7,12 +7,12 @@ namespace Alycia.Modules.Chat.Application;
 
 public static class TemporalContext
 {
-    public static async Task<PreparedContext> BuildAsync(IConversationContextReader repo, ContextConversation owner, string question, ChatOptions options, CancellationToken ct)
+    public static async Task<PreparedContext> BuildAsync(IConversationContextReader repo, ContextConversation owner, string question, ContextParameters options, CancellationToken ct)
     {
-        var recall = options.Recall!;
-        var turns = options.AutoSummarize ? Math.Max(options.MaxHistoryTurns, options.ProtectedHistoryTurns) : options.MaxHistoryTurns;
+        var recall = options.Evidence.Sources.Recall!;
+        var turns = options.History.AutoSummarize ? Math.Max(options.History.MaxHistoryTurns, options.History.ProtectedHistoryTurns) : options.History.MaxHistoryTurns;
         var history = await repo.RecentAsync(owner.Id, turns * 2, null, ct);
-        var protectedCount = options.AutoSummarize ? Math.Min(options.ProtectedHistoryTurns * 2, owner.MessageCount) : 0;
+        var protectedCount = options.History.AutoSummarize ? Math.Min(options.History.ProtectedHistoryTurns * 2, owner.MessageCount) : 0;
         if (history.Count != Math.Min(owner.MessageCount, turns * 2) || history.Count % 2 != 0) throw new ChatConflictException();
         for (var n = 0; n < history.Count; n += 2)
         {
@@ -27,14 +27,14 @@ public static class TemporalContext
         if (system.Length > 0) mandatory.Add(new("system", system));
         mandatory.AddRange(recent.Select(m => new PromptMessage(m.Role, m.Content)));
         mandatory.Add(new("user", question));
-        int Cost(IEnumerable<PromptMessage> entries) => entries.Sum(m => TokenBudget.Count(m.Content, options));
+        int Cost(IEnumerable<PromptMessage> entries) => entries.Sum(m => options.Count(m.Content));
         var maximum = options.ContextTokens - options.SafetyTokens - options.MaxOutputTokens;
         var free = maximum - Cost(mandatory);
         if (free < 0) throw new ArgumentException("Les messages protégés et les réserves dépassent la fenêtre.");
-        var first = Math.Max(1, owner.MessageCount - (options.AutoSummarize ? protectedCount : history.Count) + 1);
+        var first = Math.Max(1, owner.MessageCount - (options.History.AutoSummarize ? protectedCount : history.Count) + 1);
         var files = await repo.ContextFilesAsync(owner.Id, first, ct);
         var pin = files.Any(f => f.ContextMode == "pinned");
-        var docBudget = pin && options.DocumentContextTokens == 0 ? free : EvidenceComposer.DocumentReserve(free, options, 3);
+        var docBudget = pin && options.Evidence.DocumentContextTokens == 0 ? free : EvidenceComposer.DocumentReserve(free, options, 3);
         var excerpts = ProjectContext.Select(files, question, docBudget, options);
         mandatory[^1] = new("user", question + excerpts.Text);
         free = maximum - Cost(mandatory);
@@ -62,7 +62,7 @@ public static class TemporalContext
                 var until = corrections.FirstOrDefault(c => c.Sequence > f.Sequence && f.Role == "user");
                 body.AppendLine($"[H{f.Sequence}:{f.Sha256[..12]}] {f.Observed:O} · {f.Role} · {f.Kind}{(until is null ? "" : $" · remplacé au message {until.Sequence}")} : {f.Quote}");
             }
-            if (TokenBudget.Count(selected.ToString() + body, options) > (options.MemoryContextTokens > 0 ? Math.Min(free, options.MemoryContextTokens) : free)) continue;
+            if (options.Count(selected.ToString() + body) > (options.History.Budget.Memory > 0 ? Math.Min(free, options.History.Budget.Memory) : free)) continue;
             selected.Append(body);
             foreach (var f in selectedGroup)
             {
@@ -86,7 +86,7 @@ public static class TemporalContext
             if (cutoff.HasValue && pair.Any(m => m.CreatedAtUtc >= cutoff.Value)) continue;
             var prompts = pair.Select(m => new PromptMessage(m.Role, m.Content)).ToArray();
             var cost = Cost(prompts);
-            if (Cost(mandatory) + cost > maximum || options.HistoryContextTokens > 0 && extraHistoryCost + cost > options.HistoryContextTokens) break;
+            if (Cost(mandatory) + cost > maximum || options.History.Budget.History > 0 && extraHistoryCost + cost > options.History.Budget.History) break;
             extraHistoryCost += cost;
             mandatory.InsertRange(insertion, prompts); included += 2;
         }
@@ -94,6 +94,6 @@ public static class TemporalContext
         if (used > maximum) throw new ArgumentException("Budget de mémoire temporelle insuffisant.");
         var report = new TemporalReport(recall.Indexed, recall.Total, evidence.ToArray(), recall.Warning, cutoff?.ToString("O") ?? (past ? "historique" : "actuel"), observations.ToArray());
         return new(new(mandatory, included, used, excerpts.Sources.Count, Sources: excerpts.Sources, FilesAvailable: excerpts.Available,
-            Retrieval: options.RetrievalReport, Route: options.Route, Assembly: excerpts.Assembly, Temporal: report, MemoryTexts: texts), "", 0, "", false);
+            Retrieval: options.Evidence.Sources.Report, Route: options.Evidence.Sources.Query.Route, Assembly: excerpts.Assembly, Temporal: report, MemoryTexts: texts), "", 0, "", false);
     }
 }

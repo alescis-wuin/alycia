@@ -13,8 +13,8 @@ public static class ConversationSettingsTransfer
             sample.Configure(file.Model, file.SystemPrompt, file.ContextNotes, ConversationConfiguration.Serialize(file.Options));
             if (sample.Model != file.Model || sample.SystemPrompt != file.SystemPrompt || sample.ContextNotes != file.ContextNotes)
                 throw new ArgumentException("Les textes de configuration contiennent des espaces de bord non canoniques.");
-            SlidingContext.ValidatePrompt(ConversationConfiguration.System(sample), "Bonjour", file.Options);
-            if (file.Options.UseProjectTools) TurnContextBudget.WithToolReserve(file.Options);
+            SlidingContext.ValidatePrompt(ConversationConfiguration.System(sample), "Bonjour", file.Options.Context());
+            if (file.Options.UseProjectTools) TurnContextBudget.WithToolReserve(file.Options.Context());
         });
 
     public static ConversationSettingsFile<ChatOptions> Parse(ReadOnlyMemory<byte> bytes) =>

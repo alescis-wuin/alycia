@@ -66,7 +66,7 @@ public sealed class ProjectToolStorageTests
             Assert.Equal(0, repaired.ReusedFiles);
             Assert.Contains(repaired.Chunks, c => c.Symbol.Contains("HiddenAtEnd"));
             var selected = ProjectRetrieval.Rank(indexed.Chunks, "HiddenAtEnd Value");
-            var context = FileContext.Build(new Alycia.Modules.Context.SlidingHistory(), "system", [], "HiddenAtEnd Value", new() { SourceCandidates = selected }, [file.ToTurnFile()], 1);
+            var context = FileContext.Build(new Alycia.Modules.Context.SlidingHistory(), "system", [], "HiddenAtEnd Value", new ChatOptions() { SourceCandidates = selected }.Context(), [file.ToTurnFile()], 1);
             Assert.Contains("HiddenAtEnd", context.Messages[^1].Content);
             Assert.Contains(context.Sources!, s => s.Start > 200000 && s.Reference is not null);
             Assert.Empty((await index.BuildAsync(other.Id, default)).Chunks);

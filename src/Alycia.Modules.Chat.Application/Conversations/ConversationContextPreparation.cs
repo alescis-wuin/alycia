@@ -55,7 +55,7 @@ public sealed class ConversationContextPreparation(IChatRepository repository, I
         var useTools = await tools.AvailableForContextAsync(new ToolTurnScope(conversation.Id, conversation.WorkspaceId, conversation.Model),
             options.UseProjectTools, model, ct);
         var contextOwner = conversation.ForContext(options);
-        var budget = await turnContext.AllocateAsync(contextOwner, text, options, useTools, ct);
+        var budget = await turnContext.AllocateAsync(contextOwner, text, options.Context(), useTools, ct);
         return new(conversation, contextOwner, text, options, measured, budget);
     }
 
