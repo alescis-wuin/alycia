@@ -1,3 +1,4 @@
+using Alycia.Contracts.Indexing;
 using Alycia.Modules.Chat.Infrastructure;
 using Alycia.Modules.Workspaces.Infrastructure;
 using Alycia.Platform.Persistence;

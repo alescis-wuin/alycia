@@ -1,3 +1,4 @@
+using Alycia.Contracts.Retrieval;
 namespace Alycia.Modules.Chat.Application;
 
 public static class SemanticClaimAudit
@@ -14,7 +15,7 @@ public static class SemanticClaimAudit
         try
         {
             var claim = PassageEvidenceAudit.ClaimText(gap.Text);
-            var found = await retrieval.PrepareAsync(owner, claim, lookup, timeout.Token);
+            var found = await retrieval.PrepareAsync(owner, claim, lookup.ProjectSearch(), timeout.Token);
             measured.AddCalls(found.Calls);
             var leads = found.Chunks.Where(c => c.Kind != "summary" && settings.EligibleSourceIds?.Contains(c.FileId) == true).Take(3)
                 .Select(c => new SourceExcerpt(c.FileId, c.Path, System.Text.Encoding.UTF8.GetByteCount(c.Text), !c.CompleteUnit,

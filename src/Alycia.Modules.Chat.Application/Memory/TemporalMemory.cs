@@ -3,14 +3,6 @@ using System.Text.RegularExpressions;
 
 namespace Alycia.Modules.Chat.Application;
 
-public sealed record TemporalFact(string Key, string Quote, string Role, int Sequence, DateTimeOffset Observed, string Sha256,
-    int Offset, int FullLength, bool Correction, string Kind);
-public sealed record TemporalRecall(TemporalFact[] Facts, int Indexed, int Total, IReadOnlyList<ModelCallUsage> Calls, string? Warning = null);
-public interface ITemporalMemory
-{
-    Task<TemporalRecall> RecallAsync(Guid owner, string question, ChatOptions settings, int through, CancellationToken ct);
-}
-
 public static class TemporalMemory
 {
     private static readonly Regex Topic = new(@"(?:^|\n)(?:Décision|Decision|Contrainte|Constraint|Fait|Fact|Proposition|Correction)\s*\[([\p{L}\p{N}_.-]{1,48})\]\s*:", RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));

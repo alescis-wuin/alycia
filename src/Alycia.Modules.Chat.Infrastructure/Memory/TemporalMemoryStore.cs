@@ -1,3 +1,4 @@
+using Alycia.Contracts.Indexing;
 using System.Text.Json;
 using Alycia.Modules.Chat.Application;
 using Alycia.Contracts.Memory;
@@ -39,27 +40,28 @@ public sealed class TemporalMemoryStore(ITemporalFactStorage storage, ITemporalH
         }
     }
 
-    public async Task<TemporalRecall> RecallAsync(Guid owner, string question, ChatOptions settings, int through, CancellationToken ct)
+    public async Task<TemporalRecall> RecallAsync(Guid owner, string question, TemporalRecallSettings settings, int through, CancellationToken ct)
     {
-        settings = settings.Copy();
         var before = TemporalMemory.AsOf(question) ?? DateTimeOffset.MaxValue;
         var indexed = await storage.CountAsync(owner, through, ct);
         var query = string.Join(" OR ", ProjectRetrieval.Tokens(question).Distinct().Take(24));
         var candidates = await storage.LexicalAsync(owner, through, before, query, ct);
         MemoryVectorMatches matches = new(new Dictionary<int, double>(), []);
-        if (indexed > 0 && settings.RetrievalMode == "hybrid" && settings.EmbedHistory && settings.EmbeddingModel.Length > 0)
+        if (indexed > 0 && settings.SearchVectors)
         {
-            matches = await vectors.SearchMemoryAsync(owner, question, settings, through, before, ct);
+            matches = await vectors.SearchMemoryAsync(owner, question, settings.Embeddings, through, before, ct);
             var ids = matches.Scores.Keys.ToArray();
             if (ids.Length > 0)
-                candidates.AddRange(await storage.SelectedAsync(owner, through, before, ids, ct));        }
-        var groupScores = settings.Enrichment.Enabled && settings.EmbedHistory && knowledge is not null
-            ? await knowledge.HistoryAsync(owner, question, settings.Enrichment.Profile, through, before, ct)
+                candidates.AddRange(await storage.SelectedAsync(owner, through, before, ids, ct));
+        }
+        var groupScores = settings.KnowledgeProfile is { } profile && knowledge is not null
+            ? await knowledge.HistoryAsync(owner, question, profile, through, before, ct)
             : new Dictionary<int, double>();
         if (groupScores.Count > 0)
         {
             var sequences = groupScores.Keys.ToArray();
-            candidates.AddRange(await storage.SelectedAsync(owner, through, before, sequences, ct));        }
+            candidates.AddRange(await storage.SelectedAsync(owner, through, before, sequences, ct));
+        }
         var facts = Decode(candidates).Distinct().ToArray();
         if (facts.Length == 0) return new([], indexed, through, matches.Calls, matches.Warning);
         var semantic = matches.Scores; var calls = matches.Calls; var warning = matches.Warning;

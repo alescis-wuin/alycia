@@ -1,3 +1,5 @@
+using Alycia.Contracts.Retrieval;
+using Alycia.Contracts.Indexing;
 using Alycia.Modules.Chat.Application;
 using Alycia.Modules.Chat.Domain;
 using Alycia.Modules.Chat.Infrastructure;
@@ -73,13 +75,13 @@ public sealed class ProjectRetrievalTests
         var semantic = new PreparedEmbeddings();
         var service = ChatFixture.Retrieval(new Index(), semantic);
         var options = new ChatOptions { RetrievalMode = "hybrid", EmbeddingModel = "embed" };
-        var first = await service.PrepareAsync(Guid.NewGuid(), "database", options, default);
+        var first = await service.PrepareAsync(Guid.NewGuid(), "database", options.ProjectSearch(), default);
         Assert.Equal(1, semantic.Calls);
         Assert.Equal(1, first.Report.Cache!.VectorMisses);
         Assert.Contains(first.Report.Omissions, s => s.Contains("0/1"));
         Assert.Single(first.Chunks); // BM25 still works while the background job is pending.
         semantic.Ready = true;
-        var second = await service.PrepareAsync(Guid.NewGuid(), "paraphrase", options, default);
+        var second = await service.PrepareAsync(Guid.NewGuid(), "paraphrase", options.ProjectSearch(), default);
         Assert.Single(second.Chunks);
         Assert.Equal(1, second.Report.Cache!.VectorHits);
         Assert.Empty(second.Report.Omissions);
@@ -120,7 +122,7 @@ public sealed class ProjectRetrievalTests
     public async Task HybridSearchHasNo2048PassageQuota()
     {
         var service = ChatFixture.Retrieval(new LargeIndex(), new PreparedEmbeddings { Ready = true });
-        var result = await service.PrepareAsync(Guid.NewGuid(), "database", new() { RetrievalMode = "hybrid", EmbeddingModel = "embed" }, default);
+        var result = await service.PrepareAsync(Guid.NewGuid(), "database", new ChatOptions { RetrievalMode = "hybrid", EmbeddingModel = "embed" }.ProjectSearch(), default);
         Assert.Equal(3000, result.Report.CandidateChunks);
         Assert.Equal(3000, result.Report.Cache!.VectorHits);
     }
@@ -133,7 +135,7 @@ public sealed class ProjectRetrievalTests
     private sealed class PreparedEmbeddings : IIndexedEmbeddings
     {
         public int Calls; public bool Ready;
-        public Task<SemanticSearch> SearchAsync(Guid id, string query, ChatOptions settings, IReadOnlyList<SourceChunk> chunks, CancellationToken ct)
+        public Task<SemanticSearch> SearchAsync(Guid id, string query, EmbeddingQuery settings, IReadOnlyList<SourceChunk> chunks, CancellationToken ct)
         {
             Calls++;
             return Task.FromResult(new SemanticSearch(chunks.Select(_ => Ready ? .9 : 0).ToArray(), Ready ? chunks.Count : 0, []));

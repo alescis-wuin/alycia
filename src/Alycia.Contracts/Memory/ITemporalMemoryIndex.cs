@@ -1,4 +1,4 @@
-namespace Alycia.Modules.Chat.Application;
+namespace Alycia.Contracts.Memory;
 
 public interface ITemporalMemoryIndex
 {

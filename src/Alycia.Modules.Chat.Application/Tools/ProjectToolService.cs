@@ -1,3 +1,4 @@
+using Alycia.Contracts.Indexing;
 using Alycia.Contracts.Tools;
 using static Alycia.Contracts.Tools.ToolArguments;
 using Alycia.Contracts.Documents;

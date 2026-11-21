@@ -1,3 +1,5 @@
+using Alycia.Contracts.Retrieval;
+using Alycia.Contracts.Memory;
 using Alycia.Contracts.Documents;
 using Alycia.Contracts.Context;
 using System.Text.RegularExpressions;
@@ -88,12 +90,12 @@ public static class QueryRouting
         }
         if (options.TemporalMemoryEnabled && memory is not null && options.Route?.Mode is not ("direct" or "unavailable"))
         {
-            options.Recall = await memory.RecallAsync(owner, question, options, messageCount, ct);
+            options.Recall = await memory.RecallAsync(owner, question, TemporalRecallSettings.Capture(options), messageCount, ct);
             measured.AddCalls(options.Recall.Calls);
         }
         if (options.Route?.Search == false) { options.SourceCandidates = []; return; }
         if (retrieval is null || options.RetrievalMode == "legacy") return;
-        var sources = await retrieval.PrepareAsync(owner, question, options, ct);
+        var sources = await retrieval.PrepareAsync(owner, question, options.ProjectSearch(), ct);
         options.SourceCandidates = sources.Chunks;
         options.RetrievalReport = sources.Report;
         measured.AddCalls(sources.Calls);

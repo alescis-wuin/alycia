@@ -1,3 +1,5 @@
+using Alycia.Contracts.Retrieval;
+using Alycia.Contracts.Memory;
 using Alycia.Contracts.Context;
 
 namespace Alycia.Modules.Chat.Application;

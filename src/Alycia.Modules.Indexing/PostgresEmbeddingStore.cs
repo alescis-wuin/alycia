@@ -1,3 +1,4 @@
+using Alycia.Contracts.Indexing;
 using System.Data.Common;
 using System.Text.Json;
 using Npgsql;
@@ -14,7 +15,9 @@ public sealed record EmbeddingSettings(string Model, int BatchSize, int ChunkCha
         Capture(options, options.RetrievalMode == "hybrid" || !options.Enrichment.Enabled ? options.EmbeddingModel : "");
 
     // A direct query uses the selected encoder even when background jobs only perform enrichment.
-    public static EmbeddingSettings ForQuery(IIndexSettings options) => Capture(options, options.EmbeddingModel);
+    public static EmbeddingSettings ForQuery(EmbeddingQuery query) =>
+        new(query.Model, query.BatchSize, query.ChunkCharacters, false, Hierarchical: query.Hierarchical,
+            DocumentPrefix: query.DocumentPrefix, QueryPrefix: query.QueryPrefix);
 
     private static EmbeddingSettings Capture(IIndexSettings options, string model) => new(
         model, options.EmbeddingBatchSize, options.EmbeddingChunkCharacters, options.EmbedHistory, Hierarchical: options.HierarchicalIndexEnabled,

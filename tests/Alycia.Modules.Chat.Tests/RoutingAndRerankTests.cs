@@ -1,3 +1,5 @@
+using Alycia.Contracts.Retrieval;
+using Alycia.Contracts.Indexing;
 using Alycia.Modules.Chat.Application;
 using Alycia.Modules.Chat.Domain;
 using Alycia.Modules.Chat.Infrastructure;
@@ -41,18 +43,18 @@ public class RoutingAndRerankTests
         var corpus = new[] { "nord.cs", "est.cs", "sud.cs" }.Select(path => new SourceChunk(Guid.NewGuid(),
             path, "sha", "Orion", "text", 0, path.Length, 1, 1, path, [], true)).ToArray();
         var id = Guid.NewGuid();
-        var baseline = (await ChatFixture.Retrieval(new FixtureIndex(corpus)).PrepareAsync(id, "Orion", new(), default)).Chunks;
+        var baseline = (await ChatFixture.Retrieval(new FixtureIndex(corpus)).PrepareAsync(id, "Orion", new ChatOptions().ProjectSearch(), default)).Chunks;
         var options = new ChatOptions { RerankEnabled = true, RerankCandidateLimit = 2, RerankTimeoutMs = 50 };
         var stable = await ChatFixture.Retrieval(new FixtureIndex(corpus), reranker: new FakeReranker(false))
-            .PrepareAsync(id, "Orion", options, default);
+            .PrepareAsync(id, "Orion", options.ProjectSearch(), default);
         Assert.Equal(baseline.Select(ProjectRetrieval.Reference), stable.Chunks.Select(ProjectRetrieval.Reference));
         Assert.Equal(2, stable.Report.Rerank!.Scores!.Count);
         var delayed = ChatFixture.Retrieval(new FixtureIndex(corpus), reranker: new FakeReranker(true));
-        var fallback = await delayed.PrepareAsync(id, "Orion", options, default);
+        var fallback = await delayed.PrepareAsync(id, "Orion", options.ProjectSearch(), default);
         Assert.Equal("timeout", fallback.Report.Rerank!.State);
         Assert.Equal(baseline.Select(ProjectRetrieval.Reference), fallback.Chunks.Select(ProjectRetrieval.Reference));
         using var cancelled = new CancellationTokenSource(); cancelled.Cancel();
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => delayed.PrepareAsync(id, "Orion", options, cancelled.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => delayed.PrepareAsync(id, "Orion", options.ProjectSearch(), cancelled.Token));
     }
     [Fact]
     public async Task FacetEmbeddingsRerankerAndDiagnosticsOnlySeeAdmittedSources()
@@ -76,7 +78,7 @@ public class RoutingAndRerankTests
             PinnedSourceIds = new HashSet<Guid> { excluded.FileId },
             SearchPlan = new("Orion", [new("Orion", "lexical"), new("alternative", "semantic")], [], false)
         };
-        var result = await service.PrepareAsync(Guid.NewGuid(), "Orion", options, default);
+        var result = await service.PrepareAsync(Guid.NewGuid(), "Orion", options.ProjectSearch(), default);
         Assert.Equal(new[] { "Orion", "alternative" }, provider.Searches.Select(item => item.Query));
         Assert.All(provider.Searches, search => Assert.Equal(visible.FileId, Assert.Single(search.Ids)));
         Assert.Equal(visible.FileId, Assert.Single(provider.Reranked));
@@ -90,7 +92,7 @@ public class RoutingAndRerankTests
     {
         public List<(string Query, Guid[] Ids)> Searches { get; } = [];
         public Guid[] Reranked { get; private set; } = [];
-        public Task<SemanticSearch> SearchAsync(Guid id, string query, ChatOptions settings, IReadOnlyList<SourceChunk> chunks, CancellationToken ct)
+        public Task<SemanticSearch> SearchAsync(Guid id, string query, EmbeddingQuery settings, IReadOnlyList<SourceChunk> chunks, CancellationToken ct)
         {
             Searches.Add((query, chunks.Select(chunk => chunk.FileId).ToArray()));
             return Task.FromResult(new SemanticSearch(Enumerable.Repeat(1.0, chunks.Count).ToArray(), chunks.Count, []));

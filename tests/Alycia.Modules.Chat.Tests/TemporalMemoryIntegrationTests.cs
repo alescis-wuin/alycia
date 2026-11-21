@@ -1,3 +1,5 @@
+using Alycia.Contracts.Indexing;
+using Alycia.Contracts.Memory;
 using Alycia.Modules.Chat.Application;
 using Alycia.Modules.Chat.Domain;
 using Alycia.Modules.Chat.Infrastructure;
@@ -70,7 +72,7 @@ public class TemporalMemoryIntegrationTests
             async Task<ContextWindow> Recall(string question)
             {
                 var copy = options.Copy();
-                copy.Recall = await store.RecallAsync(owner.Id, question, copy, owner.MessageCount, default);
+                copy.Recall = await store.RecallAsync(owner.Id, question, TemporalRecallSettings.Capture(copy), owner.MessageCount, default);
                 return (await TemporalContext.BuildAsync(new EfChatRepository(db, ChatFixture.Profiles(db), new TurnDocuments(db, ChatFixture.DocumentScope)), owner.ForContext(copy), question, copy, default)).Context;
             }
             var current = await Recall("Quelle région ?");
@@ -93,7 +95,7 @@ public class TemporalMemoryIntegrationTests
             var semanticOptions = options.Copy(); semanticOptions.RetrievalMode = "hybrid"; semanticOptions.EmbeddingModel = "fixture";
             var engine = new BackgroundEmbeddingIndex(ChatFixture.IndexFiles(db, new(new FileStorage(Path.GetTempPath()))), ChatFixture.LiveFiles(db), embeddings, new QueryEncoder(), options, new ConversationIndexOwners(new(db.Database)), ChatFixture.Profiles(db), ChatFixture.Profiles(db), ChatFixture.Foreground);
             var semanticStore = new TemporalMemoryStore(new Alycia.Modules.Memory.TemporalFactStorage(db.Database), new TemporalHistorySources(db, options), engine);
-            var paraphrase = await semanticStore.RecallAsync(owner.Id, "Territoire géographique ?", semanticOptions, 4, default);
+            var paraphrase = await semanticStore.RecallAsync(owner.Id, "Territoire géographique ?", TemporalRecallSettings.Capture(semanticOptions), 4, default);
             Assert.Single(paraphrase.Calls);
             Assert.Contains(paraphrase.Facts, f => f.Quote.Contains("Bretagne"));
             Assert.DoesNotContain(paraphrase.Facts, f => f.Quote.Contains("INTERDIT"));
@@ -122,7 +124,7 @@ public class TemporalMemoryIntegrationTests
     }
     private sealed class NoVectors : IIndexedEmbeddings
     {
-        public Task<SemanticSearch> SearchAsync(Guid conversation, string query, ChatOptions settings, IReadOnlyList<SourceChunk> chunks, CancellationToken ct) =>
+        public Task<SemanticSearch> SearchAsync(Guid conversation, string query, EmbeddingQuery settings, IReadOnlyList<SourceChunk> chunks, CancellationToken ct) =>
             throw new InvalidOperationException("Le mode lexical ne demande pas de vecteurs.");
     }
 }

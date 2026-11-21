@@ -1,3 +1,4 @@
+using Alycia.Contracts.Memory;
 using System.Text.Json;
 using Alycia.Modules.Chat.Application;
 

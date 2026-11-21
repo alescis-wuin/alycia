@@ -1,3 +1,4 @@
+using Alycia.Contracts.Indexing;
 using Alycia.Contracts.Context;
 using System.Text;
 using System.Text.Json;
@@ -42,7 +43,7 @@ public sealed class HistoryTools(IToolHistoryReader repository, IIndexedEmbeddin
         var scoreKind = "BM25";
         if (semantic is not null && settings is { RetrievalMode: "hybrid", EmbedHistory: true })
         {
-            var found = await semantic.SearchHistoryAsync(conversation, query, settings, messages, ct);
+            var found = await semantic.SearchHistoryAsync(conversation, query, EmbeddingQuery.Capture(settings), messages, ct);
             if (found.Hits > 0)
             {
                 var fused = new double[messages.Count];
