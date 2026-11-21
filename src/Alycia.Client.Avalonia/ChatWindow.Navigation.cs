@@ -99,21 +99,11 @@ public partial class ChatWindow
 
     private async Task SwitchProjectAsync(ProjectChoice selection)
     {
-        Indexing.Select(selection.Id, true);
         SaveDraft();
-        _current = null;
-        _timeline.Clear();
-        C<ListBox>("ConversationList").ItemsSource = Array.Empty<ConversationSummary>();
-        C<TextBox>("MessageInput").Text = "";
-        C<TextBlock>("ViewHeading").Text = "Conversation";
-        C<Button>("ActiveModelButton").Content = "";
-        C<Border>("PendingUserPanel").IsVisible = false;
-        C<Expander>("StreamingPanel").IsVisible = false;
         _navigation.Project = selection;
-        _evidence = null;
+        C<ListBox>("ConversationList").ItemsSource = Array.Empty<ConversationSummary>();
         C<TextBlock>("ProjectHeading").Text = selection.ToString();
         C<TextBox>("SearchInput").Text = "";
-        HideInspector();
         await RefreshConversationsAsync(null);
         if (_current is not null) await LoadAsync(_current);
         else ShowChat();
@@ -143,6 +133,7 @@ public partial class ChatWindow
 
     private void ShowChat()
     {
+        FollowIndexScope(_current is not null ? new(_current.Id, false) : _project.Id is Guid id ? new(id, true) : null);
         C<Grid>("ChatPage").IsVisible = true;
         C<ScrollViewer>("PageScroll").IsVisible = false;
         C<ScrollViewer>("PreferencesPage").IsVisible = false;

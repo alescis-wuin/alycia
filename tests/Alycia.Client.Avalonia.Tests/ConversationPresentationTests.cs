@@ -95,13 +95,82 @@ public sealed class ConversationPresentationTests
         }));
         var navigation = new ProjectNavigation(new(http, "http://127.0.0.1", TimeSpan.FromSeconds(2)));
         await navigation.RefreshProjectsAsync(project.Id, default);
-        var page = await navigation.SearchAsync("filtre", default);
-        Assert.Equal(new[] { hidden.Id, visible.Id }, (await navigation.SelectConversationAsync(page.Items, hidden.Id, default)).Select(c => c.Id));
+        var page = await navigation.SearchAsync("filtre", hidden.Id, default);
+        Assert.Equal(new[] { hidden.Id, visible.Id }, page!.Items.Select(c => c.Id));
         Assert.Equal(hidden.Id, navigation.Conversation!.Id);
-        Assert.Same(page.Items, await navigation.SelectConversationAsync(page.Items, foreign.Id, default));
+        var foreignPage = await navigation.SearchAsync("filtre", foreign.Id, default);
+        Assert.Equal(visible.Id, Assert.Single(foreignPage!.Items).Id);
         Assert.Equal(visible.Id, navigation.Conversation!.Id);
         await navigation.RefreshProjectsAsync(Guid.NewGuid(), default);
         Assert.Equal(ProjectNavigation.Outside, navigation.Project);
+    }
+
+    [Fact]
+    public async Task LateSettingsForAFilteredConversationCannotSelectItInAnotherProject()
+    {
+        var project = new ProjectChoice(Guid.NewGuid(), "A");
+        var next = new ProjectChoice(Guid.NewGuid(), "B");
+        var hidden = Chat(project.Id);
+        var current = Chat(next.Id);
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var reply = new TaskCompletionSource<HttpResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var http = new HttpClient(new Handler((request, _) =>
+        {
+            if (request.RequestUri!.AbsolutePath.EndsWith("/search"))
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(new ConversationSearch([], false)) });
+            Assert.Contains(hidden.Id.ToString(), request.RequestUri.AbsolutePath);
+            started.SetResult();
+            return reply.Task;
+        }));
+        var navigation = new ProjectNavigation(new(http, "http://127.0.0.1", TimeSpan.FromSeconds(5))) { Project = project };
+        var pending = navigation.SearchAsync("filtre A", hidden.Id, default);
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        navigation.Project = next;
+        navigation.Conversation = current;
+        reply.SetResult(new(HttpStatusCode.OK) { Content = JsonContent.Create(new SettingsReply(hidden, new())) });
+        Assert.Null(await pending);
+        Assert.Equal(current, navigation.Conversation);
+        Assert.Empty(navigation.SearchQuery);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RevisitingTheSameConversationDiscardsItsEarlierHistoryPage(bool failedRead)
+    {
+        var first = new ProjectChoice(Guid.NewGuid(), "A");
+        var second = new ProjectChoice(Guid.NewGuid(), "B");
+        var chat = Chat(first.Id);
+        var other = Chat(second.Id);
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var delayed = new TaskCompletionSource<HttpResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var http = new HttpClient(new Handler((request, _) =>
+        {
+            if (request.RequestUri!.Query == "?before=10")
+            {
+                Assert.Contains(chat.Id.ToString(), request.RequestUri.AbsolutePath);
+                started.SetResult();
+                return delayed.Task;
+            }
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(new MessagePage(chat, [], false)) });
+        }));
+        var navigation = new ProjectNavigation(new(http, "http://127.0.0.1", TimeSpan.FromSeconds(5)))
+        {
+            Project = first,
+            Conversation = chat
+        };
+        var oldRead = navigation.ReadMessagesAsync(10, default);
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        navigation.Project = second;
+        Assert.Null(navigation.Conversation);
+        navigation.Conversation = other;
+        navigation.Project = first;
+        navigation.Conversation = chat;
+        delayed.SetResult(failedRead
+            ? new(HttpStatusCode.Conflict) { Content = JsonContent.Create(new { message = "lecture périmée" }) }
+            : new(HttpStatusCode.OK) { Content = JsonContent.Create(new MessagePage(chat, [], true)) });
+        Assert.Null(await oldRead);
+        Assert.Equal(chat.Id, (await navigation.ReadMessagesAsync(null, default))!.Conversation.Id);
     }
 
     private static ConversationSummary Chat(Guid? project = null) =>

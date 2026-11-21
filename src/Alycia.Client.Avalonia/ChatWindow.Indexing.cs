@@ -11,12 +11,14 @@ public partial class ChatWindow
     private IndexingMonitor? _indexing;
     private IndexingMonitor Indexing => _indexing ??= new(_client);
 
-    private IndexScope? DefaultIndexScope() => _current is not null ? new(_current.Id, false)
-        : _project.Id is Guid id ? new(id, true) : null;
+    private void InitializeIndexing() => _ = Indexing.PollAsync(ShowIndexingStatus, _lifetime.Token);
 
-    private void InitializeIndexing() => _ = Indexing.PollAsync(DefaultIndexScope, ShowIndexingStatus, _lifetime.Token);
+    private Task RefreshIndexingAsync() => Indexing.RefreshAsync(ShowIndexingStatus, _lifetime.Token);
 
-    private Task RefreshIndexingAsync() => Indexing.RefreshAsync(DefaultIndexScope, ShowIndexingStatus, _lifetime.Token);
+    private void FollowIndexScope(IndexScope? scope)
+    {
+        if (Indexing.Select(scope)) ShowIndexingStatus(new(Text: null));
+    }
 
     private void ShowIndexingStatus(IndexingStatus status)
     {

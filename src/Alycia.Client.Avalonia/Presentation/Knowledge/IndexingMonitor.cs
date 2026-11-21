@@ -36,31 +36,30 @@ internal sealed class IndexingMonitor(ChatApiClient client)
     private readonly object _gate = new();
     private IndexScope? _selected;
     private CancellationTokenSource? _active;
-    internal IndexScope? Selected { get { lock (_gate) return _selected; } }
 
-    internal void Select(Guid? owner, bool project)
+    internal bool Select(IndexScope? next)
     {
-        var next = owner is Guid id ? new IndexScope(id, project) : null;
         lock (_gate)
         {
-            if (next == _selected) return;
+            if (next == _selected) return false;
             _selected = next;
             _active?.Cancel();
+            return true;
         }
     }
 
-    internal async Task PollAsync(Func<IndexScope?> fallback, Action<IndexingStatus> publish, CancellationToken ct)
+    internal async Task PollAsync(Action<IndexingStatus> publish, CancellationToken ct)
     {
         using var timer = new PeriodicTimer(TimeSpan.FromSeconds(2));
         try
         {
             while (await timer.WaitForNextTickAsync(ct))
-                await RefreshAsync(fallback, publish, ct);
+                await RefreshAsync(publish, ct);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { }
     }
 
-    internal async Task RefreshAsync(Func<IndexScope?> fallback, Action<IndexingStatus> publish, CancellationToken ct)
+    internal async Task RefreshAsync(Action<IndexingStatus> publish, CancellationToken ct)
     {
         if (ct.IsCancellationRequested) return;
         IndexScope? scope;
@@ -68,7 +67,7 @@ internal sealed class IndexingMonitor(ChatApiClient client)
         lock (_gate)
         {
             if (_active is not null) return;
-            scope = _selected ?? fallback();
+            scope = _selected;
             if (scope is null) { publish(new(Text: null)); return; }
             _active = request = CancellationTokenSource.CreateLinkedTokenSource(ct);
         }
@@ -79,7 +78,7 @@ internal sealed class IndexingMonitor(ChatApiClient client)
             catch (ChatApiException) { status = new("État de l’indexation indisponible."); }
             lock (_gate)
             {
-                if (!request.IsCancellationRequested && scope == (_selected ?? fallback())) publish(status);
+                if (!request.IsCancellationRequested && scope == _selected) publish(status);
             }
         }
         catch (OperationCanceledException) when (request.IsCancellationRequested) { }
@@ -94,10 +93,7 @@ internal sealed class IndexingMonitor(ChatApiClient client)
 
     internal Task PauseAsync(Guid owner, bool project, CancellationToken ct) => client.PauseIndexingAsync(owner, project, ct);
 
-    internal async Task QueueAsync(Guid owner, bool project, ProjectIndexSettings? settings, CancellationToken ct)
-    {
-        await client.QueueIndexingAsync(owner, project, settings?.Model, ct, settings?.BatchSize, settings?.ChunkCharacters,
+    internal Task QueueAsync(Guid owner, bool project, ProjectIndexSettings? settings, CancellationToken ct) =>
+        client.QueueIndexingAsync(owner, project, settings?.Model, ct, settings?.BatchSize, settings?.ChunkCharacters,
             settings?.Hierarchical, settings?.DocumentPrefix, settings?.QueryPrefix, settings?.Enrichment);
-        Select(owner, project);
-    }
 }

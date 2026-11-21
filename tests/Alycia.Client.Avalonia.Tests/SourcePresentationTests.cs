@@ -62,23 +62,52 @@ public sealed class SourcePresentationTests
         }));
         var monitor = new IndexingMonitor(Client(http));
         var displayed = new List<IndexingStatus>();
-        monitor.Select(id, false);
-        var refresh = monitor.RefreshAsync(() => null, displayed.Add, default);
+        monitor.Select(new(id, false));
+        var refresh = monitor.RefreshAsync(displayed.Add, default);
         await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        await monitor.RefreshAsync(() => null, displayed.Add, default);
+        await monitor.RefreshAsync(displayed.Add, default);
         Assert.Equal(1, calls);
-        monitor.Select(id, true);
+        monitor.Select(new(id, true));
         await refresh.WaitAsync(TimeSpan.FromSeconds(5));
         Assert.Empty(displayed);
-        await monitor.RefreshAsync(() => null, displayed.Add, default);
+        await monitor.RefreshAsync(displayed.Add, default);
         var status = Assert.Single(displayed);
         Assert.True(status.Running);
         Assert.Equal(50, status.Percent);
         using var lifetime = new CancellationTokenSource();
-        var poll = monitor.PollAsync(() => null, displayed.Add, lifetime.Token);
+        var poll = monitor.PollAsync(displayed.Add, lifetime.Token);
         lifetime.Cancel();
         await poll.WaitAsync(TimeSpan.FromSeconds(5));
         Assert.Equal(2, calls);
+    }
+
+    [Fact]
+    public async Task LateQueueAcknowledgementKeepsTheNewIndexOwner()
+    {
+        var previous = Guid.NewGuid();
+        var current = Guid.NewGuid();
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var queued = new TaskCompletionSource<HttpResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var http = new HttpClient(new Handler((request, _) =>
+        {
+            if (request.Method == HttpMethod.Post)
+            {
+                started.SetResult();
+                return queued.Task;
+            }
+            Assert.Equal($"?owner={current}&project=false", request.RequestUri!.Query);
+            return Task.FromResult(Json(new[] { new EmbeddingProgress(current, false, "completed", 1, 1, "nouveau", "demo", DateTimeOffset.UnixEpoch) }));
+        }));
+        var monitor = new IndexingMonitor(Client(http));
+        monitor.Select(new(previous, true));
+        var enqueue = monitor.QueueAsync(previous, true, null, default);
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        monitor.Select(new(current, false));
+        queued.SetResult(new(HttpStatusCode.NoContent));
+        await enqueue;
+        var displayed = new List<IndexingStatus>();
+        await monitor.RefreshAsync(displayed.Add, default);
+        Assert.Equal("nouveau", Assert.Single(displayed).Text);
     }
 
     [Fact]
