@@ -8,4 +8,7 @@
   <ItemGroup>
     <ProjectReference Include="../../src/Alycia.Modules.Chat.Infrastructure/Alycia.Modules.Chat.Infrastructure.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Using Include="Alycia.Contracts.Chat" />
+  </ItemGroup>
 </Project>

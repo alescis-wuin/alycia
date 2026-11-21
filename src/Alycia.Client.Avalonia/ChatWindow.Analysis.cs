@@ -1,8 +1,9 @@
+using static Alycia.Client.Avalonia.DialogFields;
 using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Alycia.Modules.Chat.Application;
+using Alycia.Contracts.Chat;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -105,7 +106,7 @@ public partial class ChatWindow
         else panel.Children.Add(Label("Saisissez votre prochaine demande dans la zone de message pour inspecter ou préparer son contexte."));
         if (settings.Options.StructuredMemory)
         {
-            var ledger = StructuredMemory.Read(conversation.MemoryLedgerJson);
+            var ledger = MemoryTransfer.ReadLedger(conversation.MemoryLedgerJson);
             panel.Children.Add(Label($"Mémoire structurée : {ledger.Entries.Length} citations, messages parcourus jusqu’à {ledger.Through}. "
                 + $"{ledger.Omitted} entrées écartées du cache ; {ledger.FallbackSegments} fragments en repli. Les originaux restent conservés."));
             panel.Children.Add(Label("Pour corriger une clé affichée : Correction [clé]: nouvelle information. Les autres variantes restent signalées, sans résolution automatique."));

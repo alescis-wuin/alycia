@@ -63,6 +63,21 @@ public sealed class DocumentAnalysisTests
             var resumed = await service.AnalyzeAsync(conversation.Id, conversation.Revision, null, 1024, null, default, interrupted.Id);
             Assert.Equal(1, (await service.RunsAsync(conversation.Id, default)).Single(r => r.Id == interrupted.Id).ReusedUnits);
             Assert.Equal(resumed.Id, (await service.AnalyzeAsync(conversation.Id, conversation.Revision, null, 1024, null, default, interrupted.Id)).Id);
+
+            using (service.AcquireAnalysisLease(conversation.Id))
+            {
+                await Assert.ThrowsAsync<ChatConflictException>(() => service.DeleteRunAsync(conversation.Id, interrupted.Id, default));
+                await Assert.ThrowsAsync<ChatConflictException>(() => service.DeleteAsync(conversation.Id, report.Id, conversation.Revision, default));
+            }
+            var missing = Guid.NewGuid();
+            Assert.Null(await service.GetAsync(missing, report.Id, default));
+            await Assert.ThrowsAsync<ChatConflictException>(() => service.SelectAsync(conversation.Id, missing, conversation.Revision - 1, true, default));
+            Assert.Null(await service.SelectAsync(conversation.Id, missing, conversation.Revision, true, default));
+            var revision = conversation.Revision;
+            var selected = await service.SelectAsync(conversation.Id, report.Id, revision, true, default);
+            Assert.Equal(revision + 1, selected!.Revision);
+            Assert.Equal(report.Id, Assert.Single(await service.ListAsync(conversation.Id, default), a => a.UseInContext).Id);
+
             code.ContextMode = "excluded"; conversation.AttachFiles();
             await database.SaveChangesAsync();
             Assert.All(await service.ListAsync(conversation.Id, default), a => Assert.True(a.IsStale));
@@ -98,6 +113,14 @@ public sealed class DocumentAnalysisTests
             Assert.Equal(10, finished.FileCount);
             Assert.InRange(finished.SummaryCalls, 1, 8);
             Assert.True((await service.RunsAsync(conversation.Id, default)).Single(r => r.Id == partial.Id).ReusedUnits > 0);
+            var inventory = await service.InventoryAsync(conversation.Id, batch, default);
+            Assert.Contains("doc-00.md", inventory);
+            Assert.DoesNotContain(code.Name, inventory);
+            await service.DeleteRunAsync(conversation.Id, partial.Id, default);
+            Assert.DoesNotContain(await service.RunsAsync(conversation.Id, default), r => r.Id == partial.Id);
+            Assert.Equal(finished.Id, (await service.GetAsync(conversation.Id, finished.Id, default))!.Id);
+            Assert.True(await service.DeleteAsync(conversation.Id, finished.Id, conversation.Revision, default));
+            Assert.False(await service.DeleteAsync(conversation.Id, finished.Id, conversation.Revision, default));
         }
         finally
         {

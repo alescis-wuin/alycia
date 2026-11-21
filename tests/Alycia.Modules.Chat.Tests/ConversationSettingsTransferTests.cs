@@ -29,6 +29,17 @@ public sealed class ConversationSettingsTransferTests
     });
 
     [Fact]
+    public void ReadsAndReproducesTheFileExportedByTheFunctionalBaseline()
+    {
+        var path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "conversation-settings-v1.json");
+        var fixture = File.ReadAllBytes(path);
+        var file = ConversationSettingsTransfer.Parse(fixture);
+        Assert.Equal((byte)'\n', fixture[^1]); // The tracked text fixture ends with one LF after the export.
+        Assert.Equal(fixture[..^1], ConversationSettingsTransfer.Export(
+            file.Model, file.SystemPrompt, file.ContextNotes, file.Options));
+    }
+
+    [Fact]
     public void RoundTripKeepsEveryPersistedOptionWithoutRoundingOrRuntimeData()
     {
         var bytes = Export();
@@ -54,6 +65,9 @@ public sealed class ConversationSettingsTransferTests
     [InlineData("unknown-option")]
     [InlineData("null-notes")]
     [InlineData("invalid-budget")]
+    [InlineData("invalid-embedding-batch")]
+    [InlineData("null-query-prefix")]
+    [InlineData("null-enrichment")]
     [InlineData("null-options")]
     public void RejectsIncompatibleOrPartialFilesInsteadOfSilentlyUsingDefaults(string change)
     {
@@ -67,6 +81,9 @@ public sealed class ConversationSettingsTransferTests
             case "unknown-option": file["options"]!["newBudget"] = 12; break;
             case "null-notes": file["contextNotes"] = null; break;
             case "invalid-budget": file["options"]!["contextTokens"] = 1; break;
+            case "invalid-embedding-batch": file["options"]!["embeddingBatchSize"] = 65; break;
+            case "null-query-prefix": file["options"]!["embeddingQueryPrefix"] = null; break;
+            case "null-enrichment": file["options"]!["enrichment"] = null; break;
             case "null-options": file["options"] = null; break;
         }
         Assert.Throws<ArgumentException>(() => ConversationSettingsTransfer.Parse(Encoding.UTF8.GetBytes(file.ToJsonString())));

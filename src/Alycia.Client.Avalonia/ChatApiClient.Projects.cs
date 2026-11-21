@@ -2,7 +2,7 @@ using System;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using Alycia.Modules.Chat.Domain;
+using Alycia.Contracts.Chat;
 
 namespace Alycia.Client.Avalonia;
 
@@ -10,7 +10,7 @@ public sealed record ProjectChoice(Guid? Id, string Name, bool Archived = false)
 {
     public override string ToString() => Archived ? Name + " (archivé)" : Name;
 }
-public sealed record ProjectSettings(Guid Id, string Instructions, string DefaultModel, bool Archived, int Revision, WorkspaceNote[] Notes);
+public sealed record ProjectSettings(Guid Id, string Instructions, string DefaultModel, bool Archived, int Revision, WorkspaceNoteView[] Notes);
 public sealed record SourcePreview(string Name, string Sha256, string Text, int Start, int End, bool Partial);
 
 public sealed partial class ChatApiClient

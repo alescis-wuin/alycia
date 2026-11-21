@@ -1,7 +1,6 @@
 using Alycia.Modules.Chat.Application;
-using Alycia.Modules.Chat.Domain;
+using Alycia.Modules.Chat.Application.Context;
 using Alycia.Modules.Chat.Infrastructure;
-using Microsoft.EntityFrameworkCore;
 
 namespace Alycia.Api.Chat;
 
@@ -15,122 +14,41 @@ internal static partial class ChatEndpoints
             await settings.SaveAsync(limits, ct);
             return Results.Ok(limits);
         });
-        routes.MapGet("/conversations/{id:guid}/settings", async (Guid id, IChatRepository repository,
-            ChatOptions defaults, CancellationToken ct) =>
+
+        routes.MapGet("/conversations/{id:guid}/settings", async (Guid id, ConversationSettingsService settings, CancellationToken ct) =>
         {
-            var conversation = await repository.FindAsync(id, ct) ?? throw new ConversationNotFoundException();
-            return Results.Ok(new { conversation, options = ConversationConfiguration.Options(conversation, defaults) });
+            var result = await settings.GetAsync(id, ct);
+            return Results.Ok(new { conversation = result.Conversation.ToResponse(), result.Options });
+        });
+        routes.MapPut("/conversations/{id:guid}/settings", async (Guid id, ConfigureConversation request, ConversationSettingsService settings, CancellationToken ct) =>
+            Results.Ok((await settings.UpdateAsync(id, request.Revision, request.Model, request.SystemPrompt, request.ContextNotes, request.Options, ct)).ToResponse()));
+
+        routes.MapPost("/conversations/{id:guid}/context", async (Guid id, PreviewContext request, ConversationContextPreparation preparation, CancellationToken ct) =>
+        {
+            var preview = await preparation.PreviewAsync(id, request.Content, ct);
+            return Results.Ok(new { preview.Context, preview.Options, preview.Revision, preview.OmittedMessages, preview.Usage, preview.Estimator });
         });
 
-        routes.MapPut("/conversations/{id:guid}/settings", async (Guid id, ConfigureConversation request,
-            IChatRepository repository, IChatModel model, CancellationToken ct) =>
-        {
-            var conversation = await repository.FindAsync(id, ct) ?? throw new ConversationNotFoundException();
-            ConversationConfiguration.CheckRevision(conversation, request.Revision);
-            if (request.Options is null) throw new ArgumentException("Réglages requis.");
-            if (request.Model != conversation.Model && !(await model.ListModelsAsync(ct)).Contains(request.Model))
-                throw new ArgumentException("Choisissez un modèle local capable de générer du texte.");
-            conversation.Configure(request.Model, request.SystemPrompt, request.ContextNotes,
-                ConversationConfiguration.Serialize(request.Options));
-            SlidingContext.Build(ConversationConfiguration.System(conversation), [], "Bonjour", request.Options);
-            await repository.SaveAsync(ct);
-            return Results.Ok(conversation);
-        });
+        routes.MapGet("/conversations/{id:guid}/files", async (Guid id, ConversationFileSettings files, CancellationToken ct) =>
+            Results.Ok(await files.ListAsync(id, ct)));
+        routes.MapPatch("/conversations/{id:guid}/files/{fileId:guid}", async (Guid id, Guid fileId, ConfigureFile request, ConversationFileSettings files, CancellationToken ct) =>
+            Results.Ok(await files.SetModeAsync(id, fileId, request.Revision, request.Mode, ct)));
 
-        routes.MapPost("/conversations/{id:guid}/context", async (Guid id, PreviewContext request,
-            IChatRepository repository, IChatModel model, IProjectTools tools, IProjectRetrieval retrieval, ITemporalMemory memory, ChatOptions defaults, CancellationToken ct) =>
+        routes.MapGet("/prompts", async (PromptCatalog prompts, CancellationToken ct) => Results.Ok(await prompts.ListAsync(ct)));
+        routes.MapPost("/prompts", async (SavePrompt request, PromptCatalog prompts, CancellationToken ct) =>
         {
-            var conversation = await repository.FindAsync(id, ct) ?? throw new ConversationNotFoundException();
-            var options = await model.PrepareOptionsAsync(conversation.Model, ConversationConfiguration.Options(conversation, defaults), ct);
-            var text = Conversation.RequiredText(request.Content, 32000, "Le message");
-            var measurements = new MeteredChatModel(model);
-            await QueryRouting.PrepareAsync(repository, conversation, text, options, retrieval, measurements, ct, memory);
-            var useTools = options.UseProjectTools && await tools.HasSourcesAsync(id, ct) && await model.SupportsToolsAsync(conversation.Model, ct);
-            var contextOptions = await ProjectAgent.ContextOptionsAsync(repository, conversation, text, options, useTools, ct);
-            ContextWindow context;
-            if (options.AutoSummarize || options.Recall is not null)
-                context = (await ConversationContext.BuildAsync(repository, model, conversation, text, contextOptions, false, null, ct)).Context;
-            else
-            {
-                var history = await repository.MessagesAsync(id, options.MaxHistoryTurns * 2, null, ct);
-                var files = await repository.ContextFilesAsync(id, Math.Max(1, conversation.MessageCount - options.MaxHistoryTurns * 2 + 1), ct);
-                context = FileContext.Build(ConversationConfiguration.System(conversation, options), history, text, contextOptions, files, conversation.MessageCount + 1);
-            }
-            context = await ContextGuides.AddAsync(context, contextOptions, measurements, false, ct);
-            return Results.Ok(new
-            {
-                context = context with { Route = options.Route, ToolReserve = contextOptions.SafetyTokens - options.SafetyTokens },
-                options,
-                conversation.Revision,
-                omittedMessages = conversation.MessageCount - context.HistoryMessagesIncluded,
-                usage = measurements.Snapshot(options),
-                estimator = TokenBudget.Description(options)
-            });
-        });
-
-        routes.MapGet("/conversations/{id:guid}/files", async (Guid id, ChatDbContext database, CancellationToken ct) =>
-        {
-            if (!await database.Conversations.AnyAsync(c => c.Id == id, ct)) throw new ConversationNotFoundException();
-            // Project metadata in SQL: do not load extracted documents for this list.
-            return Results.Ok(await database.ForConversation(id)
-                .OrderBy(f => f.CreatedAtUtc).Select(f => new FileSummary(f.Id, f.Name, f.Size, f.Status,
-                    f.AnchorSequence, f.CreatedAtUtc, f.ArchiveId, f.Sha256, f.ContextMode, f.BatchId, f.SourceCreatedAt, f.SourceModifiedAt, f.MetadataSource, f.WorkspaceId)).ToListAsync(ct));
-        });
-
-        routes.MapPatch("/conversations/{id:guid}/files/{fileId:guid}", async (Guid id, Guid fileId,
-            ConfigureFile request, ChatDbContext database, IChatRepository repository, CancellationToken ct) =>
-        {
-            if (request.Mode is not ("window" or "pinned" or "excluded" or "project"))
-                throw new ArgumentException("Mode documentaire invalide.");
-            var conversation = await repository.FindAsync(id, ct) ?? throw new ConversationNotFoundException();
-            ConversationConfiguration.CheckRevision(conversation, request.Revision);
-            if (conversation.WorkspaceId is Guid project && await database.Attachments.AnyAsync(f => f.Id == fileId && f.WorkspaceId == project, ct))
-            {
-                if (request.Mode == "window") throw new ArgumentException("Une source du projet est disponible, épinglée ou exclue.");
-                var entry = await database.WorkspaceFileOverrides.FindAsync([id, fileId], ct);
-                if (entry is null) database.WorkspaceFileOverrides.Add(new() { ConversationId = id, FileId = fileId, Mode = request.Mode });
-                else entry.Mode = request.Mode;
-                conversation.AttachFiles();
-                await repository.SaveAsync(ct);
-                return Results.Ok(FileImport.Summary(await database.ForConversation(id).SingleAsync(f => f.Id == fileId, ct)));
-            }
-            var file = await database.Attachments.SingleOrDefaultAsync(f => f.ConversationId == id && f.Id == fileId, ct)
-                ?? throw new ArgumentException("Fichier introuvable.");
-            file.ContextMode = request.Mode;
-            conversation.AttachFiles();
-            await repository.SaveAsync(ct);
-            return Results.Ok(FileImport.Summary(file));
-        });
-
-        routes.MapGet("/prompts", async (ChatDbContext database, CancellationToken ct) =>
-            Results.Ok(await database.PromptProfiles.AsNoTracking().OrderBy(p => p.Name).ToListAsync(ct)));
-        routes.MapPost("/prompts", async (SavePrompt request, ChatDbContext database, CancellationToken ct) =>
-        {
-            var profile = new PromptProfile
-            {
-                Id = Guid.NewGuid(),
-                Name = Conversation.RequiredText(request.Name, 100, "Le nom"),
-                SystemPrompt = Conversation.RequiredText(request.SystemPrompt, 4000, "Le prompt")
-            };
-            if (await database.PromptProfiles.CountAsync(ct) >= 200)
-                throw new ArgumentException("Bibliothèque limitée à 200 profils.");
-            database.PromptProfiles.Add(profile);
-            await database.SaveChangesAsync(ct);
+            var profile = await prompts.CreateAsync(request.Name, request.SystemPrompt, ct);
             return Results.Created($"/api/chat/prompts/{profile.Id}", profile);
         });
-        routes.MapDelete("/prompts/{id:guid}", async (Guid id, ChatDbContext database, CancellationToken ct) =>
+        routes.MapDelete("/prompts/{id:guid}", async (Guid id, PromptCatalog prompts, CancellationToken ct) =>
         {
-            await database.PromptProfiles.Where(p => p.Id == id).ExecuteDeleteAsync(ct);
+            await prompts.DeleteAsync(id, ct);
             return Results.NoContent();
         });
-        routes.MapPut("/prompts/{id:guid}", async (Guid id, SavePrompt request, ChatDbContext database, CancellationToken ct) =>
+        routes.MapPut("/prompts/{id:guid}", async (Guid id, SavePrompt request, PromptCatalog prompts, CancellationToken ct) =>
         {
-            var profile = await database.PromptProfiles.FindAsync([id], ct);
-            if (profile is null) return Results.NotFound();
-            profile.Name = Conversation.RequiredText(request.Name, 100, "Le nom");
-            profile.SystemPrompt = Conversation.RequiredText(request.SystemPrompt, 4000, "Le prompt");
-            await database.SaveChangesAsync(ct);
-            return Results.Ok(profile);
+            var profile = await prompts.UpdateAsync(id, request.Name, request.SystemPrompt, ct);
+            return profile is null ? Results.NotFound() : Results.Ok(profile);
         });
     }
 

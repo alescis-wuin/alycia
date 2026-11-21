@@ -2,6 +2,7 @@
 """API réelle + PostgreSQL isolé + Ollama simulé, sans GPU ni téléchargement de modèle."""
 import argparse
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 import http.client
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import importlib.util
@@ -215,6 +216,11 @@ def verify_model_selection(port):
     options = {"contextTokens": 4096, "maxOutputTokens": 512}
     old = call("POST", "/import", {"schemaVersion": 1, "title": "Ancienne conversation embedding",
         "model": "embedding-alias", "systemPrompt": "", "contextNotes": "", "options": options, "messages": []}, expected=201)
+    assert set(old) == {
+        "id", "workspaceId", "title", "model", "systemPrompt", "createdAtUtc", "updatedAtUtc",
+        "revision", "messageCount", "settingsJson", "contextNotes", "memoryText", "memoryThroughSequence",
+        "memorySourceHash", "memoryModel", "memoryLedgerJson",
+    }
     prefix = "/conversations/" + old["id"]
     request = {"requestId": str(uuid.uuid4()), "content": "Bonjour", "revision": old["revision"]}
     try:
@@ -227,6 +233,17 @@ def verify_model_selection(port):
         assert fixed["id"] == old["id"] and fixed["model"] == "demo"
         events = call("POST", prefix + "/stream", dict(request, revision=fixed["revision"]))
         assert events[-1]["type"] == "done" and len(events[-1]["result"]["messages"]) == 2
+        turn = events[-1]["result"]
+        assert set(turn) == {"messages", "historyMessagesIncluded", "replayed", "filesIncluded", "estimatedInputTokens", "stats", "usage"}
+        assert set(turn["messages"][1]) == {
+            "conversationId", "sequence", "requestId", "role", "content", "createdAtUtc", "diagnosticsJson", "toolTraceJson",
+        }
+        stored = call("GET", prefix + "/messages")["messages"]
+        assert len(stored) == len(turn["messages"])
+        for fresh, row in zip(turn["messages"], stored):
+            # The live model has 100 ns ticks; PostgreSQL stores timestamps to one microsecond.
+            assert datetime.fromisoformat(fresh["createdAtUtc"]) == datetime.fromisoformat(row["createdAtUtc"])
+            assert fresh == dict(row, createdAtUtc=fresh["createdAtUtc"])
     finally:
         call("DELETE", prefix, expected=204)
 
@@ -432,8 +449,53 @@ def verify_empty_tool_summary(call, checks):
         call("DELETE", prefix, expected=204)
 
 
+def verify_project_conflicts(port, call, checks):
+    def race(method, path, left, right):
+        ready = threading.Barrier(2, timeout=10)
+        headers = {"Content-Type": "application/json"}
+        if token := os.environ.get("ALYCIA_CHAT_ACCESS_TOKEN"):
+            headers["Authorization"] = "Bearer " + token
+
+        def send(body):
+            connection = http.client.HTTPConnection("127.0.0.1", port, timeout=30)
+            try:
+                connection.connect()
+                ready.wait()
+                connection.request(method, "/api/chat" + path, json.dumps(body), headers)
+                response = connection.getresponse()
+                return response.status, json.load(response)
+            finally:
+                connection.close()
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            results = list(pool.map(send, (left, right)))
+        return sorted(results, key=lambda result: result[0])
+
+    name = "Créations concurrentes"
+    success, conflict = race("POST", "/projects", {"name": name}, {"name": name})
+    assert success[0] == 200 and conflict[0] == 400, (success, conflict)
+    assert conflict[1]["code"] == "INVALID_REQUEST"
+    project = success[1]
+    assert [p["id"] for p in call("GET", "/projects") if p["name"] == name] == [project["id"]]
+    checks.append("concurrent_project_creation_returns_one_identity_and_one_refusal")
+
+    path = "/projects/" + project["id"]
+    profile = call("GET", path)
+    success, conflict = race("PUT", path, dict(profile, instructions="Première"), dict(profile, instructions="Deuxième"))
+    assert success[0] == 200 and conflict[0] == 409, (success, conflict)
+    assert conflict[1]["code"] == "CONVERSATION_CHANGED"
+    assert success[1]["revision"] == profile["revision"] + 1
+    assert success[1]["instructions"] in ("Première", "Deuxième")
+    assert call("GET", path) == success[1]
+    checks.append("concurrent_profile_edits_persist_only_the_winning_revision")
+
+
 def verify_boreale(call, checks):
     project = call("POST", "/projects", {"name": "Recette boréale"})
+    rejected = call("POST", "/projects", {"name": "Recette boréale"}, expected=400)
+    assert rejected["code"] == "INVALID_REQUEST"
+    assert [p["id"] for p in call("GET", "/projects") if p["name"] == "Recette boréale"] == [project["id"]]
+    checks.append("duplicate_project_rejected_without_second_identity")
     other = call("POST", "/projects", {"name": "Autre projet"})
     base = "/projects/" + project["id"]
     profile = call("GET", base)
@@ -552,7 +614,7 @@ def verify_context_quality(call, checks):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--case", choices=("all", "tool-summary", "boreale", "indexing", "context-quality", "knowledge"), default="all")
+    parser.add_argument("--case", choices=("all", "transport", "tool-summary", "boreale", "indexing", "context-quality", "knowledge"), default="all")
     args = parser.parse_args()
     connection = os.environ.get("ALYCIA_CHAT_TEST_CONNECTION")
     if not connection:
@@ -608,10 +670,11 @@ def main():
                 spec.loader.exec_module(module)
                 checks = []
                 client = module.create_client(f"http://127.0.0.1:{port}")
-                if args.case == "all":
+                if args.case in ("all", "transport"):
                     verify_model_selection(port)
-                    checks = module.verify(f"http://127.0.0.1:{port}", "demo", extended=True)
-                    checks.insert(0, "model_capabilities_and_existing_conversation_repair")
+                    checks.append("model_capabilities_and_existing_conversation_repair")
+                if args.case == "all":
+                    checks.extend(module.verify(f"http://127.0.0.1:{port}", "demo", extended=True))
                     assert Ollama.chat_calls == 3 and Ollama.summary_calls >= 5
                     owned = []
                     try:
@@ -634,6 +697,7 @@ def main():
                 if args.case in ("all", "tool-summary"):
                     verify_empty_tool_summary(client, checks)
                 if args.case in ("all", "boreale"):
+                    verify_project_conflicts(port, client, checks)
                     verify_boreale(client, checks)
                 print(json.dumps({"passed": len(checks), "checks": checks, "provider": "mock",
                     "database": "isolated PostgreSQL", "test_data_cleaned": True,

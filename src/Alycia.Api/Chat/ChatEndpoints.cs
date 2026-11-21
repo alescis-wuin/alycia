@@ -10,62 +10,6 @@ namespace Alycia.Api.Chat;
 
 internal static partial class ChatEndpoints
 {
-    public static void AddLocalChat(this WebApplicationBuilder builder)
-    {
-        var connection = builder.Configuration["ALYCIA_CHAT_CONNECTION"];
-        if (string.IsNullOrWhiteSpace(connection))
-        {
-            throw new InvalidOperationException("ALYCIA_CHAT_CONNECTION is required for the local chat prototype.");
-        }
-
-        var ollamaUrl = builder.Configuration["ALYCIA_OLLAMA_BASE_URL"] ?? "http://127.0.0.1:11434/";
-        var access = new LocalChatAccess(builder.Configuration);
-        var uri = access.ValidateOllamaUrl(ollamaUrl);
-        builder.Services.AddSingleton(access);
-
-        var options = new ChatOptions();
-        builder.Configuration.GetSection("Chat").Bind(options);
-        options.Validate();
-        builder.Services.AddSingleton(options);
-        builder.Services.AddDbContext<ChatDbContext>(db => db.UseNpgsql(connection,
-            provider => provider.MigrationsHistoryTable("__EFMigrationsHistory", "chat")));
-        builder.Services.AddScoped<IChatRepository, EfChatRepository>();
-        builder.Services.AddScoped<ChatService>();
-        builder.Services.AddSingleton(new FileStorage(builder.Configuration["ALYCIA_FILES_DIRECTORY"]
-            ?? Path.Combine(builder.Environment.ContentRootPath, "data", "files")));
-        builder.Services.AddScoped<ImportSettingsStore>();
-        builder.Services.AddScoped<FileImport>();
-        builder.Services.AddScoped<DocumentAnalysisService>();
-        builder.Services.AddScoped<ProjectSourceReader>();
-        builder.Services.AddScoped<IProjectIndex, ProjectIndexService>();
-        builder.Services.AddSingleton<LexicalIndexCache>();
-        builder.Services.AddScoped<KnowledgeStore>();
-        builder.Services.AddScoped<KnowledgeBuilder>();
-        builder.Services.AddScoped<PostgresEmbeddingStore>();
-        builder.Services.AddScoped<TemporalMemoryStore>();
-        builder.Services.AddScoped<ITemporalMemory>(sp => sp.GetRequiredService<TemporalMemoryStore>());
-        builder.Services.AddScoped<BackgroundEmbeddingIndex>();
-        builder.Services.AddScoped<IIndexedEmbeddings>(sp => sp.GetRequiredService<BackgroundEmbeddingIndex>());
-        builder.Services.AddHostedService<EmbeddingWorker>();
-        builder.Services.AddSingleton<IPassageReranker>(_ => new OnnxPassageReranker(Environment.GetEnvironmentVariable("ALYCIA_RERANK_DIRECTORY")));
-        builder.Services.AddScoped<IProjectRetrieval, ProjectRetrievalService>();
-        builder.Services.AddHttpClient<ILocalEmbeddings, OllamaEmbeddings>(http =>
-        { http.BaseAddress = uri; http.Timeout = Timeout.InfiniteTimeSpan; http.MaxResponseContentBufferSize = 8 * 1024 * 1024; })
-            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false, UseProxy = false });
-        builder.Services.AddScoped<ProjectToolService>();
-        builder.Services.AddScoped<ISnapshotProjectTools>(sp => sp.GetRequiredService<ProjectToolService>());
-        builder.Services.AddHttpClient<IProjectTools, ProjectMcpClient>(http => http.Timeout = Timeout.InfiniteTimeSpan)
-            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false, UseProxy = false });
-        builder.Services.Configure<FormOptions>(form => form.MultipartBodyLengthLimit = ImportLimits.HardBatchBytes);
-        builder.WebHost.ConfigureKestrel(server => server.Limits.MaxRequestBodySize = ImportLimits.HardBatchBytes + 32 * 1024 * 1024);
-        builder.Services.AddHttpClient<IChatModel, OllamaChatModel>(http =>
-        {
-            http.BaseAddress = uri;
-            http.Timeout = Timeout.InfiniteTimeSpan;
-            http.MaxResponseContentBufferSize = 4 * 1024 * 1024;
-        }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false, UseProxy = false });
-    }
-
     public static void MapLocalChat(this WebApplication app)
     {
         var access = app.Services.GetRequiredService<LocalChatAccess>();
@@ -136,18 +80,18 @@ internal static partial class ChatEndpoints
             Results.Ok(await model.ListModelsAsync(ct)));
 
         routes.MapGet("/conversations", async (IChatRepository repository, CancellationToken ct) =>
-            Results.Ok(await repository.ListAsync(ct)));
+            Results.Ok((await repository.ListAsync(ct)).Select(c => c.ToResponse())));
 
-        routes.MapPost("/conversations", async (CreateConversation request, ChatService service, ChatDbContext database, CancellationToken ct) =>
+        routes.MapPost("/conversations", async (CreateConversation request, ChatService service, IProjectCatalog projects, CancellationToken ct) =>
         {
-            var project = request.WorkspaceId is Guid projectId ? await RequireProjectAsync(database, projectId, ct) : null;
-            var model = string.IsNullOrWhiteSpace(request.Model) ? project?.DefaultModel : request.Model;
+            var defaultModel = request.WorkspaceId is Guid projectId ? await projects.ActiveDefaultModelAsync(projectId, ct) : null;
+            var model = string.IsNullOrWhiteSpace(request.Model) ? defaultModel : request.Model;
             var conversation = await service.CreateAsync(request.Title, model, request.SystemPrompt, ct, request.WorkspaceId);
-            return Results.Created($"/api/chat/conversations/{conversation.Id}", conversation);
+            return Results.Created($"/api/chat/conversations/{conversation.Id}", conversation.ToResponse());
         });
 
         routes.MapGet("/conversations/{id:guid}/messages", async (Guid id, int? before,
-            IChatRepository repository, ChatDbContext database, CancellationToken ct) =>
+            IChatRepository repository, ConversationFiles documents, CancellationToken ct) =>
         {
             if (before is <= 0)
             {
@@ -157,11 +101,8 @@ internal static partial class ChatEndpoints
             var conversation = await repository.FindAsync(id, ct) ?? throw new ConversationNotFoundException();
             var messages = await repository.MessagesAsync(id, 100, before, ct);
             var minimum = messages.Count == 0 ? 1 : messages[0].Sequence;
-            var files = await database.Attachments.AsNoTracking().Where(f => f.ConversationId == id
-                && f.AnchorSequence >= minimum && (before == null || f.AnchorSequence < before))
-                .Select(f => new FileSummary(f.Id, f.Name, f.Size, f.Status, f.AnchorSequence,
-                    f.CreatedAtUtc, f.ArchiveId, f.Sha256, f.ContextMode, f.BatchId, f.SourceCreatedAt, f.SourceModifiedAt, f.MetadataSource, f.WorkspaceId)).ToListAsync(ct);
-            return Results.Ok(new { conversation, messages, files, hasMore = messages.Count > 0 && messages[0].Sequence > 1 });
+            var files = await documents.ForHistoryAsync(id, minimum, before, ct);
+            return Results.Ok(new { conversation = conversation.ToResponse(), messages = messages.Select(m => m.ToResponse()), files, hasMore = messages.Count > 0 && messages[0].Sequence > 1 });
         });
 
         routes.MapPatch("/conversations/{id:guid}", async (Guid id, RenameConversation request,
@@ -170,7 +111,7 @@ internal static partial class ChatEndpoints
             var conversation = await repository.FindAsync(id, ct) ?? throw new ConversationNotFoundException();
             conversation.Rename(request.Title);
             await repository.SaveAsync(ct);
-            return Results.Ok(conversation);
+            return Results.Ok(conversation.ToResponse());
         });
 
         routes.MapDelete("/conversations/{id:guid}", async (Guid id, IChatRepository repository, FileStorage storage, CancellationToken ct) =>
@@ -187,46 +128,21 @@ internal static partial class ChatEndpoints
             HttpRequest request, FileImport importer, CancellationToken ct) => UploadFilesAsync(id, batchId, request, importer, false, ct));
 
         routes.MapGet("/conversations/{id:guid}/files/{fileId:guid}", async (Guid id, Guid fileId,
-            ChatDbContext database, FileStorage storage, HttpContext http, CancellationToken ct) =>
+            ConversationFiles documents, HttpContext http, CancellationToken ct) =>
         {
-            var file = await database.ForConversation(id).SingleOrDefaultAsync(f => f.Id == fileId, ct);
+            var file = await documents.DownloadAsync(id, fileId, ct);
             if (file is null) return Error(http, 404, "FILE_NOT_FOUND", "Fichier introuvable.");
-            var path = storage.PathFor(file);
-            if (!File.Exists(path)) return Error(http, 503, "FILE_UNAVAILABLE", "Le volume de fichiers est indisponible.");
+            if (!File.Exists(file.Value.Path)) return Error(http, 503, "FILE_UNAVAILABLE", "Le volume de fichiers est indisponible.");
             http.Response.Headers["X-Content-Type-Options"] = "nosniff";
-            return Results.File(path, "application/octet-stream", Path.GetFileName(file.Name), enableRangeProcessing: true);
+            return Results.File(file.Value.Path, "application/octet-stream", file.Value.Name, enableRangeProcessing: true);
         });
-
         routes.MapDelete("/conversations/{id:guid}/files/{fileId:guid}", async (Guid id, Guid fileId,
-            ChatDbContext database, FileStorage storage, HttpContext http, CancellationToken ct) =>
-        {
-            var conversation = await database.Conversations.SingleOrDefaultAsync(c => c.Id == id, ct)
-                ?? throw new ConversationNotFoundException();
-            var all = await database.Attachments.Where(f => f.ConversationId == id).ToListAsync(ct);
-            if (!all.Any(f => f.Id == fileId)) return Error(http, 404, "FILE_NOT_FOUND", "Fichier introuvable.");
-            var ids = new HashSet<Guid> { fileId };
-            for (var changed = true; changed;)
-            {
-                changed = false;
-                foreach (var file in all)
-                    if (file.ArchiveId.HasValue && ids.Contains(file.ArchiveId.Value)) changed |= ids.Add(file.Id);
-            }
-            var files = all.Where(f => ids.Contains(f.Id)).ToArray();
-            database.Attachments.RemoveRange(files);
-            conversation.AttachFiles();
-            await new EfChatRepository(database).SaveAsync(ct);
-            foreach (var file in files)
-            {
-                try { File.Delete(storage.PathFor(id, file.Id)); }
-                catch (IOException) { app.Logger.LogWarning("File cleanup pending: {Id}", file.Id); }
-                catch (UnauthorizedAccessException) { app.Logger.LogWarning("File cleanup denied: {Id}", file.Id); }
-            }
-            return Results.NoContent();
-        });
+            ConversationFiles documents, HttpContext http, CancellationToken ct) =>
+            await documents.RemoveAsync(id, fileId, ct) ? Results.NoContent() : Error(http, 404, "FILE_NOT_FOUND", "Fichier introuvable."));
 
         routes.MapPost("/conversations/{id:guid}/messages", async (Guid id, SendMessage request,
             ChatService service, CancellationToken ct) =>
-            Results.Ok(await service.SendAsync(id, request.RequestId, request.Content, ct)));
+            Results.Ok((await service.SendAsync(id, request.RequestId, request.Content, ct)).ToResponse()));
     }
 
     private static async Task<IResult> UploadFilesAsync(Guid id, Guid batchId, HttpRequest request, FileImport importer, bool workspace, CancellationToken ct)

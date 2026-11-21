@@ -4,10 +4,6 @@ using Alycia.Modules.Chat.Domain;
 
 namespace Alycia.Modules.Chat.Application;
 
-public sealed record SearchTerm(string Text, string Kind);
-public sealed record ResolvedReferent(string Text, int Sequence, string Reference);
-public sealed record SearchQueryPlan(string Original, SearchTerm[] Queries, ResolvedReferent[] Resolved, bool Ambiguous, QueryBrief? Brief = null);
-
 public static class QueryPlanning
 {
     private static readonly Regex Literals = new("""`([^`]+)`|«([^»]+)»|"([^"]+)"|\b[\w/-]+(?:\.[\w/-]+)+\b|\b[A-Z][a-z]+(?:[A-Z]\w+)+\b""",

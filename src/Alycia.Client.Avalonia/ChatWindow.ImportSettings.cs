@@ -1,9 +1,10 @@
+using static Alycia.Client.Avalonia.DialogFields;
 using System;
 using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using Alycia.Modules.Chat.Application;
+using Alycia.Contracts.Chat;
 using Avalonia.Controls;
 
 namespace Alycia.Client.Avalonia;

@@ -2,8 +2,6 @@ using System.Text.RegularExpressions;
 
 namespace Alycia.Modules.Chat.Application;
 
-public sealed record VerificationFollowup(string Status, string? Claim, string[] References, SourceExcerpt[]? Sources = null);
-
 public static class SemanticClaimAudit
 {
     private static readonly Regex Marker = new(@"\[([SH][0-9a-f][0-9a-z:._-]*)\]", RegexOptions.IgnoreCase);

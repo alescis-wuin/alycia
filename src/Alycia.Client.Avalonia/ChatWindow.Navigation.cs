@@ -1,3 +1,6 @@
+using static Alycia.Client.Avalonia.DialogFields;
+using Alycia.Contracts.Chat;
+using Alycia.Client.Avalonia.Presentation.Navigation;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -10,9 +13,7 @@ namespace Alycia.Client.Avalonia;
 
 public partial class ChatWindow
 {
-    private static readonly ProjectChoice Outside = new(null, "Hors projet");
-    private ProjectChoice _project = Outside;
-    private ProjectChoice[] _projects = [Outside];
+    private ProjectChoice _project => _navigation.Project;
     private Control? _inspectorOrigin;
     private ChatMessageItem? _evidence;
     private bool _choosingProject;
@@ -21,8 +22,8 @@ public partial class ChatWindow
     {
         C<Button>("ImportLimitsButton").Click += async (_, _) => await RunAsync(EditImportLimitsAsync);
         var selector = C<ComboBox>("ProjectSelector");
-        selector.ItemsSource = _projects;
-        selector.SelectedItem = Outside;
+        selector.ItemsSource = _navigation.Projects;
+        selector.SelectedItem = _project;
         selector.SelectionChanged += async (_, _) =>
         {
             if (_choosingProject || _busy || selector.SelectedItem is not ProjectChoice selected || selected.Id == _project.Id) return;
@@ -84,14 +85,12 @@ public partial class ChatWindow
 
     private async Task RefreshProjectsAsync(Guid? selectedId)
     {
-        var choices = await _client.ProjectsAsync(_lifetime.Token);
-        _projects = new[] { Outside }.Concat(choices).ToArray();
-        _project = _projects.FirstOrDefault(p => p.Id == selectedId) ?? Outside;
+        await _navigation.RefreshProjectsAsync(selectedId, _lifetime.Token);
         _choosingProject = true;
         try
         {
             var selector = C<ComboBox>("ProjectSelector");
-            selector.ItemsSource = _projects;
+            selector.ItemsSource = _navigation.Projects;
             selector.SelectedItem = _project;
             C<TextBlock>("ProjectHeading").Text = _project.ToString();
         }
@@ -100,21 +99,11 @@ public partial class ChatWindow
 
     private async Task SwitchProjectAsync(ProjectChoice selection)
     {
-        _indexingOwner = selection.Id; _indexingProject = true;
         SaveDraft();
-        _current = null;
-        _messages.Clear();
+        _navigation.Project = selection;
         C<ListBox>("ConversationList").ItemsSource = Array.Empty<ConversationSummary>();
-        C<TextBox>("MessageInput").Text = "";
-        C<TextBlock>("ViewHeading").Text = "Conversation";
-        C<Button>("ActiveModelButton").Content = "";
-        C<Border>("PendingUserPanel").IsVisible = false;
-        C<Expander>("StreamingPanel").IsVisible = false;
-        _project = selection;
-        _evidence = null;
         C<TextBlock>("ProjectHeading").Text = selection.ToString();
         C<TextBox>("SearchInput").Text = "";
-        HideInspector();
         await RefreshConversationsAsync(null);
         if (_current is not null) await LoadAsync(_current);
         else ShowChat();
@@ -124,7 +113,7 @@ public partial class ChatWindow
     private async Task MoveConversationAsync()
     {
         if (_current is not { } current) return;
-        var picker = new ComboBox { ItemsSource = _projects.Where(p => !p.Archived).ToArray(), SelectedItem = _project, HorizontalAlignment = HorizontalAlignment.Stretch };
+        var picker = new ComboBox { ItemsSource = _navigation.Projects.Where(p => !p.Archived).ToArray(), SelectedItem = _project, HorizontalAlignment = HorizontalAlignment.Stretch };
         var panel = new StackPanel
         {
             Spacing = 12,
@@ -144,6 +133,7 @@ public partial class ChatWindow
 
     private void ShowChat()
     {
+        FollowIndexScope(_current is not null ? new(_current.Id, false) : _project.Id is Guid id ? new(id, true) : null);
         C<Grid>("ChatPage").IsVisible = true;
         C<ScrollViewer>("PageScroll").IsVisible = false;
         C<ScrollViewer>("PreferencesPage").IsVisible = false;
@@ -181,7 +171,7 @@ public partial class ChatWindow
         {
             SaveDraft();
             _current = null;
-            _project = Outside;
+            _navigation.Project = ProjectNavigation.Outside;
             await InitializeAsync();
         }
         Feedback("Paramètres enregistrés.");

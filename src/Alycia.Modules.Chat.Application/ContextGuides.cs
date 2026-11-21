@@ -1,8 +1,5 @@
 namespace Alycia.Modules.Chat.Application;
 
-public sealed record UsedGuide(string Reference, string OriginalReference, Guid FileId, string Identity, string State,
-    int Tokens, string? Created, string? Modified, DateTimeOffset? Uploaded, string? Unit, string? Sha256 = null, string? Path = null, int Start = 0, int End = 0, bool Partial = false);
-
 public static class ContextGuides
 {
     public static async Task<ContextWindow> AddAsync(ContextWindow window, ChatOptions settings, MeteredChatModel model,

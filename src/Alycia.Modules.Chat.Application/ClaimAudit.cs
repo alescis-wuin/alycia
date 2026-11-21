@@ -4,8 +4,6 @@ using System.Text.RegularExpressions;
 namespace Alycia.Modules.Chat.Application;
 
 public sealed record EvidenceText(string Reference, string Text, string? Role = null);
-public sealed record ClaimFinding(string Text, string[] References, string Status, string Reason);
-public sealed record ClaimReport(ClaimFinding[] Findings, int Omitted, string Policy = "heuristic-v1; quotations and lexical overlap do not establish truth");
 
 public static class ClaimAudit
 {

@@ -1,0 +1,192 @@
+{
+  "reference": "65494a6a42b6b4a5e84b056eb6cb1d3c3afa9657",
+  "integrated_before_report": "808abe2e2b2a36db89255699e6753e1130db33c6",
+  "product_tree": "4534bc4342be19cec46781fe0788ace88795ec9a",
+  "sdk": "10.0.404",
+  "postgresql": "17.12",
+  "pgvector": "0.8.0",
+  "solution_build": {
+    "warnings": 0,
+    "errors": 0
+  },
+  "ef_models_without_pending_changes": [
+    "ChatDbContext",
+    "WorkspacesDbContext"
+  ],
+  "dotnet": {
+    "alycia.client.avalonia.tests": {
+      "total": 63,
+      "passed": 63,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    "alycia.modules.chat.tests": {
+      "total": 242,
+      "passed": 242,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    "alycia.modules.workspaces.tests": {
+      "total": 11,
+      "passed": 11,
+      "failed": 0,
+      "notExecuted": 0
+    }
+  },
+  "dotnet_passed": 316,
+  "python_passed": 17,
+  "http": {
+    "passed": 35,
+    "checks": [
+      "model_capabilities_and_existing_conversation_repair",
+      "local_access_and_models",
+      "settings_revision_and_prompt_library",
+      "stream_commit_replay_and_conflict",
+      "file_upload_download_and_context_selection",
+      "archive_roundtrip_search_and_fork",
+      "recursive_archives_inventory_analysis_staleness_and_delete",
+      "recursive_memory_budget_protected_messages_and_cache",
+      "memory_turn_persistence_and_nondestructive_reset",
+      "mcp_handshake_catalog_pagination_and_access_controls",
+      "original_read_beyond_import_excerpt",
+      "ranked_symbols_references_and_grouped_read_contracts",
+      "native_tool_loop_trace_persistence_export_and_replay",
+      "historical_search_read_and_role_provenance",
+      "tool_access_revocation",
+      "structured_memory_quotes_provenance_cache_reset_and_protection",
+      "tool_citations_and_persisted_diagnostics",
+      "independent_annotation_with_ollama_schema",
+      "immutable_hierarchy_and_scope",
+      "facets_classification_and_final_source_ledger",
+      "immediate_exclusion_of_derivatives",
+      "scope_preview_and_send",
+      "onnx_fallback",
+      "streamed_contradiction_and_bounded_second_search",
+      "adaptive_ollama_payload",
+      "quality_turn_idempotency",
+      "background_indexing_progress_pause_and_query_only_embedding_cost",
+      "import_limits_persistence_enforcement_and_unlimited_scope",
+      "empty_tool_summary_recovery_warning_metrics_reread_persistence_and_replay",
+      "concurrent_project_creation_returns_one_identity_and_one_refusal",
+      "concurrent_profile_edits_persist_only_the_winning_revision",
+      "duplicate_project_rejected_without_second_identity",
+      "project_source_membership_preview_search_and_local_exclusion",
+      "project_snapshot_optimistic_revision_and_explicit_notes",
+      "project_source_survives_chat_then_explicit_withdrawal_preserves_history"
+    ],
+    "provider": "mock",
+    "database": "isolated PostgreSQL",
+    "test_data_cleaned": true,
+    "continuous_chat_calls": 3,
+    "tool_rounds": 4,
+    "bounded_summary_calls": 52,
+    "pressure_tool_rounds": 6,
+    "empty_tool_summaries": 1
+  },
+  "git_blob_groups_unchanged": {
+    "API, routes, statuts et DI": 20,
+    "DTO, NDJSON et contrat de configuration": 21,
+    "Migrations et snapshots EF": 25,
+    "Domain et modèles DbContext": 12,
+    "AXAML": 3,
+    "Polices, notices et assets Boréale": 11,
+    "Projets produit et solution": 12,
+    "Docker, lancement et migrations": 12,
+    "Fixtures et corpus de l’évaluation": 89,
+    "Déclarations de routes": 63,
+    "Groupes": [
+      "/api/chat",
+      "/api/workspaces"
+    ]
+  },
+  "rag": {
+    "identical": true,
+    "variants": 8,
+    "ordered_rows_checked": 92,
+    "claims": 16,
+    "classification": 18,
+    "relation": 20,
+    "baseline": {
+      "principal": {
+        "sha256": "30FBC532950F89309B7483F708C7DB2F312CCA607AA8D312650E4CBEA269B331",
+        "k": 3,
+        "samples": 10,
+        "meanRecall": 1,
+        "meanNdcg": 1,
+        "mrr": 1,
+        "contextTokens": 2092,
+        "p50Ms": 0.6786,
+        "p95Ms": 60.2038
+      },
+      "voisins": {
+        "sha256": "9F006BB1B1C79D51BB1283C0B20BE22C7E215F57196CEA92C1B59240ADD365E5",
+        "k": 3,
+        "samples": 6,
+        "meanRecall": 1,
+        "meanNdcg": 1,
+        "mrr": 1,
+        "contextTokens": 3293,
+        "p50Ms": 1.3801,
+        "p95Ms": 130.5607
+      }
+    },
+    "candidate": {
+      "principal": {
+        "sha256": "30FBC532950F89309B7483F708C7DB2F312CCA607AA8D312650E4CBEA269B331",
+        "k": 3,
+        "samples": 10,
+        "meanRecall": 1,
+        "meanNdcg": 1,
+        "mrr": 1,
+        "contextTokens": 2092,
+        "p50Ms": 0.7015,
+        "p95Ms": 58.6054
+      },
+      "voisins": {
+        "sha256": "9F006BB1B1C79D51BB1283C0B20BE22C7E215F57196CEA92C1B59240ADD365E5",
+        "k": 3,
+        "samples": 6,
+        "meanRecall": 1,
+        "meanNdcg": 1,
+        "mrr": 1,
+        "contextTokens": 3293,
+        "p50Ms": 1.0784,
+        "p95Ms": 114.0853
+      }
+    },
+    "base_canonical_sha256": "0811f60b9dd1b5f42b9249e9876172c3a6b716f311fcc403da21e0f5407a4990",
+    "candidate_canonical_sha256": "0811f60b9dd1b5f42b9249e9876172c3a6b716f311fcc403da21e0f5407a4990",
+    "excluded_fields": [
+      "p50Ms",
+      "p95Ms",
+      "milliseconds",
+      "allocatedBytes"
+    ]
+  },
+  "module_matrix": {
+    "direct_owner_pairs": 75,
+    "before_after_tsv_sha256": "11ff4c0bd475bb69d24018754ac99c7309f5e199f7206d2f2792ef38dcd352c4"
+  },
+  "release_api_smoke": [
+    "Production /healthz 200",
+    "Production /api/chat/models 404",
+    "Production /api/workspaces/00000000-0000-0000-0000-000000000000 404",
+    "Production /openapi/v1.json 404",
+    "Development /healthz 200",
+    "Development /api/chat/models 404",
+    "Development /api/workspaces/00000000-0000-0000-0000-000000000000 404",
+    "Development /openapi/v1.json 200"
+  ],
+  "release_ui": {
+    "display": "Xvfb/X11",
+    "window": "1240x840",
+    "sidebar_pixel_change_pct": 12.94,
+    "difference_after_restoring_pct": 0.0
+  },
+  "not_tested": [
+    "Docker image/runtime",
+    "KDE/Wayland native",
+    "Ollama real models and GPU",
+    "real ONNX reranker"
+  ]
+}

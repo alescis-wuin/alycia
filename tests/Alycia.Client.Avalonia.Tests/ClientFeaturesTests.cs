@@ -2,7 +2,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using Alycia.Client.Avalonia;
-using Alycia.Modules.Chat.Application;
+using Alycia.Contracts.Chat;
 
 namespace Alycia.Client.Avalonia.Tests;
 
@@ -13,12 +13,12 @@ public sealed class ClientFeaturesTests
     {
         var message = new ChatMessageItem(Guid.NewGuid(), 2, Guid.NewGuid(), "assistant", "Réponse", DateTimeOffset.UtcNow)
         {
-            DiagnosticsJson = JsonSerializer.Serialize(new TurnDiagnostics(Warnings: [ToolMemoryFallback.Warning]), ProjectToolCatalog.Json),
+            DiagnosticsJson = JsonSerializer.Serialize(new TurnDiagnostics(Warnings: ["Le résumé des anciens résultats d’outils est vide. L’exploration continue avec des extraits partiels ; certaines informations anciennes doivent être relues."]), ChatJson.Options),
             ToolTraceJson = JsonSerializer.Serialize(new[] { new ToolObservation(1, "project_read", "{}", false, 40,
-                Error: "Identifiant de fichier inconnu.") }, ProjectToolCatalog.Json)
+                Error: "Identifiant de fichier inconnu.") }, ChatJson.Options)
         };
         Assert.Contains("partiellement conservé", message.DiagnosticsTitle);
-        Assert.Contains(ToolMemoryFallback.Warning, message.DiagnosticsText);
+        Assert.Contains("Le résumé des anciens résultats d’outils est vide. L’exploration continue avec des extraits partiels ; certaines informations anciennes doivent être relues.", message.DiagnosticsText);
         Assert.Contains("Motif : Identifiant de fichier inconnu.", message.ToolTraceText);
         Assert.Contains("refus ou erreur", message.ToolTraceText);
     }

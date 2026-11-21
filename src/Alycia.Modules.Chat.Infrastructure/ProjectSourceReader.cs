@@ -1,5 +1,6 @@
 using System.Text;
 using Alycia.Modules.Chat.Application;
+using Alycia.Modules.Chat.Infrastructure.Documents;
 using System.Security.Cryptography;
 using Alycia.Modules.Chat.Domain;
 
@@ -20,7 +21,7 @@ public sealed class ProjectSourceReader(FileStorage storage)
         try
         {
             await using var stream = File.OpenRead(storage.PathFor(file));
-            var bytes = await FileImport.ReadBoundedAsync(stream, ImportLimits.HardFileBytes, ct);
+            var bytes = await DocumentContent.ReadBoundedAsync(stream, ImportLimits.HardFileBytes, ct);
             if (!Convert.ToHexString(SHA256.HashData(bytes)).Equals(file.Sha256, StringComparison.OrdinalIgnoreCase))
                 throw new ArgumentException("L’original a changé : réimportez-le avant consultation.");
             if (StructuredDocuments.Supports(file.Name))

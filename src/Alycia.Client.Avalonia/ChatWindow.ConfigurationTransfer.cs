@@ -1,28 +1,12 @@
+using static Alycia.Client.Avalonia.DialogFields;
 using System;
 using System.IO;
-using System.Threading;
 using System.Threading.Tasks;
-using Alycia.Modules.Chat.Application;
+using Alycia.Contracts.Chat;
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
 
 namespace Alycia.Client.Avalonia;
-
-public sealed partial class ChatApiClient
-{
-    public async Task<byte[]> ExportConfigurationAsync(Guid id, CancellationToken ct)
-    {
-        var settings = await SettingsAsync(id, ct);
-        return ConversationSettingsTransfer.Export(settings.Conversation.Model, settings.Conversation.SystemPrompt,
-            settings.Conversation.ContextNotes, settings.Options);
-    }
-
-    public Task<ConversationSummary> ImportConfigurationAsync(Guid id, int revision, byte[] bytes, CancellationToken ct)
-    {
-        var settings = ConversationSettingsTransfer.Parse(bytes);
-        return ConfigureAsync(id, revision, settings.Model, settings.SystemPrompt, settings.ContextNotes, settings.Options, ct);
-    }
-}
 
 public partial class ChatWindow
 {
@@ -65,12 +49,12 @@ public partial class ChatWindow
             int count;
             while ((count = await input.ReadAsync(block, _lifetime.Token)) > 0)
             {
-                if (buffer.Length + count > ConversationSettingsTransfer.MaxBytes)
+                if (buffer.Length + count > SettingsFileCodec<ChatSettings>.MaxBytes)
                     throw new ChatApiException("Configuration limitée à 256 Kio.");
                 buffer.Write(block, 0, count);
             }
             var bytes = buffer.ToArray();
-            var settings = ConversationSettingsTransfer.Parse(bytes);
+            var settings = SettingsFileCodec<ChatSettings>.Parse(bytes);
             var preview = new StackPanel { Spacing = 10 };
             preview.Children.Add(Label($"Discussion cible : {current.Title}\nModèle : {settings.Model}"));
             preview.Children.Add(Label("Tous les réglages, instructions et notes de contexte seront remplacés. Les messages, documents et consignes du projet sont conservés."));

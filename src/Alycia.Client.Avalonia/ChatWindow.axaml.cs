@@ -1,3 +1,6 @@
+using Alycia.Contracts.Chat;
+using Alycia.Client.Avalonia.Presentation.Conversations;
+using Alycia.Client.Avalonia.Presentation.Navigation;
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -14,16 +17,17 @@ namespace Alycia.Client.Avalonia;
 public partial class ChatWindow : Window
 {
     private readonly ChatApiClient _client;
-    private readonly DraftStore _drafts;
+    private readonly ConversationComposer _composer;
+    private readonly ProjectNavigation _navigation;
     private readonly DispatcherTimer _draftTimer = new() { Interval = TimeSpan.FromMilliseconds(750) };
     private bool _loadingDraft;
-    private string _searchQuery = "";
+    private string _searchQuery => _navigation.SearchQuery;
     private readonly CancellationTokenSource _lifetime = new();
-    private readonly ObservableCollection<ChatMessageItem> _messages = [];
+    private readonly ConversationTimeline _timeline = new();
+    private ReadOnlyObservableCollection<ChatMessageItem> _messages => _timeline.Messages;
     private CancellationTokenSource? _generation;
-    private ConversationSummary? _current;
+    private ConversationSummary? _current { get => _navigation.Conversation; set => _navigation.Conversation = value; }
     private bool _busy;
-    private Guid _pendingId;
     private bool _followOutput = true;
     private bool _sidebarManual;
 
@@ -32,12 +36,14 @@ public partial class ChatWindow : Window
     internal ChatWindow(ChatApiClient client, DraftStore? drafts = null)
     {
         _client = client;
-        _drafts = drafts ?? new DraftStore();
+        _composer = new(drafts ?? new DraftStore());
+        _navigation = new(client);
         InitializeComponent();
+        _navigation.OwnerChanged += ResetOwnerView;
         C<ItemsControl>("MessageList").ItemsSource = _messages;
         Opened += async (_, _) => await RunAsync(InitializeAsync);
-        Closed += (_, _) => { _draftTimer.Stop(); SaveDraft(); _drafts.Save(); _lifetime.Cancel(); };
-        _draftTimer.Tick += (_, _) => { _draftTimer.Stop(); _drafts.Save(); };
+        Closed += (_, _) => { _draftTimer.Stop(); SaveDraft(); _composer.Flush(); _lifetime.Cancel(); };
+        _draftTimer.Tick += (_, _) => { _draftTimer.Stop(); _composer.Flush(); };
         C<TextBox>("MessageInput").TextChanged += (_, _) =>
         {
             if (!_loadingDraft) { SaveDraft(); _draftTimer.Stop(); _draftTimer.Start(); }
@@ -170,6 +176,7 @@ public partial class ChatWindow : Window
         foreach (var name in new[] { "SearchButton", "MoreConversationsButton", "PromptsButton", "ImportConversationButton" })
             C<Button>(name).IsEnabled = !_busy;
         C<ListBox>("ConversationList").IsEnabled = !_busy;
+        C<ComboBox>("ProjectSelector").IsEnabled = !_busy;
         C<Button>("RefreshButton").IsEnabled = !_busy;
         C<Button>("ContextButton").IsEnabled = !_busy && _current is not null;
         C<Button>("MoreButton").IsEnabled = !_busy && _current is not null;
@@ -203,60 +210,56 @@ public partial class ChatWindow : Window
         selector.SelectedItem = models.Contains(selected) ? selected : models.FirstOrDefault();
         Feedback(models.Length == 0
             ? "Aucun modèle génératif local. Les modèles d’embeddings ne peuvent pas discuter. Installez un modèle génératif avec ollama pull, puis actualisez."
-            : _drafts.Error ?? "");
+            : _composer.Error ?? "");
     }
 
     private async Task RefreshConversationsAsync(Guid? selectId)
     {
         SaveDraft();
-        _searchQuery = C<TextBox>("SearchInput").Text ?? "";
-        var page = await _client.SearchAsync(_searchQuery, 0, _lifetime.Token, _project.Id, true);
-        var conversations = page.Items;
+        var page = await _navigation.SearchAsync(C<TextBox>("SearchInput").Text ?? "", selectId, _lifetime.Token);
+        if (page is null) return;
         C<Button>("MoreConversationsButton").IsVisible = page.HasMore;
         var list = C<ListBox>("ConversationList");
-        list.ItemsSource = conversations;
-        var selected = conversations.FirstOrDefault(item => item.Id == selectId) ?? conversations.FirstOrDefault();
-        if (selectId.HasValue && selected?.Id != selectId.Value)
-        {
-            // Keep a newly created or renamed conversation visible even if a search filter excludes it.
-            selected = (await _client.SettingsAsync(selectId.Value, _lifetime.Token)).Conversation;
-            if (selected.WorkspaceId == _project.Id) list.ItemsSource = new[] { selected }.Concat(conversations).ToArray();
-            else selected = conversations.FirstOrDefault();
-        }
-        _current = selected;
-        _loadingDraft = true;
-        C<TextBox>("MessageInput").Text = _current is null ? "" : _drafts.Get(_current.Id)?.Text ?? "";
-        _loadingDraft = false;
+        list.ItemsSource = page.Items;
         list.SelectedItem = _current;
-        if (_current is null)
-        {
-            _messages.Clear();
-            C<Expander>("StreamingPanel").IsVisible = false;
-            C<Border>("PendingUserPanel").IsVisible = false;
-            C<MarkdownView>("StreamingText").Text = "";
-            C<Expander>("StreamingTools").IsVisible = false;
-            C<SelectableTextBlock>("StreamingToolText").Text = "";
-            C<SelectableTextBlock>("PendingUserText").Text = "";
-            C<TextBox>("TitleInput").Text = "";
-            C<TextBlock>("ViewHeading").Text = "Conversation";
-            C<TextBlock>("ConversationDetails").Text = "";
-            C<Button>("OlderButton").IsVisible = false;
-        }
+        ShowDraft();
+    }
+
+    private void ResetOwnerView()
+    {
+        HideInspector();
+        _inspectorOrigin = null;
+        _evidence = null;
+        _visibleEvidence = null;
+        C<StackPanel>("InspectorBody").Children.Clear();
+        C<StackPanel>("PageBody").Children.Clear();
+        _timeline.Clear();
+        ShowDraft();
+        C<Expander>("StreamingPanel").IsVisible = false;
+        C<Border>("PendingUserPanel").IsVisible = false;
+        C<MarkdownView>("StreamingText").Text = "";
+        C<Expander>("StreamingTools").IsVisible = false;
+        C<SelectableTextBlock>("StreamingToolText").Text = "";
+        C<SelectableTextBlock>("PendingUserText").Text = "";
+        C<TextBox>("TitleInput").Text = _current?.Title ?? "";
+        C<Button>("ActiveModelButton").Content = _current?.Model ?? "";
+        C<TextBlock>("ConversationDetails").Text = "";
+        C<Button>("OlderButton").IsVisible = false;
+        ShowChat();
     }
 
     private async Task LoadAsync(ConversationSummary conversation, bool keepReading = false)
     {
-        _indexingOwner = conversation.Id; _indexingProject = false;
         bool follow = !keepReading || _followOutput;
         var previousOffset = C<ScrollViewer>("MessageScroll").Offset;
         SaveDraft();
         HideInspector();
         _evidence = null;
-        var page = await _client.MessagesAsync(conversation.Id, null, _lifetime.Token);
+        _current = conversation;
+        var page = await _navigation.ReadMessagesAsync(null, _lifetime.Token);
+        if (page is null) return;
         _current = page.Conversation;
-        _loadingDraft = true;
-        C<TextBox>("MessageInput").Text = _drafts.Get(_current.Id)?.Text ?? "";
-        _loadingDraft = false;
+        ShowDraft();
         C<Expander>("StreamingPanel").IsVisible = false;
         C<Border>("PendingUserPanel").IsVisible = false;
         _followOutput = follow; C<Button>("LatestButton").IsVisible = !follow;
@@ -264,11 +267,7 @@ public partial class ChatWindow : Window
         ShowChat();
         C<Button>("ActiveModelButton").Content = _current.Model;
         C<TextBlock>("ConversationDetails").Text = $"{_current.MessageCount} messages";
-        _messages.Clear();
-        foreach (var message in Timeline(page))
-        {
-            _messages.Add(message);
-        }
+        _timeline.Replace(page);
 
         C<Button>("OlderButton").IsVisible = page.HasMore;
         if (follow) ScrollToEnd();
@@ -278,20 +277,17 @@ public partial class ChatWindow : Window
 
     private async Task LoadOlderAsync()
     {
-        if (_current is null || _messages.Count == 0)
+        if (_current is null || _timeline.OldestSequence is not int before)
         {
             return;
         }
 
-        var page = await _client.MessagesAsync(_current.Id, _messages[0].Sequence, _lifetime.Token);
+        var page = await _navigation.ReadMessagesAsync(before, _lifetime.Token);
+        if (page is null) return;
         var scroll = C<ScrollViewer>("MessageScroll");
         var offset = scroll.Offset;
         double oldHeight = scroll.Extent.Height;
-        var timeline = Timeline(page);
-        for (var index = timeline.Length - 1; index >= 0; index--)
-        {
-            _messages.Insert(0, timeline[index]);
-        }
+        _timeline.Prepend(page);
 
         C<Button>("OlderButton").IsVisible = page.HasMore;
         Dispatcher.UIThread.Post(() => scroll.Offset = new Vector(offset.X, offset.Y + Math.Max(0, scroll.Extent.Height - oldHeight)), DispatcherPriority.Background);
@@ -306,14 +302,7 @@ public partial class ChatWindow : Window
             return;
         }
 
-        if (_project.Id is Guid project)
-        {
-            var defaults = await _client.ProjectAsync(project, _lifetime.Token);
-            if (defaults.DefaultModel.Length > 0) model = defaults.DefaultModel;
-        }
-        var title = C<TextBox>("NewTitleInput").Text;
-        var conversation = await _client.CreateAsync(string.IsNullOrWhiteSpace(title) ? "Nouvelle conversation" : title,
-            model, C<TextBox>("SystemPromptInput").Text, _lifetime.Token, _project.Id);
+        var conversation = await _navigation.CreateConversationAsync(C<TextBox>("NewTitleInput").Text, model, C<TextBox>("SystemPromptInput").Text, _lifetime.Token);
         await RefreshConversationsAsync(conversation.Id);
         await LoadAsync(conversation);
         C<TextBox>("NewTitleInput").Text = "";
@@ -372,12 +361,10 @@ public partial class ChatWindow : Window
         }
 
         await _client.DeleteAsync(_current.Id, _lifetime.Token);
-        _drafts.Remove(_current.Id);
-        _loadingDraft = true;
-        C<TextBox>("MessageInput").Text = "";
-        _loadingDraft = false;
+        _composer.Remove(_current.Id);
+        ShowDraft();
         _current = null;
-        _drafts.Save();
+        _composer.Flush();
         await RefreshConversationsAsync(null);
         if (_current is not null)
         {
@@ -389,24 +376,17 @@ public partial class ChatWindow : Window
 
     private async Task SendAsync()
     {
-        var text = C<TextBox>("MessageInput").Text?.Trim();
-        if (_current is null || string.IsNullOrWhiteSpace(text))
+        var submission = _composer.Begin(_current, C<TextBox>("MessageInput").Text);
+        if (submission is null)
         {
             Feedback("Saisissez un message.");
             return;
         }
 
-        var conversationId = _current.Id;
-        var pending = _drafts.Set(conversationId, text);
-        _drafts.Save();
-        _pendingId = pending.RequestId;
         using var generation = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
         _generation = generation;
         UpdateControls();
         Feedback("");
-        var streamed = new System.Text.StringBuilder();
-        var lastRender = DateTime.UtcNow;
-        var hasThinking = false;
         C<Expander>("StreamingPanel").IsVisible = true;
         C<Expander>("StreamingPanel").Header = "Réponse provisoire · en attente d’enregistrement";
         C<MarkdownView>("StreamingText").Text = "";
@@ -415,11 +395,11 @@ public partial class ChatWindow : Window
         C<TextBlock>("StreamingStatus").Text = "Préparation du contexte et chargement du modèle…";
         C<Border>("PendingUserPanel").IsVisible = true;
         C<TextBlock>("PendingUserLabel").Text = "Vous · envoi en cours";
-        C<SelectableTextBlock>("PendingUserText").Text = text;
+        C<SelectableTextBlock>("PendingUserText").Text = submission.Draft.Text;
         _followOutput = true; ScrollToEnd();
         try
         {
-            var result = await _client.StreamMessageAsync(_current.Id, _pendingId, text, _current.Revision, delta =>
+            var result = await _composer.SendAsync(_client, delta =>
             {
                 if (delta.Status is not null)
                 { C<TextBlock>("StreamingStatus").Text = delta.Status; }
@@ -428,25 +408,16 @@ public partial class ChatWindow : Window
                     C<Expander>("StreamingTools").IsVisible = true;
                     C<SelectableTextBlock>("StreamingToolText").Text += ToolDisplay.Describe(tool) + "\n\n";
                 }
-                streamed.Append(delta.Content);
-                hasThinking |= !string.IsNullOrEmpty(delta.Thinking);
-                // Throttle layout work; avoid re-rendering the whole text for every token.
-                if ((DateTime.UtcNow - lastRender).TotalMilliseconds >= 80 || streamed.Length == 0)
+                if (submission.Append(delta))
                 {
-                    C<MarkdownView>("StreamingText").Text = streamed.ToString();
-                    if (delta.Status is null && streamed.Length > 0) C<TextBlock>("StreamingStatus").Text = $"Génération en cours · {streamed.Length:N0} caractères";
-                    else if (delta.Status is null && hasThinking) C<TextBlock>("StreamingStatus").Text = "Le modèle réfléchit…";
-                    lastRender = DateTime.UtcNow;
+                    C<MarkdownView>("StreamingText").Text = submission.Output;
+                    if (delta.Status is null && submission.GenerationStatus is { } status) C<TextBlock>("StreamingStatus").Text = status;
                 }
                 return Task.CompletedTask;
             }, generation.Token);
-            // The server has confirmed persistence, so subsequent refresh failure
-            // must not invite a duplicate send.
             C<TextBox>("MessageInput").Text = "";
-            _drafts.Remove(_current.Id);
-            _drafts.Save();
             C<Expander>("StreamingPanel").IsVisible = false;
-            await RefreshConversationsAsync(_current.Id);
+            await RefreshConversationsAsync(submission.Conversation.Id);
             if (_current is not null)
             {
                 await LoadAsync(_current, keepReading: true);
@@ -456,28 +427,32 @@ public partial class ChatWindow : Window
         }
         finally
         {
-            if (C<Expander>("StreamingPanel").IsVisible)
+            if (!submission.Confirmed && C<Expander>("StreamingPanel").IsVisible)
             {
-                // Restore the submitted draft even if a UI refresh changed the editor during the operation.
-                if (_current?.Id == conversationId && string.IsNullOrWhiteSpace(C<TextBox>("MessageInput").Text))
-                {
-                    C<TextBox>("MessageInput").Text = text;
-                    _drafts.Set(_current.Id, text);
-                    _drafts.Save();
-                }
-                C<MarkdownView>("StreamingText").Text = streamed.Length > 0 ? streamed.ToString() : "Aucune réponse reçue.";
+                var editor = C<TextBox>("MessageInput");
+                if (_composer.RestoreIfEmpty(_current?.Id, editor.Text) is { } restored) editor.Text = restored;
+                var output = submission.Output;
+                C<MarkdownView>("StreamingText").Text = output.Length > 0 ? output : "Aucune réponse reçue.";
                 C<Expander>("StreamingPanel").Header = "Réponse provisoire · enregistrement non confirmé";
                 C<TextBlock>("StreamingStatus").Text = "Génération interrompue · brouillon conservé";
                 C<TextBlock>("PendingUserLabel").Text = "Vous · demande non confirmée";
             }
+            _composer.End();
             _generation = null;
         }
     }
 
+    private void ShowDraft()
+    {
+        _loadingDraft = true;
+        try { C<TextBox>("MessageInput").Text = _composer.TextFor(_current?.Id); }
+        finally { _loadingDraft = false; }
+    }
+
     private void SaveDraft()
     {
-        if (_current is not null && !_loadingDraft && _generation is null)
-            _drafts.Set(_current.Id, C<TextBox>("MessageInput").Text ?? "");
+        if (!_loadingDraft && _generation is null)
+            _composer.Edit(_current?.Id, C<TextBox>("MessageInput").Text);
     }
 
     private void ScrollToEnd()

@@ -6,12 +6,12 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using Alycia.Modules.Chat.Application;
+using Alycia.Contracts.Chat;
 
 namespace Alycia.Client.Avalonia;
 
-public sealed record SettingsReply(ConversationSummary Conversation, ChatOptions Options);
-public sealed record ContextPreview(ContextWindow Context, ChatOptions Options, int Revision, int OmittedMessages, string Estimator, GenerationUsage? Usage = null);
+public sealed record SettingsReply(ConversationSummary Conversation, ChatSettings Options);
+public sealed record ContextPreview(ContextWindowView Context, ChatSettings Options, int Revision, int OmittedMessages, string Estimator, GenerationUsage? Usage = null);
 public sealed record PromptItem(Guid Id, string Name, string SystemPrompt)
 {
     public override string ToString() => Name;
@@ -39,7 +39,7 @@ public sealed partial class ChatApiClient
     public Task<SettingsReply> SettingsAsync(Guid id, CancellationToken ct) =>
         SendAsync<SettingsReply>(HttpMethod.Get, $"/conversations/{id}/settings", null, ct);
     public Task<ConversationSummary> ConfigureAsync(Guid id, int revision, string model, string systemPrompt,
-        string notes, ChatOptions options, CancellationToken ct) => SendAsync<ConversationSummary>(HttpMethod.Put,
+        string notes, ChatSettings options, CancellationToken ct) => SendAsync<ConversationSummary>(HttpMethod.Put,
             $"/conversations/{id}/settings", new { revision, model, systemPrompt, contextNotes = notes, options }, ct);
     public Task<ContextPreview> PreviewAsync(Guid id, string content, CancellationToken ct) =>
         SendAsync<ContextPreview>(HttpMethod.Post, $"/conversations/{id}/context", new { content }, ct);

@@ -1,6 +1,6 @@
 using System;
 using System.Linq;
-using Alycia.Modules.Chat.Application;
+using Alycia.Contracts.Chat;
 using System.Net;
 using System.IO;
 using System.Collections.Generic;
@@ -12,11 +12,6 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Alycia.Client.Avalonia;
-
-public sealed record ConversationSummary(Guid Id, string Title, string Model, string SystemPrompt,
-    DateTimeOffset CreatedAtUtc, DateTimeOffset UpdatedAtUtc, int Revision, int MessageCount,
-    string ContextNotes = "", string SettingsJson = "{}", string MemoryText = "", int MemoryThroughSequence = 0,
-    string MemorySourceHash = "", string MemoryModel = "", string MemoryLedgerJson = "{}", Guid? WorkspaceId = null);
 
 public sealed record ChatMessageItem(Guid ConversationId, int Sequence, Guid RequestId, string Role,
     string Content, DateTimeOffset CreatedAtUtc, Guid? AttachmentId = null, string ToolTraceJson = "[]", string DiagnosticsJson = "{}")
@@ -31,7 +26,7 @@ public sealed record ChatMessageItem(Guid ConversationId, int Sequence, Guid Req
         get
         {
             if (!HasToolTrace) return "";
-            try { return string.Join("\n\n", (JsonSerializer.Deserialize<ToolObservation[]>(ToolTraceJson, ProjectToolCatalog.Json) ?? []).Where(t => t is not null).Select(ToolDisplay.Describe)); }
+            try { return string.Join("\n\n", (JsonSerializer.Deserialize<ToolObservation[]>(ToolTraceJson, ChatJson.Options) ?? []).Where(t => t is not null).Select(ToolDisplay.Describe)); }
             catch (JsonException) { return "Trace d’outils illisible."; }
         }
     }
@@ -44,7 +39,7 @@ public sealed record ChatMessageItem(Guid ConversationId, int Sequence, Guid Req
 
 public sealed record MessagePage(ConversationSummary Conversation, ChatMessageItem[] Messages, bool HasMore, FileItem[]? Files = null);
 public sealed record ChatSendResult(ChatMessageItem[] Messages, int? HistoryMessagesIncluded, bool Replayed, int FilesIncluded = 0,
-    int? EstimatedInputTokens = null, Alycia.Modules.Chat.Application.GenerationStats? Stats = null, GenerationUsage? Usage = null);
+    int? EstimatedInputTokens = null, GenerationStats? Stats = null, GenerationUsage? Usage = null);
 public sealed record FileItem(Guid Id, string Name, long Size, string Status, int AnchorSequence,
     DateTimeOffset CreatedAtUtc, Guid? ArchiveId, string Sha256, string ContextMode = "window", Guid BatchId = default, string SourceCreatedAt = "", string SourceModifiedAt = "", string MetadataSource = "unknown", Guid? WorkspaceId = null)
 {

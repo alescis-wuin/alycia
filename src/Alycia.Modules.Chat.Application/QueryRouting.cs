@@ -3,8 +3,6 @@ using Alycia.Modules.Chat.Domain;
 
 namespace Alycia.Modules.Chat.Application;
 
-public sealed record QueryRoute(string Mode, string Reason, bool Search, bool Tools, string Rules = "route-v1");
-
 public static class QueryRouting
 {
     private static bool Match(string text, string pattern) => Regex.IsMatch(text, pattern,

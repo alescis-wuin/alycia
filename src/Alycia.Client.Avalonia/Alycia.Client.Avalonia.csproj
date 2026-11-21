@@ -22,6 +22,6 @@
     <PackageReference Include="Markdig" Version="1.6.0" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="../Alycia.Modules.Chat.Application/Alycia.Modules.Chat.Application.csproj" />
+    <ProjectReference Include="../Alycia.Contracts/Alycia.Contracts.csproj" />
   </ItemGroup>
 </Project>

@@ -3,7 +3,7 @@ using System.Text;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Alycia.Client.Avalonia;
-using Alycia.Modules.Chat.Application;
+using Alycia.Contracts.Chat;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
@@ -112,6 +112,9 @@ public sealed class ChatTests
         var citedId = Guid.NewGuid();
         string citedHash = new string('a', 64);
         var fail = false;
+        var pauseSend = false;
+        var pausedRequestId = Guid.Empty;
+        var paused = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         Action? beforeFailure = null;
         using var http = new HttpClient(new Handler(async (request, ct) =>
         {
@@ -130,11 +133,12 @@ public sealed class ChatTests
 
             if (request.Method == HttpMethod.Get && path.EndsWith("/search"))
             {
-                return Json(new ConversationSearch(conversation is null ? [] : [conversation], false));
+                var empty = request.RequestUri.Query.Contains("sans-resultat", StringComparison.Ordinal);
+                return Json(new ConversationSearch(conversation is null || empty ? [] : [conversation], false));
             }
 
             if (request.Method == HttpMethod.Get && path.EndsWith("/settings"))
-                return Json(new SettingsReply(conversation!, new ChatOptions()));
+                return Json(new SettingsReply(conversation!, new ChatSettings()));
             if (request.Method == HttpMethod.Get && path.EndsWith("/tools"))
                 return Json(new ProjectToolsInfo(true, true, 24, ["project_list", "project_read", "project_search"], "2025-11-25"));
             if (request.Method == HttpMethod.Get && path.EndsWith("/files")) return Json(files);
@@ -184,6 +188,12 @@ public sealed class ChatTests
                 return Json(conversation, HttpStatusCode.Created);
             }
 
+            if (pauseSend)
+            {
+                pausedRequestId = root.GetProperty("requestId").GetGuid();
+                paused.SetResult();
+                await Task.Delay(Timeout.Infinite, ct);
+            }
             if (fail)
             {
                 beforeFailure?.Invoke();
@@ -198,9 +208,9 @@ public sealed class ChatTests
             {
                 DiagnosticsJson = JsonSerializer.Serialize(new TurnDiagnostics(
                     new GenerationUsage([new("chat", 100, 200, new(100, 20, null, null, "stop"))], "demo:fixture", "UTF-8 conservateur", 100, 20, 200, true),
-                    Citations: new("unknown_references", [new("Sabcdef123456", citedId, "src/A.cs", citedHash, 1, 1, 2, 9, "initial", true)], [], ["S000000000000"])), ProjectToolCatalog.Json),
+                    Citations: new("unknown_references", [new("Sabcdef123456", citedId, "src/A.cs", citedHash, 1, 1, 2, 9, "initial", true)], [], ["S000000000000"])), ChatJson.Options),
                 ToolTraceJson = JsonSerializer.Serialize(new[]
-                { new ToolObservation(1, "project_read", "{}", true, 100, new("src/A.cs", new string('a', 64), 0, null, true)) }, ProjectToolCatalog.Json)
+                { new ToolObservation(1, "project_read", "{}", true, 100, new("src/A.cs", new string('a', 64), 0, null, true)) }, ChatJson.Options)
             };
             var result = new ChatSendResult(messages.ToArray(), 0, false);
             var settings = new JsonSerializerOptions(JsonSerializerDefaults.Web);
@@ -294,6 +304,21 @@ public sealed class ChatTests
             PumpUntil(() => diagnostics.GetVisualDescendants().OfType<SelectableTextBlock>().Any(t => t.Text?.Contains("S000000000000") == true));
             Click(window, "CloseInspector");
             Assert.False(window.FindControl<Border>("Inspector")!.IsVisible);
+            window.FindControl<TextBox>("MessageInput")!.Text = "Brouillon privé";
+            evidence.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            PumpUntil(() => window.FindControl<Border>("Inspector")!.IsVisible);
+            window.FindControl<TextBox>("SearchInput")!.Text = "sans-resultat";
+            Click(window, "SearchButton");
+            Assert.False(window.FindControl<Border>("Inspector")!.IsVisible);
+            Assert.Empty(window.FindControl<StackPanel>("InspectorBody")!.Children);
+            Assert.Equal("", window.FindControl<TextBox>("MessageInput")!.Text);
+            Assert.Equal(0, window.FindControl<ItemsControl>("MessageList")!.ItemCount);
+            window.FindControl<TextBox>("SearchInput")!.Text = "";
+            Click(window, "SearchButton");
+            Assert.Equal("Brouillon privé", window.FindControl<TextBox>("MessageInput")!.Text);
+            Assert.Equal(3, window.FindControl<ItemsControl>("MessageList")!.ItemCount);
+            window.FindControl<TextBox>("MessageInput")!.Text = "";
+
             // Optional visual evidence from the actual Avalonia/Skia rendering.
             if (Environment.GetEnvironmentVariable("ALYCIA_UI_CAPTURE") is { Length: > 0 } screenshot)
             {
@@ -345,9 +370,16 @@ public sealed class ChatTests
                 watch.Restart();
                 for (int end = 25000; end <= large.Length; end += 25000) { stream.Text = large[..end]; stream.RenderNow(); }
                 watch.Stop();
-                File.WriteAllText(benchmarkPath, JsonSerializer.Serialize(new { messages = 1000, characters = 100000,
-                    fragments = 4, historyMs, markdownMs = watch.Elapsed.TotalMilliseconds,
-                    allocatedBytes = GC.GetTotalAllocatedBytes() - bytesBefore, workingSetBytes = Environment.WorkingSet }));
+                File.WriteAllText(benchmarkPath, JsonSerializer.Serialize(new
+                {
+                    messages = 1000,
+                    characters = 100000,
+                    fragments = 4,
+                    historyMs,
+                    markdownMs = watch.Elapsed.TotalMilliseconds,
+                    allocatedBytes = GC.GetTotalAllocatedBytes() - bytesBefore,
+                    workingSetBytes = Environment.WorkingSet
+                }));
                 stream.Text = "";
                 messages.Clear();
                 messages.AddRange(original);
@@ -385,8 +417,16 @@ public sealed class ChatTests
             window.KeyRelease(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
             PumpUntil(() => window.OwnedWindows.Count == 0 && window.FindControl<Button>("RefreshButton")!.IsEnabled);
 
-            fail = true;
             window.FindControl<TextBox>("MessageInput")!.Text = "Conserver ce brouillon";
+            pauseSend = true;
+            window.FindControl<Button>("SendButton")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            PumpUntil(() => paused.Task.IsCompletedSuccessfully);
+            Assert.False(window.FindControl<ComboBox>("ProjectSelector")!.IsEnabled);
+            Click(window, "CancelButton");
+            Assert.Equal("Conserver ce brouillon", window.FindControl<TextBox>("MessageInput")!.Text);
+            Assert.Equal(pausedRequestId, new DraftStore(stateDirectory).Get(conversation.Id)!.RequestId);
+            pauseSend = false;
+            fail = true;
             beforeFailure = () => window.FindControl<TextBox>("MessageInput")!.Text = "";
             Click(window, "SendButton");
             Assert.Equal("Conserver ce brouillon", window.FindControl<TextBox>("MessageInput")!.Text);

@@ -1,6 +1,6 @@
 using System;
 using System.Linq;
-using Alycia.Modules.Chat.Application;
+using Alycia.Contracts.Chat;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
@@ -44,8 +44,13 @@ public sealed partial class MarkdownView
             else if (!suffix.IsEmpty && suffix[0] is '\n' or '\r') body += suffix[0];
         }
         string language = (code as FencedCodeBlock)?.Info?.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "";
-        var title = new TextBlock { Text = language.Length == 0 ? "Code" : language, FontSize = 14,
-            Foreground = Ink("Muted"), VerticalAlignment = VerticalAlignment.Center };
+        var title = new TextBlock
+        {
+            Text = language.Length == 0 ? "Code" : language,
+            FontSize = 14,
+            Foreground = Ink("Muted"),
+            VerticalAlignment = VerticalAlignment.Center
+        };
         var copy = CopyControl("Copier le code", body);
         var header = new DockPanel { Margin = new Thickness(0, 0, 0, 6) };
         DockPanel.SetDock(copy, Dock.Right);
@@ -63,10 +68,18 @@ public sealed partial class MarkdownView
             codeText.Inlines = new InlineCollection();
             foreach (var span in spans) codeText.Inlines.Add(new Run(span.Text) { Foreground = span.Color is null ? Ink("Ink") : Ink(span.Color) });
         }
-        return new Border { Background = Ink("Code"), CornerRadius = new CornerRadius(10), Padding = new Thickness(14),
-            Child = new StackPanel { Children = { header, new ScrollViewer { Content = codeText,
+        return new Border
+        {
+            Background = Ink("Code"),
+            CornerRadius = new CornerRadius(10),
+            Padding = new Thickness(14),
+            Child = new StackPanel
+            {
+                Children = { header, new ScrollViewer { Content = codeText,
                 HorizontalScrollBarVisibility = WrapCode ? ScrollBarVisibility.Disabled : ScrollBarVisibility.Auto,
-                VerticalScrollBarVisibility = ScrollBarVisibility.Disabled } } } };
+                VerticalScrollBarVisibility = ScrollBarVisibility.Disabled } }
+            }
+        };
     }
 
     private Button CopyControl(string label, string source)
@@ -93,8 +106,13 @@ public sealed partial class MarkdownView
         var formula = FormulaView.Create(tex, ReadingSize, Ink("Ink"));
         if (inline)
         {
-            var button = new Button { Content = formula, Background = Brushes.Transparent,
-                BorderThickness = new Thickness(0), Padding = new Thickness(2, 0) };
+            var button = new Button
+            {
+                Content = formula,
+                Background = Brushes.Transparent,
+                BorderThickness = new Thickness(0),
+                Padding = new Thickness(2, 0)
+            };
             AutomationProperties.SetName(button, "Copier le LaTeX " + tex);
             ToolTip.SetTip(button, "Copier le LaTeX");
             button.Click += async (_, _) =>
@@ -104,9 +122,13 @@ public sealed partial class MarkdownView
             };
             return button;
         }
-        return new StackPanel { Spacing = 5, Children = { new ScrollViewer { Content = formula,
+        return new StackPanel
+        {
+            Spacing = 5,
+            Children = { new ScrollViewer { Content = formula,
             HorizontalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalScrollBarVisibility = ScrollBarVisibility.Disabled },
-            CopyControl("Copier le LaTeX", tex) } };
+            CopyControl("Copier le LaTeX", tex) }
+        };
     }
 
     private void AddCitation(InlineCollection output, string reference)

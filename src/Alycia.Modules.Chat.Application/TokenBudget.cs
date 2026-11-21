@@ -28,9 +28,6 @@ public static class TokenBudget
         ?? "UTF-8 conservateur — tokenizer non disponible pour ce modèle";
 }
 
-public sealed record ModelCallUsage(string Purpose, int EstimatedInputTokens, double ElapsedMilliseconds, GenerationStats? Stats, double? FirstContentMilliseconds = null, int? EffectiveContextTokens = null, long? ApiWorkingSetBytes = null, long? ModelVramBytes = null);
-public sealed record GenerationUsage(IReadOnlyList<ModelCallUsage> Calls, string? ModelIdentity, string Counter,
-    long? InputTokens, long? OutputTokens, double ElapsedMilliseconds, bool Complete);
 
 // Per operation, never static: simultaneous conversations cannot mix their measurements.
 public sealed class MeteredChatModel(IChatModel inner) : IChatModel
