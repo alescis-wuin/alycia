@@ -1,3 +1,4 @@
+using Alycia.Modules.Chat.Application;
 using Alycia.Modules.Chat.Domain;
 using Microsoft.EntityFrameworkCore;
 
@@ -5,6 +6,11 @@ namespace Alycia.Modules.Chat.Infrastructure;
 
 public static class ProjectProfiles
 {
+    public static void CheckRevision(WorkspaceProfile profile, int revision)
+    {
+        if (profile.Revision != revision) throw new ChatConflictException();
+    }
+
     public static async Task<WorkspaceProfile> RequireAsync(ChatDbContext db, Guid id, CancellationToken ct, bool archived = false)
     {
         var profile = await db.WorkspaceProfiles.FindAsync([id], ct);

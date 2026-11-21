@@ -35,6 +35,8 @@ internal static class ChatRegistration
             sp.GetRequiredService<IChatRepository>(), sp.GetRequiredService<IChatModel>(), sp.GetRequiredService<ChatOptions>(),
             sp.GetRequiredService<ITurnContext>(), sp.GetRequiredService<IConversationMemory>(), sp.GetRequiredService<ITurnTools>(),
             sp.GetRequiredService<IProjectRetrieval>(), sp.GetRequiredService<ITemporalMemory>()));
+        builder.Services.AddScoped<IProjectCatalog, ProjectCatalog>();
+        builder.Services.AddScoped<ProjectFiles>();
         RegisterDocuments(builder);
         RegisterIndexing(builder.Services);
         RegisterRetrieval(builder.Services);
