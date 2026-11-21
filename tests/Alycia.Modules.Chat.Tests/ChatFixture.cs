@@ -1,3 +1,4 @@
+using Alycia.Modules.Retrieval;
 using Alycia.Contracts.Indexing;
 using Alycia.Modules.Chat.Infrastructure;
 using Alycia.Modules.Workspaces.Infrastructure;
@@ -51,5 +52,5 @@ internal static class ChatFixture
 
     public static ChatService Create(IChatRepository repository, IChatModel model, ChatOptions options) =>
         new(repository, model, options, new TurnContext(repository, new Alycia.Modules.Context.SlidingHistory()), new ConversationMemory(repository, ChatFixture.Gate),
-            new TurnTools(), new TurnRouting(repository), new TurnResponseAudit(), Gate, Foreground);
+            new TurnTools(), new TurnRouting(new QueryPlanner(repository)), new TurnResponseAudit(), Gate, Foreground);
 }

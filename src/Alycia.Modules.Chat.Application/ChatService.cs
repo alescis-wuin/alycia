@@ -5,7 +5,7 @@ using Alycia.Modules.Chat.Domain;
 namespace Alycia.Modules.Chat.Application;
 
 public sealed class ChatService(IChatRepository repository, IChatModel model, ChatOptions options,
-    ITurnContext turnContext, IConversationMemory memory, ITurnTools tools, ITurnRouting routing, ITurnResponseAudit audit, GenerationGate gate, IForegroundActivity foreground)
+    ITurnContext turnContext, IConversationMemory memory, ITurnTools tools, ITurnRouter routing, ITurnResponseAudit audit, GenerationGate gate, IForegroundActivity foreground)
 {
     public async Task<Conversation> CreateAsync(string? title, string? modelName, string? systemPrompt,
         CancellationToken cancellationToken, Guid? workspaceId = null)
@@ -60,7 +60,10 @@ public sealed class ChatService(IChatRepository repository, IChatModel model, Ch
         var settings = await model.PrepareOptionsAsync(conversation.Model, ConversationConfiguration.Options(conversation, defaults), cancellationToken);
         using var priority = foreground.PreferForeground();
         var measured = new MeteredChatModel(model);
-        await routing.PrepareAsync(conversation.Id, conversation.MessageCount, text, settings, measured, onDelta, cancellationToken);
+        var routed = await routing.PrepareAsync(conversation.Id, conversation.MessageCount, text, settings.RoutingRequest(),
+            new QueryBriefRefiner(measured), onDelta is null ? null : () => onDelta(new("", Status: "Préparation du contexte…")), cancellationToken);
+        measured.AddCalls(routed.Calls);
+        settings = settings.WithRouting(routed.State);
         var toolScope = new ToolTurnScope(conversation.Id, conversation.WorkspaceId, conversation.Model);
         var activeTools = await tools.SelectAsync(toolScope, settings.UseProjectTools, model, cancellationToken);
         var contextOwner = conversation.ForContext(settings);

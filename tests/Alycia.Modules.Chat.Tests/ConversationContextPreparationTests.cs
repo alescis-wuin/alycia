@@ -1,3 +1,4 @@
+using Alycia.Modules.Retrieval;
 using Alycia.Contracts.Retrieval;
 using Alycia.Contracts.Memory;
 using Alycia.Modules.Chat.Application.Conversations;
@@ -75,7 +76,7 @@ public sealed class ConversationContextPreparationTests
         public TaskCompletionSource? Lookup { get; init; }
         public int OptionReads { get; private set; }
         public ConversationContextPreparation Service() => new(this, this, new TurnTools(), new TurnContext(this, new Alycia.Modules.Context.SlidingHistory()),
-            new ConversationMemory(this, ChatFixture.Gate), this, this, Defaults, ChatFixture.Gate);
+            new ConversationMemory(this, ChatFixture.Gate), new TurnRouting(new QueryPlanner(this), this, this), Defaults, ChatFixture.Gate);
 
         public Task<ChatOptions> PrepareOptionsAsync(string model, ChatOptions options, CancellationToken ct)
         {

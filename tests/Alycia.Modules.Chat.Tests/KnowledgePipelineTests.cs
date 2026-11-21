@@ -1,3 +1,4 @@
+using Alycia.Modules.Retrieval;
 using Alycia.Contracts.Indexing;
 using System.Collections.Concurrent;
 using System.Text;

@@ -1,3 +1,4 @@
+using Alycia.Contracts.Indexing;
 using System.Collections.Frozen;
 using Alycia.Contracts.Chat;
 
@@ -5,6 +6,9 @@ namespace Alycia.Contracts.Retrieval;
 
 public static class SearchSnapshots
 {
+    public static SourceChunk[]? CopyChunks(IEnumerable<SourceChunk>? chunks) =>
+        chunks?.Select(c => c with { References = [.. c.References] }).ToArray();
+
     public static QueryBrief? Copy(QueryBrief? brief) => brief is null ? null : brief with
     {
         Labels = [.. brief.Labels], Literals = [.. brief.Literals], Dates = [.. brief.Dates],

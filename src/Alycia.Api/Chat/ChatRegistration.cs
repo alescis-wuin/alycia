@@ -1,3 +1,4 @@
+using Alycia.Modules.Retrieval;
 using Alycia.Contracts.Retrieval;
 using Alycia.Contracts.Indexing;
 using Alycia.Contracts.Memory;
@@ -63,12 +64,14 @@ internal static class ChatRegistration
         services.AddScoped<ConversationHistory>();
         services.AddScoped<ConversationSettingsService>();
         services.AddScoped<PromptCatalog>();
-        services.AddScoped<ITurnRouting, TurnRouting>();
+        services.AddScoped<IQuerySources>(sp => sp.GetRequiredService<IChatRepository>());
+        services.AddScoped<IQueryPlanner, QueryPlanner>();
+        services.AddScoped<ITurnRouter, TurnRouting>();
         services.AddScoped<ITurnResponseAudit, TurnResponseAudit>();
         services.AddScoped(sp => new ChatService(
             sp.GetRequiredService<IChatRepository>(), sp.GetRequiredService<IChatModel>(), sp.GetRequiredService<ChatOptions>(),
             sp.GetRequiredService<ITurnContext>(), sp.GetRequiredService<IConversationMemory>(), sp.GetRequiredService<ITurnTools>(),
-            sp.GetRequiredService<ITurnRouting>(), sp.GetRequiredService<ITurnResponseAudit>(),
+            sp.GetRequiredService<ITurnRouter>(), sp.GetRequiredService<ITurnResponseAudit>(),
             sp.GetRequiredService<GenerationGate>(), sp.GetRequiredService<IForegroundActivity>()));
     }
 

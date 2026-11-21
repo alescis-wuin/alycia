@@ -78,17 +78,14 @@ internal static class OfflineEvaluation
         public Task<ProjectIndexSnapshot> BuildAsync(Guid id, CancellationToken ct) =>
             Task.FromResult(new ProjectIndexSnapshot(chunks, files, files, files, []));
     }
-    private sealed class FixtureRepository(TurnFile[] documents, HistoryMessage[] history) : IConversationContextReader
+    private sealed class FixtureRepository(TurnFile[] documents, QueryHistoryItem[] history) : IQuerySources
     {
         public Task<IReadOnlyList<TurnFile>> ContextFilesAsync(Guid id, int first, CancellationToken ct) =>
             Task.FromResult<IReadOnlyList<TurnFile>>(documents.Where(f => f.ConversationId == id && f.ContextMode != "excluded"
                 && (f.ContextMode is "pinned" or "project" || f.AnchorSequence >= first)).ToArray());
 
-        public Task<IReadOnlyList<HistoryMessage>> RecentAsync(Guid id, int limit, int? before, CancellationToken ct) =>
-            Task.FromResult<IReadOnlyList<HistoryMessage>>(history.Where(m => m.ConversationId == id && (before == null || m.Sequence < before)).TakeLast(limit).ToArray());
-
-        public Task<IReadOnlyList<HistoryMessage>> SummaryRangeAsync(Guid id, int after, int through, CancellationToken ct) =>
-            Task.FromResult<IReadOnlyList<HistoryMessage>>(history.Where(m => m.ConversationId == id && m.Sequence > after && m.Sequence <= through).ToArray());
+        public Task<IReadOnlyList<QueryHistoryItem>> RecentForQueryAsync(Guid owner, int limit, CancellationToken ct) =>
+            Task.FromResult<IReadOnlyList<QueryHistoryItem>>(history.Where(m => m.ConversationId == owner).TakeLast(limit).ToArray());
     }
     private sealed class NoInference : IChatModel
     {
@@ -119,8 +116,11 @@ internal static class OfflineEvaluation
             var options = settings.Copy();
             var allocated = GC.GetTotalAllocatedBytes();
             var timer = Stopwatch.StartNew();
-            var history = item.Turns.Select((text, n) => new HistoryMessage(conversation, n + 1, Guid.NewGuid(), "user", text, DateTimeOffset.UnixEpoch)).ToArray();
-            await QueryRouting.PrepareAsync(new FixtureRepository(files, history), conversation, 0, item.Question, options, service, new(new NoInference()), default);
+            var history = item.Turns.Select((text, n) => new QueryHistoryItem(conversation, n + 1, "user", text)).ToArray();
+            var router = new TurnRouting(new QueryPlanner(new FixtureRepository(files, history)), service);
+            var outcome = await router.PrepareAsync(conversation, 0, item.Question, options.RoutingRequest(),
+                new QueryBriefRefiner(new NoInference()), null, default);
+            options = options.WithRouting(outcome.State);
             var packed = ProjectRetrieval.Pack(options.SourceCandidates ?? [], files, suite.Budget, options);
             elapsed.Add(timer.Elapsed.TotalMilliseconds);
             var paths = packed.Sources.Select(s => s.Path).Distinct().Take(suite.K).ToArray();

@@ -15,7 +15,11 @@ public sealed record TurnFile(Guid Id,
     string SourceCreatedAt,
     string SourceModifiedAt,
     string MetadataSource,
-    string ContextMode);
+    string ContextMode)
+{
+    public bool InContextWindow(int first, int last) => Text.Length > 0 && ContextMode != "excluded"
+        && AnchorSequence <= last && (ContextMode is "pinned" or "project" || AnchorSequence >= first);
+}
 
 public interface ITurnDocuments
 {

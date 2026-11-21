@@ -12,7 +12,7 @@ public static class FileContext
         var original = SlidingContext.Build(policy, system, history, question, options);
         var originalStart = original.HistoryMessagesIncluded == 0 ? currentSequence
             : history[history.Count - original.HistoryMessagesIncluded].Sequence;
-        if (!files.Any(f => ProjectContext.Eligible(f, originalStart, currentSequence)))
+        if (!files.Any(f => f.InContextWindow(originalStart, currentSequence)))
             return original;
 
         var available = options.ContextTokens - options.MaxOutputTokens - options.SafetyTokens
@@ -25,7 +25,7 @@ public static class FileContext
         var window = SlidingContext.Build(policy, system, history, question, reduced);
         var earliest = window.HistoryMessagesIncluded == 0 ? currentSequence
             : history[history.Count - window.HistoryMessagesIncluded].Sequence;
-        var excerpts = ProjectContext.Select(files.Where(f => ProjectContext.Eligible(f, earliest, currentSequence)), question, reserve, options);
+        var excerpts = ProjectContext.Select(files.Where(f => f.InContextWindow(earliest, currentSequence)), question, reserve, options);
         if (excerpts.Sources.Count == 0) return original with { FilesAvailable = excerpts.Available, Assembly = excerpts.Assembly };
         var messages = window.Messages.ToList();
         messages[^1] = messages[^1] with { Content = question + excerpts.Text };
