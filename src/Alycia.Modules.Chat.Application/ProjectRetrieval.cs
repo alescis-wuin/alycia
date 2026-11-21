@@ -15,13 +15,6 @@ public interface IProjectRetrieval
 {
     Task<RetrievalPreparation> PrepareAsync(Guid conversation, string query, ChatOptions settings, CancellationToken ct);
 }
-public sealed record EmbeddingBatch(float[][] Vectors, GenerationStats? Stats);
-public interface ILocalEmbeddings
-{
-    Task<string> IdentityAsync(string model, CancellationToken ct);
-    Task<EmbeddingBatch> EmbedAsync(string model, IReadOnlyList<string> input, CancellationToken ct);
-}
-
 public static class ProjectRetrieval
 {
     private static readonly Regex Terms = new(@"[\p{L}\p{N}_]+", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(2));

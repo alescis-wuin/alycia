@@ -3,12 +3,6 @@ using System.Text.Json.Serialization;
 
 namespace Alycia.Modules.Chat.Application;
 
-public interface ITextTokenCounter
-{
-    string Name { get; }
-    int Count(string text);
-}
-
 public static class TokenBudget
 {
     public static GenerationUsage? ReadUsage(string json)

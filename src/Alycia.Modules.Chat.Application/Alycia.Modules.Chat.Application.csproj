@@ -10,5 +10,6 @@
   </ItemGroup>
   <ItemGroup>
     <Using Include="Alycia.Contracts.Chat" />
+    <Using Include="Alycia.Contracts.Inference" />
   </ItemGroup>
 </Project>

@@ -24,11 +24,7 @@ DIRECTORIES = {"Conversations", "Context", "Inference", "Documents", "Indexing",
                "Configuration", "Memory", "Tools", "Projects"}
 # Ports/value types co-located with another owner for historical source compatibility.
 TYPE_OWNERS = {
-    ("ChatContracts", "IChatModel"): "Inference", ("ChatContracts", "ChatModelFailure"): "Inference",
-    ("ChatContracts", "ChatModelException"): "Inference", ("ChatContracts", "PromptMessage"): "Inference",
-    ("ChatContracts", "GenerationReply"): "Inference", ("ChatContracts", "ContextWindow"): "Context",
-    ("ProjectRetrieval", "ILocalEmbeddings"): "Inference", ("ProjectRetrieval", "EmbeddingBatch"): "Inference",
-    ("TokenBudget", "ITextTokenCounter"): "Inference", ("TokenBudget", "MeteredChatModel"): "Inference",
+    ("TokenBudget", "MeteredChatModel"): "Inference",
 }
 
 
