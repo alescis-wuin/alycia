@@ -17,7 +17,27 @@ MODULE_NAMESPACE = re.compile(r"^Alycia\.(?:Api|Client\.Avalonia|Modules\.\w+\.(
 PROVIDER = re.compile(r"^(?:Microsoft\.EntityFrameworkCore|Npgsql|Microsoft\.ML\.OnnxRuntime)(?:\.|$)")
 
 
+ISOLATED = {
+    "Alycia.Contracts": set(),
+    "Alycia.Modules.Documents": {"Alycia.Contracts"},
+    "Alycia.Modules.Inference": {"Alycia.Contracts"},
+    "Alycia.Modules.Indexing": {"Alycia.Contracts"},
+    "Alycia.Modules.Retrieval": {"Alycia.Contracts"},
+    "Alycia.Modules.Retrieval.Onnx": {"Alycia.Contracts"},
+    "Alycia.Modules.Testing": {"Alycia.Contracts"},
+    "Alycia.Platform.Persistence": set(),
+    "Alycia.Modules.Chat.Domain": set(),
+    "Alycia.Modules.Workspaces.Domain": set(),
+    "Alycia.Modules.Workspaces.Application": {"Alycia.Modules.Workspaces.Domain"},
+    "Alycia.Modules.Workspaces.Infrastructure": {"Alycia.Contracts", "Alycia.Platform.Persistence",
+        "Alycia.Modules.Workspaces.Domain", "Alycia.Modules.Workspaces.Application"},
+}
+
+
 def forbidden(project, dependency):
+    if project in ISOLATED and dependency.startswith("Alycia.") and dependency != project:
+        return dependency not in ISOLATED[project]
+
     if project == "Alycia.Modules.Chat.Infrastructure" and dependency.startswith("Alycia.Modules.Workspaces."):
         return True
     if project == "Alycia.Contracts":
@@ -82,7 +102,7 @@ def check_project_graph(root):
 
 
 def business(project):
-    return project == "Alycia.Contracts" or project.endswith((".Application", ".Domain"))
+    return project in {"Alycia.Contracts", "Alycia.Modules.Retrieval", "Alycia.Modules.Testing"} or project.endswith((".Application", ".Domain"))
 
 
 def check_namespace(project, location, name):

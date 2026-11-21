@@ -46,6 +46,13 @@ class ModuleBoundariesTests(unittest.TestCase):
         self.assertEqual(valid, result.returncode == 0, result.stderr)
         return result.stderr
 
+    def test_independent_module_cannot_reference_a_sibling_implementation(self):
+        core = "Alycia.Modules.Retrieval"
+        sibling = "Alycia.Modules.Indexing"
+        self.project(sibling)
+        self.project(core, [sibling])
+        self.assertIn(f"project layer: {core} -> {sibling}", self.guard(False))
+
     def test_allowed_port_and_nested_namespace_ignore_generated_test_and_text(self):
         app = self.project(APP)
         infra = self.project(INFRA, [APP])
