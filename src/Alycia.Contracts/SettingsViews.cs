@@ -29,3 +29,16 @@ public interface IToolWindowSettings
     int SafetyTokens { get; }
     int ToolContextTokens { get; }
 }
+
+public readonly record struct ToolWindowParameters(int ContextTokens, int MaxOutputTokens, int SafetyTokens,
+    int ToolContextTokens) : IToolWindowSettings
+{
+    public static ToolWindowParameters Capture(IToolWindowSettings value) =>
+        new(value.ContextTokens, value.MaxOutputTokens, value.SafetyTokens, value.ToolContextTokens);
+}
+
+public readonly record struct MemoryBudgetLimits(int History, int Memory)
+{
+    public (int History, int Memory) Within(int available) =>
+        (History > 0 ? Math.Min(available, History) : available, Memory > 0 ? Math.Min(available, Memory) : available);
+}

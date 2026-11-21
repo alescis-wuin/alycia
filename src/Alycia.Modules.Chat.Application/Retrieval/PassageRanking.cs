@@ -8,7 +8,8 @@ public sealed class PassageRanking
 {
     private readonly IReadOnlyList<SourceChunk> _chunks;
     private readonly LexicalIndex _index;
-    private readonly ChatOptions _settings;
+    private readonly PassageRankingSettings _settings;
+    private readonly QueryBrief? _brief;
     private readonly string _question;
     private readonly double[]? _similarities;
     private readonly double[] _originalScores;
@@ -16,12 +17,13 @@ public sealed class PassageRanking
     private readonly Dictionary<string, List<QueryHit>> _hits = new(StringComparer.Ordinal);
     private readonly Dictionary<SourceChunk, int>? _positions;
 
-    public PassageRanking(IReadOnlyList<SourceChunk> chunks, LexicalIndex index, ChatOptions settings,
+    public PassageRanking(IReadOnlyList<SourceChunk> chunks, LexicalIndex index, PassageRankingSettings settings, QueryBrief? brief,
         string question, double[]? similarities)
     {
         _chunks = chunks;
         _index = index;
         _settings = settings;
+        _brief = SearchSnapshots.Copy(brief);
         _question = question;
         _similarities = similarities;
         _originalScores = index.Score(question);
@@ -68,10 +70,10 @@ public sealed class PassageRanking
         ClassificationReport? classification = null;
         if (_settings.ClassificationEnabled)
         {
-            var brief = _settings.SearchPlan?.Brief ?? PassageClassification.Brief(_question, [], []);
+            var brief = _brief ?? PassageClassification.Brief(_question, [], []);
             var semanticScores = _similarities is null ? null : _chunks.Select((c, i) => (Key: ProjectRetrieval.Reference(c), Score: _similarities[i]))
                 .GroupBy(p => p.Key).ToDictionary(g => g.Key, g => g.Max(p => p.Score));
-            (ranked, classification) = PassageClassification.Apply(_question, brief, ranked, _settings, semanticScores);
+            (ranked, classification) = PassageClassification.Classify(_question, brief, ranked, _settings, semanticScores);
         }
         var (ordered, rerank) = await RerankAsync(ranked, reranker, ct);
         if (_settings.PinnedSourceIds is { Count: > 0 } pins)
@@ -91,12 +93,11 @@ public sealed class PassageRanking
     private async Task<(IReadOnlyList<SourceChunk> Chunks, RerankReport? Report)> RerankAsync(
         IReadOnlyList<SourceChunk> ranked, IPassageReranker? reranker, CancellationToken ct)
     {
-        var limits = _settings.Ranking;
-        if (!limits.Enabled || ranked.Count == 0) return (ranked, null);
+        if (!_settings.RerankEnabled || ranked.Count == 0) return (ranked, null);
         var elapsed = System.Diagnostics.Stopwatch.StartNew();
-        var candidates = ranked.Take(limits.Candidates).ToArray();
+        var candidates = ranked.Take(_settings.RerankCandidateLimit).ToArray();
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        timeout.CancelAfter(limits.TimeoutMs);
+        timeout.CancelAfter(_settings.RerankTimeoutMs);
         try
         {
             if (reranker is null) throw new InvalidOperationException();

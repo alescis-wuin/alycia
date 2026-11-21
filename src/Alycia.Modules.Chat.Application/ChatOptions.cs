@@ -1,3 +1,5 @@
+using System.Collections.Frozen;
+using Alycia.Contracts.Retrieval;
 using System.Text.Json.Serialization;
 using Alycia.Contracts.Inference;
 
@@ -18,11 +20,24 @@ public sealed class ChatOptions : ChatSettings
     [JsonIgnore] public string? ModelIdentity { get; set; }
     [JsonIgnore] public string CallPurpose { get; set; } = "chat";
     [JsonIgnore] public int AvailableInputTokens => ContextTokens - MaxOutputTokens - SafetyTokens;
-    [JsonIgnore] public RankingLimits Ranking => new(RerankEnabled, RerankCandidateLimit, RerankTimeoutMs);
+    [JsonIgnore] public MemoryBudgetLimits MemoryBudget => new(HistoryContextTokens, MemoryContextTokens);
 
-    internal (int History, int Memory) LimitMemoryBudget(int available) =>
-        (HistoryContextTokens > 0 ? Math.Min(available, HistoryContextTokens) : available,
-         MemoryContextTokens > 0 ? Math.Min(available, MemoryContextTokens) : available);
+    public ChatOptions() { }
+
+    private ChatOptions(ChatOptions source) : base(source)
+    {
+        ResponseSchema = source.ResponseSchema?.Clone();
+        SourceCandidates = source.SourceCandidates?.Select(c => c with { References = [.. c.References] }).ToArray();
+        RetrievalReport = SearchSnapshots.Copy(source.RetrievalReport);
+        Route = source.Route;
+        EligibleSourceIds = source.EligibleSourceIds?.ToFrozenSet();
+        Recall = source.Recall is { } recall ? recall with { Facts = [.. recall.Facts], Calls = recall.Calls.ToArray() } : null;
+        SearchPlan = SearchSnapshots.Copy(source.SearchPlan);
+        PinnedSourceIds = source.PinnedSourceIds?.ToFrozenSet();
+        TokenCounter = source.TokenCounter;
+        ModelIdentity = source.ModelIdentity;
+        CallPurpose = source.CallPurpose;
+    }
 
     public GenerationParameters GenerationParameters()
     {
@@ -31,7 +46,5 @@ public sealed class ChatOptions : ChatSettings
             CallPurpose, ResponseSchema?.Clone());
     }
 
-    public ChatOptions Copy() => (ChatOptions)MemberwiseClone();
+    public ChatOptions Copy() => new(this);
 }
-
-public readonly record struct RankingLimits(bool Enabled, int Candidates, int TimeoutMs);
