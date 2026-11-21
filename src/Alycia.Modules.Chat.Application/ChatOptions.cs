@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+using Alycia.Contracts.Context;
 using Alycia.Contracts.Indexing;
 using Alycia.Contracts.Memory;
 using System.Collections.Frozen;
@@ -78,6 +80,18 @@ public sealed class ChatOptions : ChatSettings
     {
         Validate();
         return Alycia.Contracts.Inference.InferenceCall.Capture(this, CallPurpose, ResponseSchema, TokenCounter);
+    }
+
+    public SummaryParameters Summary() => new(ContextTokens, SafetyTokens, SummaryMaxCalls, Enrichment.MaxDepth,
+        Seed, TimeoutSeconds, TokenCounting, ModelIdentity, TokenCounter);
+
+    public ToolGeneration ToolGeneration()
+    {
+        var questions = SearchPlan?.Brief?.Facets.Select(f => f.Question)
+            ?? SearchPlan?.Queries.Skip(1).Select(q => q.Text) ?? [];
+        return new(InferenceCall(), Summary(), EvidenceSelectionEnabled, AgentPlanningEnabled, Route?.Mode == "memory",
+            AgentPlanMaxCalls, MaxSearchQueries, ToolMaxCalls, ToolContextTokens, ToolResultBytes, ToolTimeoutSeconds,
+            questions.ToImmutableArray(), SearchPlan?.Original);
     }
 
     public ChatOptions Copy() => new(this);

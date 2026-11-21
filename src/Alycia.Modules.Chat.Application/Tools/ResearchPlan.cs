@@ -11,18 +11,17 @@ public sealed class ResearchPlan
     private (int Goal, ModelToolCall Call)? _followup;
     private bool _readingOriginal;
     private readonly HashSet<int> _paged = [];
-    public ResearchPlan(ChatOptions options, ContextWindow context)
+    public ResearchPlan(ToolGeneration options, ToolPrompt context)
     {
         _limit = options.ToolMaxCalls > 0 ? Math.Min(options.ToolMaxCalls, options.AgentPlanMaxCalls) : options.AgentPlanMaxCalls;
-        _history = options.Route?.Mode == "memory";
-        var queries = options.SearchPlan?.Queries ?? [];
-        var targeted = options.SearchPlan?.Brief?.Facets.Select(f => f.Question).ToArray() ?? queries.Skip(1).Select(q => q.Text).ToArray();
-        if (targeted.Length == 0) targeted = [options.SearchPlan?.Original ?? context.Messages.LastOrDefault()?.Content ?? ""];
+        _history = options.HistoryOnly;
+        var targeted = options.Questions;
+        if (targeted.IsEmpty) targeted = [options.Original ?? context.Messages.LastOrDefault()?.Content ?? ""];
         _goals = targeted.Where(q => !string.IsNullOrWhiteSpace(q)).Take(options.MaxSearchQueries).Select(q =>
         {
-            var supplied = (context.Sources ?? []).Where(s => s.Reference is not null && s.SourceType != "summary" &&
-                (s.Path.Contains(q, StringComparison.OrdinalIgnoreCase) || s.Content?.Contains(q, StringComparison.OrdinalIgnoreCase) == true))
-                .Select(s => s.Reference!).Distinct().ToArray();
+            var supplied = context.Sources.Where(s => s.Path.Contains(q, StringComparison.OrdinalIgnoreCase)
+                || s.Content?.Contains(q, StringComparison.OrdinalIgnoreCase) == true)
+                .Select(s => s.Reference).Distinct().ToArray();
             return new ResearchGoal(q, supplied.Length > 0 ? "supplied" : "not_searched", supplied);
         }).ToList();
     }

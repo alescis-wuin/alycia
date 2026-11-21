@@ -71,7 +71,7 @@ public sealed class ChatService(IChatRepository repository, IChatModel model, Ch
         var context = await turnContext.BuildAsync(contextOwner, text, budget, model, measured, TurnContextMode.Send,
             onDelta is null ? null : status => onDelta(new("", Status: status)), cancellationToken);
         var window = context.Window;
-        var generated = await tools.GenerateAsync(measured, activeTools, toolScope, window, settings, onDelta, cancellationToken);
+        var generated = await tools.GenerateAsync(measured, activeTools, toolScope, window.ToolPrompt(), settings.ToolGeneration(), onDelta, cancellationToken);
         var review = await audit.ReviewAsync(id, generated, window, settings, measured, onDelta, cancellationToken);
         var user = new ChatMessage(id, conversation.MessageCount + 1, requestId, "user", text);
         var assistant = new ChatMessage(id, conversation.MessageCount + 2, requestId, "assistant", review.Reply);

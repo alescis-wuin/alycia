@@ -49,7 +49,7 @@ public sealed partial class DocumentAnalysisService(ChatDbContext database, ICha
                 await serial.WaitAsync(ct);
                 try { await progress(status); } finally { serial.Release(); }
             }
-            RecursiveSummarizer Reducer() => new(measured, conversation.Model, options, Report, shared,
+            RecursiveSummarizer Reducer() => new(measured, conversation.Model, options.Summary(), Report, shared,
                 async (key, token) => options.ModelIdentity is null ? null : (await checkpoints.ReadUnitAsync(id, key, token))?.Summary,
                 async (key, text, token) =>
                 {
