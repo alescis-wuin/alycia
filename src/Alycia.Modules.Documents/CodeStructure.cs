@@ -1,14 +1,14 @@
-using Alycia.Modules.Chat.Application;
+using Alycia.Contracts.Indexing;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 
-namespace Alycia.Modules.Chat.Infrastructure;
+namespace Alycia.Modules.Documents;
 
 public static class CodeStructure
 {
-    public const int Version = 3;
+    public const int Version = IndexedOriginal.StructureVersion;
     public static IReadOnlyList<SourceChunk> Split(Guid id, string path, string sha, string text, CancellationToken ct = default, bool hierarchical = false)
     {
         var source = SourceText.From(text);
@@ -89,7 +89,7 @@ public static class CodeStructure
                     if (heading || location)
                     {
                         Add(start, line.Start, label, "text", []); start = line.Start;
-                        label = FileContext.Utf8Prefix(value, 180);
+                        label = Utf8Text.Prefix(value, 180);
                         if (heading)
                         {
                             Array.Clear(headings, depth - 1, headings.Length - depth + 1);

@@ -148,6 +148,7 @@ internal static class ChatRegistration
         builder.Services.AddSingleton(new FileStorage(builder.Configuration["ALYCIA_FILES_DIRECTORY"]
             ?? Path.Combine(builder.Environment.ContentRootPath, "data", "files")));
         builder.Services.AddScoped<ImportSettingsStore>();
+        builder.Services.AddScoped<IImportLimitsReader>(services => services.GetRequiredService<ImportSettingsStore>());
         builder.Services.AddScoped<FileImport>();
         builder.Services.AddScoped<ConversationFiles>();
         builder.Services.AddScoped<ConversationFileSettings>();

@@ -12,6 +12,23 @@ namespace Alycia.Modules.Chat.Tests;
 public sealed class OwnerContractTests
 {
     [PostgresFact]
+    public Task Import_limits_preserve_defaults_overrides_and_cancellation_in_both_adapters() =>
+        ProjectCreationTests.WithDatabaseAsync(async (options, _) =>
+        {
+            await using var db = new ChatDbContext(options);
+            var store = new ImportSettingsStore(db);
+            foreach (var limits in new[] { new ImportLimits(), new ImportLimits(FileMiB: 2, BatchMiB: 4) })
+            {
+                if (limits != new ImportLimits()) await store.SaveAsync(limits, default);
+                foreach (var reader in new IImportLimitsReader[] { store, new FixedImportLimits(limits) })
+                {
+                    Assert.Equal(limits, await reader.LoadAsync(default));
+                    await Assert.ThrowsAnyAsync<OperationCanceledException>(() => reader.LoadAsync(new CancellationToken(true)));
+                }
+            }
+        });
+
+    [PostgresFact]
     public Task Conversation_pages_and_tool_policies_agree_on_scope_cursors_and_cancellation() =>
         ProjectCreationTests.WithDatabaseAsync(async (options, _) =>
         {
@@ -45,7 +62,7 @@ public sealed class OwnerContractTests
                 await Assert.ThrowsAnyAsync<OperationCanceledException>(() => adapter.HistoryPageAsync(primary.Id, 0, 2, 1, new(true)));
             }
             await using (var tx = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.RepeatableRead))
-                foreach (var lookup in new IConversationWorkspaceLookup[] {new ConversationWorkspaceLookup(new(db.Database)), mock})
+                foreach (var lookup in new IConversationWorkspaceLookup[] { new ConversationWorkspaceLookup(new(db.Database)), mock })
                 {
                     Assert.Equal(project.Id, await lookup.FindWorkspaceAsync(primary.Id, default));
                     Assert.Null(await lookup.FindWorkspaceAsync(empty.Id, default));
@@ -74,7 +91,7 @@ public sealed class OwnerContractTests
                 Assert.Equal("Beta", beta.Name);
                 Assert.True(await directory.ExistsAsync(alpha.Id, default));
                 Assert.False(await directory.ExistsAsync(Guid.Empty, default));
-                Assert.Equal(new[] {alpha, beta}, await directory.ListAsync(default));
+                Assert.Equal(new[] { alpha, beta }, await directory.ListAsync(default));
                 await Assert.ThrowsAsync<ArgumentException>(() => directory.CreateAsync("beta", default));
                 await Assert.ThrowsAsync<ArgumentException>(() => directory.CreateAsync(" ", default));
                 await Assert.ThrowsAnyAsync<OperationCanceledException>(() => directory.ListAsync(new(true)));
@@ -97,7 +114,7 @@ public sealed class OwnerContractTests
                 await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => projects.ActivePageAsync(null, 513, default));
                 await Assert.ThrowsAnyAsync<OperationCanceledException>(() => projects.ActivePageAsync(null, 1, new(true)));
             }
-            foreach (var defaults in new IProjectModelDefaults[] {realCatalog, mockDefaults})
+            foreach (var defaults in new IProjectModelDefaults[] { realCatalog, mockDefaults })
             {
                 Assert.Equal("demo", await defaults.ActiveDefaultModelAsync(visible.Id, default));
                 Assert.Equal("", await defaults.ActiveDefaultModelAsync(lazy.Id, default));
@@ -150,8 +167,8 @@ public sealed class OwnerContractTests
                 foreach (var adapter in new IProjectIndex[] { index, new SnapshotIndex(chat.Id, passages) })
                 {
                     Assert.Empty((await adapter.BuildScopedAsync(chat.Id, new HashSet<Guid>(), default)).Chunks);
-                    Assert.Empty((await adapter.BuildScopedAsync(other.Id, new HashSet<Guid> {file.Id}, default)).Chunks);
-                    var chunks = (await adapter.BuildScopedAsync(chat.Id, new HashSet<Guid> {file.Id}, default)).Chunks;
+                    Assert.Empty((await adapter.BuildScopedAsync(other.Id, new HashSet<Guid> { file.Id }, default)).Chunks);
+                    var chunks = (await adapter.BuildScopedAsync(chat.Id, new HashSet<Guid> { file.Id }, default)).Chunks;
                     Assert.Equal(passages.Select(c => c.Text), chunks.Select(c => c.Text));
                     Assert.All(chunks, chunk => Assert.Equal(file.Id, chunk.FileId));
                     await Assert.ThrowsAnyAsync<OperationCanceledException>(() => adapter.BuildScopedAsync(chat.Id, null, new(true)));

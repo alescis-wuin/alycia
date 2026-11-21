@@ -6,6 +6,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../Alycia.Contracts/Alycia.Contracts.csproj" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" />
     <PackageReference Include="PdfPig" Version="0.1.15" />
     <Using Include="Alycia.Contracts.Chat" />
     <Using Include="Alycia.Contracts.Documents" />

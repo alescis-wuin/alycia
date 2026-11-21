@@ -29,7 +29,7 @@ public sealed class ProjectIndexService(IConversationIndexOwners conversations, 
                     var original = await documents.ReadAsync(conversation, false, file.Id, file.Sha256, ct);
                     if (maximum > 0 && (long)characters + original.Text.Length > maximum)
                     { omissions.Add(file.Name + " : budget d’index atteint ; original accessible par outils"); continue; }
-                    parts = CodeStructure.Split(file.Id, file.Name, file.Sha256, original.Text, ct, settings.HierarchicalIndexEnabled).Select(c => c with { CompleteSource = original.Complete }).ToArray();
+                    parts = documents.Split(file, original, settings.HierarchicalIndexEnabled, ct).Select(c => c with { CompleteSource = original.Complete }).ToArray();
                     await cache.WriteAsync(file, parts, ct);
                 }
                 var size = parts.Sum(p => (long)p.Text.Length);

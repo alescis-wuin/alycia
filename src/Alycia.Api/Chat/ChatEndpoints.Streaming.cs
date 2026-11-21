@@ -33,7 +33,7 @@ internal static partial class ChatEndpoints
             catch (Exception exception) when (http.Response.HasStarted && !ct.IsCancellationRequested)
             {
                 // Do not log source/prompt text carried by exception messages.
-                logger.LogWarning("Flux interrompu : {ExceptionType} ; {StackTrace}", exception.GetType().Name, exception.StackTrace);
+                logger.LogWarning("Flux interrompu : {ExceptionType} ; {StackTrace}", Alycia.Contracts.Diagnostics.FailureType.Name(exception), exception.StackTrace);
                 var message = exception switch
                 {
                     ChatModelException or ChatConflictException or ArgumentException => exception.Message,

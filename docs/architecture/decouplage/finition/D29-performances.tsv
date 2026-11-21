@@ -1,0 +1,40 @@
+charge	mesure	unité	D20-1	D20-2	D29-1	D29-2	moyenne D20	moyenne D29	variation %
+64 fragments	cached_bm25 p50_ms	ms	0.2237	0.2315	0.2484	0.2131	0.2276	0.2308	1.38
+64 fragments	cached_bm25 p95_ms	ms	0.4872	0.3899	0.4592	0.3626	0.4385	0.4109	-6.3
+64 fragments	cached_ranking p50_ms	ms	0.4955	0.5199	0.5529	0.4926	0.5077	0.5227	2.96
+64 fragments	cached_ranking p95_ms	ms	1.4272	0.6942	0.8418	0.6488	1.0607	0.7453	-29.74
+64 fragments	baseline_bm25 p50_ms	ms	23.6754	21.9121	22.5358	22.0142	22.7937	22.275	-2.28
+64 fragments	baseline_bm25 p95_ms	ms	27.2808	28.2758	25.8251	24.4857	27.7783	25.1554	-9.44
+64 fragments	baseline_ranking p50_ms	ms	24.5463	21.54	24.0572	22.5779	23.0431	23.3176	1.19
+64 fragments	baseline_ranking p95_ms	ms	37.9205	29.8079	27.0327	27.7252	33.8642	27.3789	-19.15
+64 fragments	cold_index_ms	ms	36.8748	35.3774	36.4748	35.3084	36.1261	35.8916	-0.65
+64 fragments	cached_bm25_allocated_bytes_per_call	octets/appel	171002	171865	171865	171865	171433.5	171865	0.25
+64 fragments	baseline_bm25_allocated_bytes_per_call	octets/appel	3507758	3507854	3507854	3507854	3507806	3507854	0.0
+512 fragments	cached_bm25 p50_ms	ms	2.0434	1.559	1.5415	1.8549	1.8012	1.6982	-5.72
+512 fragments	cached_bm25 p95_ms	ms	6.5954	2.8176	3.5437	5.4238	4.7065	4.4837	-4.73
+512 fragments	cached_ranking p50_ms	ms	2.8048	2.7711	2.8802	2.8975	2.788	2.8888	3.62
+512 fragments	cached_ranking p95_ms	ms	6.0891	4.438	4.6372	5.1346	5.2636	4.8859	-7.17
+512 fragments	baseline_bm25 p50_ms	ms	89.3088	90.0504	96.5986	88.757	89.6796	92.6778	3.34
+512 fragments	baseline_bm25 p95_ms	ms	166.9258	119.53	118.2386	92.8855	143.2279	105.562	-26.3
+512 fragments	baseline_ranking p50_ms	ms	110.9341	108.5863	109.3202	105.9482	109.7602	107.6342	-1.94
+512 fragments	baseline_ranking p95_ms	ms	117.5756	112.4658	122.7737	127.3032	115.0207	125.0385	8.71
+512 fragments	cold_index_ms	ms	128.9665	99.7227	99.0534	105.2687	114.3446	102.161	-10.66
+512 fragments	cached_bm25_allocated_bytes_per_call	octets/appel	1357585	1357565	1357544	1357585	1357575	1357564.5	-0.0
+512 fragments	baseline_bm25_allocated_bytes_per_call	octets/appel	28149487	28149698	28149528	28149497	28149592.5	28149512.5	-0.0
+2048 fragments	cached_bm25 p50_ms	ms	6.7854	7.6399	5.9068	6.5102	7.2127	6.2085	-13.92
+2048 fragments	cached_bm25 p95_ms	ms	14.2468	12.4141	8.3529	13.6745	13.3304	11.0137	-17.38
+2048 fragments	cached_ranking p50_ms	ms	13.5885	14.2841	12.0255	12.5572	13.9363	12.2913	-11.8
+2048 fragments	cached_ranking p95_ms	ms	29.7364	23.8091	17.4439	18.0222	26.7728	17.733	-33.76
+2048 fragments	baseline_bm25 p50_ms	ms	376.6666	360.6902	372.3315	363.5005	368.6784	367.916	-0.21
+2048 fragments	baseline_bm25 p95_ms	ms	518.8753	405.3496	393.2511	395.9914	462.1125	394.6213	-14.6
+2048 fragments	baseline_ranking p50_ms	ms	720.2065	642.5386	665.0169	629.6587	681.3726	647.3378	-5.0
+2048 fragments	baseline_ranking p95_ms	ms	838.9981	774.5666	699.5712	667.5649	806.7823	683.568	-15.27
+2048 fragments	cold_index_ms	ms	525.826	374.1376	379.5642	389.8133	449.9818	384.6888	-14.51
+2048 fragments	cached_bm25_allocated_bytes_per_call	octets/appel	5453168	5453530	5453138	5453253	5453349	5453195.5	-0.0
+2048 fragments	baseline_bm25_allocated_bytes_per_call	octets/appel	112728584	112728270	112728488	112728939	112728427	112728713.5	0.0
+Processus benchmark	durée	s	38.3993	35.4921	35.6612	34.5486	36.9457	35.1049	-4.98
+Processus benchmark	RSS maximal	Kio	89444	91264	87780	89516	90354	88648	-1.89
+Tour Ollama CPU, même requête	premier delta	ms	718.94	666.65	670.4	748.33	692.795	709.365	2.39
+Tour Ollama CPU, même requête	tour complet	ms	2197.12	1208.42	1179.12	1402.03	1702.77	1290.575	-24.21
+Solution Debug, recompilation	durée	s	56.163		77.751		56.163	77.751	38.44
+Solution Debug, recompilation	RSS maximal	Kio	366552		391820		366552	391820	6.89

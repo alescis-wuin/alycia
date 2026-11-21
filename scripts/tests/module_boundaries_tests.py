@@ -104,6 +104,29 @@ internal record Use(Port Tools) {{ const string Hint = "using Npgsql;"; }}
         self.assertIn("cycle:", diagnostics)
         self.assertIn(f"{CLIENT} transitively reaches Alycia.Extra", diagnostics)
 
+    def test_short_exception_name_is_bounded_to_the_typed_diagnostic_projection(self):
+        contracts = self.project(CONTRACTS)
+        self.source(contracts, "Diagnostics/FailureType.cs", """
+namespace Alycia.Contracts.Diagnostics;
+public static class FailureType {
+    public static string Name(System.Exception error) => error.GetType().Name;
+    public static string Inspect(System.Exception error) => error.GetType().Assembly.FullName!;
+}""")
+        errors = self.guard(False)
+        self.assertEqual(1, errors.count("unreviewed Y:"), errors)
+
+    def test_markdown_block_name_is_bounded_to_a_markdig_block_and_its_short_name(self):
+        client = self.project(CLIENT, packages=[("Markdig", "1.6.0")])
+        self.source(client, "MarkdownView.cs", """
+namespace Alycia.Client.Avalonia;
+class MarkdownView {
+    private static string BlockKind(Markdig.Syntax.Block block) => block.GetType().Name;
+    private static string BlockKind(object block) => block.GetType().Name;
+    private static string Inspect(Markdig.Syntax.Block block) => block.GetType().Assembly.FullName!;
+}""")
+        errors = self.guard(False)
+        self.assertEqual(2, errors.count("unreviewed Y:"), errors)
+
     def test_resolved_nuget_type_sql_and_dynamic_activation(self):
         packages = [("Npgsql", "10.0.3")]
         app = self.project(APP, packages=packages)

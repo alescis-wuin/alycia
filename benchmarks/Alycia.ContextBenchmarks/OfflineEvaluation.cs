@@ -1,3 +1,6 @@
+using Alycia.Modules.Documents;
+using Alycia.Contracts.Retrieval;
+using Alycia.Modules.Retrieval;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
