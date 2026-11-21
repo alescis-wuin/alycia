@@ -117,9 +117,17 @@ if (enableLocalWorkspaces)
 // Independent, explicit opt-in for the isolated demo branch; never in Production.
 var enableLocalChat = builder.Environment.IsDevelopment()
     && builder.Configuration.GetValue<bool>("ALYCIA_ENABLE_LOCAL_CHAT");
+var mockInference = builder.Configuration.GetValue<bool>("ALYCIA_MOCK_INFERENCE");
+if (mockInference && !builder.Environment.IsDevelopment())
+    throw new InvalidOperationException("ALYCIA_MOCK_INFERENCE requires Development.");
 if (enableLocalChat)
 {
-    builder.AddLocalChat();
+    builder.AddLocalChat(mockInference);
+}
+else if (mockInference)
+{
+    builder.Services.AddSingleton(new LocalChatAccess(builder.Configuration));
+    DevelopmentInference.AddMocks(builder.Services);
 }
 
 var app = builder.Build();
@@ -165,6 +173,10 @@ if (enableLocalWorkspaces)
 if (enableLocalChat)
 {
     app.MapLocalChat();
+}
+else if (mockInference)
+{
+    DevelopmentInference.MapDemo(app);
 }
 
 app.MapHealthChecks("/healthz");

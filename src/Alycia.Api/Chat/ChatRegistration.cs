@@ -12,7 +12,7 @@ namespace Alycia.Api.Chat;
 
 internal static class ChatRegistration
 {
-    public static void AddLocalChat(this WebApplicationBuilder builder)
+    public static void AddLocalChat(this WebApplicationBuilder builder, bool mockInference)
     {
         var connection = builder.Configuration["ALYCIA_CHAT_CONNECTION"];
         if (string.IsNullOrWhiteSpace(connection))
@@ -38,7 +38,7 @@ internal static class ChatRegistration
         RegisterRetrieval(builder.Services);
         RegisterMemory(builder.Services);
         RegisterTools(builder.Services);
-        RegisterInference(builder.Services, uri);
+        RegisterInference(builder.Services, uri, mockInference);
     }
 
     private static void RegisterConversations(IServiceCollection services)
@@ -125,10 +125,15 @@ internal static class ChatRegistration
         builder.WebHost.ConfigureKestrel(server => server.Limits.MaxRequestBodySize = ImportLimits.HardBatchBytes + 32 * 1024 * 1024);
     }
 
-    private static void RegisterInference(IServiceCollection services, Uri uri)
+    private static void RegisterInference(IServiceCollection services, Uri uri, bool mockInference)
     {
         services.AddSingleton<InferenceScheduler>();
         services.AddScoped<IChatModel, ChatGenerationAdapter>();
+        if (mockInference)
+        {
+            DevelopmentInference.AddMocks(services);
+            return;
+        }
         services.AddHttpClient<ILocalEmbeddings, OllamaEmbeddings>(http =>
         { http.BaseAddress = uri; http.Timeout = Timeout.InfiniteTimeSpan; http.MaxResponseContentBufferSize = 8 * 1024 * 1024; })
             .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false, UseProxy = false });
