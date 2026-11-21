@@ -7,6 +7,70 @@ namespace Alycia.Modules.Chat.Tests;
 public sealed class StructuredMemoryTests
 {
     [Fact]
+    public void PreparedMemoryRetainsItsFormatAndWaitsForTheCallersCommit()
+    {
+        var repo = new Repository(1);
+        var conversation = repo.Conversation;
+        var memory = new ConversationMemory(repo);
+        var prepared = new PreparedContext(new([], 0, 0), "Résumé du premier tour", 2, "source", true);
+        var revision = conversation.Revision;
+        Assert.False(memory.Apply(conversation, null));
+        Assert.False(memory.Apply(conversation, prepared with { Changed = false }));
+        Assert.Equal(revision, conversation.Revision);
+
+        Assert.True(memory.Apply(conversation, prepared));
+        Assert.Equal(("Résumé du premier tour", 2, "source", "demo"),
+            (conversation.MemoryText, conversation.MemoryThroughSequence, conversation.MemorySourceHash, conversation.MemoryModel));
+        Assert.Equal("{}", conversation.MemoryLedgerJson);
+        var ledger = StructuredMemory.Serialize(new(1, 2, "chain", []));
+        Assert.True(memory.Apply(conversation, prepared with { LedgerJson = ledger, Memory = "ignoré" }));
+        Assert.Equal(ledger, conversation.MemoryLedgerJson);
+        Assert.Equal("Résumé du premier tour", conversation.MemoryText);
+        Assert.Equal(0, repo.Saves);
+    }
+
+    [Fact]
+    public async Task ResetChecksTheGateAndRevisionBeforeClearingBothMemoryFormatsTogether()
+    {
+        var repo = new Repository(1);
+        var conversation = repo.Conversation;
+        conversation.SetMemory("résumé", 2, "source", "demo");
+        var ledger = StructuredMemory.Serialize(new(1, 2, "chain", []));
+        conversation.SetMemoryLedger(ledger);
+        var revision = conversation.Revision;
+        var memory = new ConversationMemory(repo);
+        using (GenerationGate.Shared.Enter(conversation.Id))
+            await Assert.ThrowsAsync<ChatConflictException>(() => memory.ResetAsync(conversation.Id, revision, default));
+        await Assert.ThrowsAsync<ChatConflictException>(() => memory.ResetAsync(conversation.Id, revision - 1, default));
+        Assert.Equal((revision, "résumé", ledger, 0), (conversation.Revision, conversation.MemoryText, conversation.MemoryLedgerJson, repo.Saves));
+
+        var reset = await memory.ResetAsync(conversation.Id, revision, default);
+        Assert.Equal(revision + 2, reset.Revision);
+        Assert.Equal(("", 0, "", "", "{}"),
+            (reset.MemoryText, reset.MemoryThroughSequence, reset.MemorySourceHash, reset.MemoryModel, reset.MemoryLedgerJson));
+        Assert.Equal(2, reset.MessageCount);
+        Assert.Equal(1, repo.Saves);
+    }
+
+    [Fact]
+    public void TemporalProjectionRetainsOnlySourceBackedLedgerEvidence()
+    {
+        var source = new ChatMessage(Guid.NewGuid(), 2, Guid.NewGuid(), "assistant", "Lieu envisagé : Normandie.");
+        var original = new MemoryEntry("Région", "fact", "Normandie", 2, "assistant", StructuredMemory.Hash(source.Content), Correction: true);
+        var facts = TemporalMemory.IndexFacts(source,
+        [
+            original, original, original with { Key = "signature", SourceHash = "autre" }, original with { Key = "inversé", Role = "user" },
+            original with { Key = "séquence", Sequence = 4 }, original with { Key = "inventé", Quote = "Bretagne" },
+            original with { Key = "secours", Fallback = true }
+        ]);
+        Assert.Equal(2, facts.Length);
+        var confirmed = Assert.Single(facts, f => f.Key == StructuredMemory.CanonicalKey(original.Key));
+        Assert.Equal(original.Quote, source.Content.Substring(confirmed.Offset, confirmed.Quote.Length));
+        Assert.Equal((source.Role, source.CreatedAtUtc, source.Sequence, source.Content.Length, original.SourceHash, false, "proposition"),
+            (confirmed.Role, confirmed.Observed, confirmed.Sequence, confirmed.FullLength, confirmed.Sha256, confirmed.Correction, confirmed.Kind));
+    }
+
+    [Fact]
     public void RejectsFabricatedQuotesAndKeepsContradictionsUntilUserCorrection()
     {
         var id = Guid.NewGuid();
@@ -113,6 +177,7 @@ public sealed class StructuredMemoryTests
     {
         public Conversation Conversation { get; } = Conversation.Create("test", "demo", "SYSTEM");
         public List<ChatMessage> Messages { get; } = [];
+        public int Saves { get; private set; }
         public Repository(int turns)
         {
             for (var i = 0; i < turns; i++)
@@ -127,7 +192,11 @@ public sealed class StructuredMemoryTests
         public Task<IReadOnlyList<Conversation>> ListAsync(CancellationToken ct) => Task.FromResult<IReadOnlyList<Conversation>>([Conversation]);
         public Task<Conversation?> FindAsync(Guid id, CancellationToken ct) => Task.FromResult<Conversation?>(Conversation);
         public Task AddAsync(Conversation c, CancellationToken ct) => Task.CompletedTask;
-        public Task SaveAsync(CancellationToken ct) => Task.CompletedTask;
+        public Task SaveAsync(CancellationToken ct)
+        {
+            Saves++;
+            return Task.CompletedTask;
+        }
         public Task DeleteAsync(Conversation c, CancellationToken ct) => Task.CompletedTask;
         public Task<IReadOnlyList<ChatMessage>> MessagesAsync(Guid id, int limit, int? before, CancellationToken ct) =>
             Task.FromResult<IReadOnlyList<ChatMessage>>(Messages.Where(m => before == null || m.Sequence < before).TakeLast(limit).ToArray());

@@ -92,6 +92,8 @@ public sealed class PostgresChatTests
                 await firstRepo.SaveAsync(default);
                 // A generation completed against the old revision must roll back both inserts.
                 var staleRequest = Guid.NewGuid();
+                var memory = new ConversationMemory(secondRepo);
+                memory.Apply(b, new(new([], 0, 0), "", 0, "", true, StructuredMemory.Serialize(new(1, 4, "ancienne", []))));
                 b.CompleteTurn();
                 await Assert.ThrowsAsync<ChatConflictException>(() => secondRepo.AppendTurnAsync(b,
                     new(id, 5, staleRequest, "user", "stale"), new(id, 6, staleRequest, "assistant", "stale"), default));
@@ -103,6 +105,7 @@ public sealed class PostgresChatTests
                 var repository = new EfChatRepository(database);
                 var conversation = (await repository.FindAsync(id, default))!;
                 Assert.Equal("Renommée", conversation.Title);
+                Assert.Equal("{}", conversation.MemoryLedgerJson);
                 await repository.DeleteAsync(conversation, default);
                 Assert.Empty(await database.Messages.ToListAsync());
                 Assert.Empty(await repository.ListAsync(default));

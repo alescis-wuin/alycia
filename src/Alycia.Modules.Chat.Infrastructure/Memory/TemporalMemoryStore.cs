@@ -4,7 +4,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Alycia.Modules.Chat.Infrastructure;
 
-public sealed class TemporalMemoryStore(ChatDbContext database, IIndexedEmbeddings vectors, ChatOptions defaults, KnowledgeStore? knowledge = null) : ITemporalMemory
+public sealed class TemporalMemoryStore(ChatDbContext database, IIndexedEmbeddings vectors, ChatOptions defaults, KnowledgeStore? knowledge = null)
+    : ITemporalMemory, ITemporalMemoryIndex
 {
     private const int Version = 1;
 
@@ -25,13 +26,7 @@ public sealed class TemporalMemoryStore(ChatDbContext database, IIndexedEmbeddin
             var ledger = StructuredMemory.Read(owner.MemoryLedgerJson).Entries.ToLookup(f => f.Sequence);
             foreach (var m in messages)
             {
-                var extracted = TemporalMemory.Extract(m);
-                var hash = extracted[0].Sha256;
-                var validated = ledger[m.Sequence].Where(e => e.Role == m.Role && e.SourceHash == hash && !e.Fallback)
-                    .Select(e => (Entry: e, Offset: m.Content.IndexOf(e.Quote, StringComparison.Ordinal))).Where(x => x.Offset >= 0)
-                    .Select(x => new TemporalFact(StructuredMemory.CanonicalKey(x.Entry.Key), x.Entry.Quote, m.Role, m.Sequence, m.CreatedAtUtc,
-                        hash, x.Offset, m.Content.Length, x.Entry.Correction && m.Role == "user", m.Role == "assistant" ? "proposition" : x.Entry.Kind)).ToArray();
-                var facts = extracted.Concat(validated).DistinctBy(f => (f.Key, f.Quote)).ToArray();
+                var facts = TemporalMemory.IndexFacts(m, ledger[m.Sequence]);
                 var json = JsonSerializer.Serialize(facts, ProjectToolCatalog.Json);
                 var topics = facts.Select(f => f.Key).Distinct().ToArray();
                 var searchable = string.Join(" ", facts.Select(f => f.Key + " " + f.Quote));
