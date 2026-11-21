@@ -7,7 +7,7 @@ using System.Text.Json;
 
 namespace Alycia.Modules.Chat.Application;
 
-public sealed partial class ProjectToolService(IAuthorizedToolSources sources, ISourceCommands commands, IToolConversationPolicy policy, IToolHistoryReader history, ChatOptions defaults, IProjectIndex index, IIndexedEmbeddings? semantic = null) : ISnapshotProjectTools
+public sealed partial class ProjectToolService(IAuthorizedToolSources sources, ISourceCommands commands, IToolConversationPolicy policy, IToolHistoryReader history, IProjectIndex index, IIndexedEmbeddings? semantic = null) : ISnapshotProjectTools
 {
     public async Task<bool> HasSourcesAsync(Guid id, CancellationToken ct) =>
         await sources.HasFilesAsync(id, ct) || await policy.HasHistoryAsync(id, ct);
@@ -16,19 +16,17 @@ public sealed partial class ProjectToolService(IAuthorizedToolSources sources, I
     {
         ct.ThrowIfCancellationRequested();
         if (arguments.ValueKind != JsonValueKind.Undefined) arguments = arguments.Clone();
-        var conversation = await policy.ReadAsync(id, ct)
-            ?? throw new ConversationNotFoundException();
         try
         {
-            var options = ConversationConfiguration.Options(conversation.SettingsJson, defaults);
-            if (!options.UseProjectTools)
+            var conversation = await policy.ReadAsync(id, ct) ?? throw new ConversationNotFoundException();
+            if (!conversation.ToolsEnabled)
                 throw new ArgumentException("Les outils sont désactivés dans cette conversation.");
             Validate(name, arguments, maxResultBytes);
             return name switch
             {
                 "project_read_many" => await ReadManyAsync(id, arguments, maxResultBytes, ct),
                 "history_search" or "history_read" => await new HistoryTools(history, semantic,
-                    options.RetrievalMode == "hybrid" && options.EmbedHistory ? EmbeddingQuery.Capture(options) : null).CallAsync(id, name, arguments, maxResultBytes, ct),
+                    conversation.HistoryEmbedding).CallAsync(id, name, arguments, maxResultBytes, ct),
                 "project_search_passages" or "project_find_symbols" or "project_find_references" => await ExploreAsync(id, name, arguments, maxResultBytes, ct),
                 _ => await commands.ExecuteAsync(id, name, arguments, maxResultBytes, ct)
             };

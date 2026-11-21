@@ -1,3 +1,4 @@
+using Alycia.Contracts.Documents;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -22,7 +23,7 @@ public sealed class IndexCallBudget(int maximum)
 public static class IndexedKnowledge
 {
     public const string Extractive = "extractive-v1";
-    public static string Key(params string[] parts) => StructuredMemory.Hash(JsonSerializer.Serialize(parts));
+    public static string Key(params string[] parts) => MemoryTransfer.Hash(JsonSerializer.Serialize(parts));
     public static string Terms(UnitLabels labels) => labels.Terms();
     public static string Fit(string text, int budget, ChatOptions settings)
     {
@@ -39,11 +40,11 @@ public static class IndexedKnowledge
 
     public static UnitLabels Extract(string title, string text, string type, string[] ids, int target, ChatOptions counter)
     {
-        var keywords = ProjectRetrieval.Tokens(text).GroupBy(t => t).OrderByDescending(g => g.Count())
+        var keywords = LexicalTerms.Split(text).GroupBy(t => t).OrderByDescending(g => g.Count())
             .ThenBy(g => g.Key, StringComparer.Ordinal).Take(12).Select(g => g.Key).ToArray();
         var summary = Fit(text.Trim(), target, counter);
         var dates = Regex.Matches(text, @"\b\d{4}-\d{2}-\d{2}\b").Select(m => m.Value).Distinct().Take(12).ToArray();
-        return new(FileContext.Utf8Prefix(title, 200), "", keywords, [], [], type, [], "und", summary, [], dates, [], ids);
+        return new(Utf8Text.Prefix(title, 200), "", keywords, [], [], type, [], "und", summary, [], dates, [], ids);
     }
 
     private static readonly string[] Strings = ["title", "description", "documentType", "language", "summary"];

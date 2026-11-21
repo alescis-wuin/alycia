@@ -26,14 +26,14 @@ public static class ProjectContext
         var selected = new List<SourceExcerpt>();
         foreach (var file in ranked)
         {
-            var heading = $"\n--- {FileContext.Utf8Prefix(file.Name, 240)} ---\n";
+            var heading = $"\n--- {Utf8Text.Prefix(file.Name, 240)} ---\n";
             var overhead = Encoding.UTF8.GetByteCount(heading) + 32;
             var share = Math.Min(1024, Math.Max(192, remaining / Math.Max(1, Math.Min(4, ranked.Length - selected.Count))));
             var room = Math.Min(share - overhead, remaining - overhead);
             if (room < 64) continue;
             var position = words.Select(w => file.Text.IndexOf(w, StringComparison.OrdinalIgnoreCase)).Where(p => p >= 0).DefaultIfEmpty(0).Min();
             var start = Math.Max(0, file.Text.LastIndexOf('\n', Math.Max(0, position - 1)) + 1);
-            var excerpt = FileContext.Utf8Prefix(file.Text[start..], room);
+            var excerpt = Utf8Text.Prefix(file.Text[start..], room);
             var part = heading + excerpt + "\n--- Fin de l’extrait ---\n";
             if (Encoding.UTF8.GetByteCount(part) > remaining) continue;
             text.Append(part); remaining -= Encoding.UTF8.GetByteCount(part);

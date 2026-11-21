@@ -24,5 +24,3 @@ public interface IChatRepository : IConversationContextReader, IToolHistoryReade
 
 public sealed record SendMessageResult(IReadOnlyList<ChatMessage> Messages, int? HistoryMessagesIncluded,
     bool Replayed, int FilesIncluded = 0, int? EstimatedInputTokens = null, GenerationStats? Stats = null, GenerationUsage? Usage = null);
-
-public sealed class ConversationNotFoundException() : Exception("Conversation introuvable.");

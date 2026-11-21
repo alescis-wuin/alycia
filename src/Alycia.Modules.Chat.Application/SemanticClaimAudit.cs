@@ -19,7 +19,7 @@ public static class SemanticClaimAudit
             measured.AddCalls(found.Calls);
             var leads = found.Chunks.Where(c => c.Kind != "summary" && settings.EligibleSourceIds?.Contains(c.FileId) == true).Take(3)
                 .Select(c => new SourceExcerpt(c.FileId, c.Path, System.Text.Encoding.UTF8.GetByteCount(c.Text), !c.CompleteUnit,
-                    "recherche après génération", ProjectRetrieval.Reference(c), c.StartLine, c.EndLine, c.Sha256, c.Start, c.End, Content: c.Text)).ToArray();
+                    "recherche après génération", SourceCoordinates.Reference(c), c.StartLine, c.EndLine, c.Sha256, c.Start, c.End, Content: c.Text)).ToArray();
             if (leads.Length == 0) return new("not_found", gap.Text, []);
             var assessed = leads.Select(s => (Source: s, Status: Check(claim + " [" + s.Reference + "]", [s], []).Findings.FirstOrDefault()?.Status)).ToArray();
             var supported = assessed.Where(p => p.Status == "supported").Select(p => p.Source).ToArray();

@@ -1,3 +1,4 @@
+using Alycia.Contracts.Documents;
 using Alycia.Contracts.Retrieval;
 using Alycia.Modules.Chat.Domain;
 
@@ -34,7 +35,7 @@ public sealed class TurnResponseAudit(IProjectRetrieval? retrieval = null) : ITu
         {
             followup = await SemanticClaimAudit.SearchAsync(gap, id, settings, retrieval, measured, cancellationToken);
             var note = "\n\nVérification après génération — " + (gap.Status == "contradicted" ? "une affirmation contredit le passage cité" : "une affirmation manque de preuve")
-                + " : « " + FileContext.Utf8Prefix(gap.Text, 220) + " ».";
+                + " : « " + Utf8Text.Prefix(gap.Text, 220) + " ».";
             if (followup.Status == "supplementary_support")
                 note += " Une recherche complémentaire retrouve cette affirmation dans " + string.Join(", ", followup.References.Select(r => "[" + r + "]")) + ".";
             if (followup.Status == "supplementary_support")

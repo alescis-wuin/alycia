@@ -94,7 +94,7 @@ public sealed partial class DocumentAnalysisService(ChatDbContext database, ICha
                 }
                 await Report("Résumé du fichier · " + file.Name);
                 var source = await reader.ReadAsync(file, token);
-                var isCode = ProjectContext.IsCode(file.Name);
+                var isCode = SourceFileType.IsCode(file.Name);
                 var key = AnalysisCheckpoints.UnitKey(file.Id, file.Sha256, file.Name, file.Status, identity, budget, options);
                 // An unknown digest cannot establish cache compatibility across model calls.
                 var cached = options.ModelIdentity is null ? null : await checkpoints.ReadUnitAsync(id, key, token);
@@ -181,7 +181,7 @@ public sealed partial class DocumentAnalysisService(ChatDbContext database, ICha
                     summarizedFiles = complete + partial,
                     fullyReadFiles = complete,
                     partialFiles = partial,
-                    codeFiles = files.Count(f => ProjectContext.IsCode(f.Name)),
+                    codeFiles = files.Count(f => SourceFileType.IsCode(f.Name)),
                     codeFilesSummarized = codeSummarized,
                     excludedFiles = files.Count(f => f.ContextMode == "excluded"),
                     noTextFiles = files.Count(f => f.Text.Length == 0 && f.ContextMode != "excluded"),

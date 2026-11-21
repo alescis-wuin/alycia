@@ -1,3 +1,4 @@
+using Alycia.Contracts.Documents;
 using Alycia.Contracts.Context;
 using System.Text;
 
@@ -28,7 +29,7 @@ public sealed class RecursiveSummarizer(IChatModel model, string modelName, Summ
             var label = "Source : " + source.Key + "\n";
             var limit = inputLimit - Encoding.UTF8.GetByteCount(label);
             if (limit < 128) throw new ArgumentException("Identifiant de source trop long pour le budget de résumé.");
-            foreach (var chunk in Chunks(source.Text, limit))
+            foreach (var chunk in Utf8Text.Chunks(source.Text, limit))
             {
                 if (readNode is null && nodes.Count >= settings.MaxCalls)
                     throw new ChatModelException("Trop de fragments à résumer dans cette opération. Réduisez le périmètre ou augmentez le budget d’appels.");
@@ -91,22 +92,6 @@ public sealed class RecursiveSummarizer(IChatModel model, string modelName, Summ
     // Keep enough room for small summaries while retaining an input reservation for small contexts.
     private int OutputBudget(int targetBytes) => Math.Min(Math.Clamp(targetBytes, 256, 1024),
         Math.Max(32, (settings.ContextTokens - settings.SafetyTokens) / 4));
-
-    public static IEnumerable<string> Chunks(string text, int maxBytes)
-    {
-        if (maxBytes < 4) throw new ArgumentOutOfRangeException(nameof(maxBytes));
-        var chunk = new StringBuilder();
-        var bytes = 0;
-        foreach (var rune in text.EnumerateRunes())
-        {
-            if (bytes + rune.Utf8SequenceLength > maxBytes)
-            {
-                yield return chunk.ToString(); chunk.Clear(); bytes = 0;
-            }
-            chunk.Append(rune.ToString()); bytes += rune.Utf8SequenceLength;
-        }
-        if (chunk.Length > 0) yield return chunk.ToString();
-    }
 
     private static List<string> Pack(IEnumerable<string> fragments, int limit)
     {

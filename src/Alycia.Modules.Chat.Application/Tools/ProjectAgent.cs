@@ -1,3 +1,4 @@
+using Alycia.Contracts.Documents;
 using System.Text;
 using System.Text.Json;
 
@@ -172,7 +173,7 @@ public static class ProjectAgent
                 text = error.GetString()!;
         }
         catch (JsonException) { }
-        return FileContext.Utf8Prefix(text, 512);
+        return Utf8Text.Prefix(text, 512);
     }
 
     private static string Canonical(JsonElement value) => value.ValueKind switch

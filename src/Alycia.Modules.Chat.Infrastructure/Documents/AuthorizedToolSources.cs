@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Alycia.Modules.Chat.Infrastructure;
 
-public sealed class AuthorizedToolSources(ChatDbContext database, ProjectSourceReader reader, IToolConversationPolicy policy, ChatOptions defaults, ILiveIndexFileAccess live, DocumentScope scope) : IAuthorizedToolSources
+public sealed class AuthorizedToolSources(ChatDbContext database, ProjectSourceReader reader, IToolConversationPolicy policy, ILiveIndexFileAccess live, DocumentScope scope) : IAuthorizedToolSources
 {
     public async Task<bool> HasFilesAsync(Guid conversation, CancellationToken ct)
     {
@@ -15,9 +15,7 @@ public sealed class AuthorizedToolSources(ChatDbContext database, ProjectSourceR
     private async Task<IQueryable<Alycia.Modules.Chat.Domain.Attachment>> SourcesAsync(IQueryable<Alycia.Modules.Chat.Domain.Attachment> sources, Guid id, CancellationToken ct)
     {
         var owner = await policy.ReadAsync(id, ct) ?? throw new ConversationNotFoundException();
-        var options = ConversationConfiguration.Options(owner.SettingsJson, defaults);
-        if (!options.AgentPlanningEnabled && options.RoutingMode == "off" && !options.VerificationSearchEnabled) return sources;
-        var first = Math.Max(1, owner.MessageCount - 2 * (options.AutoSummarize ? options.ProtectedHistoryTurns : options.MaxHistoryTurns) + 1);
+        if (owner.FirstVisibleSequence is not int first) return sources;
         return sources.Where(f => f.ContextMode != "excluded" && f.Text != "" && f.AnchorSequence <= owner.MessageCount + 1 &&
             (f.ContextMode == "pinned" || f.ContextMode == "project" || f.AnchorSequence >= first));
     }

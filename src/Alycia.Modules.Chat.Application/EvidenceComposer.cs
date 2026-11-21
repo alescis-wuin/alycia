@@ -21,8 +21,8 @@ public static class EvidenceComposer
         var pins = allowed.Values.Where(f => f.ContextMode == "pinned").Select(f => f.Id).ToHashSet();
         var firstPins = eligible.Where(c => pins.Contains(c.FileId)).DistinctBy(c => c.FileId).ToArray();
         if (firstPins.Length != pins.Count) throw new ArgumentException("Un original épinglé est indisponible dans l’index. Vérifiez son extraction ou sa portée.");
-        var pool = eligible.Take(128).Concat(firstPins).DistinctBy(ProjectRetrieval.Reference)
-            .Select((c, n) => new Candidate(c, n, ProjectRetrieval.Tokens(c.Text).ToHashSet(), TokenBudget.Count(c.Text, options))).ToList();
+        var pool = eligible.Take(128).Concat(firstPins).DistinctBy(SourceCoordinates.Reference)
+            .Select((c, n) => new Candidate(c, n, LexicalTerms.Split(c.Text).ToHashSet(), TokenBudget.Count(c.Text, options))).ToList();
         var undetailed = eligible.Length - pool.Count;
         var redundancy = new Dictionary<int, double>();
         var accepted = new List<Candidate>(); var sources = new List<SourceExcerpt>();
@@ -31,7 +31,7 @@ public static class EvidenceComposer
         int Cost(string value) => TokenBudget.Count(value, options);
         var judgments = options.RetrievalReport?.Classification?.Candidates.ToDictionary(j => j.Reference);
         var covered = new HashSet<string>();
-        string[] Facets(SourceChunk chunk) => judgments?.GetValueOrDefault(ProjectRetrieval.Reference(chunk))?.Facets
+        string[] Facets(SourceChunk chunk) => judgments?.GetValueOrDefault(SourceCoordinates.Reference(chunk))?.Facets
             .Where(p => p.Value >= options.RelevantThreshold).Select(p => p.Key).ToArray() ?? [];
         while (pool.Count > 0)
         {
@@ -44,7 +44,7 @@ public static class EvidenceComposer
             var pinned = pins.Contains(c.FileId);
             var duplicate = accepted.Any(a => a.Chunk.Text.Trim() == c.Text.Trim() ||
                 (a.Chunk.FileId == c.FileId && a.Chunk.Start <= c.Start && a.Chunk.End >= c.End));
-            if (duplicate && !pinned) { decisions.Add(new(ProjectRetrieval.Reference(c), c.FileId, "duplicate", 0)); continue; }
+            if (duplicate && !pinned) { decisions.Add(new(SourceCoordinates.Reference(c), c.FileId, "duplicate", 0)); continue; }
             var before = blocks.ToString();
             var remainingPins = Math.Max(1, pins.Count);
             var limit = pinned ? Cost(before) + Math.Max(0, budget - Cost(before)) / remainingPins : budget;
@@ -54,8 +54,8 @@ public static class EvidenceComposer
                 var content = c.Text[..count];
                 var last = c.StartLine + content.AsSpan(0, Math.Max(0, count - 1)).Count('\n');
                 var part = c with { End = c.Start + count, EndLine = last, Text = content, CompleteUnit = c.CompleteUnit && count == c.Text.Length };
-                var label = c.Kind == "summary" ? "synthèse dérivée" : FileContext.Utf8Prefix(c.Symbol, 120);
-                var block = $"\n[{ProjectRetrieval.Reference(part)}] {FileContext.Utf8Prefix(c.Path, 240)}:L{c.StartLine}-L{last} · {label}\n{content}\n";
+                var label = c.Kind == "summary" ? "synthèse dérivée" : Utf8Text.Prefix(c.Symbol, 120);
+                var block = $"\n[{SourceCoordinates.Reference(part)}] {Utf8Text.Prefix(c.Path, 240)}:L{c.StartLine}-L{last} · {label}\n{content}\n";
                 return (part, block);
             }
             var rendered = Render(c.Text.Length);
@@ -76,7 +76,7 @@ public static class EvidenceComposer
                 if (Cost(before + merged.Block) <= limit)
                 {
                     rendered = merged; pool.Remove(adjacent);
-                    decisions.Add(new(ProjectRetrieval.Reference(right), c.FileId, "adjacent", 0));
+                    decisions.Add(new(SourceCoordinates.Reference(right), c.FileId, "adjacent", 0));
                 }
                 else c = original;
             }
@@ -95,24 +95,24 @@ public static class EvidenceComposer
                 if (rendered.Chunk.Text.Length == 0 || Cost(before + rendered.Block) > limit)
                 {
                     if (pinned) throw new ArgumentException("La fenêtre disponible ne peut contenir tous les originaux épinglés. Augmentez le budget documentaire.");
-                    decisions.Add(new(ProjectRetrieval.Reference(c), c.FileId, "budget", 0)); continue;
+                    decisions.Add(new(SourceCoordinates.Reference(c), c.FileId, "budget", 0)); continue;
                 }
             }
-            var part = rendered.Chunk; var reference = ProjectRetrieval.Reference(part);
+            var part = rendered.Chunk; var reference = SourceCoordinates.Reference(part);
             covered.UnionWith(Facets(selected.Chunk));
             pins.Remove(c.FileId); blocks.Append(rendered.Block);
-            var kept = selected with { Chunk = part, Terms = ProjectRetrieval.Tokens(part.Text).ToHashSet() };
+            var kept = selected with { Chunk = part, Terms = LexicalTerms.Split(part.Text).ToHashSet() };
             accepted.Add(kept);
             foreach (var pending in pool) redundancy[pending.Rank] = Math.Max(redundancy.GetValueOrDefault(pending.Rank), Similarity(kept, pending));
             var reason = pinned ? "épinglé" : "pertinence, coût et diversité";
             sources.Add(new(part.FileId, part.Path, Encoding.UTF8.GetByteCount(part.Text), !part.CompleteUnit || !part.CompleteSource,
                 reason, reference, part.StartLine, part.EndLine, part.Sha256, part.Start, part.End,
-                Score: options.RetrievalReport?.Rerank?.Scores?.GetValueOrDefault(ProjectRetrieval.Reference(selected.Chunk))
-                    ?? options.RetrievalReport?.Decisions?.FirstOrDefault(d => d.Reference == ProjectRetrieval.Reference(selected.Chunk))?.LexicalScore,
-                ScoreKind: options.RetrievalReport?.Rerank?.Scores?.ContainsKey(ProjectRetrieval.Reference(selected.Chunk)) == true ? "ONNX" : "BM25",
+                Score: options.RetrievalReport?.Rerank?.Scores?.GetValueOrDefault(SourceCoordinates.Reference(selected.Chunk))
+                    ?? options.RetrievalReport?.Decisions?.FirstOrDefault(d => d.Reference == SourceCoordinates.Reference(selected.Chunk))?.LexicalScore,
+                ScoreKind: options.RetrievalReport?.Rerank?.Scores?.ContainsKey(SourceCoordinates.Reference(selected.Chunk)) == true ? "ONNX" : "BM25",
                 SourceType: part.Kind, CompleteSource: part.CompleteSource, Content: part.Text, Scope: allowed[part.FileId].WorkspaceId is null ? "conversation" : "projet",
                 Created: allowed[part.FileId].SourceCreatedAt, Modified: allowed[part.FileId].SourceModifiedAt, Uploaded: allowed[part.FileId].CreatedAtUtc,
-                Tokens: Cost(part.Text), RankedReference: ProjectRetrieval.Reference(selected.Chunk)));
+                Tokens: Cost(part.Text), RankedReference: SourceCoordinates.Reference(selected.Chunk)));
             decisions.Add(new(reference, part.FileId, reason, Cost(blocks.ToString()) - (sources.Count == 1 ? 0 : Cost(before))));
         }
         var text = sources.Count == 0 ? "" : blocks.ToString();

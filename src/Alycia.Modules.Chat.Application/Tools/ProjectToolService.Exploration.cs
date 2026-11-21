@@ -1,3 +1,4 @@
+using Alycia.Contracts.Documents;
 using static Alycia.Contracts.Tools.ToolArguments;
 using System.Text.Json;
 
@@ -13,7 +14,7 @@ public sealed partial class ProjectToolService
         var allowed = (await sources.EntriesAsync(conversation, ct)).Where(f => f.Readable).Select(f => f.Id).ToHashSet();
         var snapshot = await index.BuildScopedAsync(conversation, allowed, ct);
         var lexical = ProjectRetrieval.Bm25(snapshot.Chunks, query);
-        var scores = snapshot.Chunks.Select((c, i) => (c, score: lexical[i])).ToDictionary(x => ProjectRetrieval.Reference(x.c), x => x.score);
+        var scores = snapshot.Chunks.Select((c, i) => (c, score: lexical[i])).ToDictionary(x => SourceCoordinates.Reference(x.c), x => x.score);
         var ranked = tool == "project_search_passages" ? ProjectRetrieval.Rank(snapshot.Chunks, query, lexicalScores: lexical)
             : snapshot.Chunks.Where(c => c.Kind != "text" && (tool == "project_find_symbols"
                 ? c.Symbol.Contains(query, StringComparison.OrdinalIgnoreCase) : c.References.Contains(query, StringComparer.Ordinal))).ToArray();
@@ -30,24 +31,24 @@ public sealed partial class ProjectToolService
         foreach (var chunk in ranked.Skip(offset).Take(limit))
         {
             ct.ThrowIfCancellationRequested();
-            var text = FileContext.Utf8Prefix(chunk.Text, Math.Min(640, Math.Max(64, budget / 4)));
+            var text = Utf8Text.Prefix(chunk.Text, Math.Min(640, Math.Max(64, budget / 4)));
             var end = chunk.Start + text.Length;
             var endLine = chunk.StartLine + text.AsSpan(0, Math.Max(0, text.Length - 1)).Count('\n');
-            var reference = ProjectRetrieval.Reference(chunk.FileId, chunk.Sha256, chunk.Start, end);
+            var reference = SourceCoordinates.Reference(chunk.FileId, chunk.Sha256, chunk.Start, end);
             results.Add(new
             {
                 reference,
                 chunk.FileId,
-                path = FileContext.Utf8Prefix(chunk.Path, 240),
+                path = Utf8Text.Prefix(chunk.Path, 240),
                 chunk.Sha256,
                 start = chunk.Start,
                 end,
                 chunk.StartLine,
                 endLine,
                 chunk.CompleteSource,
-                symbol = FileContext.Utf8Prefix(chunk.Symbol, 160),
+                symbol = Utf8Text.Prefix(chunk.Symbol, 160),
                 sourceType = chunk.Kind,
-                score = scores[ProjectRetrieval.Reference(chunk)],
+                score = scores[SourceCoordinates.Reference(chunk)],
                 scoreKind = tool == "project_search_passages" ? "BM25" : "syntax_match",
                 reason = tool,
                 text,

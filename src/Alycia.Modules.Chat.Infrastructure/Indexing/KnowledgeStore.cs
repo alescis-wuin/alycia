@@ -124,7 +124,7 @@ public sealed class KnowledgeStore(ChatDbContext database, ILiveIndexFileAccess 
 
     public async Task<Dictionary<int, double>> HistoryAsync(Guid owner, string question, string profile, int through, DateTimeOffset before, CancellationToken ct)
     {
-        var terms = string.Join(" | ", ProjectRetrieval.Tokens(question).Distinct().Take(32));
+        var terms = string.Join(" | ", LexicalTerms.Split(question).Distinct().Take(32));
         if (terms.Length == 0) return [];
         var rows = await database.Database.SqlQuery<string>($"""
             WITH query AS (SELECT to_tsquery('simple'::regconfig,{terms}) q)

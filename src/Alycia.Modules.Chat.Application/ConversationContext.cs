@@ -1,3 +1,4 @@
+using Alycia.Contracts.Documents;
 using Alycia.Contracts.Context;
 using System.Text.Json;
 
@@ -94,7 +95,7 @@ public static class ConversationContext
                 var end = Math.Min(through, cursor + 20);
                 var page = await repository.SummaryRangeAsync(conversation.Id, cursor, end, ct);
                 if (page.Count != end - cursor) throw new ChatConflictException();
-                var fragments = page.SelectMany(m => RecursiveSummarizer.Chunks(m.Content, chunkBytes).Select(t => (Message: m, Text: t))).ToArray();
+                var fragments = page.SelectMany(m => Utf8Text.Chunks(m.Content, chunkBytes).Select(t => (Message: m, Text: t))).ToArray();
                 var next = new List<MemoryEntry>(); var fallback = 0;
                 for (var index = 0; index < fragments.Length;)
                 {
@@ -119,13 +120,13 @@ public static class ConversationContext
                         if (valid.Any(e => e.Sequence == fragment.Message.Sequence && fragment.Text.Contains(e.Quote, StringComparison.Ordinal))) continue;
                         var quote = string.Concat(fragment.Text.EnumerateRunes().Take(200).Select(r => r.ToString()));
                         next.Add(new($"message-{fragment.Message.Sequence}", "note", quote, fragment.Message.Sequence, fragment.Message.Role,
-                            StructuredMemory.Hash(fragment.Message.Content), Fallback: true)); fallback++;
+                            MemoryTransfer.Hash(fragment.Message.Content), Fallback: true)); fallback++;
                     }
                 }
                 ledger = StructuredMemory.Append(ledger, next, page, fallback); cursor = end; changed = true;
             }
         }
-        var memory = pressure ? StructuredMemory.Select(ledger, question, recent, memoryBudget, options) : new MemorySelection("", new(0, 0, 0, 0, 0, 0));
+        var memory = pressure ? StructuredMemory.Select(ledger, question, recent, memoryBudget, options.TokenCounter) : new MemorySelection("", new(0, 0, 0, 0, 0, 0));
         var messages = new List<PromptMessage>();
         if (system.Length > 0) messages.Add(new("system", system));
         if (memory.Text.Length > 0) messages.Add(new("user", memory.Text));

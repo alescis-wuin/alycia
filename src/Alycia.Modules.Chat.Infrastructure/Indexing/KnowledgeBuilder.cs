@@ -57,7 +57,7 @@ public sealed class KnowledgePass(KnowledgeStore store, IChatModel model, Enrich
         var leaves = new List<IndexedNote>();
         foreach (var chunk in chunks)
         {
-            var reference = ProjectRetrieval.Reference(chunk);
+            var reference = SourceCoordinates.Reference(chunk);
             leaves.Add(await Node(IndexedKnowledge.Key(prefix, reference), "passage", file, null, file.Sha256, chunk.Symbol,
                 chunk.Text, [reference], [], "", "", chunk.Start, chunk.End, null, original.Complete, ct, profile: fileProfile));
         }
@@ -91,7 +91,7 @@ public sealed class KnowledgePass(KnowledgeStore store, IChatModel model, Enrich
         foreach (var role in messages.GroupBy(m => (m.Role, m.CreatedAtUtc.UtcDateTime.Date)))
         {
             var group = role.OrderBy(m => m.Sequence).ToArray();
-            var refs = group.Select(m => $"H{m.Sequence}:{StructuredMemory.Hash(m.Content)[..12]}").ToArray();
+            var refs = group.Select(m => $"H{m.Sequence}:{MemoryTransfer.Hash(m.Content)[..12]}").ToArray();
             var prefix = IndexedKnowledge.Key(owner.ToString(), role.Key.Role, config.Profile, Identity);
             var groupHash = IndexedKnowledge.Key(refs);
             var root = IndexedKnowledge.Key(prefix, "history-group", groupHash);
@@ -99,7 +99,7 @@ public sealed class KnowledgePass(KnowledgeStore store, IChatModel model, Enrich
             var leaves = new List<IndexedNote>();
             for (var n = 0; n < group.Length; n++)
             {
-                var m = group[n]; var hash = StructuredMemory.Hash(m.Content);
+                var m = group[n]; var hash = MemoryTransfer.Hash(m.Content);
                 var assertion = m.Content.TrimEnd().EndsWith('?') ? "question" : m.Content.TrimStart().StartsWith('>') ? "quote"
                     : m.Role == "assistant" ? "assistant_proposal" : "user_statement";
                 leaves.Add(await Node(IndexedKnowledge.Key(prefix, refs[n], hash), "message", null, owner, hash,
@@ -160,7 +160,7 @@ public sealed class KnowledgePass(KnowledgeStore store, IChatModel model, Enrich
         var node = new IndexedNote(publishedKey, level, profile ?? config.Profile, Identity, hash, labels, state, children, role, assertion,
             first, last, date, DateTimeOffset.UtcNow, used, used == 0 ? 0 : cost, complete && (state != "generated" || input.Length == text.Length),
             file?.SourceCreatedAt, file?.SourceModifiedAt, file?.CreatedAtUtc, childFallback || state is "extractive_fallback" or "timeout_fallback",
-            StructuredMemory.Hash(text), file?.Name, file?.MetadataSource, TargetTokens: config.TargetTokens, ReservedOutputTokens: config.OutputTokens);
+            MemoryTransfer.Hash(text), file?.Name, file?.MetadataSource, TargetTokens: config.TargetTokens, ReservedOutputTokens: config.OutputTokens);
         if (!await active(file?.Id, ct)) throw new IndexSliceEnded("Portée modifiée pendant le traitement.");
         await store.SaveAsync(file?.Id, owner, node, key, ct);
         return node;

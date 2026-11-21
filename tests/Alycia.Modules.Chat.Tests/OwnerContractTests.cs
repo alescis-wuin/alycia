@@ -38,6 +38,11 @@ public sealed class OwnerContractTests
             var project = new WorkspaceProfile { Id = Guid.NewGuid() };
             primary.AssignWorkspace(project.Id);
             db.Add(project);
+            primary.Configure("local", "", "", ConversationConfiguration.Serialize(new ChatOptions
+            {
+                UseProjectTools = true, RoutingMode = "memory", RetrievalMode = "hybrid", EmbedHistory = true,
+                EmbeddingModel = "projection-fixture"
+            }));
             var turn = Guid.NewGuid();
             var ask = new ChatMessage(primary.Id, 1, turn, "user", "A");
             var reply = new ChatMessage(primary.Id, 2, turn, "assistant", "B");
@@ -69,11 +74,19 @@ public sealed class OwnerContractTests
                     Assert.Null(await lookup.FindWorkspaceAsync(Guid.Empty, default));
                     await Assert.ThrowsAnyAsync<OperationCanceledException>(() => lookup.FindWorkspaceAsync(primary.Id, new(true)));
                 }
-            foreach (var adapter in new IToolConversationPolicy[] { new ToolConversationPolicyReader(db), mock })
+            foreach (var adapter in new IToolConversationPolicy[] { new ToolConversationPolicyReader(db, new()), mock })
             {
                 Assert.True(await adapter.HasHistoryAsync(primary.Id, default));
                 Assert.False(await adapter.HasHistoryAsync(empty.Id, default));
-                Assert.Equal(2, (await adapter.ReadAsync(primary.Id, default))!.MessageCount);
+                var policy = await adapter.ReadAsync(primary.Id, default);
+                Assert.NotNull(policy);
+                Assert.Equal(2, policy.MessageCount);
+                Assert.True(policy.ToolsEnabled);
+                Assert.Equal(1, policy.FirstVisibleSequence);
+                Assert.Equal("projection-fixture", policy.HistoryEmbedding?.Model);
+                var defaults = await adapter.ReadAsync(empty.Id, default);
+                Assert.Null(defaults!.FirstVisibleSequence);
+                Assert.Null(defaults.HistoryEmbedding);
                 Assert.Null(await adapter.ReadAsync(Guid.Empty, default));
                 await Assert.ThrowsAnyAsync<OperationCanceledException>(() => adapter.ReadAsync(primary.Id, new(true)));
             }
@@ -141,7 +154,7 @@ public sealed class OwnerContractTests
                 var importer = new FileImport(db, storage, ChatFixture.Profiles(db), new ConversationFileChanges(db));
                 var file = Assert.Single(await importer.ImportAsync(chat.Id, Guid.NewGuid(), [new("exemple.txt", new MemoryStream(Encoding.UTF8.GetBytes("Texte local.")))], default));
                 var live = ChatFixture.LiveFiles(db);
-                var real = new AuthorizedToolSources(db, reader, new ToolConversationPolicyReader(db), new(), live, ChatFixture.DocumentScope);
+                var real = new AuthorizedToolSources(db, reader, new ToolConversationPolicyReader(db, new()), live, ChatFixture.DocumentScope);
                 var original = await real.ReadAsync(chat.Id, file.Id, default);
                 var entry = Assert.Single(await real.EntriesAsync(chat.Id, default));
                 var mock = new SnapshotToolSources([new(chat.Id, false, entry, original, real.Declarations(original, default).ToArray())]);

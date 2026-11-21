@@ -56,7 +56,7 @@ public sealed class BackgroundEmbeddingIndex(IIndexSourceDocuments documents, IL
 
             // Probe only once per processing pass when the digest or job inputs require indexing.
             var identity = digest;
-            fingerprint = StructuredMemory.Hash($"{pass?.Identity}|{job.Settings.Enrichment?.Profile}|{job.Settings.VectorSpace(digest, 0)}|{IndexedOriginal.StructureVersion}|{StructuredDocuments.Version}|{messages}|"
+            fingerprint = MemoryTransfer.Hash($"{pass?.Identity}|{job.Settings.Enrichment?.Profile}|{job.Settings.VectorSpace(digest, 0)}|{IndexedOriginal.StructureVersion}|{StructuredDocuments.Version}|{messages}|"
                 + string.Join('|', files.Select(f => $"{f.Id}:{f.Sha256}:{f.Name}:{f.Status}:{f.SourceCreatedAt}:{f.SourceModifiedAt}:{f.ContextMode}")));
             if (job.Progress.State == "completed" && fingerprint == job.Fingerprint)
             { await store.ProgressAsync(job, "completed", total, total, job.Progress.Detail, fingerprint, ct); return; }
@@ -118,7 +118,7 @@ public sealed class BackgroundEmbeddingIndex(IIndexSourceDocuments documents, IL
                 if (pass is not null) await pass.HistoryAsync(owner, page, ct);
                 foreach (var message in page)
                 {
-                    var chunk = new SourceChunk(message.RequestId, "history/" + message.Sequence, StructuredMemory.Hash(message.Content),
+                    var chunk = new SourceChunk(message.RequestId, "history/" + message.Sequence, MemoryTransfer.Hash(message.Content),
                         message.Role, "history", 0, message.Content.Length, 1, 1 + message.Content.Count(c => c == '\n'), message.Content, [], true);
                     // Conversation ID is included even for imported/forked messages sharing a request ID.
                     chunk = chunk with { Path = owner.ToString("N") + "/" + chunk.Path };

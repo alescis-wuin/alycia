@@ -75,9 +75,9 @@ public sealed class ProjectToolStorageTests
             file.ContextMode = "project"; await db.SaveChangesAsync();
             Assert.Equal(0, (await index.BuildAsync(conversation.Id, default)).ReusedFiles);
             var history = new EfChatRepository(db, ChatFixture.Profiles(db), new TurnDocuments(db, ChatFixture.DocumentScope));
-            var policy = new ToolConversationPolicyReader(db);
-            var sources = new AuthorizedToolSources(db, reader, policy, new(), ChatFixture.LiveFiles(db), ChatFixture.DocumentScope);
-            var tools = new ProjectToolService(sources, new Alycia.Modules.Tools.SourceCommands(sources), policy, history, new(), new ProjectIndexService(new ConversationIndexOwners(new(db.Database)), storage, ChatFixture.IndexFiles(db, reader), ChatFixture.LiveFiles(db), new()));
+            var policy = new ToolConversationPolicyReader(db, new());
+            var sources = new AuthorizedToolSources(db, reader, policy, ChatFixture.LiveFiles(db), ChatFixture.DocumentScope);
+            var tools = new ProjectToolService(sources, new Alycia.Modules.Tools.SourceCommands(sources), policy, history, new ProjectIndexService(new ConversationIndexOwners(new(db.Database)), storage, ChatFixture.IndexFiles(db, reader), ChatFixture.LiveFiles(db), new()));
             Task<ProjectToolResult> Call(string tool, object args, Guid? scope = null, int budget = 2048) =>
                 tools.CallAsync(scope ?? conversation.Id, tool, JsonSerializer.SerializeToElement(args), budget, default);
             var found = await Call("project_search", new { query = "hiddenatend" });
