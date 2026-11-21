@@ -612,9 +612,31 @@ def verify_context_quality(call, checks):
         call("DELETE", prefix, expected=204)
 
 
+def verify_originals(call, directory, checks):
+    owner = call("POST", "/conversations", {"title": "Source", "model": "demo"}, expected=201)["id"]
+    outsider = call("POST", "/conversations", {"title": "Voisine", "model": "demo"}, expected=201)["id"]
+    prefix = "/conversations/" + owner
+    data = b"0123456789"
+    body = b'--part\r\nContent-Disposition: form-data; name="files"; filename="note.txt"\r\n\r\n' + data + b"\r\n--part--\r\n"
+    file = call("POST", prefix + "/files/" + str(uuid.uuid4()), raw=body,
+                headers={"Content-Type": "multipart/form-data; boundary=part"})[0]["id"]
+    resource = prefix + "/files/" + file
+    header = {"Range": "bytes=2-5"}
+    assert call("GET", resource, headers=header, expected=206) == b"2345"
+    assert call("GET", "/conversations/" + outsider + "/files/" + file, headers=header, expected=404)
+    original = directory / uuid.UUID(owner).hex / (uuid.UUID(file).hex + ".bin")
+    original.write_bytes(b"abcdefghij")
+    call("GET", resource, headers=header, expected=503)
+    original.write_bytes(data)
+    revision = call("GET", prefix + "/settings")["conversation"]["revision"]
+    call("PATCH", resource, {"revision": revision, "mode": "excluded"})
+    call("GET", resource, headers=header, expected=404)
+    checks.extend(["original_range_bytes", "original_owner_scope", "original_same_size_hash_mismatch", "original_range_after_revocation"])
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--case", choices=("all", "transport", "tool-summary", "boreale", "indexing", "context-quality", "knowledge"), default="all")
+    parser.add_argument("--case", choices=("all", "transport", "tool-summary", "boreale", "indexing", "context-quality", "knowledge", "originals"), default="all")
     args = parser.parse_args()
     connection = os.environ.get("ALYCIA_CHAT_TEST_CONNECTION")
     if not connection:
@@ -670,6 +692,8 @@ def main():
                 spec.loader.exec_module(module)
                 checks = []
                 client = module.create_client(f"http://127.0.0.1:{port}")
+                if args.case == "originals":
+                    verify_originals(client, Path(env["ALYCIA_FILES_DIRECTORY"]), checks)
                 if args.case in ("all", "transport"):
                     verify_model_selection(port)
                     checks.append("model_capabilities_and_existing_conversation_repair")

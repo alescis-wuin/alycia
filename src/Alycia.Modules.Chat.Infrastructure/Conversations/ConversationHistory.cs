@@ -8,7 +8,7 @@ namespace Alycia.Modules.Chat.Infrastructure;
 
 public sealed record ConversationSearchPage(IReadOnlyList<Conversation> Items, bool HasMore);
 
-public sealed class ConversationHistory(ChatDbContext database, ChatOptions defaults, FileStorage storage)
+public sealed class ConversationHistory(ChatDbContext database, ChatOptions defaults, IArchiveDocuments documents)
 {
     public async Task<ConversationSearchPage> SearchAsync(string? q, int? offset, Guid? workspaceId, bool? unassigned, CancellationToken ct)
     {
@@ -46,32 +46,17 @@ public sealed class ConversationHistory(ChatDbContext database, ChatOptions defa
         archive = archive with { Title = ("Copie · " + archive.Title)[..Math.Min(100, archive.Title.Length + 8)] };
         var restored = ConversationTransfer.Restore(archive);
         restored.Conversation.AssignWorkspace(original.WorkspaceId);
-        var files = await database.Attachments.AsNoTracking().Where(f => f.ConversationId == id
-            && f.AnchorSequence <= through + 1).ToListAsync(ct);
         var copyId = restored.Conversation.Id;
-        var copyDirectory = storage.DirectoryFor(copyId);
-        if (files.Count > 0)
-        {
-            if (Directory.Exists(copyDirectory)) throw new IOException("Le répertoire de la copie existe déjà.");
-            Directory.CreateDirectory(copyDirectory);
-        }
-        var written = new List<string>();
+        var fork = documents.Fork(id, copyId, through, original.WorkspaceId.HasValue);
         var forkEntities = new List<object>(restored.Messages) { restored.Conversation };
         var commitStarted = false;
         try
         {
-            var copies = await CopyAttachmentsAsync(files, id, copyId, written, ct);
-            // Detect changes while the file copies were being prepared.
-            if (!await database.Conversations.AnyAsync(c => c.Id == id && c.Revision == revision, ct))
-                throw new ChatConflictException();
-            if (original.WorkspaceId.HasValue)
-            {
-                var localModes = await database.WorkspaceFileOverrides.AsNoTracking().Where(o => o.ConversationId == id).ToArrayAsync(ct);
-                forkEntities.AddRange(localModes.Select(o => new WorkspaceFileOverride
-                { ConversationId = copyId, FileId = o.FileId, Mode = o.Mode }));
-            }
-            forkEntities.AddRange(copies);
+            await fork.PrepareAsync(ct);
             await using var transaction = await database.Database.BeginTransactionAsync(ct);
+            // The source cannot be edited between validation and commit of the fork.
+            if (!await database.Database.SqlQuery<bool>($"""SELECT TRUE AS "Value" FROM chat.conversations WHERE "Id"={id} AND "Revision"={revision} FOR SHARE""").AnyAsync(ct))
+                throw new ChatConflictException();
             database.AddRange(forkEntities);
             await database.SaveChangesAsync(acceptAllChangesOnSuccess: false, cancellationToken: ct);
             ct.ThrowIfCancellationRequested();
@@ -85,11 +70,7 @@ public sealed class ConversationHistory(ChatDbContext database, ChatOptions defa
             // A retry in this scope must not insert the abandoned fork.
             foreach (var entity in forkEntities) database.Entry(entity).State = EntityState.Detached;
             // Before COMMIT, disposing the transaction rolls back even if SaveChanges ran.
-            if (files.Count > 0 && (!commitStarted || await CanDiscardFailedCommitAsync(copyId)))
-            {
-                foreach (var path in written) File.Delete(path);
-                if (!Directory.EnumerateFileSystemEntries(copyDirectory).Any()) Directory.Delete(copyDirectory);
-            }
+            fork.Detach(!commitStarted || await CanDiscardFailedCommitAsync(copyId));
             throw;
         }
     }
@@ -112,41 +93,6 @@ public sealed class ConversationHistory(ChatDbContext database, ChatOptions defa
         }
     }
 
-    private async Task<List<Attachment>> CopyAttachmentsAsync(IReadOnlyList<Attachment> files, Guid sourceId, Guid copyId,
-        List<string> written, CancellationToken ct)
-    {
-        var ids = files.ToDictionary(f => f.Id, _ => Guid.NewGuid());
-        var copies = new List<Attachment>();
-        foreach (var file in files)
-        {
-            var newId = ids[file.Id];
-            await using var source = File.OpenRead(storage.PathFor(sourceId, file.Id));
-            var path = storage.PathFor(copyId, newId);
-            await using var target = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None);
-            written.Add(path);
-            await source.CopyToAsync(target, ct);
-            copies.Add(new Attachment
-            {
-                Id = newId,
-                ConversationId = copyId,
-                BatchId = copyId,
-                ArchiveId = file.ArchiveId.HasValue ? ids.GetValueOrDefault(file.ArchiveId.Value) : null,
-                Name = file.Name,
-                Text = file.Text,
-                Status = file.Status,
-                Size = file.Size,
-                Sha256 = file.Sha256,
-                CreatedAtUtc = file.CreatedAtUtc,
-                AnchorSequence = file.AnchorSequence,
-                SourceCreatedAt = file.SourceCreatedAt,
-                SourceModifiedAt = file.SourceModifiedAt,
-                MetadataSource = file.MetadataSource,
-                ContextMode = file.ContextMode
-            });
-        }
-        return copies;
-    }
-
     private async Task<ConversationArchive> ArchiveAsync(Guid id, int? through, CancellationToken ct)
     {
         var conversation = await database.Conversations.AsNoTracking().SingleOrDefaultAsync(c => c.Id == id, ct)
@@ -161,7 +107,6 @@ public sealed class ConversationHistory(ChatDbContext database, ChatOptions defa
         if (messages.Length != limit) throw new ChatConflictException();
         return new(1, conversation.Title, conversation.Model, conversation.SystemPrompt, conversation.ContextNotes,
             ConversationConfiguration.Options(conversation, defaults), messages, conversation.WorkspaceId,
-            conversation.WorkspaceId is Guid project ? await database.Attachments.AsNoTracking().Where(f => f.WorkspaceId == project)
-                .OrderBy(f => f.Name).Select(f => f.Name + " · " + f.Sha256).ToArrayAsync(ct) : null);
+            conversation.WorkspaceId is Guid project ? await documents.DescribeWorkspaceAsync(project, ct) : null);
     }
 }

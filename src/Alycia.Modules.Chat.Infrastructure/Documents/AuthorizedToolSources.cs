@@ -3,10 +3,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Alycia.Modules.Chat.Infrastructure;
 
-public sealed class AuthorizedToolSources(ChatDbContext database, ProjectSourceReader reader, IToolConversationPolicy policy, ChatOptions defaults) : IAuthorizedToolSources
+public sealed class AuthorizedToolSources(ChatDbContext database, ProjectSourceReader reader, IToolConversationPolicy policy, ChatOptions defaults, ILiveIndexFileAccess live) : IAuthorizedToolSources
 {
-    public Task<bool> HasFilesAsync(Guid conversation, CancellationToken ct) => database.ModelSources(conversation)
-        .AnyAsync(f => f.ContextMode != "excluded" && f.Text != "", ct);
+    public async Task<bool> HasFilesAsync(Guid conversation, CancellationToken ct)
+    {
+        var ids = await database.ModelSources(conversation).Where(f => f.ContextMode != "excluded" && f.Text != "")
+            .Select(f => f.Id).ToArrayAsync(ct);
+        return ids.Length > 0 && (await live.CurrentEntriesAsync(conversation, ids, ct)).Any(f => f.Readable);
+    }
 
     private async Task<IQueryable<Alycia.Modules.Chat.Domain.Attachment>> SourcesAsync(Guid id, CancellationToken ct)
     {
@@ -19,14 +23,25 @@ public sealed class AuthorizedToolSources(ChatDbContext database, ProjectSourceR
             (f.ContextMode == "pinned" || f.ContextMode == "project" || f.AnchorSequence >= first));
     }
 
-    public async Task<ToolSourceEntry[]> EntriesAsync(Guid id, CancellationToken ct) => await (await SourcesAsync(id, ct)).OrderBy(f => f.Name).ThenBy(f => f.Id)
-        .Select(f => new ToolSourceEntry(f.Id, f.Name, f.Size, f.ContextMode, f.Status, f.ContextMode != "excluded" && f.Text != "")).ToArrayAsync(ct);
+    public async Task<ToolSourceEntry[]> EntriesAsync(Guid id, CancellationToken ct)
+    {
+        var files = await (await SourcesAsync(id, ct)).OrderBy(f => f.Name).ThenBy(f => f.Id)
+            .Select(f => new ToolSourceEntry(f.Id, f.Name, f.Size, f.ContextMode, f.Status, f.ContextMode != "excluded" && f.Text != "")).ToArrayAsync(ct);
+        var current = (await live.CurrentEntriesAsync(id, files.Select(f => f.Id).ToArray(), ct)).ToDictionary(f => f.Id);
+        return files.Where(f => current.ContainsKey(f.Id)).Select(f => f with
+        {
+            Readable = f.Readable && current[f.Id].Readable,
+            Mode = current[f.Id].Mode == "excluded" ? "excluded" : f.Mode
+        }).ToArray();
+    }
 
     public async Task<AuthorizedToolSource> ReadAsync(Guid conversation, Guid fileId, CancellationToken ct)
     {
         var file = await (await SourcesAsync(conversation, ct)).SingleOrDefaultAsync(f => f.Id == fileId, ct)
             ?? throw new ArgumentException("Fichier introuvable dans cette conversation.");
         var original = await reader.ReadAsync(file, ct);
+        if (!await live.IsAllowedAsync(conversation, false, fileId, ct))
+            throw new ArgumentException("Fichier introuvable dans cette conversation.");
         return new(file.Id, file.Name, file.Sha256, original.Text, original.Complete, original.Origin);
     }
 

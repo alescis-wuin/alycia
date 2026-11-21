@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Alycia.Modules.Chat.Infrastructure;
 
-public sealed class ConversationFiles(ChatDbContext database, FileStorage storage, ILogger<ConversationFiles> logger)
+public sealed class ConversationFiles(ChatDbContext database, FileStorage storage, IConversationFileChanges conversations, ILogger<ConversationFiles> logger)
 {
     public Task<List<FileSummary>> ForHistoryAsync(Guid id, int minimum, int? before, CancellationToken ct) =>
         database.Attachments.AsNoTracking().Where(f => f.ConversationId == id
@@ -12,16 +12,9 @@ public sealed class ConversationFiles(ChatDbContext database, FileStorage storag
             .Select(f => new FileSummary(f.Id, f.Name, f.Size, f.Status, f.AnchorSequence,
                 f.CreatedAtUtc, f.ArchiveId, f.Sha256, f.ContextMode, f.BatchId, f.SourceCreatedAt, f.SourceModifiedAt, f.MetadataSource, f.WorkspaceId)).ToListAsync(ct);
 
-    public async Task<(string Path, string Name)?> DownloadAsync(Guid id, Guid fileId, CancellationToken ct)
-    {
-        var file = await database.ForConversation(id).SingleOrDefaultAsync(f => f.Id == fileId, ct);
-        return file is null ? null : (storage.PathFor(file), Path.GetFileName(file.Name));
-    }
-
     public async Task<bool> RemoveAsync(Guid id, Guid fileId, CancellationToken ct)
     {
-        var conversation = await database.Conversations.SingleOrDefaultAsync(c => c.Id == id, ct)
-            ?? throw new ConversationNotFoundException();
+        var conversation = await conversations.RequireAsync(id, ct);
         var all = await database.Attachments.Where(f => f.ConversationId == id).ToListAsync(ct);
         if (!all.Any(f => f.Id == fileId)) return false;
         var ids = new HashSet<Guid> { fileId };
@@ -33,7 +26,7 @@ public sealed class ConversationFiles(ChatDbContext database, FileStorage storag
         }
         var files = all.Where(f => ids.Contains(f.Id)).ToArray();
         database.Attachments.RemoveRange(files);
-        conversation.AttachFiles();
+        await conversations.StageAdvanceAsync(id, conversation.Revision, ct);
         await database.SaveVersionedAsync(ct);
         foreach (var file in files)
         {

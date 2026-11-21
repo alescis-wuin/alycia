@@ -12,7 +12,13 @@ public sealed record ProjectSource(string Text, bool Complete, string Origin);
 public sealed class ProjectSourceReader(FileStorage storage)
 {
     internal FileStorage Storage => storage;
-    public Stream OpenOriginal(Attachment file) => File.OpenRead(storage.PathFor(file));
+    public async Task<Stream> OpenVerifiedAsync(Attachment file, CancellationToken ct)
+    {
+        if (file.ContextMode == "excluded") throw new ArgumentException("Ce fichier est exclu de l’accès au modèle.");
+        var original = await VerifiedOriginal.OpenAsync(storage, file.WorkspaceId ?? file.ConversationId!.Value,
+            file.WorkspaceId.HasValue, file.Id, file.Size, file.Sha256, ct);
+        return original.Content;
+    }
 
     private static readonly HashSet<string> ExtractedFormats = new(StringComparer.OrdinalIgnoreCase)
         { ".pdf", ".docx", ".odt", ".pptx", ".xlsx" };
@@ -22,7 +28,7 @@ public sealed class ProjectSourceReader(FileStorage storage)
         if (file.Text.Length == 0) return new("", false, file.Status);
         try
         {
-            await using var stream = OpenOriginal(file);
+            await using var stream = File.OpenRead(storage.PathFor(file));
             var bytes = await DocumentContent.ReadBoundedAsync(stream, ImportLimits.HardFileBytes, ct);
             if (!Convert.ToHexString(SHA256.HashData(bytes)).Equals(file.Sha256, StringComparison.OrdinalIgnoreCase))
                 throw new ArgumentException("L’original a changé : réimportez-le avant consultation.");

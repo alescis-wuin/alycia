@@ -126,13 +126,19 @@ internal static partial class ChatEndpoints
             HttpRequest request, FileImport importer, CancellationToken ct) => UploadFilesAsync(id, batchId, request, importer, false, ct));
 
         routes.MapGet("/conversations/{id:guid}/files/{fileId:guid}", async (Guid id, Guid fileId,
-            ConversationFiles documents, HttpContext http, CancellationToken ct) =>
+            IConversationOriginals documents, HttpContext http, CancellationToken ct) =>
         {
-            var file = await documents.DownloadAsync(id, fileId, ct);
-            if (file is null) return Error(http, 404, "FILE_NOT_FOUND", "Fichier introuvable.");
-            if (!File.Exists(file.Value.Path)) return Error(http, 503, "FILE_UNAVAILABLE", "Le volume de fichiers est indisponible.");
-            http.Response.Headers["X-Content-Type-Options"] = "nosniff";
-            return Results.File(file.Value.Path, "application/octet-stream", file.Value.Name, enableRangeProcessing: true);
+            try
+            {
+                var file = await documents.DownloadAsync(id, fileId, ct);
+                if (file is null) return Error(http, 404, "FILE_NOT_FOUND", "Fichier introuvable.");
+                http.Response.Headers["X-Content-Type-Options"] = "nosniff";
+                return Results.File(file.Content, "application/octet-stream", file.Name, file.LastModified, enableRangeProcessing: true);
+            }
+            catch (OriginalUnavailableException error)
+            {
+                return Error(http, 503, "FILE_UNAVAILABLE", error.Message);
+            }
         });
         routes.MapDelete("/conversations/{id:guid}/files/{fileId:guid}", async (Guid id, Guid fileId,
             ConversationFiles documents, HttpContext http, CancellationToken ct) =>

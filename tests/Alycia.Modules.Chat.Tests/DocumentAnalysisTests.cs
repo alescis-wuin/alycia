@@ -32,7 +32,7 @@ public sealed class DocumentAnalysisTests
             await database.SaveChangesAsync();
             var source = Encoding.UTF8.GetBytes("public class Sample { }");
             var archive = Zip(("nested.zip", Zip(("src/code.cs", source))), (".env", "SECRET_SHOULD_NOT_LEAK"u8.ToArray()));
-            var importer = new FileImport(database, storage, ChatFixture.Profiles(database));
+            var importer = new FileImport(database, storage, ChatFixture.Profiles(database), new ConversationFileChanges(database));
             var added = await importer.ImportAsync(conversation.Id, Guid.NewGuid(),
                 [new("project.zip", new MemoryStream(archive), "2025-01-02T03:04:05Z", "2025-02-03T04:05:06Z", "client-os")], default);
             Assert.Equal(4, added.Count);
