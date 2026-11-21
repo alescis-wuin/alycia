@@ -7,7 +7,7 @@ public static class SlidingContext
 {
     // Conservative UTF-8 byte estimate, not a model-specific tokenizer.
     // Keep extra room for the model's chat template and generated answer.
-    public static int EstimateTokens(string content) => Encoding.UTF8.GetByteCount(content) + 16;
+    public static int EstimateTokens(string content) => SettingsInput.Estimate(content);
 
     public static ContextWindow Build(string systemPrompt, IReadOnlyList<ChatMessage> history,
         string userMessage, ChatOptions options)
@@ -15,7 +15,7 @@ public static class SlidingContext
         options.Validate();
         if (history.Count % 2 != 0)
             throw new InvalidOperationException("Historique de conversation incomplet.");
-        var budget = options.ContextTokens - options.MaxOutputTokens - options.SafetyTokens;
+        var budget = options.AvailableInputTokens;
         var used = TokenBudget.Count(userMessage, options)
             + (systemPrompt.Length == 0 ? 0 : TokenBudget.Count(systemPrompt, options));
         if (used > budget)

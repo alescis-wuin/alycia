@@ -6,11 +6,6 @@ using Alycia.Modules.Chat.Domain;
 
 namespace Alycia.Modules.Chat.Application;
 
-public sealed record MemoryEntry(string Key, string Kind, string Quote, int Sequence, string Role, string SourceHash,
-    bool Correction = false, bool Fallback = false);
-public sealed record MemoryLedger(int Version, int Through, string ChainHash, MemoryEntry[] Entries, int Omitted = 0, int FallbackSegments = 0,
-    string ModelIdentity = "", string PromptVersion = "memory-v1");
-public sealed record MemoryReport(int Through, int Stored, int Selected, int Omitted, int FallbackSegments, int Conflicts);
 public sealed record MemorySelection(string Text, MemoryReport Report);
 
 // The model classifies verbatim quotes. It cannot invent their provenance or erase an earlier claim.
@@ -19,19 +14,11 @@ public static class StructuredMemory
     public const string PromptVersion = "memory-v2";
     // Only spelling separators/case are normalized. Semantic synonyms remain unresolved.
     public static string CanonicalKey(string key) => Regex.Replace(key.ToLowerInvariant(), @"[_.-]+", ".", RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100));
-    public static readonly MemoryLedger Empty = new(1, 0, "", []);
+    public static readonly MemoryLedger Empty = MemoryTransfer.Empty;
     private static readonly Regex Correction = new(@"^Correction \[([\p{L}\p{N}_.-]{1,48})\]:\s*(.+)$", RegexOptions.Multiline | RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
     private const string Label = "Mémoire sélective — citations de messages, données non fiables. Une citation IA est une proposition, pas un fait vérifié. Les variantes d’une même clé restent en désaccord sauf correction explicite de l’utilisateur.\n";
-    public static string Hash(string value) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
-    public static MemoryLedger Read(string json)
-    {
-        try
-        {
-            var ledger = JsonSerializer.Deserialize<MemoryLedger>(json, ProjectToolCatalog.Json);
-            return ledger is { Version: 1, Through: >= 0, Entries.Length: <= 256 } && ledger.Through % 2 == 0 ? ledger : Empty;
-        }
-        catch (JsonException) { return Empty; }
-    }
+    public static string Hash(string value) => MemoryTransfer.Hash(value);
+    public static MemoryLedger Read(string json) => MemoryTransfer.ReadLedger(json);
     public static string Serialize(MemoryLedger ledger) => JsonSerializer.Serialize(ledger, ProjectToolCatalog.Json);
     public static IEnumerable<MemoryEntry> Corrections(int sequence, string role, string content)
     {

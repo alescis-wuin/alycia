@@ -5,6 +5,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../Alycia.Contracts/Alycia.Contracts.csproj" />
     <ProjectReference Include="../Alycia.Modules.Chat.Domain/Alycia.Modules.Chat.Domain.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Alycia.Contracts.Chat" />
   </ItemGroup>
 </Project>

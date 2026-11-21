@@ -1,4 +1,4 @@
-namespace Alycia.Modules.Chat.Application;
+namespace Alycia.Contracts.Chat;
 
 // Convenience exclusions for project imports, not a secret detector.
 public static class ImportPolicy

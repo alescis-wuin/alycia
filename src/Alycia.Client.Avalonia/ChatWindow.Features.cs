@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Alycia.Modules.Chat.Application;
+using Alycia.Contracts.Chat;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
@@ -125,7 +125,7 @@ public partial class ChatWindow
         var calls = Input(options.SummaryMaxCalls.ToString(), 4);
         var toolCalls = Input(options.ToolMaxCalls.ToString(), 4);
         var knowledge = new KnowledgeFields(options.Enrichment);
-        var budgets = new (string Label, TextBox Input, Action<ChatOptions, int> Set)[]
+        var budgets = new (string Label, TextBox Input, Action<ChatSettings, int> Set)[]
         {
             ("Résultats d’outils conservés · tokens (0 : adaptatif)", Input(options.ToolContextTokens.ToString(), 6), (o, v) => o.ToolContextTokens = v),
             ("Résultat maximal par appel · octets UTF-8", Input(options.ToolResultBytes.ToString(), 6), (o, v) => o.ToolResultBytes = v),
@@ -198,7 +198,7 @@ public partial class ChatWindow
         var queryPrefix = Input(options.EmbeddingQueryPrefix, 256);
         advanced.Children.Add(Label("Préfixe d’embedding des documents")); advanced.Children.Add(documentPrefix);
         advanced.Children.Add(Label("Préfixe d’embedding des requêtes")); advanced.Children.Add(queryPrefix);
-        var features = new (CheckBox Control, Action<ChatOptions, bool> Set)[]
+        var features = new (CheckBox Control, Action<ChatSettings, bool> Set)[]
         {
             (new() { Content = "Préciser les questions ambiguës avec le modèle d’annotation", IsChecked = options.QueryBriefModelEnabled }, (o, v) => o.QueryBriefModelEnabled = v),
             (new() { Content = "Rechercher par facettes lexicales et sémantiques", IsChecked = options.FacetPlanningEnabled }, (o, v) => o.FacetPlanningEnabled = v),
@@ -218,7 +218,7 @@ public partial class ChatWindow
         advanced.Children.Add(knowledge.Panel);
         advanced.Children.Add(Label("L’indexation hybride est indépendante du budget de conversation. Les résultats retirés du contexte libèrent leur budget ; les originaux restent conservés."));
         panel.Children.Add(new Expander { Header = "Avancé", Content = advanced });
-        ChatOptions? edited = null;
+        ChatSettings? edited = null;
         string? Validate()
         {
             if (model.SelectedItem is not string modelName || !models.Contains(modelName, StringComparer.Ordinal))
@@ -229,7 +229,7 @@ public partial class ChatWindow
                 || !double.TryParse(temperature.Text?.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out var temperatureValue)
                 || !string.IsNullOrWhiteSpace(seed.Text) && !int.TryParse(seed.Text, out _))
                 return "Un réglage numérique est invalide. Les valeurs saisies sont conservées.";
-            edited = new ChatOptions
+            edited = new ChatSettings
             {
                 RoutingMode = routeMode.SelectedItem as string ?? "off",
                 EmbeddingDocumentPrefix = documentPrefix.Text ?? "",
@@ -262,10 +262,8 @@ public partial class ChatWindow
                 edited.Enrichment = knowledge.Read();
                 foreach (var feature in features) feature.Set(edited, feature.Control.IsChecked == true);
                 edited.Validate();
-                if (edited.UseProjectTools) ProjectAgent.ContextOptions(edited);
-                var sample = Alycia.Modules.Chat.Domain.Conversation.Create("test", modelName, system.Text);
-                sample.Configure(modelName, system.Text, notes.Text, "{}");
-                SlidingContext.Build(ConversationConfiguration.System(sample), [], "Bonjour", edited);
+                if (edited.UseProjectTools) ToolWindowBudget.SafetyTokens(edited, SettingsInput.Estimate);
+                SettingsInput.ValidateWindow(modelName, system.Text, notes.Text, edited);
                 return null;
             }
             catch (ArgumentException exception) { return exception.Message; }
@@ -334,7 +332,7 @@ public partial class ChatWindow
         int count;
         while ((count = await input.ReadAsync(bytes, _lifetime.Token)) > 0)
         {
-            if (buffer.Length + count > ConversationTransfer.MaxBytes) throw new ChatApiException("Import limité à 5 Mio.");
+            if (buffer.Length + count > ChatArchiveLimits.MaxBytes) throw new ChatApiException("Import limité à 5 Mio.");
             buffer.Write(bytes, 0, count);
         }
         var conversation = await _client.ImportConversationAsync(buffer.ToArray(), _lifetime.Token);

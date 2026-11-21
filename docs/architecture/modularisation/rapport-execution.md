@@ -22,3 +22,9 @@ Les TRX et sorties complètes des mesures initiales ont été conservés dans l�
 ## P2 — Caractérisation
 
 Export original v1 enregistré avant refonte dans `Fixtures/conversation-settings-v1.json`, test de restitution à l’octet, et scénario HTTP de collision de noms ajoutés. [Matrice des contrôles](verification.md). Sur PostgreSQL 17.12 jetable, le filtre Chat couvrant ConversationSettingsTransfer, PostgresChat, PersistentEmbedding, KnowledgePipeline, Streaming et LocalChatAccess a donné 44 réussis, 0 échec, 0 ignoré (38 s). La recette `python3 scripts/tests/http-integration.py --case boreale` est passée de 3 à 4 contrôles réussis. Le premier essai d’infrastructure n’a pu joindre le serveur d’un autre processus isolé. Les validations ci-dessus démarrent PostgreSQL dans le même environnement réseau que les tests.
+
+## P3 — Transport et réglages
+
+`Alycia.Contracts` rassemble les enregistrements JSON partagés, la lecture NDJSON et le codec v1. `ChatSettings` contient les champs persistés. `ChatOptions` en dérive et porte les données transitoires exclues du JSON. Les vues de génération, fenêtre, classement, mémoire, outils et index sont utilisées par leurs consommateurs. Les valeurs persistées sont scalaires ou immuables, y compris Enrichment. Les collections et le compteur transitoires des copies d’un tour sont lus, ou remplacés, sans mutation en place du réglage d’une autre discussion. Le client utilise des projections du contexte et des notes et conserve sa validation locale. Le Dockerfile inclut le projet de contrats.
+
+`dotnet list src/Alycia.Client.Avalonia reference` indique uniquement Alycia.Contracts. Compilation de la solution réussie. Tests du client 48/48, filtres serveur des réglages, budgets, classement et mémoire 34/34. Après ajustement du validateur d’export serveur, 16/16 tests de transfert et mémoire. Lint réussi. Le fichier v1 produit par la base reste reproductible à l’octet.

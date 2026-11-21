@@ -10,7 +10,7 @@ public sealed record ConversationArchive(int SchemaVersion, string Title, string
 
 public static class ConversationTransfer
 {
-    public const int MaxBytes = 5 * 1024 * 1024;
+    public const int MaxBytes = ChatArchiveLimits.MaxBytes;
     public const int MaxMessages = 2000;
     public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { WriteIndented = true, MaxDepth = 16 };
 

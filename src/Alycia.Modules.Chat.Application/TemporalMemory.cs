@@ -7,9 +7,6 @@ namespace Alycia.Modules.Chat.Application;
 public sealed record TemporalFact(string Key, string Quote, string Role, int Sequence, DateTimeOffset Observed, string Sha256,
     int Offset, int FullLength, bool Correction, string Kind);
 public sealed record TemporalRecall(TemporalFact[] Facts, int Indexed, int Total, IReadOnlyList<ModelCallUsage> Calls, string? Warning = null);
-public sealed record TemporalObservation(string Key, int Sequence, string Role, string Status, DateTimeOffset Observed,
-    DateTimeOffset? ValidUntil, int? CorrectedBy, int Version = 1);
-public sealed record TemporalReport(int Indexed, int Total, HistoryEvidence[] Sources, string? Warning, string Perspective, TemporalObservation[]? Observations = null);
 public interface ITemporalMemory
 {
     Task<TemporalRecall> RecallAsync(Guid owner, string question, ChatOptions settings, int through, CancellationToken ct);

@@ -3,7 +3,7 @@ using System.Text;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Alycia.Client.Avalonia;
-using Alycia.Modules.Chat.Application;
+using Alycia.Contracts.Chat;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
@@ -134,7 +134,7 @@ public sealed class ChatTests
             }
 
             if (request.Method == HttpMethod.Get && path.EndsWith("/settings"))
-                return Json(new SettingsReply(conversation!, new ChatOptions()));
+                return Json(new SettingsReply(conversation!, new ChatSettings()));
             if (request.Method == HttpMethod.Get && path.EndsWith("/tools"))
                 return Json(new ProjectToolsInfo(true, true, 24, ["project_list", "project_read", "project_search"], "2025-11-25"));
             if (request.Method == HttpMethod.Get && path.EndsWith("/files")) return Json(files);
@@ -198,9 +198,9 @@ public sealed class ChatTests
             {
                 DiagnosticsJson = JsonSerializer.Serialize(new TurnDiagnostics(
                     new GenerationUsage([new("chat", 100, 200, new(100, 20, null, null, "stop"))], "demo:fixture", "UTF-8 conservateur", 100, 20, 200, true),
-                    Citations: new("unknown_references", [new("Sabcdef123456", citedId, "src/A.cs", citedHash, 1, 1, 2, 9, "initial", true)], [], ["S000000000000"])), ProjectToolCatalog.Json),
+                    Citations: new("unknown_references", [new("Sabcdef123456", citedId, "src/A.cs", citedHash, 1, 1, 2, 9, "initial", true)], [], ["S000000000000"])), ChatJson.Options),
                 ToolTraceJson = JsonSerializer.Serialize(new[]
-                { new ToolObservation(1, "project_read", "{}", true, 100, new("src/A.cs", new string('a', 64), 0, null, true)) }, ProjectToolCatalog.Json)
+                { new ToolObservation(1, "project_read", "{}", true, 100, new("src/A.cs", new string('a', 64), 0, null, true)) }, ChatJson.Options)
             };
             var result = new ChatSendResult(messages.ToArray(), 0, false);
             var settings = new JsonSerializerOptions(JsonSerializerDefaults.Web);
@@ -345,9 +345,16 @@ public sealed class ChatTests
                 watch.Restart();
                 for (int end = 25000; end <= large.Length; end += 25000) { stream.Text = large[..end]; stream.RenderNow(); }
                 watch.Stop();
-                File.WriteAllText(benchmarkPath, JsonSerializer.Serialize(new { messages = 1000, characters = 100000,
-                    fragments = 4, historyMs, markdownMs = watch.Elapsed.TotalMilliseconds,
-                    allocatedBytes = GC.GetTotalAllocatedBytes() - bytesBefore, workingSetBytes = Environment.WorkingSet }));
+                File.WriteAllText(benchmarkPath, JsonSerializer.Serialize(new
+                {
+                    messages = 1000,
+                    characters = 100000,
+                    fragments = 4,
+                    historyMs,
+                    markdownMs = watch.Elapsed.TotalMilliseconds,
+                    allocatedBytes = GC.GetTotalAllocatedBytes() - bytesBefore,
+                    workingSetBytes = Environment.WorkingSet
+                }));
                 stream.Text = "";
                 messages.Clear();
                 messages.AddRange(original);

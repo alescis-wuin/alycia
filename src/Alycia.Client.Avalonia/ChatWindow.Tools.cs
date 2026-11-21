@@ -3,7 +3,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using Alycia.Modules.Chat.Application;
+using Alycia.Contracts.Chat;
 using Avalonia.Controls;
 using Avalonia.Media;
 
@@ -40,7 +40,7 @@ public partial class ChatWindow
         var info = await _client.ProjectToolsAsync(_current.Id, _lifetime.Token);
         var files = await _client.FilesAsync(_current.Id, _lifetime.Token);
         var panel = new StackPanel { Spacing = 14 };
-        panel.Children.Add(Label($"{files.Length} fichiers importés · {files.Count(f => ProjectContext.IsCode(f.Name))} fichiers de code · "
+        panel.Children.Add(Label($"{files.Length} fichiers importés · {files.Count(f => SourceFileType.IsCode(f.Name))} fichiers de code · "
             + $"{files.Count(f => f.ContextMode == "excluded")} exclusions"));
         panel.Children.Add(Label(!info.Enabled ? "Outils désactivés. Activez-les dans Réglages pour permettre les lectures par l’IA."
             : !info.ModelSupportsTools ? "Ce modèle n’annonce pas la capacité tools. Les extraits restent disponibles ; choisissez un modèle compatible dans Réglages pour les lectures à la demande."

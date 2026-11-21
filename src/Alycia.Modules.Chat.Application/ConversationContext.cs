@@ -49,16 +49,15 @@ public static class ConversationContext
         for (var i = 0; i < recent.Length; i += 2)
             if (recent[i].Role != "user" || recent[i + 1].Role != "assistant" || recent[i].RequestId != recent[i + 1].RequestId
                 || recent[i].Sequence + 1 != recent[i + 1].Sequence) throw new ChatConflictException();
-        var maximum = options.ContextTokens - options.MaxOutputTokens - options.SafetyTokens;
+        var maximum = options.AvailableInputTokens;
         var fixedCost = TokenBudget.Count(question, options) + recent.Sum(m => TokenBudget.Count(m.Content, options))
             + (system.Length == 0 ? 0 : TokenBudget.Count(system, options));
         if (fixedCost > maximum) throw new ArgumentException("Le système, les notes, les échanges récents protégés et la demande dépassent seuls le budget. Augmentez la fenêtre : aucun message protégé n’a été tronqué.");
         var through = conversation.MessageCount - recent.Length;
         var files = await repository.ContextFilesAsync(conversation.Id, Math.Max(1, through + 1), ct);
         var available = maximum - fixedCost;
-        var memoryBudget = available - (files.Count == 0 ? 0 : EvidenceComposer.DocumentReserve(available, options, 3));
-        var historyBudget = options.HistoryContextTokens > 0 ? Math.Min(memoryBudget, options.HistoryContextTokens) : memoryBudget;
-        if (options.MemoryContextTokens > 0) memoryBudget = Math.Min(memoryBudget, options.MemoryContextTokens);
+        var remaining = available - (files.Count == 0 ? 0 : EvidenceComposer.DocumentReserve(available, options, 3));
+        var (historyBudget, memoryBudget) = options.LimitMemoryBudget(remaining);
         var ledger = StructuredMemory.Read(conversation.MemoryLedgerJson);
         var memoryIdentity = options.ModelIdentity ?? conversation.Model + ":identity-unavailable";
         var invalidated = ledger.Through > 0 && (ledger.Through > through || ledger.ModelIdentity != memoryIdentity || ledger.PromptVersion != StructuredMemory.PromptVersion);

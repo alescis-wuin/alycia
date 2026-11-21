@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace Alycia.Modules.Chat.Application;
+namespace Alycia.Contracts.Chat;
 
 public static class BoundedLines
 {

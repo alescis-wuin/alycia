@@ -2,9 +2,6 @@ using System.Text.Json;
 
 namespace Alycia.Modules.Chat.Application;
 
-public sealed record ResearchGoal(string Query, string State, string[] References);
-public sealed record ResearchReport(string StopReason, int CallLimit, int Calls, ResearchGoal[] Goals);
-
 public sealed class ResearchPlan
 {
     private readonly List<ResearchGoal> _goals;

@@ -16,7 +16,7 @@ public static class RecursiveContext
     {
         var system = ConversationConfiguration.System(conversation, options);
         var recent = (await repository.MessagesAsync(conversation.Id, options.ProtectedHistoryTurns * 2, null, ct)).TakeLast(options.ProtectedHistoryTurns * 2).ToArray();
-        var budget = options.ContextTokens - options.MaxOutputTokens - options.SafetyTokens;
+        var budget = options.AvailableInputTokens;
         var fixedCost = TokenBudget.Count(question, options) + recent.Sum(m => TokenBudget.Count(m.Content, options))
             + (system.Length == 0 ? 0 : TokenBudget.Count(system, options));
         if (fixedCost > budget)

@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 using System.Text;
-using Alycia.Modules.Chat.Application;
+using Alycia.Contracts.Chat;
 
 namespace Alycia.Client.Avalonia;
 

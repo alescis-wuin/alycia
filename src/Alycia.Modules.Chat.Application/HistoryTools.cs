@@ -4,9 +4,6 @@ using Alycia.Modules.Chat.Domain;
 
 namespace Alycia.Modules.Chat.Application;
 
-public sealed record HistoryEvidence(string Reference, Guid ConversationId, int Sequence, string Role,
-    DateTimeOffset CreatedAtUtc, string Sha256, int Start, int End, bool Partial);
-
 // Builds a bounded local lexical index from immutable messages. No cross-conversation lookup.
 public sealed class HistoryTools(IChatRepository repository, IIndexedEmbeddings? semantic = null, ChatOptions? settings = null)
 {

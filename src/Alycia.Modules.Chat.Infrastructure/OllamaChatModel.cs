@@ -158,7 +158,7 @@ public sealed partial class OllamaChatModel(HttpClient http, ChatOptions options
         }
     }
 
-    private static Dictionary<string, object> GenerationOptions(ChatOptions settings)
+    private static Dictionary<string, object> GenerationOptions(IGenerationSettings settings)
     {
         var values = new Dictionary<string, object>
         {

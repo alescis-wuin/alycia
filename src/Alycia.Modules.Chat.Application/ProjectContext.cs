@@ -4,18 +4,11 @@ using Alycia.Modules.Chat.Domain;
 
 namespace Alycia.Modules.Chat.Application;
 
-public sealed record SourceExcerpt(Guid Id, string Path, int Utf8Bytes, bool Partial, string Reason, string? Reference = null, int? StartLine = null, int? EndLine = null, string? Sha256 = null, int? Start = null, int? End = null,
-    double? Score = null, string ScoreKind = "unavailable", string SourceType = "text", bool? CompleteSource = null,
-    [property: System.Text.Json.Serialization.JsonIgnore] string? Content = null, string? Scope = null, string? Created = null,
-    string? Modified = null, DateTimeOffset? Uploaded = null, int? Tokens = null, string? RankedReference = null);
 public sealed record ProjectExcerpts(string Text, IReadOnlyList<SourceExcerpt> Sources, int Available, EvidenceAssembly? Assembly = null);
 
 public static class ProjectContext
 {
-    private static readonly HashSet<string> CodeExtensions = new(StringComparer.OrdinalIgnoreCase)
-    { ".cs", ".axaml", ".fs", ".vb", ".py", ".js", ".jsx", ".ts", ".tsx", ".rs", ".go", ".java", ".kt",
-        ".c", ".h", ".cpp", ".hpp", ".swift", ".php", ".rb", ".sh", ".ps1", ".sql", ".html", ".css", ".vue", ".svelte" };
-    public static bool IsCode(string path) => CodeExtensions.Contains(Path.GetExtension(path));
+    public static bool IsCode(string path) => SourceFileType.IsCode(path);
     public static bool Eligible(Attachment file, int first, int last) => file.Text.Length > 0
         && file.ContextMode != "excluded" && file.AnchorSequence <= last
         && (file.ContextMode is "pinned" or "project" || file.AnchorSequence >= first);

@@ -2,13 +2,6 @@ using System.Text.RegularExpressions;
 
 namespace Alycia.Modules.Chat.Application;
 
-public sealed record QuestionFacet(string Id, string Question, string Lexical, string Semantic);
-public sealed record QueryBrief(string Summary, string[] Labels, string[] Literals, string[] Dates, QuestionFacet[] Facets, string? Hypothesis, string Original = "", string[]? Constraints = null, string Intent = "information",
-    string Language = "und", string[]? Categories = null, string Method = "rules-v1");
-public sealed record PassageJudgment(string Reference, string Relevance, string Relation, double OriginalScore,
-    double SummaryScore, IReadOnlyDictionary<string, double> Facets, bool Admitted);
-public sealed record ClassificationReport(string Method, int Pairs, int Unexamined, PassageJudgment[] Candidates);
-
 public static class PassageClassification
 {
     public static QueryBrief Brief(string question, IEnumerable<string> literals, IEnumerable<string> antecedents, int maxFacets = 4)

@@ -3,7 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Net.Http;
 using System.Threading;
-using Alycia.Modules.Chat.Application;
+using Alycia.Contracts.Chat;
 using Avalonia.Controls;
 
 namespace Alycia.Client.Avalonia;
@@ -52,7 +52,7 @@ public partial class ChatWindow
     {
         var page = await _client.MessagesAsync(owner, checked(sequence + 1), _lifetime.Token);
         var source = page.Messages.FirstOrDefault(m => m.ConversationId == owner && m.Sequence == sequence);
-        if (source is null || reference != $"H{sequence}:{StructuredMemory.Hash(source.Content)[..12]}")
+        if (source is null || reference != $"H{sequence}:{MemoryTransfer.Hash(source.Content)[..12]}")
         { view.Text = "L’original de cette référence est indisponible."; return; }
         view.Text = $"{(source.IsAssistant ? "Alycia" : "Vous")} · {source.CreatedAtUtc.ToLocalTime():g}\n\n{source.Content}";
         view.BringIntoView();
@@ -88,7 +88,7 @@ public partial class ChatWindow
         var state = unit.State switch { "generated" => "synthèse du modèle", "extractive" => "extraction", "extractive_fallback" => "extraction de secours", "timeout_fallback" => "extraction de secours · délai de synthèse dépassé", "empty" => "vide", _ => unit.State };
         panel.Children.Add(Label($"{unit.Labels.Title} · {level} · {state}"));
         panel.Children.Add(new MarkdownView { Text = unit.Labels.Summary, IsMarkdown = false });
-        panel.Children.Add(Label($"{IndexedKnowledge.Terms(unit.Labels)}\n{unit.Identity} · {unit.IndexedAt:O}"));
+        panel.Children.Add(Label($"{unit.Labels.Terms()}\n{unit.Identity} · {unit.IndexedAt:O}"));
         var details = new StackPanel { Spacing = 4 };
         void Detail(string name, string? value) { if (!string.IsNullOrWhiteSpace(value)) details.Children.Add(Label(name + " · " + value)); }
         Detail("Description", unit.Labels.Description);

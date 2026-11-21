@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Alycia.Modules.Chat.Application;
+namespace Alycia.Contracts.Chat;
 
 public sealed record ImportLimits(int FileMiB = 25, int BatchMiB = 100, int BatchEntries = 500,
     int StoredFiles = 500, int StoredMiB = 1024, int ArchiveDepth = 4, int FolderDepth = 16)

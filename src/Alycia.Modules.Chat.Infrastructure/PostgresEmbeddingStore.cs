@@ -8,7 +8,7 @@ namespace Alycia.Modules.Chat.Infrastructure;
 
 public sealed record EmbeddingSettings(string Model, int BatchSize, int ChunkCharacters, bool History, string SourceRevision = "", bool Hierarchical = false, string DocumentPrefix = "", string QueryPrefix = "", EnrichmentOptions? Enrichment = null)
 {
-    public static EmbeddingSettings From(ChatOptions options) => new(options.RetrievalMode == "hybrid" || !options.Enrichment.Enabled ? options.EmbeddingModel : "", options.EmbeddingBatchSize,
+    public static EmbeddingSettings From(IIndexSettings options) => new(options.RetrievalMode == "hybrid" || !options.Enrichment.Enabled ? options.EmbeddingModel : "", options.EmbeddingBatchSize,
         options.EmbeddingChunkCharacters, options.EmbedHistory, Hierarchical: options.HierarchicalIndexEnabled,
         DocumentPrefix: options.EmbeddingDocumentPrefix, QueryPrefix: options.EmbeddingQueryPrefix, Enrichment: options.Enrichment.Enabled ? options.Enrichment : null);
     public bool Versioned => Hierarchical || DocumentPrefix.Length > 0 || QueryPrefix.Length > 0;

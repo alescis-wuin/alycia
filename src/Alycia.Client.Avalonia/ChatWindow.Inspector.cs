@@ -1,8 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Alycia.Modules.Chat.Application;
-using Alycia.Modules.Chat.Domain;
+using Alycia.Contracts.Chat;
 using Avalonia.Controls;
 
 namespace Alycia.Client.Avalonia;
@@ -115,7 +114,7 @@ public partial class ChatWindow
             return;
         }
         var current = (await _client.SettingsAsync(chat.Id, ct)).Conversation;
-        var entries = StructuredMemory.Read(current.MemoryLedgerJson).Entries;
+        var entries = MemoryTransfer.ReadLedger(current.MemoryLedgerJson).Entries;
         body.Children.Add(Label("Mémoire privée de la conversation"));
         var history = new StackPanel { Spacing = 6 };
         body.Children.Add(ActionButton("Synthèses des échanges", () => ShowHistoryNotesAsync(history, chat.Id)));
@@ -157,7 +156,7 @@ public partial class ChatWindow
         if (!project.Archived) body.Children.Add(ActionButton("Ajouter une note partagée…", () => EditProjectNoteAsync(project, null, "", null, null, refresh)));
     }
 
-    private async Task EditProjectNoteAsync(ProjectSettings project, WorkspaceNote? note, string text, Guid? origin, int? sequence, Func<Task> refresh)
+    private async Task EditProjectNoteAsync(ProjectSettings project, WorkspaceNoteView? note, string text, Guid? origin, int? sequence, Func<Task> refresh)
     {
         var edit = Input(text, 1500, true);
         if (!await EditDialogAsync("Note partagée avec les conversations du projet", edit, "Enregistrer", () =>

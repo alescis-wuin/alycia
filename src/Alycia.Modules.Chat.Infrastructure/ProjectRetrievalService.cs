@@ -87,12 +87,13 @@ public sealed class ProjectRetrievalService(IProjectIndex index, IIndexedEmbeddi
             (ranked, classification) = PassageClassification.Apply(query, brief, ranked, settings, semanticScores);
         }
         RerankReport? rerank = null;
-        if (settings.RerankEnabled && ranked.Count > 0)
+        var limits = settings.Ranking;
+        if (limits.Enabled && ranked.Count > 0)
         {
             var elapsed = System.Diagnostics.Stopwatch.StartNew();
-            var candidates = ranked.Take(settings.RerankCandidateLimit).ToArray();
+            var candidates = ranked.Take(limits.Candidates).ToArray();
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            timeout.CancelAfter(settings.RerankTimeoutMs);
+            timeout.CancelAfter(limits.TimeoutMs);
             try
             {
                 if (reranker is null) throw new InvalidOperationException();

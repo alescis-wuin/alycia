@@ -1,8 +1,5 @@
 namespace Alycia.Modules.Chat.Application;
 
-public sealed record EmbeddingProgress(Guid OwnerId, bool IsProject, string State, int Completed, int Total,
-    string Detail, string Model, DateTimeOffset UpdatedAt, int BatchSize = 16, int ChunkCharacters = 1600,
-    bool Hierarchical = false, string DocumentPrefix = "", string QueryPrefix = "", EnrichmentOptions? Enrichment = null, int CycleCalls = 0);
 public sealed record SemanticSearch(double[] Scores, int Hits, IReadOnlyList<ModelCallUsage> Calls, string? Warning = null);
 public sealed record MemoryVectorMatches(IReadOnlyDictionary<int, double> Scores, IReadOnlyList<ModelCallUsage> Calls, string? Warning = null);
 public interface IIndexedEmbeddings

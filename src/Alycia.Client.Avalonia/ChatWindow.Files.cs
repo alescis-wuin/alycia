@@ -1,5 +1,5 @@
 using System;
-using Alycia.Modules.Chat.Application;
+using Alycia.Contracts.Chat;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;

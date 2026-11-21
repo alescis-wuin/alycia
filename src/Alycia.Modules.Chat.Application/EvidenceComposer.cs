@@ -3,9 +3,6 @@ using Alycia.Modules.Chat.Domain;
 
 namespace Alycia.Modules.Chat.Application;
 
-public sealed record EvidenceDecision(string Reference, Guid FileId, string Reason, int Tokens);
-public sealed record EvidenceAssembly(int Budget, int Used, int Files, EvidenceDecision[] Decisions, int Undetailed);
-
 public static class EvidenceComposer
 {
     private sealed record Candidate(SourceChunk Chunk, int Rank, HashSet<string> Terms, int Cost);
