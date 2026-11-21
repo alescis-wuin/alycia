@@ -8,6 +8,8 @@ COPY src/Alycia.Platform.Persistence/Alycia.Platform.Persistence.csproj src/Alyc
 COPY src/Alycia.Modules.Documents/Alycia.Modules.Documents.csproj src/Alycia.Modules.Documents/
 COPY src/Alycia.Modules.Inference/Alycia.Modules.Inference.csproj src/Alycia.Modules.Inference/
 COPY src/Alycia.Modules.Indexing/Alycia.Modules.Indexing.csproj src/Alycia.Modules.Indexing/
+COPY src/Alycia.Modules.Retrieval/Alycia.Modules.Retrieval.csproj src/Alycia.Modules.Retrieval/
+COPY src/Alycia.Modules.Retrieval.Onnx/Alycia.Modules.Retrieval.Onnx.csproj src/Alycia.Modules.Retrieval.Onnx/
 COPY src/Alycia.Contracts/Alycia.Contracts.csproj src/Alycia.Contracts/
 COPY src/Alycia.Modules.Chat.Domain/Alycia.Modules.Chat.Domain.csproj src/Alycia.Modules.Chat.Domain/
 COPY src/Alycia.Modules.Chat.Application/Alycia.Modules.Chat.Application.csproj src/Alycia.Modules.Chat.Application/
@@ -22,6 +24,8 @@ COPY src/Alycia.Platform.Persistence/ src/Alycia.Platform.Persistence/
 COPY src/Alycia.Modules.Documents/ src/Alycia.Modules.Documents/
 COPY src/Alycia.Modules.Inference/ src/Alycia.Modules.Inference/
 COPY src/Alycia.Modules.Indexing/ src/Alycia.Modules.Indexing/
+COPY src/Alycia.Modules.Retrieval/ src/Alycia.Modules.Retrieval/
+COPY src/Alycia.Modules.Retrieval.Onnx/ src/Alycia.Modules.Retrieval.Onnx/
 COPY src/Alycia.Contracts/ src/Alycia.Contracts/
 COPY src/Alycia.Modules.Chat.Domain/ src/Alycia.Modules.Chat.Domain/
 COPY src/Alycia.Modules.Chat.Application/ src/Alycia.Modules.Chat.Application/

@@ -11,6 +11,10 @@
     <Using Include="Alycia.Contracts.Documents" />
     <Using Include="Alycia.Contracts.Indexing" />
     <Using Include="Alycia.Modules.Indexing" />
+    <Using Include="Alycia.Modules.Retrieval" />
+    <ProjectReference Include="../../src/Alycia.Modules.Retrieval/Alycia.Modules.Retrieval.csproj" />
+    <Using Include="Alycia.Modules.Retrieval.Onnx" />
+    <ProjectReference Include="../../src/Alycia.Modules.Retrieval.Onnx/Alycia.Modules.Retrieval.Onnx.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="Alycia.Contracts.Chat" />

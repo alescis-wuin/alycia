@@ -1,11 +1,10 @@
 using System.Security.Cryptography;
 using System.Text.Json.Nodes;
-using Alycia.Modules.Chat.Application;
 using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using Tokenizers.HuggingFace.Tokenizer;
 
-namespace Alycia.Modules.Chat.Infrastructure;
+namespace Alycia.Modules.Retrieval.Onnx;
 
 // The model directory is operator configuration and never comes from a conversation.
 public sealed class OnnxPassageReranker(string? directory) : IPassageReranker, IDisposable

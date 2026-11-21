@@ -1,5 +1,7 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Alycia.Modules.Retrieval.Onnx/Alycia.Modules.Retrieval.Onnx.csproj" />
+    <Project Path="src/Alycia.Modules.Retrieval/Alycia.Modules.Retrieval.csproj" />
     <Project Path="src/Alycia.Modules.Indexing/Alycia.Modules.Indexing.csproj" />
     <Project Path="src/Alycia.Modules.Inference/Alycia.Modules.Inference.csproj" />
     <Project Path="src/Alycia.Modules.Documents/Alycia.Modules.Documents.csproj" />

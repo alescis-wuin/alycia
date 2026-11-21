@@ -1,4 +1,4 @@
-namespace Alycia.Modules.Chat.Application;
+namespace Alycia.Modules.Retrieval;
 
 public sealed class LexicalIndex
 {
@@ -29,7 +29,7 @@ public sealed class LexicalIndex
         private readonly double _average;
         public Field(IEnumerable<string> texts)
         {
-            _documents = texts.Select(text => ProjectRetrieval.Tokens(text)
+            _documents = texts.Select(text => PassageSearch.Tokens(text)
                 .GroupBy(t => t).ToDictionary(g => g.Key, g => g.Count())).ToArray();
             _lengths = _documents.Select(d => d.Values.Sum()).ToArray();
             _average = Math.Max(1, _lengths.Length == 0 ? 1 : _lengths.Average());
@@ -38,7 +38,7 @@ public sealed class LexicalIndex
         public double[] Score(string query)
         {
             var scores = new double[_documents.Length];
-            foreach (var term in ProjectRetrieval.Tokens(query).Distinct().Take(32))
+            foreach (var term in PassageSearch.Tokens(query).Distinct().Take(32))
             {
                 var frequency = _frequencies.GetValueOrDefault(term);
                 var idf = Math.Log(1 + (_documents.Length - frequency + .5) / (frequency + .5));
@@ -59,8 +59,8 @@ public sealed class LexicalIndexCache
     private long _clock;
     public (LexicalIndex Index, bool Hit) Get(Guid conversation, IReadOnlyList<SourceChunk> chunks)
     {
-        var fingerprint = StructuredMemory.Hash("lexical-v1\n" + string.Join('\n', chunks.Select(c =>
-            $"{c.FileId}:{c.Sha256}:{c.Start}:{c.End}:{c.Path}:{c.Symbol}:{c.IndexContext}:{c.Guide?.NodeKey}:{c.Guide?.Terms}:{StructuredMemory.Hash(c.Text)}")));
+        var fingerprint = PassageSearch.Fingerprint("lexical-v1\n" + string.Join('\n', chunks.Select(c =>
+            $"{c.FileId}:{c.Sha256}:{c.Start}:{c.End}:{c.Path}:{c.Symbol}:{c.IndexContext}:{c.Guide?.NodeKey}:{c.Guide?.Terms}:{PassageSearch.Fingerprint(c.Text)}")));
         lock (_gate)
         {
             if (_entries.TryGetValue(conversation, out var entry) && entry.Fingerprint == fingerprint)
