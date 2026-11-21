@@ -1,0 +1,53 @@
+fichier	type	ressource	date	phase de retrait ou audit
+src/Alycia.Api/Chat/ChatEndpoints.Streaming.cs	Y	System.Exception.GetType()	2026-11-21	audit dynamique
+src/Alycia.Api/Chat/ChatEndpoints.cs	Y	System.Exception.GetType()	2026-11-21	audit dynamique
+src/Alycia.Api/Chat/EmbeddingWorker.cs	Y	System.Exception.GetType()	2026-11-21	audit dynamique
+src/Alycia.Api/Workspaces/WorkspaceEndpoints.cs	Y	System.Exception.GetType()	2026-11-21	audit dynamique
+src/Alycia.Client.Avalonia/ChatWindow.axaml.cs	Y	System.Exception.GetType()	2026-11-21	audit dynamique
+src/Alycia.Client.Avalonia/MainWindow.axaml.cs	Y	System.Exception.GetType()	2026-11-21	audit dynamique
+src/Alycia.Client.Avalonia/MarkdownView.cs	Y	object.GetType()	2026-11-21	audit dynamique
+src/Alycia.Modules.Chat.Infrastructure/Configuration/ConversationFileSettings.cs	E	chat.attachments	2026-11-21	D04
+src/Alycia.Modules.Chat.Infrastructure/Configuration/ConversationFileSettings.cs	E	chat.conversations	2026-11-21	D04
+src/Alycia.Modules.Chat.Infrastructure/Configuration/ConversationFileSettings.cs	E	chat.workspace_file_overrides	2026-11-21	D04
+src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationHistory.cs	E	chat.attachments	2026-11-21	D08
+src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationHistory.cs	E	chat.workspace_file_overrides	2026-11-21	D08
+src/Alycia.Modules.Chat.Infrastructure/DocumentAnalysisService.Management.cs	E	chat.conversations	2026-11-21	D17
+src/Alycia.Modules.Chat.Infrastructure/Documents/ConversationFiles.cs	E	chat.conversations	2026-11-21	D09
+src/Alycia.Modules.Chat.Infrastructure/EfChatRepository.cs	E	chat.document_analyses	2026-11-21	D17
+src/Alycia.Modules.Chat.Infrastructure/EfChatRepository.cs	E	chat.workspace_profiles	2026-11-21	D17
+src/Alycia.Modules.Chat.Infrastructure/FileImport.cs	E	chat.conversations	2026-11-21	D17
+src/Alycia.Modules.Chat.Infrastructure/FileImport.cs	E	chat.workspace_profiles	2026-11-21	D17
+src/Alycia.Modules.Chat.Infrastructure/Indexing/BackgroundEmbeddingIndex.cs	E	chat.attachments	2026-11-21	D11
+src/Alycia.Modules.Chat.Infrastructure/Indexing/BackgroundEmbeddingIndex.cs	E	chat.conversations	2026-11-21	D11
+src/Alycia.Modules.Chat.Infrastructure/Indexing/BackgroundEmbeddingIndex.cs	E	chat.messages	2026-11-21	D11
+src/Alycia.Modules.Chat.Infrastructure/Indexing/BackgroundEmbeddingIndex.cs	E	chat.workspace_profiles	2026-11-21	D11
+src/Alycia.Modules.Chat.Infrastructure/Indexing/EmbeddingJobDiscovery.cs	E	chat.conversations	2026-11-21	D11
+src/Alycia.Modules.Chat.Infrastructure/Indexing/EmbeddingJobDiscovery.cs	E	chat.workspace_profiles	2026-11-21	D11
+src/Alycia.Modules.Chat.Infrastructure/Indexing/IndexCatalog.cs	E	chat.attachments	2026-11-21	D11
+src/Alycia.Modules.Chat.Infrastructure/Indexing/IndexCatalog.cs	E	chat.conversations	2026-11-21	D11
+src/Alycia.Modules.Chat.Infrastructure/Indexing/KnowledgeStore.cs	E	chat.attachments	2026-11-21	D11
+src/Alycia.Modules.Chat.Infrastructure/Indexing/KnowledgeStore.cs	E	chat.workspace_profiles	2026-11-21	D11
+src/Alycia.Modules.Chat.Infrastructure/Indexing/KnowledgeStore.cs	S	chat.attachments	2026-11-21	D11
+src/Alycia.Modules.Chat.Infrastructure/Indexing/PostgresEmbeddingStore.cs	S	chat.conversations	2026-11-21	D11
+src/Alycia.Modules.Chat.Infrastructure/Indexing/PostgresEmbeddingStore.cs	S	chat.temporal_memory	2026-11-21	D11
+src/Alycia.Modules.Chat.Infrastructure/Indexing/PostgresEmbeddingStore.cs	S	chat.workspace_profiles	2026-11-21	D11
+src/Alycia.Modules.Chat.Infrastructure/Indexing/PostgresEmbeddingStore.cs	Y	NpgsqlCommand with interpolated SQL	2026-11-21	audit dynamique
+src/Alycia.Modules.Chat.Infrastructure/Indexing/ProjectIndexService.cs	E	chat.conversations	2026-11-21	D11
+src/Alycia.Modules.Chat.Infrastructure/Memory/TemporalMemoryStore.cs	E	chat.conversations	2026-11-21	D14
+src/Alycia.Modules.Chat.Infrastructure/Memory/TemporalMemoryStore.cs	E	chat.messages	2026-11-21	D14
+src/Alycia.Modules.Chat.Infrastructure/Memory/TemporalMemoryStore.cs	S	chat.conversations	2026-11-21	D14
+src/Alycia.Modules.Chat.Infrastructure/Memory/TemporalMemoryStore.cs	S	chat.messages	2026-11-21	D14
+src/Alycia.Modules.Chat.Infrastructure/Projects/ProjectCatalog.cs	E	chat.conversations	2026-11-21	D07
+src/Alycia.Modules.Chat.Infrastructure/Projects/ProjectCatalog.cs	E	chat.messages	2026-11-21	D07
+src/Alycia.Modules.Chat.Infrastructure/Projects/ProjectCatalog.cs	E	chat.workspace_file_overrides	2026-11-21	D07
+src/Alycia.Modules.Chat.Infrastructure/Projects/ProjectFiles.cs	E	chat.attachments	2026-11-21	D07
+src/Alycia.Modules.Chat.Infrastructure/Projects/ProjectFiles.cs	E	chat.conversations	2026-11-21	D07
+src/Alycia.Modules.Chat.Infrastructure/Projects/ProjectFiles.cs	E	chat.workspace_file_overrides	2026-11-21	D07
+src/Alycia.Modules.Chat.Infrastructure/Projects/ProjectFiles.cs	R	Documents.IncomingFile	2026-11-21	D07
+src/Alycia.Modules.Chat.Infrastructure/Projects/ProjectFiles.cs	R	Documents.ProjectSource	2026-11-21	D07
+src/Alycia.Modules.Chat.Infrastructure/Tools/ProjectToolService.cs	E	chat.conversations	2026-11-21	D15
+src/Alycia.Modules.Chat.Infrastructure/Tools/ProjectToolService.cs	E	chat.messages	2026-11-21	D15
+src/Alycia.Modules.Chat.Infrastructure/Tools/ProjectToolService.cs	R	Documents.ProjectSource	2026-11-21	D15
+src/Alycia.Modules.Chat.Infrastructure/WorkspaceSources.cs	E	chat.attachments	2026-11-21	D17
+src/Alycia.Modules.Chat.Infrastructure/WorkspaceSources.cs	E	chat.conversations	2026-11-21	D17
+src/Alycia.Modules.Chat.Infrastructure/WorkspaceSources.cs	E	chat.workspace_file_overrides	2026-11-21	D17

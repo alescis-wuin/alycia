@@ -6,12 +6,13 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+import tempfile
 import xml.etree.ElementTree as ET
 
 from architecture.module_rules import ADAPTERS, ALLOWED, CHAT_PROJECTS, NARROW_EDGES, owner
 
 ROOT = Path(__file__).resolve().parents[1]
-SCANNER = ROOT / "scripts/architecture/Symbols.csproj"
+CAPTURE = ROOT / "scripts/architecture/capture"
 MODULE_NAMESPACE = re.compile(r"^Alycia\.(?:Api|Client\.Avalonia|Modules\.\w+\.(?:Domain|Application|Infrastructure))\b")
 PROVIDER = re.compile(r"^(?:Microsoft\.EntityFrameworkCore|Npgsql|Microsoft\.ML\.OnnxRuntime)(?:\.|$)")
 
@@ -91,22 +92,91 @@ def check_namespace(project, location, name):
     return []
 
 
+TABLE_OWNERS = {
+    "workspaces.workspaces": "Projects", "chat.workspace_profiles": "Projects",
+    "chat.workspace_file_overrides": "Documents", "chat.attachments": "Documents", "chat.document_analyses": "Documents",
+    "chat.conversations": "Conversations", "chat.messages": "Conversations",
+    "chat.embedding_jobs": "Indexing", "chat.embedding_vectors": "Indexing", "chat.knowledge_units": "Indexing",
+    "chat.temporal_memory": "Memory", "chat.prompt_profiles": "Configuration", "chat.import_settings": "Configuration",
+}
+SETS = dict(WorkspaceProfiles="chat.workspace_profiles", WorkspaceFileOverrides="chat.workspace_file_overrides",
+            Attachments="chat.attachments", DocumentAnalyses="chat.document_analyses", Conversations="chat.conversations",
+            Messages="chat.messages", PromptProfiles="chat.prompt_profiles", Workspaces="workspaces.workspaces")
+
+
+def capture(root, directory):
+    project = CAPTURE / "Inventory.csproj"
+    def build(*arguments):
+        proc = subprocess.run(["dotnet", "build", *map(str, arguments), "-m:1", "-v:q", "-p:UseSharedCompilation=false"],
+                              cwd=root, capture_output=True, text=True)
+        if proc.returncode:
+            raise RuntimeError(proc.stdout + proc.stderr)
+    build(project)
+    projects = sorted((root / "src").glob("*/*.csproj"))
+    if not projects:
+        raise ValueError("no product projects found")
+    solution = ET.Element("Solution")
+    for file in projects:
+        ET.SubElement(solution, "Project", Path=file.as_posix())
+    entry = directory / "Product.slnx"
+    ET.ElementTree(solution).write(entry)
+    build(entry, "-t:Rebuild", "-warnaserror:AD0001", "-p:RunAnalyzers=true",
+          f"-p:CustomAfterMicrosoftCommonTargets={CAPTURE / 'Capture.targets'}",
+          f"-p:AlyciaArchitectureAnalyzer={CAPTURE / 'bin/Debug/net10.0/Inventory.dll'}",
+          f"-p:AlyciaArchitectureRoot={root}", f"-p:AlyciaArchitectureOutput={directory}")
+    rows = [line.split("\t") for file in sorted(directory.glob("*.tsv")) for line in file.read_text().splitlines()]
+    compiled = {root / path for kind, path, *_ in rows if kind == "A"}
+    if set(projects) != compiled:
+        raise RuntimeError(f"missing/unexpected compiler output: {sorted(set(projects) ^ compiled)}")
+    return rows
+
+
 def inspect_symbols(root):
-    proc = subprocess.run(["dotnet", "run", "--project", str(SCANNER), "--no-launch-profile", "--", str(root)],
-                          capture_output=True, text=True)
-    if proc.returncode:
-        raise RuntimeError(proc.stderr + proc.stdout)
+    with tempfile.TemporaryDirectory() as temp:
+        directory = Path(temp)
+        rows = capture(root, directory)
+        project_paths = {row[2]: root / row[1] for row in rows if row[0] == "A"}
+        evaluated = {p: [Path(ref).resolve() for ref in (directory / (name + ".refs")).read_text(encoding="utf-8-sig").splitlines()]
+                     for name, p in project_paths.items()}
+    problems, matrix = check_records(rows, root)
+    for project in evaluated:
+        visited = set()
+        stack = list(evaluated[project])
+        while stack:
+            target = stack.pop()
+            if target in visited:
+                continue
+            visited.add(target)
+            if target == project or forbidden(project.stem, target.stem) or target not in evaluated or (
+                    project.stem == "Alycia.Client.Avalonia" and target.stem != "Alycia.Contracts"):
+                problems.append(f"evaluated project boundary: {project.stem} -> {target.stem}")
+            stack.extend(evaluated.get(target, ()))
+    return sorted(set(problems)), matrix
+
+
+def check_records(rows, root):
+    declared = {(r[1].split("/")[1], r[5]): r[1] for r in rows if r[0] == "D" and r[3] == "NamedType"
+                and r[1].startswith("src/") and "/obj/" not in r[1]}
+    reviewed = root / "scripts/architecture/transition.tsv"
+    exceptions = set()
+    if reviewed.exists():
+        for line in reviewed.read_text().splitlines()[1:]:
+            path, kind, target, *_ = line.split("\t")
+            exceptions.add((path, kind, target))
     problems = set()
     matrix = defaultdict(set)
-    for row in proc.stdout.splitlines():
-        fields = row.split("\t")
+    for fields in rows:
         if len(fields) < 2:  # SDK build messages
             continue
         kind, path = fields[:2]
+        if not path.startswith("src/") or "/obj/" in path:
+            continue
         project = Path(path).parts[1]
         if kind == "F":
-            if project in CHAT_PROJECTS and owner(path) is None:
+            if project in CHAT_PROJECTS and "/Migrations/" not in path and owner(path) is None:
                 problems.add(f"{path}: missing logical owner (use a feature directory or register the file)")
+            continue
+        if kind in {"A", "B", "D", "C", "L"}:
             continue
         location = f"{path}:{fields[2]}"
         if kind == "N":
@@ -115,8 +185,20 @@ def inspect_symbols(root):
             problems.add(f"{location}: business port exposes technical type {fields[3]}")
         elif kind == "P" and project == "Alycia.Api":
             problems.add(f"{location}: endpoint persistence belongs in the database adapter ({fields[3]})")
+        elif kind in ("S", "E", "Y") and "/Migrations/" not in path:
+            resource = SETS.get(fields[4], fields[4]) if kind == "E" else fields[3]
+            area = owner(path) or ("Projects" if ".Workspaces." in project else project)
+            if kind != "Y" and (area == TABLE_OWNERS.get(resource)):
+                continue
+            if (path, kind, resource) not in exceptions:
+                problems.add(f"{location}: unreviewed {kind}: {area} -> {resource}")
         elif kind == "R":
-            source_type, target, target_type = fields[3:]
+            source_type, assembly, type_id, target_type = fields[3:]
+            target = declared.get((assembly, type_id))
+            if target is None:
+                if forbidden(project, assembly):
+                    problems.add(f"{location}: project layer: {project} -> {assembly}")
+                continue
             target_project = Path(target).parts[1]
             if forbidden(project, target_project):
                 problems.add(f"{location}: project layer: {project} -> {target_project}")
@@ -129,7 +211,7 @@ def inspect_symbols(root):
             elif (left, right) in NARROW_EDGES and target_type not in NARROW_EDGES[left, right]:
                 problems.add(f"{location}: narrow boundary: {left} -> {right}.{target_type}")
             elif target_project == "Alycia.Modules.Chat.Infrastructure" and not (
-                    right == "Persistence" and target_type == "ChatDbContext" or target_type in ADAPTERS.get(left, ())):
+                    right == "Persistence" and target_type == "ChatDbContext" or target_type in ADAPTERS.get(left, ()) or (path, "R", right + "." + target_type) in exceptions):
                 problems.add(f"{location}: cross-owner adapter: {left} -> {right}.{target_type}")
     return sorted(problems), matrix
 

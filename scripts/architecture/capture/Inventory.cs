@@ -58,6 +58,18 @@ public sealed class Inventory : DiagnosticAnalyzer
                     foreach (var param in parameters.Parameters)
                         foreach (var prop in type.GetMembers(param.Identifier.ValueText).OfType<IPropertySymbol>())
                             Row("D", path, Line(param), "Property", prop.DeclaredAccessibility.ToString(), prop.GetDocumentationCommentId()!);
+                if (node is UsingDirectiveSyntax { Name: { } imported })
+                    Row("N", path, Line(node), imported.ToString().Replace("global::", ""));
+                if (node is SimpleNameSyntax endpointName && path.StartsWith("src/Alycia.Api/", StringComparison.Ordinal)
+                    && !path.EndsWith("/ChatRegistration.cs", StringComparison.Ordinal) && !path.EndsWith("/Program.cs", StringComparison.Ordinal))
+                {
+                    var token = endpointName.Identifier.ValueText;
+                    if (token is "ChatDbContext" or "WorkspacesDbContext" or "DbContext" or "DbSet" or "DatabaseFacade" or "AddDbContext"
+                        or "ExecuteUpdate" or "ExecuteUpdateAsync" or "ExecuteDelete" or "ExecuteDeleteAsync" ||
+                        token.StartsWith("FromSql", StringComparison.Ordinal) || token.StartsWith("ExecuteSql", StringComparison.Ordinal)
+                        || token.StartsWith("SqlQuery", StringComparison.Ordinal))
+                        Row("P", path, Line(node), token);
+                }
                 if (node is InvocationExpressionSyntax or ObjectCreationExpressionSyntax)
                 {
                     var operation = model.GetSymbolInfo(node, analysis.CancellationToken).Symbol as IMethodSymbol;
