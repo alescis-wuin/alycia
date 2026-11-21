@@ -1,0 +1,1089 @@
+{
+  "schemaVersion": 1,
+  "factors": {
+    "routingMode": "auto",
+    "queryRewriteEnabled": true,
+    "evidenceSelectionEnabled": true,
+    "hierarchicalIndexEnabled": true
+  },
+  "runs": {
+    "reference": {
+      "version": 1,
+      "sha256": "30FBC532950F89309B7483F708C7DB2F312CCA607AA8D312650E4CBEA269B331",
+      "k": 3,
+      "samples": 10,
+      "positive": 6,
+      "negative": 4,
+      "meanRecall": 1,
+      "meanNdcg": 1,
+      "mrr": 1,
+      "emptyNegative": 2,
+      "contextTokens": 3385,
+      "p50Ms": 0.1501,
+      "p95Ms": 25.6674,
+      "runtime": "10.0.15",
+      "rows": [
+        {
+          "id": "chat",
+          "paths": [],
+          "expected": [],
+          "recall": null,
+          "ndcg": null,
+          "rr": null,
+          "tokens": 0,
+          "route": null,
+          "rerank": null
+        },
+        {
+          "id": "document-fr",
+          "paths": [
+            "orion.md",
+            "lyre.md"
+          ],
+          "expected": [
+            "orion.md"
+          ],
+          "recall": 1,
+          "ndcg": 1,
+          "rr": 1,
+          "tokens": 479,
+          "route": null,
+          "rerank": null
+        },
+        {
+          "id": "code",
+          "paths": [
+            "src/Quota.cs"
+          ],
+          "expected": [
+            "src/Quota.cs"
+          ],
+          "recall": 1,
+          "ndcg": 1,
+          "rr": 1,
+          "tokens": 273,
+          "route": null,
+          "rerank": null
+        },
+        {
+          "id": "anaphore",
+          "paths": [
+            "versions.md"
+          ],
+          "expected": [
+            "versions.md"
+          ],
+          "recall": 1,
+          "ndcg": 1,
+          "rr": 1,
+          "tokens": 288,
+          "route": null,
+          "rerank": null
+        },
+        {
+          "id": "historique",
+          "paths": [
+            "decision.md"
+          ],
+          "expected": [],
+          "recall": null,
+          "ndcg": null,
+          "rr": null,
+          "tokens": 280,
+          "route": null,
+          "rerank": null
+        },
+        {
+          "id": "comparaison",
+          "paths": [
+            "orion.md",
+            "lyre.md",
+            "decision.md"
+          ],
+          "expected": [
+            "orion.md",
+            "lyre.md"
+          ],
+          "recall": 1,
+          "ndcg": 1,
+          "rr": 1,
+          "tokens": 752,
+          "route": null,
+          "rerank": null
+        },
+        {
+          "id": "absence",
+          "paths": [],
+          "expected": [],
+          "recall": null,
+          "ndcg": null,
+          "rr": null,
+          "tokens": 0,
+          "route": null,
+          "rerank": null
+        },
+        {
+          "id": "permissions",
+          "paths": [
+            "lyre.md",
+            "orion.md",
+            "decision.md"
+          ],
+          "expected": [],
+          "recall": null,
+          "ndcg": null,
+          "rr": null,
+          "tokens": 752,
+          "route": null,
+          "rerank": null
+        },
+        {
+          "id": "code-en",
+          "paths": [
+            "src/Quota.cs"
+          ],
+          "expected": [
+            "src/Quota.cs"
+          ],
+          "recall": 1,
+          "ndcg": 1,
+          "rr": 1,
+          "tokens": 273,
+          "route": null,
+          "rerank": null
+        },
+        {
+          "id": "exact",
+          "paths": [
+            "versions.md"
+          ],
+          "expected": [
+            "versions.md"
+          ],
+          "recall": 1,
+          "ndcg": 1,
+          "rr": 1,
+          "tokens": 288,
+          "route": null,
+          "rerank": null
+        }
+      ],
+      "regressions": []
+    },
+    "routingMode": {
+      "version": 1,
+      "sha256": "30FBC532950F89309B7483F708C7DB2F312CCA607AA8D312650E4CBEA269B331",
+      "k": 3,
+      "samples": 10,
+      "positive": 6,
+      "negative": 4,
+      "meanRecall": 1,
+      "meanNdcg": 1,
+      "mrr": 1,
+      "emptyNegative": 4,
+      "contextTokens": 2353,
+      "p50Ms": 0.1686,
+      "p95Ms": 22.7765,
+      "runtime": "10.0.15",
+      "rows": [
+        {
+          "id": "chat",
+          "paths": [],
+          "expected": [],
+          "recall": null,
+          "ndcg": null,
+          "rr": null,
+          "tokens": 0,
+          "route": "direct",
+          "rerank": null
+        },
+        {
+          "id": "document-fr",
+          "paths": [
+            "orion.md",
+            "lyre.md"
+          ],
+          "expected": [
+            "orion.md"
+          ],
+          "recall": 1,
+          "ndcg": 1,
+          "rr": 1,
+          "tokens": 479,
+          "route": "retrieval",
+          "rerank": null
+        },
+        {
+          "id": "code",
+          "paths": [
+            "src/Quota.cs"
+          ],
+          "expected": [
+            "src/Quota.cs"
+          ],
+          "recall": 1,
+          "ndcg": 1,
+          "rr": 1,
+          "tokens": 273,
+          "route": "retrieval",
+          "rerank": null
+        },
+        {
+          "id": "anaphore",
+          "paths": [
+            "versions.md"
+          ],
+          "expected": [
+            "versions.md"
+          ],
+          "recall": 1,
+          "ndcg": 1,
+          "rr": 1,
+          "tokens": 288,
+          "route": "retrieval",
+          "rerank": null
+        },
+        {
+          "id": "historique",
+          "paths": [],
+          "expected": [],
+          "recall": null,
+          "ndcg": null,
+          "rr": null,
+          "tokens": 0,
+          "route": "memory",
+          "rerank": null
+        },
+        {
+          "id": "comparaison",
+          "paths": [
+            "orion.md",
+            "lyre.md",
+            "decision.md"
+          ],
+          "expected": [
+            "orion.md",
+            "lyre.md"
+          ],
+          "recall": 1,
+          "ndcg": 1,
+          "rr": 1,
+          "tokens": 752,
+          "route": "explore",
+          "rerank": null
+        },
+        {
+          "id": "absence",
+          "paths": [],
+          "expected": [],
+          "recall": null,
+          "ndcg": null,
+          "rr": null,
+          "tokens": 0,
+          "route": "retrieval",
+          "rerank": null
+        },
+        {
+          "id": "permissions",
+          "paths": [],
+          "expected": [],
+          "recall": null,
+          "ndcg": null,
+          "rr": null,
+          "tokens": 0,
+          "route": "unavailable",
+          "rerank": null
+        },
+        {
+          "id": "code-en",
+          "paths": [
+            "src/Quota.cs"
+          ],
+          "expected": [
+            "src/Quota.cs"
+          ],
+          "recall": 1,
+          "ndcg": 1,
+          "rr": 1,
+          "tokens": 273,
+          "route": "retrieval",
+          "rerank": null
+        },
+        {
+          "id": "exact",
+          "paths": [
+            "versions.md"
+          ],
+          "expected": [
+            "versions.md"
+          ],
+          "recall": 1,
+          "ndcg": 1,
+          "rr": 1,
+          "tokens": 288,
+          "route": "retrieval",
+          "rerank": null
+        }
+      ],
+      "regressions": []
+    },
+    "queryRewriteEnabled": {
+      "version": 1,
+      "sha256": "30FBC532950F89309B7483F708C7DB2F312CCA607AA8D312650E4CBEA269B331",
+      "k": 3,
+      "samples": 10,
+      "positive": 6,
+      "negative": 4,
+      "meanRecall": 1,
+      "meanNdcg": 1,
+      "mrr": 1,
+      "emptyNegative": 2,
+      "contextTokens": 3849,
+      "p50Ms": 0.253,
+      "p95Ms": 31.4344,
+      "runtime": "10.0.15",
+      "rows": [
+        {
+          "id": "chat",
+          "paths": [],
+          "expected": [],
+          "recall": null,
+          "ndcg": null,
+          "rr": null,
+          "tokens": 0,
+          "route": null,
+          "rerank": null
+        },
+        {
+          "id": "document-fr",
+          "paths": [
+            "orion.md",
+            "lyre.md"
+          ],
+          "expected": [
+            "orion.md"
+          ],
+          "recall": 1,
+          "ndcg": 1,
+          "rr": 1,
+          "tokens": 479,
+          "route": null,
+          "rerank": null
+        },
+        {
+          "id": "code",
+          "paths": [
+            "src/Quota.cs"
+          ],
+          "expected": [
+            "src/Quota.cs"
+          ],
+          "recall": 1,
+          "ndcg": 1,
+          "rr": 1,
+          "tokens": 273,
+          "route": null,
+          "rerank": null
+        },
+        {
+          "id": "anaphore",
+          "paths": [
+            "versions.md",
+            "lyre.md",
+            "orion.md"
+          ],
+          "expected": [
+            "versions.md"
+          ],
+          "recall": 1,
+          "ndcg": 1,
+          "rr": 1,
+          "tokens": 752,
+          "route": null,
+          "rerank": null
+        },
+        {
+          "id": "historique",
+          "paths": [
+            "decision.md"
+          ],
+          "expected": [],
+          "recall": null,
+          "ndcg": null,
+          "rr": null,
+          "tokens": 280,
+          "route": null,
+          "rerank": null
+        },
+        {
+          "id": "comparaison",
+          "paths": [
+            "lyre.md",
+            "orion.md",
+            "decision.md"
+          ],
+          "expected": [
+            "orion.md",
+            "lyre.md"
+          ],
+          "recall": 1,
+          "ndcg": 1,
+          "rr": 1,
+          "tokens": 752,
+          "route": null,
+          "rerank": null
+        },
+        {
+          "id": "absence",
+          "paths": [],
+          "expected": [],
+          "recall": null,
+          "ndcg": null,
+          "rr": null,
+          "tokens": 0,
+          "route": null,
+          "rerank": null
+        },
+        {
+          "id": "permissions",
+          "paths": [
+            "lyre.md",
+            "orion.md",
+            "decision.md"
+          ],
+          "expected": [],
+          "recall": null,
+          "ndcg": null,
+          "rr": null,
+          "tokens": 752,
+          "route": null,
+          "rerank": null
+        },
+        {
+          "id": "code-en",
+          "paths": [
+            "src/Quota.cs"
+          ],
+          "expected": [
+            "src/Quota.cs"
+          ],
+          "recall": 1,
+          "ndcg": 1,
+          "rr": 1,
+          "tokens": 273,
+          "route": null,
+          "rerank": null
+        },
+        {
+          "id": "exact",
+          "paths": [
+            "versions.md"
+          ],
+          "expected": [
+            "versions.md"
+          ],
+          "recall": 1,
+          "ndcg": 1,
+          "rr": 1,
+          "tokens": 288,
+          "route": null,
+          "rerank": null
+        }
+      ],
+      "regressions": []
+    },
+    "evidenceSelectionEnabled": {
+      "version": 1,
+      "sha256": "30FBC532950F89309B7483F708C7DB2F312CCA607AA8D312650E4CBEA269B331",
+      "k": 3,
+      "samples": 10,
+      "positive": 6,
+      "negative": 4,
+      "meanRecall": 1,
+      "meanNdcg": 1,
+      "mrr": 1,
+      "emptyNegative": 2,
+      "contextTokens": 2753,
+      "p50Ms": 0.2373,
+      "p95Ms": 31.0988,
+      "runtime": "10.0.15",
+      "rows": [
+        {
+          "id": "chat",
+          "paths": [],
+          "expected": [],
+          "recall": null,
+          "ndcg": null,
+          "rr": null,
+          "tokens": 0,
+          "route": null,
+          "rerank": null
+        },
+        {
+          "id": "document-fr",
+          "paths": [
+            "orion.md",
+            "lyre.md"
+          ],
+          "expected": [
+            "orion.md"
+          ],
+          "recall": 1,
+          "ndcg": 1,
+          "rr": 1,
+          "tokens": 396,
+          "route": null,
+          "rerank": null
+        },
+        {
+          "id": "code",
+          "paths": [
+            "src/Quota.cs"
+          ],
+          "expected": [
+            "src/Quota.cs"
+          ],
+          "recall": 1,
+          "ndcg": 1,
+          "rr": 1,
+          "tokens": 206,
+          "route": null,
+          "rerank": null
+        },
+        {
+          "id": "anaphore",
+          "paths": [
+            "versions.md"
+          ],
+          "expected": [
+            "versions.md"
+          ],
+          "recall": 1,
+          "ndcg": 1,
+          "rr": 1,
+          "tokens": 221,
+          "route": null,
+          "rerank": null
+        },
+        {
+          "id": "historique",
+          "paths": [
+            "decision.md"
+          ],
+          "expected": [],
+          "recall": null,
+          "ndcg": null,
+          "rr": null,
+          "tokens": 213,
+          "route": null,
+          "rerank": null
+        },
+        {
+          "id": "comparaison",
+          "paths": [
+            "orion.md",
+            "lyre.md",
+            "decision.md"
+          ],
+          "expected": [
+            "orion.md",
+            "lyre.md"
+          ],
+          "recall": 1,
+          "ndcg": 1,
+          "rr": 1,
+          "tokens": 645,
+          "route": null,
+          "rerank": null
+        },
+        {
+          "id": "absence",
+          "paths": [],
+          "expected": [],
+          "recall": null,
+          "ndcg": null,
+          "rr": null,
+          "tokens": 0,
+          "route": null,
+          "rerank": null
+        },
+        {
+          "id": "permissions",
+          "paths": [
+            "lyre.md",
+            "orion.md",
+            "decision.md"
+          ],
+          "expected": [],
+          "recall": null,
+          "ndcg": null,
+          "rr": null,
+          "tokens": 645,
+          "route": null,
+          "rerank": null
+        },
+        {
+          "id": "code-en",
+          "paths": [
+            "src/Quota.cs"
+          ],
+          "expected": [
+            "src/Quota.cs"
+          ],
+          "recall": 1,
+          "ndcg": 1,
+          "rr": 1,
+          "tokens": 206,
+          "route": null,
+          "rerank": null
+        },
+        {
+          "id": "exact",
+          "paths": [
+            "versions.md"
+          ],
+          "expected": [
+            "versions.md"
+          ],
+          "recall": 1,
+          "ndcg": 1,
+          "rr": 1,
+          "tokens": 221,
+          "route": null,
+          "rerank": null
+        }
+      ],
+      "regressions": []
+    },
+    "hierarchicalIndexEnabled": {
+      "version": 1,
+      "sha256": "30FBC532950F89309B7483F708C7DB2F312CCA607AA8D312650E4CBEA269B331",
+      "k": 3,
+      "samples": 10,
+      "positive": 6,
+      "negative": 4,
+      "meanRecall": 1,
+      "meanNdcg": 1,
+      "mrr": 1,
+      "emptyNegative": 2,
+      "contextTokens": 3385,
+      "p50Ms": 0.1521,
+      "p95Ms": 34.3327,
+      "runtime": "10.0.15",
+      "rows": [
+        {
+          "id": "chat",
+          "paths": [],
+          "expected": [],
+          "recall": null,
+          "ndcg": null,
+          "rr": null,
+          "tokens": 0,
+          "route": null,
+          "rerank": null
+        },
+        {
+          "id": "document-fr",
+          "paths": [
+            "orion.md",
+            "lyre.md"
+          ],
+          "expected": [
+            "orion.md"
+          ],
+          "recall": 1,
+          "ndcg": 1,
+          "rr": 1,
+          "tokens": 479,
+          "route": null,
+          "rerank": null
+        },
+        {
+          "id": "code",
+          "paths": [
+            "src/Quota.cs"
+          ],
+          "expected": [
+            "src/Quota.cs"
+          ],
+          "recall": 1,
+          "ndcg": 1,
+          "rr": 1,
+          "tokens": 273,
+          "route": null,
+          "rerank": null
+        },
+        {
+          "id": "anaphore",
+          "paths": [
+            "versions.md"
+          ],
+          "expected": [
+            "versions.md"
+          ],
+          "recall": 1,
+          "ndcg": 1,
+          "rr": 1,
+          "tokens": 288,
+          "route": null,
+          "rerank": null
+        },
+        {
+          "id": "historique",
+          "paths": [
+            "decision.md"
+          ],
+          "expected": [],
+          "recall": null,
+          "ndcg": null,
+          "rr": null,
+          "tokens": 280,
+          "route": null,
+          "rerank": null
+        },
+        {
+          "id": "comparaison",
+          "paths": [
+            "orion.md",
+            "lyre.md",
+            "decision.md"
+          ],
+          "expected": [
+            "orion.md",
+            "lyre.md"
+          ],
+          "recall": 1,
+          "ndcg": 1,
+          "rr": 1,
+          "tokens": 752,
+          "route": null,
+          "rerank": null
+        },
+        {
+          "id": "absence",
+          "paths": [],
+          "expected": [],
+          "recall": null,
+          "ndcg": null,
+          "rr": null,
+          "tokens": 0,
+          "route": null,
+          "rerank": null
+        },
+        {
+          "id": "permissions",
+          "paths": [
+            "lyre.md",
+            "orion.md",
+            "decision.md"
+          ],
+          "expected": [],
+          "recall": null,
+          "ndcg": null,
+          "rr": null,
+          "tokens": 752,
+          "route": null,
+          "rerank": null
+        },
+        {
+          "id": "code-en",
+          "paths": [
+            "src/Quota.cs"
+          ],
+          "expected": [
+            "src/Quota.cs"
+          ],
+          "recall": 1,
+          "ndcg": 1,
+          "rr": 1,
+          "tokens": 273,
+          "route": null,
+          "rerank": null
+        },
+        {
+          "id": "exact",
+          "paths": [
+            "versions.md"
+          ],
+          "expected": [
+            "versions.md"
+          ],
+          "recall": 1,
+          "ndcg": 1,
+          "rr": 1,
+          "tokens": 288,
+          "route": null,
+          "rerank": null
+        }
+      ],
+      "regressions": []
+    },
+    "combined": {
+      "version": 1,
+      "sha256": "30FBC532950F89309B7483F708C7DB2F312CCA607AA8D312650E4CBEA269B331",
+      "k": 3,
+      "samples": 10,
+      "positive": 6,
+      "negative": 4,
+      "meanRecall": 1,
+      "meanNdcg": 1,
+      "mrr": 1,
+      "emptyNegative": 4,
+      "contextTokens": 2319,
+      "p50Ms": 0.244,
+      "p95Ms": 26.3712,
+      "runtime": "10.0.15",
+      "rows": [
+        {
+          "id": "chat",
+          "paths": [],
+          "expected": [],
+          "recall": null,
+          "ndcg": null,
+          "rr": null,
+          "tokens": 0,
+          "route": "direct",
+          "rerank": null
+        },
+        {
+          "id": "document-fr",
+          "paths": [
+            "orion.md",
+            "lyre.md"
+          ],
+          "expected": [
+            "orion.md"
+          ],
+          "recall": 1,
+          "ndcg": 1,
+          "rr": 1,
+          "tokens": 396,
+          "route": "retrieval",
+          "rerank": null
+        },
+        {
+          "id": "code",
+          "paths": [
+            "src/Quota.cs"
+          ],
+          "expected": [
+            "src/Quota.cs"
+          ],
+          "recall": 1,
+          "ndcg": 1,
+          "rr": 1,
+          "tokens": 206,
+          "route": "retrieval",
+          "rerank": null
+        },
+        {
+          "id": "anaphore",
+          "paths": [
+            "versions.md",
+            "lyre.md",
+            "orion.md"
+          ],
+          "expected": [
+            "versions.md"
+          ],
+          "recall": 1,
+          "ndcg": 1,
+          "rr": 1,
+          "tokens": 645,
+          "route": "retrieval",
+          "rerank": null
+        },
+        {
+          "id": "historique",
+          "paths": [],
+          "expected": [],
+          "recall": null,
+          "ndcg": null,
+          "rr": null,
+          "tokens": 0,
+          "route": "memory",
+          "rerank": null
+        },
+        {
+          "id": "comparaison",
+          "paths": [
+            "lyre.md",
+            "orion.md",
+            "decision.md"
+          ],
+          "expected": [
+            "orion.md",
+            "lyre.md"
+          ],
+          "recall": 1,
+          "ndcg": 1,
+          "rr": 1,
+          "tokens": 645,
+          "route": "explore",
+          "rerank": null
+        },
+        {
+          "id": "absence",
+          "paths": [],
+          "expected": [],
+          "recall": null,
+          "ndcg": null,
+          "rr": null,
+          "tokens": 0,
+          "route": "retrieval",
+          "rerank": null
+        },
+        {
+          "id": "permissions",
+          "paths": [],
+          "expected": [],
+          "recall": null,
+          "ndcg": null,
+          "rr": null,
+          "tokens": 0,
+          "route": "unavailable",
+          "rerank": null
+        },
+        {
+          "id": "code-en",
+          "paths": [
+            "src/Quota.cs"
+          ],
+          "expected": [
+            "src/Quota.cs"
+          ],
+          "recall": 1,
+          "ndcg": 1,
+          "rr": 1,
+          "tokens": 206,
+          "route": "retrieval",
+          "rerank": null
+        },
+        {
+          "id": "exact",
+          "paths": [
+            "versions.md"
+          ],
+          "expected": [
+            "versions.md"
+          ],
+          "recall": 1,
+          "ndcg": 1,
+          "rr": 1,
+          "tokens": 221,
+          "route": "retrieval",
+          "rerank": null
+        }
+      ],
+      "regressions": []
+    }
+  },
+  "claims": {
+    "sha256": "AA91AD2C03FE049FEDDAD0509B885608703A2C56947A643499B0765BC4F68376",
+    "samples": 16,
+    "correct": 16,
+    "contradictions": 4,
+    "others": 12,
+    "detected": 4,
+    "falseAlerts": 0,
+    "rows": [
+      {
+        "id": "citation-fr",
+        "expected": "supported",
+        "actual": "supported",
+        "legacy": "direct_quote"
+      },
+      {
+        "id": "paraphrase-fr",
+        "expected": "supported",
+        "actual": "supported",
+        "legacy": "indirect_lexical"
+      },
+      {
+        "id": "nombre",
+        "expected": "contradicted",
+        "actual": "contradicted",
+        "legacy": "indirect_lexical"
+      },
+      {
+        "id": "négation",
+        "expected": "contradicted",
+        "actual": "contradicted",
+        "legacy": "uncertain"
+      },
+      {
+        "id": "inconnu",
+        "expected": "insufficient",
+        "actual": "insufficient",
+        "legacy": "not_demonstrated"
+      },
+      {
+        "id": "sans-preuve",
+        "expected": "insufficient",
+        "actual": "insufficient",
+        "legacy": "not_demonstrated"
+      },
+      {
+        "id": "question",
+        "expected": "not_verifiable",
+        "actual": "not_verifiable",
+        "legacy": "not_demonstrated"
+      },
+      {
+        "id": "suggestion",
+        "expected": "not_verifiable",
+        "actual": "not_verifiable",
+        "legacy": "not_demonstrated"
+      },
+      {
+        "id": "decision-ia",
+        "expected": "insufficient",
+        "actual": "insufficient",
+        "legacy": "direct_quote"
+      },
+      {
+        "id": "decision-user",
+        "expected": "supported",
+        "actual": "supported",
+        "legacy": "direct_quote"
+      },
+      {
+        "id": "citation-code",
+        "expected": "supported",
+        "actual": "supported",
+        "legacy": "direct_quote"
+      },
+      {
+        "id": "nom-different",
+        "expected": "insufficient",
+        "actual": "insufficient",
+        "legacy": "indirect_lexical"
+      },
+      {
+        "id": "reversion",
+        "expected": "insufficient",
+        "actual": "insufficient",
+        "legacy": "indirect_lexical"
+      },
+      {
+        "id": "sans-citation",
+        "expected": "insufficient",
+        "actual": "insufficient",
+        "legacy": "not_demonstrated"
+      },
+      {
+        "id": "version",
+        "expected": "contradicted",
+        "actual": "contradicted",
+        "legacy": "uncertain"
+      },
+      {
+        "id": "date",
+        "expected": "contradicted",
+        "actual": "contradicted",
+        "legacy": "uncertain"
+      }
+    ]
+  },
+  "failedThresholds": []
+}

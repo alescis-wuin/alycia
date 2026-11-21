@@ -1,0 +1,32 @@
+{
+  "passed": 19,
+  "checks": [
+    "model_capabilities_and_existing_conversation_repair",
+    "local_access_and_models",
+    "settings_revision_and_prompt_library",
+    "stream_commit_replay_and_conflict",
+    "file_upload_download_and_context_selection",
+    "archive_roundtrip_search_and_fork",
+    "recursive_archives_inventory_analysis_staleness_and_delete",
+    "recursive_memory_budget_protected_messages_and_cache",
+    "memory_turn_persistence_and_nondestructive_reset",
+    "mcp_handshake_catalog_pagination_and_access_controls",
+    "original_read_beyond_import_excerpt",
+    "ranked_symbols_references_and_grouped_read_contracts",
+    "native_tool_loop_trace_persistence_export_and_replay",
+    "historical_search_read_and_role_provenance",
+    "tool_access_revocation",
+    "structured_memory_quotes_provenance_cache_reset_and_protection",
+    "hybrid_local_embedding_http_cache_and_accounted_preview_cost",
+    "tool_citations_and_persisted_diagnostics",
+    "empty_tool_summary_recovery_warning_metrics_reread_persistence_and_replay"
+  ],
+  "provider": "mock",
+  "database": "isolated PostgreSQL",
+  "test_data_cleaned": true,
+  "continuous_chat_calls": 3,
+  "tool_rounds": 4,
+  "bounded_summary_calls": 57,
+  "pressure_tool_rounds": 6,
+  "empty_tool_summaries": 1
+}

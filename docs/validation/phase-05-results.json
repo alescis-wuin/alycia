@@ -1,0 +1,90 @@
+{
+  "phase": "05",
+  "date": "2026-11-17",
+  "startCommit": "cdb5feef53ef0651bc3e8847506ce03edef9fe3e",
+  "branch": "feature/local-client-v4-context-quality-20261117",
+  "status": "PARTIEL (qualitative/model/hardware acceptance pending)",
+  "environment": {
+    "os": "Debian GNU/Linux 13",
+    "sdk": "10.0.100",
+    "runtime": "10.0.0",
+    "postgresql": "17.12",
+    "ollama": "simulated for integration",
+    "ui": "Avalonia headless + Skia"
+  },
+  "checks": [
+    {
+      "command": "dotnet build Alycia.slnx --no-restore -m:1 -p:UseSharedCompilation=false; subsequent targeted builds of changed dependents",
+      "result": "passed, final changed projects 0 warnings / 0 errors"
+    },
+    {
+      "command": "bash scripts/quality.sh lint",
+      "result": "passed"
+    },
+    {
+      "command": "dotnet tool run dotnet-ef migrations has-pending-model-changes --project src/Alycia.Modules.Chat.Infrastructure --context ChatDbContext --no-build",
+      "result": "passed, no pending changes"
+    },
+    {
+      "command": "dotnet test Alycia.slnx --no-build --no-restore -m:1 --logger trx --results-directory artifacts/tests; targeted reruns after corrections",
+      "result": "200 distinct tests passed after targeted corrections",
+      "suites": {
+        "chat": 145,
+        "client": 44,
+        "workspaces": 11
+      },
+      "postgresTests": 4,
+      "finalUnresolvedFailures": 0,
+      "evidence": "phase-05-tests.json"
+    },
+    {
+      "command": "python3 -m unittest discover -s scripts/tests -p '*_tests.py' -v",
+      "result": "passed",
+      "tests": 10
+    },
+    {
+      "command": "python3 scripts/tests/http-integration.py",
+      "result": "passed",
+      "groups": 19,
+      "database": "isolated PostgreSQL, migrated then dropped",
+      "provider": "mock",
+      "evidence": "phase-05-http.json"
+    },
+    {
+      "command": "python3 scripts/evaluate-context.py validate [--suite evaluation/context-v2]",
+      "result": "both passed, frozen hashes unchanged"
+    },
+    {
+      "command": "dotnet benchmarks/Alycia.ContextBenchmarks/bin/Release/net10.0/Alycia.ContextBenchmarks.dll docs/validation/phase-05-benchmark.json",
+      "result": "passed, exact BM25 score and ranking equivalence assertions",
+      "evidence": "phase-05-benchmark.json"
+    },
+    {
+      "command": "dotnet benchmarks/Alycia.ContextBenchmarks/bin/Release/net10.0/Alycia.ContextBenchmarks.dll --documents evaluation/context-v2/corpus docs/validation/phase-05-documents.json",
+      "result": "passed",
+      "evidence": "phase-05-documents.json"
+    },
+    {
+      "command": "ALYCIA_UI_CAPTURE=... dotnet test tests/Alycia.Client.Avalonia.Tests --no-build --no-restore",
+      "result": "44 passed; actual rendered images inspected at 1240x880 and 960x700, compact analysis dialog; Tab and Escape exercised"
+    }
+  ],
+  "fixedDuringValidation": [
+    "Updated legacy MCP catalog expectations to all nine tools",
+    "Completed concurrency-test provider fixture with done_reason=stop",
+    "Released Escape on owner after modal disposal",
+    "Kept PostgreSQL in same isolated execution lifetime as tests",
+    "Shortened shared tool instructions to fit default 8192 conservative budget without changing limits",
+    "Explicit parameter/budget errors after streaming begins"
+  ],
+  "notExecuted": [
+    "Real Ollama response quality campaigns",
+    "Holdout inference with real embeddings/model",
+    "GPU/VRAM measurements on RTX 4070",
+    "KDE/Wayland and Windows desktop recipes",
+    "Compose deployment on user machine",
+    "Real backup/restore through Docker (Python mocked checks passed)"
+  ],
+  "qualityGain": null,
+  "wholeAnswerSpeedGain": null
+}

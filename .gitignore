@@ -7,3 +7,11 @@
 .vscode/
 *.user
 *.suo
+**/data/
+
+backups/
+artifacts/
+TestResults/
+
+**/__pycache__/
+*.pyc

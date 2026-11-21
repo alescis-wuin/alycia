@@ -33,7 +33,6 @@ public sealed record WorkspaceOperationResult(
 
 public sealed class WorkspaceApiClient
 {
-    private const string DefaultBaseUrl = "http://127.0.0.1:8080";
     private static readonly HttpClient SharedClient = new();
     private static readonly JsonSerializerOptions JsonOptions =
         new(JsonSerializerDefaults.Web);
@@ -99,7 +98,7 @@ public sealed class WorkspaceApiClient
     {
         var configuredUrl = _configuredBaseUrl
             ?? Environment.GetEnvironmentVariable("ALYCIA_API_BASE_URL")
-            ?? DefaultBaseUrl;
+            ?? Appearance.ApiDefault;
 
         if (!Uri.TryCreate(configuredUrl, UriKind.Absolute, out var baseUri)
             || (baseUri.Scheme != Uri.UriSchemeHttp

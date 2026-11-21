@@ -1,0 +1,48 @@
+namespace Alycia.Modules.Chat.Domain;
+
+public sealed class ChatMessage
+{
+    public Guid ConversationId { get; private set; }
+    public int Sequence { get; private set; }
+    public Guid RequestId { get; private set; }
+    public string Role { get; private set; } = null!;
+    public string Content { get; private set; } = null!;
+    public DateTimeOffset CreatedAtUtc { get; private set; }
+
+    public string DiagnosticsJson { get; private set; } = "{}";
+    public void SetDiagnostics(string json)
+    {
+        if (Role != "assistant" || json.Length > 2_000_000) throw new ArgumentException("Diagnostic invalide ou trop volumineux.");
+        using var parsed = System.Text.Json.JsonDocument.Parse(json);
+        if (parsed.RootElement.ValueKind != System.Text.Json.JsonValueKind.Object) throw new ArgumentException("Objet de diagnostic attendu.");
+        DiagnosticsJson = json;
+    }
+    public string ToolTraceJson { get; private set; } = "[]";
+    public void SetToolTrace(string json)
+    {
+        if (Role != "assistant" || json.Length > 512000) throw new ArgumentException("Trace d’outils invalide ou trop volumineuse.");
+        ToolTraceJson = json;
+    }
+    private ChatMessage() { }
+
+    public static ChatMessage Import(Guid conversationId, int sequence, Guid requestId, string role,
+        string content, DateTimeOffset createdAt) => new(conversationId, sequence, requestId, role, content)
+        { CreatedAtUtc = createdAt.ToUniversalTime() };
+
+    public ChatMessage(Guid conversationId, int sequence, Guid requestId, string role, string content)
+    {
+        if (conversationId == Guid.Empty || requestId == Guid.Empty || sequence < 1
+            || role is not ("user" or "assistant") || string.IsNullOrWhiteSpace(content)
+            || content.Contains('\0'))
+        {
+            throw new ArgumentException("Message invalide.");
+        }
+
+        ConversationId = conversationId;
+        Sequence = sequence;
+        RequestId = requestId;
+        Role = role;
+        Content = content;
+        CreatedAtUtc = DateTimeOffset.UtcNow;
+    }
+}

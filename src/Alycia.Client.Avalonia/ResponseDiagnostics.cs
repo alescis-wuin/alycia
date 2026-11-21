@@ -1,0 +1,93 @@
+using System;
+using System.Linq;
+using System.Text;
+using Alycia.Contracts.Chat;
+
+namespace Alycia.Client.Avalonia;
+
+internal static class ResponseDiagnostics
+{
+    public static string Title(TurnDiagnostics? report) => report?.Warnings is { Count: > 0 }
+        ? "⚠ Contexte partiellement conservé — détails" : report?.Citations?.Status switch
+        {
+            "unknown_references" => "⚠ Références inconnues — examiner les sources",
+            "sources_uncited" => "Sources fournies, aucune référence citée",
+            "references_recognized" => "Sources citées et coût de la réponse",
+            _ => "Contexte et coût de la réponse"
+        };
+    public static string Describe(TurnDiagnostics? report)
+    {
+        if (report is null) return "Diagnostics illisibles.";
+        var text = new StringBuilder();
+        foreach (var warning in report.Warnings ?? []) text.AppendLine("⚠ " + warning);
+        if (report.Usage is { } usage)
+        {
+            text.AppendLine($"{usage.Calls.Count} appels · {usage.InputTokens?.ToString() ?? "?"} tokens entrants cumulés · {usage.OutputTokens?.ToString() ?? "?"} sortants cumulés");
+            text.AppendLine($"Durée des appels : {usage.ElapsedMilliseconds / 1000:F1} s · {(usage.Complete ? "comptes fournis par Ollama" : "mesures incomplètes du fournisseur")}");
+            text.AppendLine("Comptage préparatoire : " + usage.Counter);
+            text.AppendLine("Identité du modèle : " + (usage.ModelIdentity ?? "non disponible"));
+            foreach (var call in usage.Calls.Where(c => c.FirstContentMilliseconds is not null))
+                text.AppendLine($"Premier fragment de réponse ({call.Purpose}) : {call.FirstContentMilliseconds / 1000:F2} s après le début de cet appel.");
+            foreach (var group in usage.Calls.GroupBy(c => c.Purpose))
+                text.AppendLine($"  {group.Key} : {group.Count()} appel(s), {group.Sum(c => c.ElapsedMilliseconds) / 1000:F1} s");
+        }
+        if (report.Route is { } route) text.AppendLine($"Routage · {route.Mode} · {route.Reason} ({route.Rules})");
+        if (report.Assembly is { } assembly)
+            text.AppendLine($"Preuves retenues · {assembly.Used}/{assembly.Budget} tokens · {assembly.Files} fichier(s) · {assembly.Decisions.Count(d => d.Reason == "budget")} passage(s) écarté(s) par le budget.");
+        if (report.Temporal is { } temporal)
+            text.AppendLine($"Mémoire temporelle · {temporal.Indexed}/{temporal.Total} messages indexés · {temporal.Sources.Length} extrait(s) · {temporal.Perspective}. {temporal.Warning}");
+        if (report.Research is { } plan)
+        {
+            text.AppendLine($"Exploration · {plan.Calls}/{plan.CallLimit} appels · {plan.StopReason}");
+            foreach (var goal in plan.Goals) text.AppendLine($"{goal.Query} · {goal.State} · {string.Join(", ", goal.References)}");
+        }
+        if (report.Verification is { } check) text.AppendLine($"Vérification complémentaire · {check.Status} · {string.Join(", ", check.References)}");
+        foreach (var call in report.Usage?.Calls.Where(c => c.EffectiveContextTokens.HasValue) ?? [])
+        {
+            text.AppendLine($"Fenêtre utilisée · {call.EffectiveContextTokens} tokens");
+            if (call.ApiWorkingSetBytes is long ram) text.AppendLine($"RAM du processus API · {ram / 1048576} Mio");
+            if (call.ModelVramBytes is long vram) text.AppendLine($"VRAM résidente du modèle · {vram / 1048576} Mio");
+            if (call.Stats is { OutputTokens: { } output, EvaluationNanoseconds: > 0 } stats)
+                text.AppendLine($"Génération · {output * 1e9 / stats.EvaluationNanoseconds:F1} tokens/s");
+        }
+        if (report.Retrieval is { } retrieval)
+        {
+            text.AppendLine($"\nRecherche {retrieval.Mode} : {retrieval.IndexedFiles}/{retrieval.EligibleFiles} fichiers indexés, {retrieval.CandidateChunks} passages candidats.");
+            text.AppendLine($"Index : {retrieval.IndexMilliseconds:F1} ms · classement : {retrieval.RankingMilliseconds:F1} ms · {retrieval.ZeroScoreChunks} scores lexicaux nuls.");
+            if (retrieval.Rerank is { } rr) text.AppendLine($"ONNX CPU · {rr.State} · {rr.Milliseconds:F1} ms · {rr.Scores?.Count ?? 0} scores");
+            if (retrieval.Plan is { } queries)
+            {
+                text.AppendLine("Requêtes · " + string.Join(" / ", queries.Queries.Select(q => q.Text)));
+                foreach (var anchor in queries.Resolved) text.AppendLine($"Référent · {anchor.Text} [{anchor.Reference}]");
+            }
+            if (retrieval.Cache is { } cache)
+                text.AppendLine($"Cache lexical : {(cache.LexicalHit ? "réutilisé" : "construit")} · vecteurs : {cache.VectorHits} réutilisés, {cache.VectorMisses} manquants · {(cache.VectorWritten ? "cache écrit" : "aucune écriture vectorielle")}.");
+            foreach (var group in (retrieval.Decisions ?? []).GroupBy(d => d.Reason))
+                text.AppendLine($"  {group.Key} : {group.Count()} passage(s)");
+            if (retrieval.UnreportedDecisions > 0) text.AppendLine($"{retrieval.UnreportedDecisions} décisions supplémentaires non détaillées.");
+            foreach (var omission in retrieval.Omissions) text.AppendLine(omission);
+        }
+        if (report.Memory is { } memory)
+            text.AppendLine($"Mémoire : {memory.Selected}/{memory.Stored} citations sélectionnées, {memory.Omitted} entrées non incluses ou écartées, {memory.FallbackSegments} fragments de repli.");
+        if (report.Citations is { } citations)
+        {
+            text.AppendLine($"\n{citations.Recognized.Length} référence(s) reconnue(s) · {citations.Unknown.Length} inconnue(s).");
+            text.AppendLine($"Couverture fournie : {citations.Supplied.Select(s => s.FileId).Distinct().Count()} source(s), {citations.Supplied.Length} passage(s). Compréhension et exhaustivité non établies.");
+            text.AppendLine("Ce contrôle relie les identifiants aux passages fournis. Il ne vérifie pas la vérité des affirmations ni la couverture de tout le projet.");
+            if (citations.Unknown.Length > 0) text.AppendLine("Inconnues : " + string.Join(", ", citations.Unknown));
+            foreach (var source in citations.Supplied)
+                text.AppendLine($"\n[{source.Reference}] {source.Path}:L{source.StartLine}–L{source.EndLine} · {(citations.Recognized.Contains(source.Reference) ? "cité" : "fourni, non cité")}"
+                    + $"\nCaractères UTF-16 [{source.Start}, {source.End}[ · fichier {source.FileId}\nSHA-256 : {source.Sha256}");
+            foreach (var source in citations.Historical ?? [])
+                text.AppendLine($"\n[{source.Reference}] message {source.Sequence} · {source.Role} · {source.CreatedAtUtc:O} · {(source.Partial ? "extrait" : "message complet")}\nSHA-256 : {source.Sha256}");
+        }
+        if (report.Claims is { } claims)
+        {
+            text.AppendLine("\nAffirmations — contrôle heuristique non bloquant, pas une validation de vérité.");
+            foreach (var finding in claims.Findings)
+                text.AppendLine($"{finding.Status} · {finding.Text}\n{finding.Reason}");
+            if (claims.Omitted > 0) text.AppendLine($"{claims.Omitted} blocs non évalués.");
+        }
+        return text.ToString().Trim();
+    }
+}

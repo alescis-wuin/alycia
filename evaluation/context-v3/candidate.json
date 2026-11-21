@@ -1,0 +1,6 @@
+{
+  "routingMode": "auto",
+  "queryRewriteEnabled": true,
+  "evidenceSelectionEnabled": true,
+  "hierarchicalIndexEnabled": true
+}

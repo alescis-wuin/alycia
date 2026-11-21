@@ -1,0 +1,121 @@
+{
+  "version": 2,
+  "k": 3,
+  "budget": 1800,
+  "documents": [
+    [
+      "modules/consigne-1.md",
+      "# Procédure 1\nLe lot partage le format commun et utilise le stockage standard.\nLe repère Sillage1 concerne le numéro de quai 200."
+    ],
+    [
+      "modules/consigne-2.md",
+      "# Procédure 2\nLe lot partage le format commun et utilise le stockage standard.\nLe repère Sillage2 concerne le numéro de quai 201."
+    ],
+    [
+      "modules/consigne-3.md",
+      "# Procédure 3\nLe lot partage le format commun et utilise le stockage standard.\nLe repère Sillage3 concerne le numéro de quai 202."
+    ],
+    [
+      "modules/consigne-4.md",
+      "# Procédure 4\nLe lot partage le format commun et utilise le stockage standard.\nLe repère Sillage4 concerne le numéro de quai 203."
+    ],
+    [
+      "modules/consigne-5.md",
+      "# Procédure 5\nLe lot partage le format commun et utilise le stockage standard.\nLe repère Sillage5 concerne le numéro de quai 204."
+    ],
+    [
+      "modules/consigne-6.md",
+      "# Procédure 6\nLe lot partage le format commun et utilise le stockage standard.\nLe repère Sillage6 concerne le numéro de quai 205."
+    ],
+    [
+      "modules/consigne-7.md",
+      "# Procédure 7\nLe lot partage le format commun et utilise le stockage standard.\nLe repère Sillage7 concerne le numéro de quai 206."
+    ],
+    [
+      "modules/consigne-8.md",
+      "# Procédure 8\nLe lot partage le format commun et utilise le stockage standard.\nLe repère Sillage8 concerne le numéro de quai 207."
+    ],
+    [
+      "modules/consigne-9.md",
+      "# Procédure 9\nLe lot partage le format commun et utilise le stockage standard.\nLe repère Sillage9 concerne le numéro de quai 208."
+    ],
+    [
+      "modules/consigne-10.md",
+      "# Procédure 10\nLe lot partage le format commun et utilise le stockage standard.\nLe repère Sillage10 concerne le numéro de quai 209."
+    ],
+    [
+      "src/Quai.cs",
+      "class Quai { public const int QuaiMax = 8; }"
+    ],
+    [
+      "chronologie.md",
+      "# Chronologie\nLe 2025-01-03, la rétention Phare était de 14 jours. Le 2026-04-09 elle est passée à 37 jours."
+    ],
+    [
+      "sources/manuel.md",
+      "# Atlas\nLa préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. La préparation des cartons exige un support solide et sec. \n## Exception\nLa balise EcorceViolette utilise le port 9981."
+    ],
+    [
+      "prive.md",
+      "CerfPrivé est confidentiel et utilise le quai 9999."
+    ]
+  ],
+  "cases": [
+    {
+      "id": "voisins",
+      "question": "Quel quai attribue Sillage7 ?",
+      "expected": [
+        "modules/consigne-7.md"
+      ],
+      "turns": []
+    },
+    {
+      "id": "passage-isole",
+      "question": "Quel port utilise EcorceViolette ?",
+      "expected": [
+        "sources/manuel.md"
+      ],
+      "turns": []
+    },
+    {
+      "id": "plusieurs-facettes",
+      "question": "Lis src/Quai.cs pour QuaiMax, puis retrouve EcorceViolette dans le manuel.",
+      "expected": [
+        "src/Quai.cs",
+        "sources/manuel.md"
+      ],
+      "turns": [],
+      "facetTargets": [
+        [
+          "src/Quai.cs"
+        ],
+        [
+          "sources/manuel.md"
+        ]
+      ]
+    },
+    {
+      "id": "chronologie",
+      "question": "Combien de jours de rétention pour Phare avant le 2026-04-09 ?",
+      "expected": [
+        "chronologie.md"
+      ],
+      "turns": []
+    },
+    {
+      "id": "exclusion",
+      "question": "Lis prive.md.",
+      "expected": [],
+      "turns": []
+    },
+    {
+      "id": "hors-corpus",
+      "question": "Bonjour !",
+      "expected": [],
+      "turns": []
+    }
+  ],
+  "excluded": [
+    "prive.md"
+  ]
+}

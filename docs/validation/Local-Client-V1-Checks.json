@@ -1,0 +1,78 @@
+{
+  "date": "2026-11-16",
+  "baseCommit": "e1c5bc08e7873aa6f43689a91dc09a37da9db75b",
+  "branch": "feature/local-client-v1-20261116",
+  "environment": {
+    "os": "Linux x64",
+    "dotnetSdk": "10.0.404",
+    "dotnetRuntime": "10.0.15",
+    "postgresTestServer": "16.2",
+    "postgresComposeTarget": "17"
+  },
+  "build": {
+    "passed": true,
+    "warnings": 0,
+    "errors": 0
+  },
+  "dotnetSuites": [
+    {
+      "assembly": "Alycia.Client.Avalonia.Tests.dll",
+      "total": 35,
+      "passed": 35,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    {
+      "assembly": "Alycia.Modules.Chat.Tests.dll",
+      "total": 50,
+      "passed": 50,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    {
+      "assembly": "Alycia.Modules.Workspaces.Tests.dll",
+      "total": 11,
+      "passed": 11,
+      "failed": 0,
+      "notExecuted": 0
+    }
+  ],
+  "migrations": {
+    "pendingModelChanges": false,
+    "appliedToIsolatedPostgres": true
+  },
+  "httpRecipe": {
+    "passed": 5,
+    "checks": [
+      "local_access_and_models",
+      "settings_revision_and_prompt_library",
+      "stream_commit_replay_and_conflict",
+      "file_upload_download_and_context_selection",
+      "archive_roundtrip_search_and_fork"
+    ],
+    "provider": "mock",
+    "database": "isolated PostgreSQL",
+    "test_data_cleaned": true
+  },
+  "backupUnitTests": {
+    "passed": 4,
+    "docker": "mocked"
+  },
+  "quality": {
+    "changedCSharpFilesFormatted": 40,
+    "lint": "passed",
+    "bashSyntax": "passed",
+    "pythonCompile": "passed"
+  },
+  "notExecuted": [
+    "real Ollama model",
+    "NVIDIA GPU benchmark",
+    "native KDE/Wayland",
+    "Windows and PowerShell",
+    "Docker image build",
+    "Docker backup/restore end to end"
+  ],
+  "nonBlockingDiagnostics": [
+    "VSTEST_ARTIFACTS_DIRECTORY fallback warning from test runner"
+  ]
+}

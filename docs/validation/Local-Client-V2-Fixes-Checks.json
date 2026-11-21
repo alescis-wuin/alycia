@@ -1,0 +1,113 @@
+{
+  "baseCommit": "f2155a39fafd5ace3d9784f9c3e952f9f47141cb",
+  "branch": "feature/local-client-v1-20261116",
+  "environment": {
+    "os": "Linux x64",
+    "dotnetSdk": "10.0.404",
+    "dotnetRuntime": "10.0.15",
+    "postgresTestServer": "16.2",
+    "postgresComposeTarget": "17"
+  },
+  "build": {
+    "passed": true,
+    "warnings": 0,
+    "errors": 0
+  },
+  "dotnetSuites": [
+    {
+      "selection": "OllamaChatModelTests|StreamingTests",
+      "total": 25,
+      "passed": 25,
+      "failed": 0,
+      "notExecuted": 0,
+      "report": "fix-ollama-provider.trx",
+      "reportSha256": "f221ab212b1326fdaeefcaafd68a8cd4ece3dd88606205d96d726268eebc0074"
+    },
+    {
+      "selection": "FileTests|DocumentAnalysisTests|ProjectInventoryTests",
+      "total": 23,
+      "passed": 23,
+      "failed": 0,
+      "notExecuted": 0,
+      "report": "import-analysis.trx",
+      "reportSha256": "60a8b6e8946d4a1f44b136209496a7ce60d5b34ff00f9f5482a5418676d011c8"
+    },
+    {
+      "selection": "ChatWindowCreatesRenamesSendsRetainsFailedDraftAndDeletes",
+      "total": 1,
+      "passed": 1,
+      "failed": 0,
+      "notExecuted": 0,
+      "report": "render-emoji.trx",
+      "reportSha256": "70ed1c4ff1f29011cbf2996f57190644a44c78d8fb7bb532318d1ae32b214a41"
+    }
+  ],
+  "totalDistinctDotnetTests": 49,
+  "executionNote": "Targeted suites only. Import path and multipart cases are included in the 23 import/analysis/inventory tests. Ollama provider code remained unchanged after its successful run; no redundant full-suite run.",
+  "httpRecipe": {
+    "passed": 9,
+    "checks": [
+      "model_capabilities_and_existing_conversation_repair",
+      "local_access_and_models",
+      "settings_revision_and_prompt_library",
+      "stream_commit_replay_and_conflict",
+      "file_upload_download_and_context_selection",
+      "archive_roundtrip_search_and_fork",
+      "recursive_archives_inventory_analysis_staleness_and_delete",
+      "recursive_memory_budget_protected_messages_and_cache",
+      "memory_turn_persistence_and_nondestructive_reset"
+    ],
+    "provider": "mock",
+    "database": "isolated PostgreSQL",
+    "test_data_cleaned": true,
+    "continuous_chat_calls": 3,
+    "bounded_summary_calls": 46
+  },
+  "quality": {
+    "lint": "passed",
+    "pythonCompile": "passed",
+    "pythonFiles": [
+      "scripts/tests/http-integration.py",
+      "scripts/verify-local.py"
+    ]
+  },
+  "visualInspection": {
+    "renderer": "Avalonia/Skia headless",
+    "sizes": [
+      "1240x880",
+      "960x700"
+    ],
+    "emojiFont": "Noto Color Emoji",
+    "nativeDesktop": false
+  },
+  "notExecuted": [
+    "original failing user ZIP/folder",
+    "real Ollama model and summary fidelity",
+    "native KDE/Wayland pickers and clipboard",
+    "NVIDIA GPU benchmark",
+    "Windows and PowerShell",
+    "Docker image build",
+    "PostgreSQL 17 via Docker"
+  ],
+  "nonBlockingDiagnostics": [
+    "VSTEST_ARTIFACTS_DIRECTORY fallback warning from test runner"
+  ],
+  "changedCodeSha256": {
+    "scripts/tests/http-integration.py": "3856d1f99a21ff69a37c013fcffb95c6ae35faf72b52208e52f663b65987d823",
+    "scripts/verify-local.py": "105af6cef78ce173a55fe1040726f567b1ba9df6d88064eba60f77c3a5a5a5e6",
+    "src/Alycia.Api/Chat/ChatEndpoints.Configuration.cs": "795710c80a851ad34ca488e45b3762a5498d5008a13fda039162dadab93721c4",
+    "src/Alycia.Client.Avalonia/ChatWindow.Features.cs": "9e4b38369f0b9ec25916b1fe0f91c08ee4f383cb976e5900f7a8f047cffd7036",
+    "src/Alycia.Client.Avalonia/ChatWindow.axaml": "11da433c2d8387a1994865e31d17d497a8984a33fcf6f85fe4fdffdad685127d",
+    "src/Alycia.Client.Avalonia/ChatWindow.axaml.cs": "f3b1f871b0d7d5508967506afa837285013d36b4a5a54ebee05d5fba9c514226",
+    "src/Alycia.Client.Avalonia/MarkdownView.cs": "0a4a3065ac3b408b66fe1de9bea03c6df70b543cd3744ec68586ee8a523853ae",
+    "src/Alycia.Modules.Chat.Application/ChatService.cs": "b15cd2793b004bdbde72b72e53cf350b26e4e13f88658f001c847a4986c45c1f",
+    "src/Alycia.Modules.Chat.Infrastructure/FileImport.cs": "bbb9a88b43f27b7e2a4d8d0439c6590c1ef9984219da33a40eeede44784940b8",
+    "src/Alycia.Modules.Chat.Infrastructure/OllamaChatModel.Streaming.cs": "1bd90fd99fc1f927c594a2deedf69394956e24dc1045d723ee73b04d094c790e",
+    "src/Alycia.Modules.Chat.Infrastructure/OllamaChatModel.cs": "79d9714e4201ef7be50821f91e6091833e031a386ef28902ac612ff37efe21e6",
+    "tests/Alycia.Client.Avalonia.Tests/ChatTests.cs": "4186a7bb9c345b92b23237e9695d0b8604ad2fcdb39a82fcc20602b0ed4556d2",
+    "tests/Alycia.Client.Avalonia.Tests/MarkdownChecks.cs": "972173d786673c66123e3b4da13caabef352aa7e7461103003e1ce8e3634e6df",
+    "tests/Alycia.Modules.Chat.Tests/FileTests.cs": "d3b03452a0bb27333c2f9226eae9d9f3fb35e064bad6fb98a4fed02e06db742a",
+    "tests/Alycia.Modules.Chat.Tests/OllamaChatModelTests.cs": "21b495f32038f55db2c7df8dfe8e05236acec402c0ef8b8c4cd53fd119d6ac2b",
+    "tests/Alycia.Modules.Chat.Tests/StreamingTests.cs": "188d29e1df51f586e34a4f80835865b591213c6724203548555170ee66533d89"
+  }
+}
