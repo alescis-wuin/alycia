@@ -6,13 +6,6 @@ namespace Alycia.Modules.Chat.Application;
 public sealed class ChatService(IChatRepository repository, IChatModel model, ChatOptions options,
     ITurnContext turnContext, IConversationMemory memory, ITurnTools tools, ITurnRouting routing, ITurnResponseAudit audit)
 {
-    public ChatService(IChatRepository repository, IChatModel model, ChatOptions options,
-        IProjectTools? projectTools = null, IProjectRetrieval? retrieval = null, ISnapshotProjectTools? snapshotTools = null,
-        ITemporalMemory? temporal = null)
-        : this(repository, model, options, new TurnContext(repository), new ConversationMemory(repository),
-            new TurnTools(projectTools, snapshotTools), new TurnRouting(repository, retrieval, temporal), new TurnResponseAudit(retrieval))
-    { }
-
     public async Task<Conversation> CreateAsync(string? title, string? modelName, string? systemPrompt,
         CancellationToken cancellationToken, Guid? workspaceId = null)
     {

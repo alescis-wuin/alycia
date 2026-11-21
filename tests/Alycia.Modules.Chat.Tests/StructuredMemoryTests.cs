@@ -132,7 +132,7 @@ public sealed class StructuredMemoryTests
         Assert.All(StructuredMemory.Read(result.LedgerJson!).Entries, e => Assert.True(e.Fallback));
         Assert.Equal("{}", repo.Conversation.MemoryLedgerJson);
         model.FailAnswer = true;
-        await Assert.ThrowsAsync<ChatModelException>(() => new ChatService(repo, model, options).SendAsync(repo.Conversation.Id, Guid.NewGuid(), "budget", default));
+        await Assert.ThrowsAsync<ChatModelException>(() => ChatFixture.Create(repo, model, options).SendAsync(repo.Conversation.Id, Guid.NewGuid(), "budget", default));
         Assert.Equal("{}", repo.Conversation.MemoryLedgerJson); Assert.Equal(24, repo.Messages.Count);
     }
 

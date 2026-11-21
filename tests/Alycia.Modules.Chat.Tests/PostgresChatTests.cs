@@ -50,7 +50,7 @@ public sealed class PostgresChatTests
             await using (var database = new ChatDbContext(options))
             {
                 var repository = new EfChatRepository(database);
-                var service = new ChatService(repository, new FakeModel(), new());
+                var service = ChatFixture.Create(repository, new FakeModel(), new());
                 var conversation = await service.CreateAsync("  Démo  ", "demo", "system", default);
                 id = conversation.Id;
                 Assert.Equal("Démo", conversation.Title);
@@ -63,7 +63,7 @@ public sealed class PostgresChatTests
                 Assert.False(replay.Usage.Complete);
                 Assert.Equal(2, await database.Messages.CountAsync());
                 await Assert.ThrowsAsync<ChatConflictException>(() => service.SendAsync(id, requestId, "different", default));
-                var failed = new ChatService(repository, new FakeModel(fail: true), new());
+                var failed = ChatFixture.Create(repository, new FakeModel(fail: true), new());
                 await Assert.ThrowsAsync<ChatModelException>(() => failed.SendAsync(id, Guid.NewGuid(), "fail", default));
                 Assert.Equal(2, await database.Messages.CountAsync());
             }
@@ -73,7 +73,7 @@ public sealed class PostgresChatTests
             {
                 var repository = new EfChatRepository(database);
                 var model = new FakeModel();
-                var service = new ChatService(repository, model, new());
+                var service = ChatFixture.Create(repository, model, new());
                 await service.SendAsync(id, Guid.NewGuid(), "Encore", default);
                 Assert.Equal(["system", "Bonjour", "Réponse", "Encore"], model.Prompt!.Select(item => item.Content));
                 Assert.Equal(4, (await repository.FindAsync(id, default))!.MessageCount);
@@ -97,6 +97,12 @@ public sealed class PostgresChatTests
                 b.CompleteTurn();
                 await Assert.ThrowsAsync<ChatConflictException>(() => secondRepo.AppendTurnAsync(b,
                     new(id, 5, staleRequest, "user", "stale"), new(id, 6, staleRequest, "assistant", "stale"), default));
+                var reloaded = (await secondRepo.FindAsync(id, default))!;
+                Assert.Equal("Renommée", reloaded.Title);
+                Assert.Equal("{}", reloaded.MemoryLedgerJson);
+                Assert.Equal(4, reloaded.MessageCount);
+                Assert.Empty(await secondRepo.FindTurnAsync(id, staleRequest, default));
+                Assert.False(second.ChangeTracker.HasChanges());
             }
 
             await using (var database = new ChatDbContext(options))

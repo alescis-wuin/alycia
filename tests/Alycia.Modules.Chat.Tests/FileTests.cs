@@ -164,7 +164,7 @@ public sealed class FileTests
                 Assert.Equal("persistent source", file.Text);
                 Assert.True(File.Exists(storage.PathFor(conversationId, fileId)));
                 var model = new CaptureModel();
-                await new ChatService(new EfChatRepository(db), model, new()).SendAsync(conversationId, Guid.NewGuid(), "résume", default);
+                await ChatFixture.Create(new EfChatRepository(db), model, new()).SendAsync(conversationId, Guid.NewGuid(), "résume", default);
                 Assert.Contains("persistent source", model.Prompt![^1].Content);
                 var conversation = await db.Conversations.SingleAsync();
                 await new EfChatRepository(db).DeleteAsync(conversation, default);

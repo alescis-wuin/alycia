@@ -116,7 +116,7 @@ public sealed class StreamingTests
     {
         var repository = new MemoryRepository();
         var model = new StreamingModel { Fail = true };
-        var service = new ChatService(repository, model, new());
+        var service = ChatFixture.Create(repository, model, new());
         var id = repository.Conversation.Id;
         var request = Guid.NewGuid();
         var received = new List<ModelDelta>();
@@ -138,7 +138,7 @@ public sealed class StreamingTests
     public async Task CancellationAfterDeltaDoesNotPersistAndReleasesGate()
     {
         var repository = new MemoryRepository();
-        var service = new ChatService(repository, new StreamingModel(), new());
+        var service = ChatFixture.Create(repository, new StreamingModel(), new());
         using var cancel = new CancellationTokenSource();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.StreamAsync(repository.Conversation.Id,
             Guid.NewGuid(), "hello", 0, _ => { cancel.Cancel(); return Task.CompletedTask; }, cancel.Token));

@@ -11,13 +11,38 @@ public sealed class EfChatRepository(ChatDbContext database) : IChatRepository
     {
         if (!await database.Conversations.AnyAsync(c => c.Id == id && c.WorkspaceId != null, ct)) return null;
         var transaction = await database.Database.BeginTransactionAsync(System.Data.IsolationLevel.RepeatableRead, ct);
-        return new TurnScope(transaction);
+        return new TurnScope(transaction, database, id);
     }
 
-    private sealed class TurnScope(Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction transaction) : IChatTurnScope
+    private sealed class TurnScope(Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction transaction,
+        ChatDbContext context, Guid conversationId) : IChatTurnScope
     {
-        public Task CommitAsync(CancellationToken ct) => transaction.CommitAsync(ct);
-        public ValueTask DisposeAsync() => transaction.DisposeAsync();
+        private bool committed;
+
+        public async Task CommitAsync(CancellationToken ct)
+        {
+            await transaction.CommitAsync(ct);
+            committed = true;
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            try { await transaction.DisposeAsync(); }
+            finally
+            {
+                if (!committed) DetachTurn(context, conversationId);
+            }
+        }
+    }
+
+    // A subsequent lookup in the same scope must re-read the authoritative outcome from PostgreSQL.
+    private static void DetachTurn(ChatDbContext context, Guid id, Guid? requestId = null)
+    {
+        foreach (var entry in context.ChangeTracker.Entries<ChatMessage>().Where(e => e.Entity.ConversationId == id &&
+            (!requestId.HasValue || e.Entity.RequestId == requestId)).ToArray())
+            entry.State = EntityState.Detached;
+        foreach (var entry in context.ChangeTracker.Entries<Conversation>().Where(e => e.Entity.Id == id).ToArray())
+            entry.State = EntityState.Detached;
     }
 
     public async Task<IReadOnlyList<Attachment>> FilesAsync(Guid id, CancellationToken cancellationToken) =>
@@ -117,7 +142,15 @@ public sealed class EfChatRepository(ChatDbContext database) : IChatRepository
     public async Task AppendTurnAsync(Conversation conversation, ChatMessage user, ChatMessage assistant,
         CancellationToken cancellationToken)
     {
-        database.Messages.AddRange(user, assistant);
-        await SaveAsync(cancellationToken);
+        try
+        {
+            database.Messages.AddRange(user, assistant);
+            await SaveAsync(cancellationToken);
+        }
+        catch
+        {
+            DetachTurn(database, conversation.Id, user.RequestId);
+            throw;
+        }
     }
 }
