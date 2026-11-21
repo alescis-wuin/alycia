@@ -23,11 +23,9 @@ public partial class ChatWindow
             ShowPage("Documents").Children.Add(Label("Ouvrez une conversation ou choisissez un projet."));
             return;
         }
-        _indexingOwner = owner; _indexingProject = project;
+        Indexing.Select(owner, project);
         var ct = _lifetime.Token;
-        var profile = project ? await _client.ProjectAsync(owner, ct) : null;
-        var chat = project ? null : (await _client.SettingsAsync(owner, ct)).Conversation;
-        var files = project ? await _client.ProjectFilesAsync(owner, ct) : await _client.FilesAsync(owner, ct);
+        var documents = await DocumentList.LoadAsync(_client, owner, project, ct);
         var body = ShowPage(project ? "Documents du projet" : "Documents de la conversation");
         if (_project.Id.HasValue && _current is not null)
             body.Children.Add(ActionButton(project ? "Voir la portée de la conversation" : "Voir les documents du projet", () => ShowDocumentsAsync(!project)));
@@ -38,22 +36,22 @@ public partial class ChatWindow
             await ImportItemsAsync(await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions { AllowMultiple = true }), project, true));
         imports.Children.Add(importFiles);
         imports.Children.Add(importFolder);
-        imports.IsEnabled = profile?.Archived != true;
+        imports.IsEnabled = !documents.Archived;
         body.Children.Add(imports);
         body.Children.Add(ActionButton("Démarrer ou reprendre l’indexation", () => QueueIndexingAsync(owner, project)));
         body.Children.Add(ActionButton("Mettre l’indexation en pause", async () =>
         {
-            await _client.PauseIndexingAsync(owner, project, ct);
+            await Indexing.PauseAsync(owner, project, ct);
             await RefreshIndexingAsync();
         }));
         var filter = new TextBox { PlaceholderText = "Filtrer les documents" };
-        var list = new ListBox { ItemsSource = files, MaxHeight = 300, SelectionMode = SelectionMode.Multiple };
+        var list = new ListBox { ItemsSource = documents.Files, MaxHeight = 300, SelectionMode = SelectionMode.Multiple };
         var details = new StackPanel { Spacing = 8 };
         body.Children.Add(filter);
         body.Children.Add(list);
-        if (files.Length == 0) body.Children.Add(Label("Aucun document dans cette portée."));
+        if (documents.Files.Length == 0) body.Children.Add(Label("Aucun document dans cette portée."));
         body.Children.Add(details);
-        filter.TextChanged += (_, _) => list.ItemsSource = files.Where(f => f.Name.Contains(filter.Text ?? "", StringComparison.OrdinalIgnoreCase)).ToArray();
+        filter.TextChanged += (_, _) => list.ItemsSource = documents.Filter(filter.Text);
         list.SelectionChanged += (_, _) =>
         {
             details.Children.Clear();
@@ -67,7 +65,7 @@ public partial class ChatWindow
                 var preview = new MarkdownView { IsMarkdown = false };
                 if (file.ContextMode != "excluded") details.Children.Add(ActionButton("Voir l’aperçu", async () =>
                 {
-                    var source = await _client.SourceAsync(owner, project, file.Id, ct);
+                    var source = await documents.PreviewAsync(file, ct);
                     preview.Text = source.Text.Length == 0 ? "Aucun texte extrait." : source.Text;
                 }));
                 details.Children.Add(preview);
@@ -79,58 +77,35 @@ public partial class ChatWindow
                 }
                 details.Children.Add(new Expander { Header = "Version et taille", Content = Label($"{file.Size:N0} octets\nSHA-256 {file.Sha256}") });
             }
-            if (profile?.Archived == true) return;
+            if (documents.Archived) return;
             var modes = new WrapPanel();
             foreach (var (title, mode) in new[] { ("Disponible", "project"), ("Épingler", "pinned"), ("Exclure", "excluded") })
                 modes.Children.Add(ActionButton(title, async () =>
                 {
-                    int revision = profile?.Revision ?? chat!.Revision;
-                    int completed = 0;
-                    try
-                    {
-                        foreach (var selected in selection)
-                        {
-                            if (profile is not null) await _client.SetProjectFileModeAsync(profile with { Revision = revision }, selected.Id, mode, ct);
-                            else await _client.ConfigureFileAsync(owner, selected.Id, revision, mode, ct);
-                            revision++;
-                            completed++;
-                        }
-                    }
-                    catch (ChatApiException error)
-                    {
-                        if (chat is not null) _current = (await _client.SettingsAsync(owner, ct)).Conversation;
-                        await ShowDocumentsAsync(project);
-                        Feedback($"{completed}/{selection.Length} modifications enregistrées. {error.Message}", true);
-                        return;
-                    }
-                    if (chat is not null) _current = (await _client.SettingsAsync(owner, ct)).Conversation;
+                    var change = await documents.ChangeModesAsync(selection, mode, ct);
+                    if (change.Conversation is not null) _current = change.Conversation;
                     await ShowDocumentsAsync(project);
+                    if (change.Error is not null) Feedback($"{change.Completed}/{selection.Length} modifications enregistrées. {change.Error}", true);
                 }));
             details.Children.Add(modes);
-            if (chat is not null && selection.All(s => s.WorkspaceId.HasValue))
+            if (documents.CanRestore(selection))
                 details.Children.Add(ActionButton("Reprendre les réglages du projet", async () =>
                 {
-                    var current = chat;
-                    foreach (var selected in selection)
-                    {
-                        await _client.RestoreFileModeAsync(current, selected.Id, ct);
-                        current = (await _client.SettingsAsync(owner, ct)).Conversation;
-                    }
-                    _current = current;
+                    _current = await documents.RestoreAsync(selection, ct);
                     await ShowDocumentsAsync(false);
                 }));
-            if (chat?.WorkspaceId is not null && selection.All(s => s.WorkspaceId is null && s.ContextMode != "excluded"))
+            if (documents.CanShare(selection))
                 details.Children.Add(ActionButton("Partager avec le projet…", async () =>
                 {
                     if (!await EditDialogAsync("Partager les documents", Label($"{selection.Length} document(s) deviendront disponibles aux autres conversations du projet."), "Partager")) return;
-                    foreach (var selected in selection) await _client.ShareFileAsync(owner, selected.Id, ct);
+                    await documents.ShareAsync(selection, ct);
                     await ShowDocumentsAsync(true);
                 }));
-            if (profile is not null && selection is [var removed])
+            if (project && selection is [var removed])
                 details.Children.Add(ActionButton("Retirer du projet…", async () =>
                 {
                     if (!await EditDialogAsync("Retirer du projet", Label($"« {removed.Name} » et ses entrées d’archive sortiront du contexte des prochains échanges. Les réponses passées et les originaux sur disque sont conservés."), "Retirer")) return;
-                    await _client.RemoveProjectFileAsync(profile, removed.Id, ct);
+                    await documents.RemoveAsync(removed, ct);
                     await ShowDocumentsAsync(true);
                 }));
         };

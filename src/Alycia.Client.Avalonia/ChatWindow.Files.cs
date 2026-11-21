@@ -1,5 +1,4 @@
 using System;
-using Alycia.Contracts.Chat;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -88,50 +87,14 @@ public partial class ChatWindow
             if (choice is not ("complete" or "filtered")) { Feedback("Import annulé."); return; }
             includeExcluded = choice == "complete";
         }
-        var files = new List<UploadFile>();
-        var excluded = 0;
-        ulong totalBytes = 0;
-        var seenFolders = new HashSet<string>(StringComparer.Ordinal);
-        async Task VisitAsync(IStorageItem item, string prefix, int depth)
-        {
-            _lifetime.Token.ThrowIfCancellationRequested();
-            if (depth > limits.FolderDepth) throw new ChatApiException($"Les dossiers sont limités à {limits.FolderDepth} niveaux.");
-            var path = prefix + item.Name;
-            if (!includeExcluded && ImportPolicy.Excluded(path)) { excluded++; return; }
-            var local = item.TryGetLocalPath();
-            if (local is not null && (File.GetAttributes(local) & FileAttributes.ReparsePoint) != 0)
-                throw new ChatApiException("Les liens symboliques ne sont pas importés. Sélectionnez leur cible explicitement.");
-            if (item is IStorageFolder folder)
-            {
-                if (!seenFolders.Add(folder.Path.ToString())) return;
-                await foreach (var child in folder.GetItemsAsync()) await VisitAsync(child, path + "/", depth + 1);
-            }
-            else if (item is IStorageFile file)
-            {
-                if (files.Count >= limits.BatchEntries) throw new ChatApiException($"Import limité à {limits.BatchEntries} fichiers par lot.");
-                var properties = await file.GetBasicPropertiesAsync();
-                if (properties.Size > (ulong)limits.FileBytes) throw new ChatApiException($"{file.Name} dépasse la limite de {limits.FileMiB} Mio.");
-                totalBytes += properties.Size ?? 0;
-                if (totalBytes > (ulong)limits.BatchBytes) throw new ChatApiException($"Lot limité à {limits.BatchMiB} Mio.");
-                files.Add(new(path, await file.OpenReadAsync(), properties.DateCreated, properties.DateModified));
-            }
-        }
-        try
-        {
-            foreach (var item in selected) await VisitAsync(item, "", 0);
-            if (files.Count == 0) { Feedback("Aucun fichier sélectionné (les dossiers vides ne sont pas importés)."); return; }
-            Feedback($"Import de {files.Count} fichier(s)…");
-            var result = await _client.UploadAsync(owner, Guid.NewGuid(), files, _lifetime.Token, project);
-            if (_current is not null) await LoadAsync(_current);
-            if (documents) await ShowDocumentsAsync(project);
-            Feedback($"{result.Length} fichier(s) enregistrés · {excluded} élément(s) écarté(s) avant import · "
-                + $"{result.Count(file => file.ContextMode == "excluded")} contenu(s) exclu(s) de l’IA. "
-                + "Ouvrez Analyse du projet pour produire tree.txt et une synthèse récursive.");
-        }
-        finally
-        {
-            foreach (var file in files) await file.Content.DisposeAsync();
-        }
+        var result = await DocumentUpload.RunAsync(_client, owner, project, selected, limits, includeExcluded,
+            count => Feedback($"Import de {count} fichier(s)…"), _lifetime.Token);
+        if (result is null) { Feedback("Aucun fichier sélectionné (les dossiers vides ne sont pas importés)."); return; }
+        if (_current is not null) await LoadAsync(_current);
+        if (documents) await ShowDocumentsAsync(project);
+        Feedback($"{result.Stored} fichier(s) enregistrés · {result.Skipped} élément(s) écarté(s) avant import · "
+            + $"{result.Excluded} contenu(s) exclu(s) de l’IA. "
+            + "Ouvrez Analyse du projet pour produire tree.txt et une synthèse récursive.");
     }
 
     private async void DownloadFileClick(object? sender, RoutedEventArgs e)
