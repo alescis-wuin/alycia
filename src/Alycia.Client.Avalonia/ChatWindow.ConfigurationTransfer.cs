@@ -1,28 +1,12 @@
+using static Alycia.Client.Avalonia.DialogFields;
 using System;
 using System.IO;
-using System.Threading;
 using System.Threading.Tasks;
 using Alycia.Contracts.Chat;
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
 
 namespace Alycia.Client.Avalonia;
-
-public sealed partial class ChatApiClient
-{
-    public async Task<byte[]> ExportConfigurationAsync(Guid id, CancellationToken ct)
-    {
-        var settings = await SettingsAsync(id, ct);
-        return SettingsFileCodec<ChatSettings>.Export(settings.Conversation.Model, settings.Conversation.SystemPrompt,
-            settings.Conversation.ContextNotes, settings.Options);
-    }
-
-    public Task<ConversationSummary> ImportConfigurationAsync(Guid id, int revision, byte[] bytes, CancellationToken ct)
-    {
-        var settings = SettingsFileCodec<ChatSettings>.Parse(bytes);
-        return ConfigureAsync(id, revision, settings.Model, settings.SystemPrompt, settings.ContextNotes, settings.Options, ct);
-    }
-}
 
 public partial class ChatWindow
 {
