@@ -1,3 +1,5 @@
+using System.Collections.Frozen;
+
 namespace Alycia.Contracts.Indexing;
 
 public sealed record SourceChunk(Guid FileId, string Path, string Sha256, string Symbol, string Kind,
@@ -9,9 +11,12 @@ public interface IProjectIndex
     Task<ProjectIndexSnapshot> BuildAsync(Guid conversation, CancellationToken ct);
     async Task<ProjectIndexSnapshot> BuildScopedAsync(Guid conversation, IReadOnlySet<Guid>? allowed, CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
+        var scope = allowed?.ToFrozenSet();
         var snapshot = await BuildAsync(conversation, ct);
-        if (allowed is null) return snapshot;
-        var chunks = snapshot.Chunks.Where(c => allowed.Contains(c.FileId)).ToArray();
-        return new(chunks, allowed.Count, chunks.Select(c => c.FileId).Distinct().Count(), 0, []);
+        ct.ThrowIfCancellationRequested();
+        if (scope is null) return snapshot;
+        var chunks = snapshot.Chunks.Where(c => scope.Contains(c.FileId)).ToArray();
+        return new(chunks, scope.Count, chunks.Select(c => c.FileId).Distinct().Count(), 0, []);
     }
 }

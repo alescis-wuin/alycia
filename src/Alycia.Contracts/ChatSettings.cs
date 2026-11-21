@@ -57,6 +57,65 @@ public class ChatSettings : IGenerationSettings, IIndexSettings, IToolWindowSett
     public double Temperature { get; set; } = 0.7;
     public int? Seed { get; set; }
 
+    public ChatSettings() { }
+
+    protected ChatSettings(ChatSettings source)
+    {
+        StructuredMemory = source.StructuredMemory;
+        RetrievalMode = source.RetrievalMode;
+        EmbeddingModel = source.EmbeddingModel;
+        RoutingMode = source.RoutingMode;
+        TemporalMemoryEnabled = source.TemporalMemoryEnabled;
+        AdaptiveInferenceEnabled = source.AdaptiveInferenceEnabled;
+        ClaimVerificationEnabled = source.ClaimVerificationEnabled;
+        VerificationSearchEnabled = source.VerificationSearchEnabled;
+        AgentPlanMaxCalls = source.AgentPlanMaxCalls;
+        AgentPlanningEnabled = source.AgentPlanningEnabled;
+        QueryRewriteEnabled = source.QueryRewriteEnabled;
+        MaxSearchQueries = source.MaxSearchQueries;
+        Enrichment = source.Enrichment;
+        FacetPlanningEnabled = source.FacetPlanningEnabled;
+        QueryBriefModelEnabled = source.QueryBriefModelEnabled;
+        ClassificationEnabled = source.ClassificationEnabled;
+        ClassificationBudget = source.ClassificationBudget;
+        NeutralCandidates = source.NeutralCandidates;
+        RelevantThreshold = source.RelevantThreshold;
+        NeutralThreshold = source.NeutralThreshold;
+        QuerySummaryMaxCalls = source.QuerySummaryMaxCalls;
+        QuerySummaryTokens = source.QuerySummaryTokens;
+        MemoryContextTokens = source.MemoryContextTokens;
+        HistoryContextTokens = source.HistoryContextTokens;
+        HierarchicalIndexEnabled = source.HierarchicalIndexEnabled;
+        EmbeddingDocumentPrefix = source.EmbeddingDocumentPrefix;
+        EmbeddingQueryPrefix = source.EmbeddingQueryPrefix;
+        EvidenceSelectionEnabled = source.EvidenceSelectionEnabled;
+        RerankEnabled = source.RerankEnabled;
+        RerankCandidateLimit = source.RerankCandidateLimit;
+        RerankTimeoutMs = source.RerankTimeoutMs;
+        TokenCounting = source.TokenCounting;
+        UseProjectTools = source.UseProjectTools;
+        ToolMaxCalls = source.ToolMaxCalls;
+        ToolContextTokens = source.ToolContextTokens;
+        ToolResultBytes = source.ToolResultBytes;
+        ToolTimeoutSeconds = source.ToolTimeoutSeconds;
+        DocumentContextTokens = source.DocumentContextTokens;
+        IndexMaxCharacters = source.IndexMaxCharacters;
+        EmbeddingBatchSize = source.EmbeddingBatchSize;
+        EmbeddingChunkCharacters = source.EmbeddingChunkCharacters;
+        EmbedHistory = source.EmbedHistory;
+        AutoSummarize = source.AutoSummarize;
+        SummaryMaxCalls = source.SummaryMaxCalls;
+        GenerateUntilStop = source.GenerateUntilStop;
+        MaxHistoryTurns = source.MaxHistoryTurns;
+        ProtectedHistoryTurns = source.ProtectedHistoryTurns;
+        ContextTokens = source.ContextTokens;
+        MaxOutputTokens = source.MaxOutputTokens;
+        SafetyTokens = source.SafetyTokens;
+        TimeoutSeconds = source.TimeoutSeconds;
+        Temperature = source.Temperature;
+        Seed = source.Seed;
+    }
+
     public void Validate()
     {
         if (Enrichment is null || ClassificationBudget is < 1 or > 2048 || NeutralCandidates is < 0 or > 64

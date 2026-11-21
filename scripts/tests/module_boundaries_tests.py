@@ -46,6 +46,13 @@ class ModuleBoundariesTests(unittest.TestCase):
         self.assertEqual(valid, result.returncode == 0, result.stderr)
         return result.stderr
 
+    def test_inference_rejects_workspace_contract_even_through_alias(self):
+        contracts = self.project(CONTRACTS)
+        inference = self.project("Alycia.Modules.Inference", [CONTRACTS])
+        self.source(contracts, "Profile.cs", "namespace Alycia.Contracts.Workspaces; public record Profile(int Revision);")
+        self.source(inference, "Generate.cs", "using P = Alycia.Contracts.Workspaces.Profile; class Generate(P value);")
+        self.assertIn("contract boundary: Alycia.Modules.Inference -> T:Alycia.Contracts.Workspaces.Profile", self.guard(False))
+
     def test_independent_module_cannot_reference_a_sibling_implementation(self):
         core = "Alycia.Modules.Retrieval"
         sibling = "Alycia.Modules.Indexing"

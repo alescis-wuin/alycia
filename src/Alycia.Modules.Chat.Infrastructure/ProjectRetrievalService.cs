@@ -8,6 +8,9 @@ public sealed class ProjectRetrievalService(IProjectIndex index, IIndexedEmbeddi
     private readonly LexicalIndexCache _lexical = lexicalCache ?? new();
     public async Task<RetrievalPreparation> PrepareAsync(Guid conversation, string query, ChatOptions settings, CancellationToken ct)
     {
+        settings = settings.Copy();
+        var policy = PassageRankingSettings.Capture(settings, settings.PinnedSourceIds);
+        var brief = settings.SearchPlan?.Brief;
         var timer = System.Diagnostics.Stopwatch.StartNew();
         var snapshot = await index.BuildScopedAsync(conversation, settings.EligibleSourceIds, ct);
         var indexMilliseconds = timer.Elapsed.TotalMilliseconds;
@@ -30,7 +33,7 @@ public sealed class ProjectRetrievalService(IProjectIndex index, IIndexedEmbeddi
         }
         timer.Restart();
         var cachedLexical = _lexical.Get(conversation, snapshot.Chunks);
-        var ranking = new PassageRanking(snapshot.Chunks, cachedLexical.Index, settings, query, similarities);
+        var ranking = new PassageRanking(snapshot.Chunks, cachedLexical.Index, policy, brief, query, similarities);
         if ((settings.QueryRewriteEnabled || settings.FacetPlanningEnabled || settings.QueryBriefModelEnabled) && settings.SearchPlan is { Queries.Length: > 1 } plan)
         {
             foreach (var term in plan.Queries.Skip(1))

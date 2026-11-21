@@ -78,3 +78,15 @@ NARROW_EDGES = {
     ("Inference", "Conversations"): {"ChatConflictException"},
     ("Inference", "Retrieval"): {"EvidenceText"},
 }
+
+# Contract namespaces accepted by already isolated assemblies. Chat DTOs retain their
+# historical namespace for transport compatibility; no module implementation is a contract.
+CONTRACT_AREAS = {
+    "Alycia.Modules.Documents": {"Chat", "Documents"},
+    "Alycia.Modules.Indexing": {"Chat", "Indexing", "Inference"},
+    "Alycia.Modules.Inference": {"Chat", "Inference"},
+    "Alycia.Modules.Retrieval": {"Indexing", "Retrieval"},
+    "Alycia.Modules.Retrieval.Onnx": {"Indexing", "Retrieval"},
+    "Alycia.Modules.Testing": {"Chat", "Indexing", "Inference"},
+    "Alycia.Modules.Workspaces.Infrastructure": {"Workspaces"},
+}

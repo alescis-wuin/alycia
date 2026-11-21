@@ -8,16 +8,13 @@ public sealed class ProjectIndexService(ChatDbContext database, FileStorage stor
     public Task<ProjectIndexSnapshot> BuildAsync(Guid conversation, CancellationToken ct) => BuildScopedAsync(conversation, null, ct);
     public async Task<ProjectIndexSnapshot> BuildScopedAsync(Guid conversation, IReadOnlySet<Guid>? allowed, CancellationToken ct)
     {
+        var ids = allowed?.ToArray();
         var owner = await database.Conversations.AsNoTracking().SingleOrDefaultAsync(c => c.Id == conversation, ct)
             ?? throw new ConversationNotFoundException();
         var settings = ConversationConfiguration.Options(owner, defaults ?? new());
         var maximum = settings.IndexMaxCharacters;
         var sources = database.ModelSources(conversation).Where(f => f.ContextMode != "excluded" && f.Text != "");
-        if (allowed is not null)
-        {
-            var ids = allowed.ToArray();
-            sources = sources.Where(f => ids.Contains(f.Id));
-        }
+        if (ids is not null) sources = sources.Where(f => ids.Contains(f.Id));
         var files = await sources.OrderBy(f => f.Name).ThenBy(f => f.Id).ToArrayAsync(ct);
         files = files.OrderByDescending(f => f.ContextMode == "pinned").DistinctBy(f => (f.Name, f.Sha256)).ToArray();
         var chunks = new List<SourceChunk>(); var omissions = new List<string>(); long characters = 0; var indexed = 0; var reused = 0;

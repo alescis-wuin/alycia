@@ -38,7 +38,11 @@ public static class PassageClassification
     }
 
     public static (IReadOnlyList<SourceChunk> Ranked, ClassificationReport Report) Apply(string original, QueryBrief brief,
-        IReadOnlyList<SourceChunk> ranked, ChatOptions options, IReadOnlyDictionary<string, double>? semantic = null)
+        IReadOnlyList<SourceChunk> ranked, ChatOptions options, IReadOnlyDictionary<string, double>? semantic = null) =>
+        Classify(original, brief, ranked, PassageRankingSettings.Capture(options, options.PinnedSourceIds), semantic);
+
+    public static (IReadOnlyList<SourceChunk> Ranked, ClassificationReport Report) Classify(string original, QueryBrief brief,
+        IReadOnlyList<SourceChunk> ranked, PassageRankingSettings options, IReadOnlyDictionary<string, double>? semantic = null)
     {
         var judgments = new List<PassageJudgment>();
         var admitted = new HashSet<string>(); var neutrals = new List<(SourceChunk Chunk, double Score)>();
