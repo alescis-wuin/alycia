@@ -45,6 +45,6 @@ internal static class ChatFixture
         new(new OllamaTextGeneration(http, Scheduler, Tokenizers), options);
 
     public static ChatService Create(IChatRepository repository, IChatModel model, ChatOptions options) =>
-        new(repository, model, options, new TurnContext(repository), new ConversationMemory(repository, ChatFixture.Gate),
+        new(repository, model, options, new TurnContext(repository, new Alycia.Modules.Context.SlidingHistory()), new ConversationMemory(repository, ChatFixture.Gate),
             new TurnTools(), new TurnRouting(repository), new TurnResponseAudit(), Gate, Foreground);
 }

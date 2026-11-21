@@ -12,7 +12,7 @@ public sealed class ChatService(IChatRepository repository, IChatModel model, Ch
         var conversation = Conversation.Create(title, modelName, systemPrompt);
         conversation.AssignWorkspace(workspaceId);
         // Validate the system instruction before accepting a conversation.
-        SlidingContext.Build(conversation.SystemPrompt, [], "Bonjour", options);
+        SlidingContext.ValidatePrompt(conversation.SystemPrompt, "Bonjour", options);
         var models = await model.ListModelsAsync(cancellationToken);
         if (!models.Contains(conversation.Model, StringComparer.Ordinal))
         {

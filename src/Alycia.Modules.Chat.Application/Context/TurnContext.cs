@@ -23,9 +23,12 @@ public interface ITurnContext
         MeteredChatModel measured, TurnContextMode mode, Func<string, Task>? progress, CancellationToken ct);
 }
 
-public sealed class TurnContext(IConversationContextReader repository) : ITurnContext
+public sealed class TurnContext(IConversationContextReader repository, Alycia.Contracts.Context.ISlidingHistory windowPolicy) : ITurnContext
 {
-    public async Task<TurnContextBudget> AllocateAsync(Conversation conversation, string text, ChatOptions options, bool useTools, CancellationToken ct)
+    public Task<TurnContextBudget> AllocateAsync(Conversation conversation, string text, ChatOptions options, bool useTools, CancellationToken ct) =>
+        AllocateAsync(repository, conversation, text, options, useTools, ct);
+
+    internal static async Task<TurnContextBudget> AllocateAsync(IConversationContextReader repository, Conversation conversation, string text, ChatOptions options, bool useTools, CancellationToken ct)
     {
         if (!useTools) return new(options, 0);
 
@@ -57,7 +60,7 @@ public sealed class TurnContext(IConversationContextReader repository) : ITurnCo
             var limit = options.MaxHistoryTurns * 2;
             var history = await repository.MessagesAsync(conversation.Id, limit, null, ct);
             var files = await repository.ContextFilesAsync(conversation.Id, Math.Max(1, conversation.MessageCount - limit + 1), ct);
-            window = FileContext.Build(ConversationConfiguration.System(conversation, options), history, text, options, files, conversation.MessageCount + 1);
+            window = FileContext.Build(windowPolicy, ConversationConfiguration.System(conversation, options), history, text, options, files, conversation.MessageCount + 1);
         }
 
         window = await ContextGuides.AddAsync(window, options, measured, generate, ct);

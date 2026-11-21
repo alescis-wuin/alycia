@@ -9,6 +9,31 @@ namespace Alycia.Modules.Chat.Tests;
 public class TemporalMemoryIntegrationTests
 {
     [PostgresFact]
+    public Task A_missing_checkpoint_is_repaired_after_a_full_32_message_slice() =>
+        ProjectCreationTests.WithDatabaseAsync(async (configuration, _) =>
+        {
+            await using var db = new ChatDbContext(configuration);
+            var conversation = Conversation.Create("Reprise", "local", "");
+            db.Conversations.Add(conversation);
+            for (var turn = 0; turn < 18; turn++)
+            {
+                var request = Guid.NewGuid();
+                db.Messages.AddRange(new ChatMessage(conversation.Id, turn * 2 + 1, request, "user", "source"),
+                    new ChatMessage(conversation.Id, turn * 2 + 2, request, "assistant", "réponse"));
+                conversation.CompleteTurn();
+            }
+            await db.SaveChangesAsync();
+            var storage = new Alycia.Modules.Memory.TemporalFactStorage(db.Database);
+            var worker = new TemporalMemoryStore(storage, new TemporalHistorySources(db, new() { TemporalMemoryEnabled = true }), new NoVectors());
+            await worker.RefreshAsync(default);
+            Assert.Equal(32, await storage.ContiguousThroughAsync(conversation.Id, 36, default));
+            await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM chat.temporal_memory WHERE owner={conversation.Id} AND sequence=7");
+            await worker.RefreshAsync(default);
+            Assert.Equal(36, await storage.ContiguousThroughAsync(conversation.Id, 36, default));
+            Assert.Equal(Enumerable.Range(1, 36), (await worker.ExportAsync(conversation.Id, 0, 64, default)).Select(f => f.Sequence));
+        });
+
+    [PostgresFact]
     public async Task WorkerRebuildsFromOriginalsAndScopesCorrectionsAndHistoricalViews()
     {
         var name = "alycia_memory_" + Guid.NewGuid().ToString("N");
@@ -37,7 +62,7 @@ public class TemporalMemoryIntegrationTests
             Turn(owner, 4, "Correction [région]: Bretagne", "Merci.");
             Turn(other, 2, "Décision [région]: INTERDIT", "D'accord.");
             await db.SaveChangesAsync();
-            var store = new TemporalMemoryStore(db, new NoVectors(), options);
+            var store = new TemporalMemoryStore(new Alycia.Modules.Memory.TemporalFactStorage(db.Database), new TemporalHistorySources(db, options), new NoVectors());
             await store.RefreshAsync(default); await store.RefreshAsync(default);
             var data = await store.ExportAsync(owner.Id, 0, 50, default);
             Assert.Equal(4, data.Length); Assert.DoesNotContain(data, f => f.Quote.Contains("INTERDIT"));
@@ -67,7 +92,7 @@ public class TemporalMemoryIntegrationTests
             }
             var semanticOptions = options.Copy(); semanticOptions.RetrievalMode = "hybrid"; semanticOptions.EmbeddingModel = "fixture";
             var engine = new BackgroundEmbeddingIndex(ChatFixture.IndexFiles(db, new(new FileStorage(Path.GetTempPath()))), ChatFixture.LiveFiles(db), embeddings, new QueryEncoder(), options, new ConversationIndexOwners(new(db.Database)), ChatFixture.Profiles(db), ChatFixture.Profiles(db), ChatFixture.Foreground);
-            var semanticStore = new TemporalMemoryStore(db, engine, options);
+            var semanticStore = new TemporalMemoryStore(new Alycia.Modules.Memory.TemporalFactStorage(db.Database), new TemporalHistorySources(db, options), engine);
             var paraphrase = await semanticStore.RecallAsync(owner.Id, "Territoire géographique ?", semanticOptions, 4, default);
             Assert.Single(paraphrase.Calls);
             Assert.Contains(paraphrase.Facts, f => f.Quote.Contains("Bretagne"));

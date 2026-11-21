@@ -2,8 +2,6 @@ using Alycia.Modules.Chat.Domain;
 
 namespace Alycia.Modules.Chat.Application;
 
-public sealed record PreparedMemoryChange(string Memory, int Through, string SourceHash, string? LedgerJson);
-
 public interface IConversationMemory
 {
     bool Apply(Conversation conversation, PreparedMemoryChange? prepared);

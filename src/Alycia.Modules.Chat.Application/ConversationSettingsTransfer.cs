@@ -12,7 +12,7 @@ public static class ConversationSettingsTransfer
             sample.Configure(file.Model, file.SystemPrompt, file.ContextNotes, ConversationConfiguration.Serialize(file.Options));
             if (sample.Model != file.Model || sample.SystemPrompt != file.SystemPrompt || sample.ContextNotes != file.ContextNotes)
                 throw new ArgumentException("Les textes de configuration contiennent des espaces de bord non canoniques.");
-            SlidingContext.Build(ConversationConfiguration.System(sample), [], "Bonjour", file.Options);
+            SlidingContext.ValidatePrompt(ConversationConfiguration.System(sample), "Bonjour", file.Options);
             if (file.Options.UseProjectTools) ProjectAgent.ContextOptions(file.Options);
         });
 

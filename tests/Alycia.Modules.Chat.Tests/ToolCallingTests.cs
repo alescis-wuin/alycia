@@ -12,7 +12,7 @@ public sealed class ToolCallingTests
     public void DefaultWindowReservesAllNineToolsAndStillFitsTheProtectedQuestion()
     {
         var options = ProjectAgent.ContextOptions(new());
-        var context = SlidingContext.Build("Réponds brièvement en français.", [], "Cherche le symbole ReadAsync puis lis son implémentation.", options);
+        var context = SlidingContext.Build(new Alycia.Modules.Context.SlidingHistory(), "Réponds brièvement en français.", [], "Cherche le symbole ReadAsync puis lis son implémentation.", options);
         Assert.True(context.EstimatedInputTokens + options.MaxOutputTokens + options.SafetyTokens <= options.ContextTokens);
     }
 

@@ -37,7 +37,7 @@ public sealed class RecursiveContextTests
         var repository = new Repository(20);
         var model = new Model();
         var meter = new MeteredChatModel(model);
-        var turn = new TurnContext(repository);
+        var turn = new TurnContext(repository, new Alycia.Modules.Context.SlidingHistory());
         var options = new ChatOptions { ContextTokens = 2048, MaxOutputTokens = 256, StructuredMemory = false };
         var budget = await turn.AllocateAsync(repository.Conversation, "Question", options, false, default);
         var result = await turn.BuildAsync(repository.Conversation, "Question", budget, model, meter,
@@ -59,7 +59,7 @@ public sealed class RecursiveContextTests
         var options = new ChatOptions { AutoSummarize = mode == TurnContextMode.Send, StructuredMemory = false, ContextTokens = 4096, MaxOutputTokens = 512 };
         var model = new Model();
         var meter = new MeteredChatModel(model);
-        var turn = new TurnContext(repository);
+        var turn = new TurnContext(repository, new Alycia.Modules.Context.SlidingHistory());
         var budget = await turn.AllocateAsync(owner, "Question", options, false, default);
         var progress = new List<string>();
         var result = await turn.BuildAsync(owner, "Question", budget, model, meter, mode,
@@ -98,7 +98,7 @@ public sealed class RecursiveContextTests
             Route = new("retrieval", "fixture", true, false)
         };
         var model = new Model();
-        var turn = new TurnContext(repository);
+        var turn = new TurnContext(repository, new Alycia.Modules.Context.SlidingHistory());
         var budget = await turn.AllocateAsync(owner, "Question", options, true, default);
         var result = await turn.BuildAsync(owner, "Question", budget, model, new(model), mode, null, default);
 
@@ -123,7 +123,7 @@ public sealed class RecursiveContextTests
         var repository = new Repository(4);
         var fact = Assert.Single(TemporalMemory.Extract(repository.Messages[0]));
         var options = new ChatOptions { AutoSummarize = false, MaxHistoryTurns = 1, Recall = new([fact], 1, 1, []) };
-        var turn = new TurnContext(repository);
+        var turn = new TurnContext(repository, new Alycia.Modules.Context.SlidingHistory());
         var budget = await turn.AllocateAsync(repository.Conversation, "Question", options, false, default);
         var model = new Model();
         var result = await turn.BuildAsync(repository.Conversation, "Question", budget, model, new(model), mode, null, default);

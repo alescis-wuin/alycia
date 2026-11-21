@@ -48,7 +48,7 @@ public sealed class ConversationContextPreparationTests
     {
         public Conversation Owner { get; } = Conversation.Create("Conversation", "demo", "");
         public int OptionReads { get; private set; }
-        public ConversationContextPreparation Service() => new(this, this, new TurnTools(), new TurnContext(this),
+        public ConversationContextPreparation Service() => new(this, this, new TurnTools(), new TurnContext(this, new Alycia.Modules.Context.SlidingHistory()),
             new ConversationMemory(this, ChatFixture.Gate), this, this, new() { RetrievalMode = "legacy", StructuredMemory = false, UseProjectTools = false }, ChatFixture.Gate);
 
         public Task<ChatOptions> PrepareOptionsAsync(string model, ChatOptions options, CancellationToken ct)
