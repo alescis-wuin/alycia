@@ -13,11 +13,6 @@ using System.Threading.Tasks;
 
 namespace Alycia.Client.Avalonia;
 
-public sealed record ConversationSummary(Guid Id, string Title, string Model, string SystemPrompt,
-    DateTimeOffset CreatedAtUtc, DateTimeOffset UpdatedAtUtc, int Revision, int MessageCount,
-    string ContextNotes = "", string SettingsJson = "{}", string MemoryText = "", int MemoryThroughSequence = 0,
-    string MemorySourceHash = "", string MemoryModel = "", string MemoryLedgerJson = "{}", Guid? WorkspaceId = null);
-
 public sealed record ChatMessageItem(Guid ConversationId, int Sequence, Guid RequestId, string Role,
     string Content, DateTimeOffset CreatedAtUtc, Guid? AttachmentId = null, string ToolTraceJson = "[]", string DiagnosticsJson = "{}")
 {

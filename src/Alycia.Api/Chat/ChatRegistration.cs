@@ -27,27 +27,54 @@ internal static class ChatRegistration
         builder.Services.AddSingleton(options);
         builder.Services.AddDbContext<ChatDbContext>(db => db.UseNpgsql(connection,
             provider => provider.MigrationsHistoryTable("__EFMigrationsHistory", "chat")));
-        builder.Services.AddScoped<IChatRepository, EfChatRepository>();
-        builder.Services.AddScoped<ITurnContext, TurnContext>();
-        builder.Services.AddScoped<IConversationMemory, ConversationMemory>();
-        builder.Services.AddScoped<ITurnTools, TurnTools>();
-        builder.Services.AddScoped(sp => new ChatService(
-            sp.GetRequiredService<IChatRepository>(), sp.GetRequiredService<IChatModel>(), sp.GetRequiredService<ChatOptions>(),
-            sp.GetRequiredService<ITurnContext>(), sp.GetRequiredService<IConversationMemory>(), sp.GetRequiredService<ITurnTools>(),
-            sp.GetRequiredService<IProjectRetrieval>(), sp.GetRequiredService<ITemporalMemory>()));
-        builder.Services.AddScoped<IProjectCatalog, ProjectCatalog>();
-        builder.Services.AddScoped<ProjectFiles>();
+        RegisterConversations(builder.Services);
+        RegisterProjects(builder.Services);
         RegisterDocuments(builder);
         RegisterIndexing(builder.Services);
         RegisterRetrieval(builder.Services);
-        builder.Services.AddScoped<TemporalMemoryStore>();
-        builder.Services.AddScoped<ITemporalMemoryIndex>(sp => sp.GetRequiredService<TemporalMemoryStore>());
-        builder.Services.AddScoped<ITemporalMemory>(sp => sp.GetRequiredService<TemporalMemoryStore>());
-        builder.Services.AddScoped<ProjectToolService>();
-        builder.Services.AddScoped<ISnapshotProjectTools>(sp => sp.GetRequiredService<ProjectToolService>());
-        builder.Services.AddHttpClient<IProjectTools, ProjectMcpClient>(http => http.Timeout = Timeout.InfiniteTimeSpan)
-            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false, UseProxy = false });
+        RegisterMemory(builder.Services);
+        RegisterTools(builder.Services);
         RegisterInference(builder.Services, uri);
+    }
+
+    private static void RegisterConversations(IServiceCollection services)
+    {
+        services.AddScoped<IChatRepository, EfChatRepository>();
+        services.AddScoped<ConversationHistory>();
+        services.AddScoped<ConversationSettingsService>();
+        services.AddScoped<PromptCatalog>();
+        services.AddScoped<ConversationContextPreparation>();
+        services.AddScoped<ITurnContext, TurnContext>();
+        services.AddScoped<ITurnRouting, TurnRouting>();
+        services.AddScoped<ITurnResponseAudit, TurnResponseAudit>();
+        services.AddScoped(sp => new ChatService(
+            sp.GetRequiredService<IChatRepository>(), sp.GetRequiredService<IChatModel>(), sp.GetRequiredService<ChatOptions>(),
+            sp.GetRequiredService<ITurnContext>(), sp.GetRequiredService<IConversationMemory>(), sp.GetRequiredService<ITurnTools>(),
+            sp.GetRequiredService<ITurnRouting>(), sp.GetRequiredService<ITurnResponseAudit>()));
+    }
+
+    private static void RegisterProjects(IServiceCollection services)
+    {
+        services.AddScoped<IProjectCatalog, ProjectCatalog>();
+        services.AddScoped<ProjectFiles>();
+    }
+
+    private static void RegisterMemory(IServiceCollection services)
+    {
+        services.AddScoped<IConversationMemory, ConversationMemory>();
+        services.AddScoped<ConversationTemporalMemory>();
+        services.AddScoped<TemporalMemoryStore>();
+        services.AddScoped<ITemporalMemoryIndex>(sp => sp.GetRequiredService<TemporalMemoryStore>());
+        services.AddScoped<ITemporalMemory>(sp => sp.GetRequiredService<TemporalMemoryStore>());
+    }
+
+    private static void RegisterTools(IServiceCollection services)
+    {
+        services.AddScoped<ITurnTools, TurnTools>();
+        services.AddScoped<ProjectToolService>();
+        services.AddScoped<ISnapshotProjectTools>(sp => sp.GetRequiredService<ProjectToolService>());
+        services.AddHttpClient<IProjectTools, ProjectMcpClient>(http => http.Timeout = Timeout.InfiniteTimeSpan)
+            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false, UseProxy = false });
     }
 
     private static void RegisterIndexing(IServiceCollection services)
@@ -77,6 +104,8 @@ internal static class ChatRegistration
             ?? Path.Combine(builder.Environment.ContentRootPath, "data", "files")));
         builder.Services.AddScoped<ImportSettingsStore>();
         builder.Services.AddScoped<FileImport>();
+        builder.Services.AddScoped<ConversationFiles>();
+        builder.Services.AddScoped<ConversationFileSettings>();
         builder.Services.AddScoped<DocumentAnalysisService>();
         builder.Services.AddScoped<ProjectSourceReader>();
         builder.Services.Configure<FormOptions>(form => form.MultipartBodyLengthLimit = ImportLimits.HardBatchBytes);

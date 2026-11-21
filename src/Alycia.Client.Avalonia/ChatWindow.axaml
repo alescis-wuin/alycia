@@ -1,5 +1,5 @@
 <Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:local="using:Alycia.Client.Avalonia" x:Class="Alycia.Client.Avalonia.ChatWindow"
+        xmlns:local="using:Alycia.Client.Avalonia" xmlns:contracts="clr-namespace:Alycia.Contracts.Chat;assembly=Alycia.Contracts" x:Class="Alycia.Client.Avalonia.ChatWindow"
         Title="Alycia" Width="1240" Height="840" MinWidth="480" MinHeight="420">
   <Window.Styles>
     <Style Selector="Button"><Setter Property="CornerRadius" Value="9" /></Style>
@@ -31,7 +31,7 @@
         </Grid>
         <Grid Grid.Row="3" RowDefinitions="*,Auto">
           <ListBox x:Name="ConversationList" Background="Transparent" BorderThickness="0">
-            <ListBox.ItemTemplate><DataTemplate x:DataType="local:ConversationSummary">
+            <ListBox.ItemTemplate><DataTemplate x:DataType="contracts:ConversationSummary">
               <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Title}" />
             </DataTemplate></ListBox.ItemTemplate>
           </ListBox>

@@ -25,7 +25,7 @@ internal static partial class ChatEndpoints
         const string path = "/conversations/{id:guid}/mcp";
         routes.MapMethods(path, ["GET", "DELETE"], (HttpContext http) =>
         { http.Response.Headers.Allow = "POST"; return Results.StatusCode(405); });
-        routes.MapPost(path, async (Guid id, HttpContext http, IChatRepository repository, ProjectToolService tools, CancellationToken ct) =>
+        routes.MapPost(path, async (Guid id, HttpContext http, IChatRepository repository, ISnapshotProjectTools tools, CancellationToken ct) =>
         {
             http.Response.Headers.CacheControl = "no-store";
             JsonElement? requestId = null;

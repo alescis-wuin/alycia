@@ -22,7 +22,7 @@ internal static partial class ChatEndpoints
         routes.MapPut("/projects/{id:guid}", async (Guid id, EditProject update, IProjectCatalog projects, CancellationToken ct) =>
             Results.Ok(await projects.UpdateAsync(id, update.Revision, update.Instructions, update.DefaultModel, update.Archived, ct)));
         routes.MapPut("/conversations/{id:guid}/project", async (Guid id, ProjectMembership update, IProjectCatalog projects, CancellationToken ct) =>
-            Results.Ok(await projects.SetMembershipAsync(id, update.Revision, update.WorkspaceId, ct)));
+            Results.Ok((await projects.SetMembershipAsync(id, update.Revision, update.WorkspaceId, ct)).ToResponse()));
         routes.MapPost("/projects/{id:guid}/notes", async (Guid id, NoteEdit update, IProjectCatalog projects, CancellationToken ct) =>
             Results.Ok(await projects.ChangeNoteAsync(id, null, update.Revision, update.Text, update.OriginConversationId, update.OriginSequence, false, ct)));
         routes.MapPut("/projects/{id:guid}/notes/{note:guid}", async (Guid id, Guid note, NoteEdit update, IProjectCatalog projects, CancellationToken ct) =>

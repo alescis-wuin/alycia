@@ -2,6 +2,7 @@
 """API réelle + PostgreSQL isolé + Ollama simulé, sans GPU ni téléchargement de modèle."""
 import argparse
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 import http.client
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import importlib.util
@@ -215,6 +216,11 @@ def verify_model_selection(port):
     options = {"contextTokens": 4096, "maxOutputTokens": 512}
     old = call("POST", "/import", {"schemaVersion": 1, "title": "Ancienne conversation embedding",
         "model": "embedding-alias", "systemPrompt": "", "contextNotes": "", "options": options, "messages": []}, expected=201)
+    assert set(old) == {
+        "id", "workspaceId", "title", "model", "systemPrompt", "createdAtUtc", "updatedAtUtc",
+        "revision", "messageCount", "settingsJson", "contextNotes", "memoryText", "memoryThroughSequence",
+        "memorySourceHash", "memoryModel", "memoryLedgerJson",
+    }
     prefix = "/conversations/" + old["id"]
     request = {"requestId": str(uuid.uuid4()), "content": "Bonjour", "revision": old["revision"]}
     try:
@@ -227,6 +233,17 @@ def verify_model_selection(port):
         assert fixed["id"] == old["id"] and fixed["model"] == "demo"
         events = call("POST", prefix + "/stream", dict(request, revision=fixed["revision"]))
         assert events[-1]["type"] == "done" and len(events[-1]["result"]["messages"]) == 2
+        turn = events[-1]["result"]
+        assert set(turn) == {"messages", "historyMessagesIncluded", "replayed", "filesIncluded", "estimatedInputTokens", "stats", "usage"}
+        assert set(turn["messages"][1]) == {
+            "conversationId", "sequence", "requestId", "role", "content", "createdAtUtc", "diagnosticsJson", "toolTraceJson",
+        }
+        stored = call("GET", prefix + "/messages")["messages"]
+        assert len(stored) == len(turn["messages"])
+        for fresh, row in zip(turn["messages"], stored):
+            # The live model has 100 ns ticks; PostgreSQL stores timestamps to one microsecond.
+            assert datetime.fromisoformat(fresh["createdAtUtc"]) == datetime.fromisoformat(row["createdAtUtc"])
+            assert fresh == dict(row, createdAtUtc=fresh["createdAtUtc"])
     finally:
         call("DELETE", prefix, expected=204)
 
@@ -597,7 +614,7 @@ def verify_context_quality(call, checks):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--case", choices=("all", "tool-summary", "boreale", "indexing", "context-quality", "knowledge"), default="all")
+    parser.add_argument("--case", choices=("all", "transport", "tool-summary", "boreale", "indexing", "context-quality", "knowledge"), default="all")
     args = parser.parse_args()
     connection = os.environ.get("ALYCIA_CHAT_TEST_CONNECTION")
     if not connection:
@@ -653,10 +670,11 @@ def main():
                 spec.loader.exec_module(module)
                 checks = []
                 client = module.create_client(f"http://127.0.0.1:{port}")
-                if args.case == "all":
+                if args.case in ("all", "transport"):
                     verify_model_selection(port)
-                    checks = module.verify(f"http://127.0.0.1:{port}", "demo", extended=True)
-                    checks.insert(0, "model_capabilities_and_existing_conversation_repair")
+                    checks.append("model_capabilities_and_existing_conversation_repair")
+                if args.case == "all":
+                    checks.extend(module.verify(f"http://127.0.0.1:{port}", "demo", extended=True))
                     assert Ollama.chat_calls == 3 and Ollama.summary_calls >= 5
                     owned = []
                     try:

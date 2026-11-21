@@ -1,3 +1,4 @@
+using Alycia.Contracts.Chat;
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
