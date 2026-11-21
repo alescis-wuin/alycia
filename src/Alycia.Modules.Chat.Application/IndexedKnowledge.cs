@@ -4,26 +4,9 @@ using System.Text.RegularExpressions;
 
 namespace Alycia.Modules.Chat.Application;
 
-// Atomic reservations precede model calls. Exhaustion yields to the next worker pass.
-public sealed class IndexCallBudget(int maximum)
-{
-    private readonly int _capacity = maximum;
-    private int _remaining = maximum;
-    public int Remaining => Volatile.Read(ref _remaining);
-    public int Used => _capacity - Remaining;
-    public bool TryReserve()
-    {
-        int remaining;
-        do { remaining = Volatile.Read(ref _remaining); if (remaining == 0) return false; }
-        while (Interlocked.CompareExchange(ref _remaining, remaining - 1, remaining) != remaining);
-        return true;
-    }
-}
-
 public static class IndexedKnowledge
 {
     public const string Extractive = "extractive-v1";
-    public static string Key(params string[] parts) => MemoryTransfer.Hash(JsonSerializer.Serialize(parts));
     public static string Terms(UnitLabels labels) => labels.Terms();
     public static UnitLabels Extract(string title, string text, string type, string[] ids, int target, ChatOptions counter)
     {
@@ -59,7 +42,7 @@ public static class IndexedKnowledge
                     || v.EnumerateArray().Any(x => x.ValueKind != JsonValueKind.String || x.GetString()!.Length > 256))) return null;
             var labels = root.Deserialize<UnitLabels>(ProjectToolCatalog.Json)!;
             return labels.SourceUnitIds.SequenceEqual(expectedIds) && !string.IsNullOrWhiteSpace(labels.Summary)
-                && TokenBudget.Count(labels.Summary, counter) <= target ? labels : null;
+                && PromptTokens.Count(labels.Summary, counter.TokenCounter) <= target ? labels : null;
         }
         catch (JsonException) { return null; }
     }

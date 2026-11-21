@@ -1,3 +1,4 @@
+using Alycia.Contracts.Retrieval;
 using Alycia.Modules.Inference;
 using Alycia.Modules.Retrieval;
 using Alycia.Contracts.Indexing;
@@ -214,7 +215,7 @@ public sealed class KnowledgePipelineTests
         SourceChunk Chunk(string content) => new(Guid.NewGuid(), "", StructuredMemory.Hash(content), "", "text", 0, content.Length, 1, 1, content, [], true);
         var examined = Chunk("Aucune donnée exploitable.");
         var next = Chunk("Atlas version 2.1");
-        var classified = PassageClassification.Apply(question, brief, [examined, next], new() { ClassificationBudget = 4 });
+        var classified = PassageClassifier.Classify(question, brief, [examined, next], PassageRankingSettings.Capture(new ChatOptions { ClassificationBudget = 4 }, null));
         Assert.Equal(4, classified.Report.Pairs);
         Assert.Equal(1, classified.Report.Unexamined);
         Assert.Equal("irrelevant", Assert.Single(classified.Report.Candidates).Relevance);

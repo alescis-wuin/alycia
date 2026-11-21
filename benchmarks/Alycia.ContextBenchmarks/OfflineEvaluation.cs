@@ -53,7 +53,7 @@ internal static class OfflineEvaluation
         {
             var doc = new SourceChunk(Guid.Empty, "", StructuredMemory.Hash(p.Text), "", "text", 0, p.Text.Length, 1, 1, p.Text, [], true);
             var brief = QueryPlanning.Build(p.Question, [], [], 4, true).Brief!;
-            var verdict = PassageClassification.Apply(p.Question, brief, [doc], options).Report.Candidates.Single();
+            var verdict = PassageClassifier.Classify(p.Question, brief, [doc], PassageRankingSettings.Capture(options, options.PinnedSourceIds)).Report.Candidates.Single();
             return new { p.Id, p.Expected, actual = verdict.Relevance, expectedRelation = p.Relation, verdict.Relation, verdict.Admitted };
         }).ToArray();
         string[] classes = ["relevant", "uncertain_or_neutral", "irrelevant"];
@@ -125,7 +125,7 @@ internal static class OfflineEvaluation
             elapsed.Add(timer.Elapsed.TotalMilliseconds);
             var paths = packed.Sources.Select(s => s.Path).Distinct().Take(suite.K).ToArray();
             var hits = paths.Select((p, i) => item.Expected.Contains(p) ? i + 1 : 0).Where(i => i > 0).ToArray();
-            var tokens = packed.Text.Length == 0 ? 0 : TokenBudget.Count(packed.Text, options);
+            var tokens = packed.Text.Length == 0 ? 0 : PromptTokens.Count(packed.Text, options.TokenCounter);
             if (paths.Intersect(suite.Excluded).Any() || tokens > suite.Budget) throw new InvalidDataException("Portée ou budget violé : " + item.Id);
             double? recall = null, ndcg = null, rr = null;
             if (item.Expected.Length > 0)

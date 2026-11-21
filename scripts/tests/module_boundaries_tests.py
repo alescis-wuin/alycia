@@ -53,6 +53,25 @@ class ModuleBoundariesTests(unittest.TestCase):
         self.source(inference, "Generate.cs", "using P = Alycia.Contracts.Workspaces.Profile; class Generate(P value);")
         self.assertIn("contract boundary: Alycia.Modules.Inference -> T:Alycia.Contracts.Workspaces.Profile", self.guard(False))
 
+    def test_assembly_and_logical_context_refuse_mutable_settings_and_tracked_entities(self):
+        contracts = self.project(CONTRACTS)
+        self.source(contracts, "ChatSettings.cs", "namespace Alycia.Contracts.Chat; public class ChatSettings {}")
+        domain = self.project("Alycia.Modules.Chat.Domain")
+        self.source(domain, "Tracked.cs", "namespace Alycia.Modules.Chat.Domain; public class ChatMessage {}")
+        app = self.project(APP, [CONTRACTS, "Alycia.Modules.Chat.Domain"])
+        self.source(app, "ChatOptions.cs", "namespace Alycia.Modules.Chat.Application; public class ChatOptions {}")
+        self.source(app, "Context/Incoming.cs", """
+            using Runtime = Alycia.Modules.Chat.Application.ChatOptions;
+            using Tracked = Alycia.Modules.Chat.Domain.ChatMessage;
+            public class Incoming { public (Runtime, Tracked) Echo(Runtime options, Tracked row) => (options, row); }
+            """)
+        physical = self.project("Alycia.Modules.Inference", [CONTRACTS])
+        self.source(physical, "Inputs.cs", "using Wire = Alycia.Contracts.Chat.ChatSettings; public class Inputs(Wire options);")
+        errors = self.guard(False)
+        self.assertIn("specialized input: Context -> ChatOptions", errors)
+        self.assertIn("specialized input: Context -> ChatMessage", errors)
+        self.assertIn("specialized input: Inference -> ChatSettings", errors)
+
     def test_independent_module_cannot_reference_a_sibling_implementation(self):
         core = "Alycia.Modules.Retrieval"
         sibling = "Alycia.Modules.Indexing"

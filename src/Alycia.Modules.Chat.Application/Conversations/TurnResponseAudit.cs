@@ -8,13 +8,13 @@ public sealed record ReviewedReply(string Reply, CitationReport Citations, Claim
 
 public interface ITurnResponseAudit
 {
-    Task<ReviewedReply> ReviewAsync(Guid id, GenerationReply generated, ContextWindow window, ChatOptions settings,
+    Task<ReviewedReply> ReviewAsync(Guid id, GenerationReply generated, ContextWindow window, ClaimVerification verification,
         IModelMeter measured, Func<ModelDelta, Task>? onDelta, CancellationToken cancellationToken);
 }
 
 public sealed class TurnResponseAudit(IProjectRetrieval? retrieval = null) : ITurnResponseAudit
 {
-    public async Task<ReviewedReply> ReviewAsync(Guid id, GenerationReply generated, ContextWindow window, ChatOptions settings,
+    public async Task<ReviewedReply> ReviewAsync(Guid id, GenerationReply generated, ContextWindow window, ClaimVerification verification,
         IModelMeter measured, Func<ModelDelta, Task>? onDelta, CancellationToken cancellationToken)
     {
         var reply = generated.Content;
@@ -28,12 +28,14 @@ public sealed class TurnResponseAudit(IProjectRetrieval? retrieval = null) : ITu
         var admitted = citations.Supplied.Where(s => s.Origin != "tool_compacted").Select(s => s.Reference)
             .Concat((citations.Historical ?? []).Select(s => s.Reference)).ToHashSet(StringComparer.Ordinal);
         var suppliedTexts = (generated.EvidenceTexts ?? []).Where(e => admitted.Contains(e.Reference)).Concat(window.MemoryTexts ?? []).ToArray();
-        var claims = settings.ClaimVerificationEnabled ? SemanticClaimAudit.Check(reply, window.Sources, suppliedTexts)
+        var claims = verification.Enabled ? SemanticClaimAudit.Check(reply, window.Sources, suppliedTexts)
             : ClaimAudit.Check(reply, window.Sources, suppliedTexts);
         VerificationFollowup? followup = null;
-        if (settings.ClaimVerificationEnabled && claims.Findings.FirstOrDefault(f => f.Status is "insufficient" or "contradicted") is { } gap)
+        if (verification.Enabled && claims.Findings.FirstOrDefault(f => f.Status is "insufficient" or "contradicted") is { } gap)
         {
-            followup = await SemanticClaimAudit.SearchAsync(gap, id, settings, retrieval, measured, cancellationToken);
+            var result = await SemanticClaimAudit.SearchAsync(gap, id, verification, retrieval, cancellationToken);
+            measured.AddCalls(result.Calls);
+            followup = result.Followup;
             var note = "\n\nVérification après génération — " + (gap.Status == "contradicted" ? "une affirmation contredit le passage cité" : "une affirmation manque de preuve")
                 + " : « " + Utf8Text.Prefix(gap.Text, 220) + " ».";
             if (followup.Status == "supplementary_support")
@@ -52,6 +54,17 @@ public sealed class TurnResponseAudit(IProjectRetrieval? retrieval = null) : ITu
             if (onDelta is not null) await onDelta(new(note));
         }
         return new(reply, citations, claims, followup);
+    }
+
+    public static GenerationUsage? ReadUsage(string json)
+    {
+        try
+        {
+            using var document = System.Text.Json.JsonDocument.Parse(json);
+            return document.RootElement.TryGetProperty("usage", out var usage)
+                ? System.Text.Json.JsonSerializer.Deserialize<GenerationUsage>(usage.GetRawText(), ProjectToolCatalog.Json) : null;
+        }
+        catch (System.Text.Json.JsonException) { return null; }
     }
 
     internal static void AttachToolTrace(ChatMessage assistant, IReadOnlyList<ToolObservation>? tools)

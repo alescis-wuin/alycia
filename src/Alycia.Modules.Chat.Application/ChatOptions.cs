@@ -85,6 +85,15 @@ public sealed class ChatOptions : ChatSettings
     public SummaryParameters Summary() => new(ContextTokens, SafetyTokens, SummaryMaxCalls, Enrichment.MaxDepth,
         Seed, TimeoutSeconds, TokenCounting, ModelIdentity, TokenCounter);
 
+    public ClaimVerification Verification()
+    {
+        var enabled = VerificationSearchEnabled && RetrievalMode != "legacy" && Route?.Search != false;
+        var query = enabled ? new ProjectSearch(new RetrievalRequest("lexical", EligibleSourceIds?.ToFrozenSet(),
+            PassageRankingSettings.Capture(this, null) with { RerankEnabled = false },
+            FacetPlanningEnabled || QueryBriefModelEnabled, null), EmbeddingQuery.Capture(this)) : null;
+        return new(ClaimVerificationEnabled, Math.Min(3, TimeoutSeconds), query);
+    }
+
     public ContextParameters Context()
     {
         var sources = new RoutingState(new PlannedQuery(UseProjectTools, Route, null, PinnedSourceIds?.ToFrozenSet(), null),

@@ -41,7 +41,7 @@ public sealed partial class DocumentAnalysisService(ChatDbContext database, ICha
         var savedNodes = 0;
         try
         {
-            var shared = new IndexCallBudget(options.SummaryMaxCalls);
+            var shared = new ModelCallBudget(options.SummaryMaxCalls);
             using var serial = new SemaphoreSlim(1);
             async Task Report(string status)
             {

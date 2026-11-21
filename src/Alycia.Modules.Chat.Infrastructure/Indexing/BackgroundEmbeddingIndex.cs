@@ -32,7 +32,7 @@ public sealed class BackgroundEmbeddingIndex(IIndexSourceDocuments documents, IL
         await using var lease = await store.TryLockAsync(job, ct);
         if (lease is null) return;
         var completed = 0; var total = 0; var fingerprint = job.Fingerprint;
-        var budget = job.Settings.Enrichment is { Enabled: true } limits ? new IndexCallBudget(limits.JobCalls) : null;
+        var budget = job.Settings.Enrichment is { Enabled: true } limits ? new ModelCallBudget(limits.JobCalls) : null;
         void Reserve() { if (budget?.TryReserve() == false) throw new IndexSliceEnded("Budget de ce cycle atteint. Reprise automatique."); }
         try
         {

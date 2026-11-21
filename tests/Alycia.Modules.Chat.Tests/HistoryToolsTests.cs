@@ -1,3 +1,4 @@
+using Alycia.Modules.Retrieval;
 using System.Text;
 using System.Text.Json;
 using Alycia.Modules.Chat.Application;

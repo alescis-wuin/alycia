@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
-namespace Alycia.Modules.Chat.Application;
+namespace Alycia.Modules.Retrieval;
 
 public static class CitationAudit
 {

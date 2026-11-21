@@ -1,3 +1,4 @@
+using Alycia.Modules.Retrieval;
 using Alycia.Contracts.Indexing;
 using Alycia.Contracts.Memory;
 using Alycia.Modules.Chat.Application;

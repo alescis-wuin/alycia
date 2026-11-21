@@ -8,7 +8,7 @@ public sealed record SummarySource(string Key, string Text);
 
 // One instance per operation: the call budget covers every map and reduce step.
 public sealed class RecursiveSummarizer(IChatModel model, string modelName, SummaryParameters settings,
-    Func<string, Task>? progress = null, IndexCallBudget? sharedBudget = null,
+    Func<string, Task>? progress = null, ModelCallBudget? sharedBudget = null,
     Func<string, CancellationToken, Task<string?>>? readNode = null, Func<string, string, CancellationToken, Task>? saveNode = null)
 {
     public int Calls { get; private set; }
@@ -55,7 +55,7 @@ public sealed class RecursiveSummarizer(IChatModel model, string modelName, Summ
 
     private async Task<string> SummarizeNodeAsync(string source, int target, int inputLimit, CancellationToken ct)
     {
-        var key = IndexedKnowledge.Key("analysis-node-v2", modelName, settings.ModelIdentity ?? "", settings.Seed?.ToString() ?? "", settings.TokenCounting, target.ToString(), inputLimit.ToString(), source);
+        var key = KnowledgeCacheKey.Compute("analysis-node-v2", modelName, settings.ModelIdentity ?? "", settings.Seed?.ToString() ?? "", settings.TokenCounting, target.ToString(), inputLimit.ToString(), source);
         if (readNode is not null && await readNode(key, ct) is { } cached) return cached;
         for (var attempt = 0; attempt < 3; attempt++)
         {

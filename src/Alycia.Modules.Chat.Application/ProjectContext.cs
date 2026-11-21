@@ -5,8 +5,6 @@ using System.Text.RegularExpressions;
 
 namespace Alycia.Modules.Chat.Application;
 
-public sealed record ProjectExcerpts(string Text, IReadOnlyList<SourceExcerpt> Sources, int Available, EvidenceAssembly? Assembly = null);
-
 public static class ProjectContext
 {
     public static bool IsCode(string path) => SourceFileType.IsCode(path);

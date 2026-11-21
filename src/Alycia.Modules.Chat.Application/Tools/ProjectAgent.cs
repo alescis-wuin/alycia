@@ -151,7 +151,7 @@ public static class ProjectAgent
                 if (!result.IsError) completedCalls[fingerprint] = current;
                 if (forced is not null) plan!.Observe(result);
                 else plan?.ObserveModelRead(call, result);
-                evidenceTexts.AddRange(ClaimAudit.ReadToolEvidence(result));
+                evidenceTexts.AddRange(ToolEvidenceReader.Read(result));
                 current.Add(new("tool", result.Text, ToolName: call.Function.Name));
                 var observation = new ToolObservation(observations.Count + 1, call.Function.Name,
                     call.Function.Arguments.GetRawText(), !result.IsError, Encoding.UTF8.GetByteCount(result.Text), result.Evidence, duplicate,

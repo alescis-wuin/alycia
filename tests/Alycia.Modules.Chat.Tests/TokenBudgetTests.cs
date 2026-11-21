@@ -65,8 +65,8 @@ public sealed class TokenBudgetTests
         Assert.Equal(Encoding.UTF8.GetByteCount("hello 🌍"), counter.Count("hello 🌍"));
         Assert.Equal(Encoding.UTF8.GetByteCount("été"), counter.Count("été"));
         Assert.Null(QwenTokenCounter.FromMetadata(JsonSerializer.SerializeToElement(new { })));
-        Assert.Equal(33, TokenBudget.Count("hello", new() { TokenCounter = counter }));
-        Assert.True(TokenBudget.Count("hello", new()) >= 5);
+        Assert.Equal(33, PromptTokens.Count("hello", counter));
+        Assert.True(PromptTokens.Count("hello", null) >= 5);
     }
 
     [Fact]
