@@ -6,7 +6,7 @@ using Npgsql;
 
 namespace Alycia.Modules.Chat.Infrastructure;
 
-public sealed class EfChatRepository(ChatDbContext database, IWorkspaceProfiles profiles) : IChatRepository
+public sealed class EfChatRepository(ChatDbContext database, IWorkspaceProfiles profiles, ITurnDocuments documents) : IChatRepository
 {
     public async Task<IChatTurnScope?> BeginTurnAsync(Guid id, CancellationToken ct)
     {
@@ -46,38 +46,19 @@ public sealed class EfChatRepository(ChatDbContext database, IWorkspaceProfiles 
             entry.State = EntityState.Detached;
     }
 
-    public async Task<IReadOnlyList<Attachment>> FilesAsync(Guid id, CancellationToken cancellationToken) =>
-        await database.ForConversation(id)
-            .OrderBy(f => f.CreatedAtUtc).ToListAsync(cancellationToken);
-
-    public async Task<IReadOnlyList<Attachment>> ContextFilesAsync(Guid id, int first, CancellationToken ct)
+    private static Attachment Detach(TurnFile f) => new()
     {
-        var files = await database.ModelSources(id).Where(f => f.ContextMode != "excluded"
-            && ((f.ContextMode == "pinned" || f.ContextMode == "project") || f.AnchorSequence >= first) && f.Text != "")
-            .OrderBy(f => f.CreatedAtUtc).ToListAsync(ct);
-        files = files.OrderByDescending(f => f.ContextMode == "pinned").DistinctBy(f => (f.Name, f.Sha256)).ToList();
-        var summaries = await database.DocumentAnalyses.AsNoTracking().Where(a => a.ConversationId == id && a.UseInContext).ToArrayAsync(ct);
-        if (summaries.Length == 0) return files;
-        var metadata = await DocumentAnalysisService.MetadataAsync(database, id, ct);
-        foreach (var summary in summaries)
-        {
-            var scope = metadata.Where(f => !summary.ScopeBatchId.HasValue || f.BatchId == summary.ScopeBatchId);
-            if (ProjectInventory.Fingerprint(scope) != summary.SourceFingerprint) continue;
-            // Summaries orient the response; original evidence remains eligible for retrieval.
-            files.Add(new Attachment
-            {
-                Id = summary.Id,
-                Name = "Synthèse du projet · " + summary.Title,
-                Text = "Résumé dérivé ; inventaire et provenance disponibles dans Analyses.\n" + summary.SummaryText,
-                Sha256 = StructuredMemory.Hash(summary.SummaryText),
-                Status = "derived_summary",
-                ContextMode = "pinned",
-                AnchorSequence = 1,
-                CreatedAtUtc = summary.CreatedAtUtc
-            });
-        }
-        return files;
-    }
+        Id = f.Id, WorkspaceId = f.WorkspaceId, ConversationId = f.ConversationId, BatchId = f.BatchId,
+        ArchiveId = f.ArchiveId, Name = f.Name, Size = f.Size, Sha256 = f.Sha256,
+        Status = f.Status, Text = f.Text, AnchorSequence = f.AnchorSequence, CreatedAtUtc = f.CreatedAtUtc,
+        SourceCreatedAt = f.SourceCreatedAt, SourceModifiedAt = f.SourceModifiedAt, MetadataSource = f.MetadataSource, ContextMode = f.ContextMode
+    };
+
+    public async Task<IReadOnlyList<Attachment>> FilesAsync(Guid id, CancellationToken ct) =>
+        (await documents.FilesAsync(id, ct)).Select(Detach).ToArray();
+
+    public async Task<IReadOnlyList<Attachment>> ContextFilesAsync(Guid id, int first, CancellationToken ct) =>
+        (await documents.ContextFilesAsync(id, first, ct)).Select(Detach).ToArray();
 
     public async Task<IReadOnlyList<ChatMessage>> SummaryRangeAsync(Guid id, int after, int through, CancellationToken ct) =>
         await database.Messages.AsNoTracking().Where(m => m.ConversationId == id && m.Sequence > after && m.Sequence <= through)

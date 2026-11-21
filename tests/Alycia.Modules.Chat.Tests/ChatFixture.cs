@@ -10,6 +10,7 @@ namespace Alycia.Modules.Chat.Tests;
 
 internal static class ChatFixture
 {
+    internal static DocumentScope DocumentScope { get; } = new(session => new ConversationWorkspaceLookup(session));
     internal static GenerationGate Gate { get; } = new();
     internal static IForegroundActivity Foreground { get; } = new ForegroundActivity();
     internal static InferenceScheduler Scheduler { get; } = new();
@@ -26,10 +27,10 @@ internal static class ChatFixture
     }
 
     public static LiveIndexFileAccess LiveFiles(ChatDbContext database) => new((DbContextOptions<ChatDbContext>)database.GetService<IDbContextOptions>(),
-            session => new WorkspaceProfileStore(session, new WorkspaceIdentityDirectory(session)));
+            session => new WorkspaceProfileStore(session, new WorkspaceIdentityDirectory(session)), DocumentScope);
 
     public static IndexSourceDocumentsAdapter IndexFiles(ChatDbContext database, ProjectSourceReader reader) => new(database,
-        (DbContextOptions<ChatDbContext>)database.GetService<IDbContextOptions>(), reader, LiveFiles(database));
+        (DbContextOptions<ChatDbContext>)database.GetService<IDbContextOptions>(), reader, LiveFiles(database), DocumentScope);
 
     public static KnowledgeStore Knowledge(ChatDbContext database, ProjectSourceReader reader) =>
         new(database, LiveFiles(database), IndexFiles(database, reader));

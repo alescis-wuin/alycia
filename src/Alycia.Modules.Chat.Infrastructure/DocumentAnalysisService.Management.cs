@@ -12,7 +12,7 @@ public sealed partial class DocumentAnalysisService
     public async Task<string> InventoryAsync(Guid id, Guid? batch, CancellationToken ct)
     {
         await RequireConversationAsync(id, ct);
-        return ProjectInventory.Tree(InBatch(await MetadataAsync(database, id, ct), batch));
+        return ProjectInventory.Tree(InBatch(await MetadataAsync(database, scope, id, ct), batch));
     }
 
     public Task<DocumentAnalysis?> GetAsync(Guid id, Guid analysisId, CancellationToken ct) =>
@@ -25,50 +25,43 @@ public sealed partial class DocumentAnalysisService
         new AnalysisCheckpoints(reader.Storage).DeleteRun(id, runId);
     }
 
-    public async Task<Conversation?> SelectAsync(Guid id, Guid analysisId, int revision, bool useInContext, CancellationToken ct)
+    public async Task<ConversationSummary?> SelectAsync(Guid id, Guid analysisId, int revision, bool useInContext, CancellationToken ct)
     {
         using var lease = AcquireAnalysisLease(id);
-        var conversation = await RequireRevisionAsync(id, revision, ct);
+        await RequireRevisionAsync(id, revision, ct);
         var analysis = await database.DocumentAnalyses.SingleOrDefaultAsync(a => a.Id == analysisId && a.ConversationId == id, ct);
         if (analysis is null) return null;
         if (useInContext)
         {
-            var files = await MetadataAsync(database, id, ct);
+            var files = await MetadataAsync(database, scope, id, ct);
             if (ProjectInventory.Fingerprint(InBatch(files, analysis.ScopeBatchId)) != analysis.SourceFingerprint)
                 throw new ArgumentException("Cette analyse est périmée : les sources ou exclusions ont changé. Relancez l’analyse.");
             foreach (var previous in await database.DocumentAnalyses.Where(a => a.ConversationId == id && a.UseInContext).ToListAsync(ct))
                 previous.UseInContext = false;
         }
         analysis.UseInContext = useInContext;
-        conversation.AttachFiles();
+        var summary = await conversations.StageAdvanceAsync(id, revision, ct);
         await database.SaveVersionedAsync(ct);
-        return conversation;
+        return summary;
     }
 
     public async Task<bool> DeleteAsync(Guid id, Guid analysisId, int revision, CancellationToken ct)
     {
         using var lease = AcquireAnalysisLease(id);
-        var conversation = await RequireRevisionAsync(id, revision, ct);
+        await RequireRevisionAsync(id, revision, ct);
         var analysis = await database.DocumentAnalyses.SingleOrDefaultAsync(a => a.Id == analysisId && a.ConversationId == id, ct);
         if (analysis is null) return false;
         database.DocumentAnalyses.Remove(analysis);
-        conversation.AttachFiles();
+        await conversations.StageAdvanceAsync(id, revision, ct);
         await database.SaveVersionedAsync(ct);
         return true;
     }
 
-    private async Task RequireConversationAsync(Guid id, CancellationToken ct)
-    {
-        if (!await database.Conversations.AnyAsync(c => c.Id == id, ct)) throw new ConversationNotFoundException();
-    }
+    private Task<AnalysisConversation> RequireConversationAsync(Guid id, CancellationToken ct) =>
+        conversations.RequireAsync(id, null, ct);
 
-    private async Task<Conversation> RequireRevisionAsync(Guid id, int revision, CancellationToken ct)
-    {
-        var conversation = await database.Conversations.SingleOrDefaultAsync(c => c.Id == id, ct)
-            ?? throw new ConversationNotFoundException();
-        ConversationConfiguration.CheckRevision(conversation, revision);
-        return conversation;
-    }
+    private Task<AnalysisConversation> RequireRevisionAsync(Guid id, int revision, CancellationToken ct) =>
+        conversations.RequireAsync(id, revision, ct);
 
     private static IEnumerable<InventoryFile> InBatch(IEnumerable<InventoryFile> files, Guid? batch) =>
         files.Where(f => !batch.HasValue || f.BatchId == batch);
@@ -82,7 +75,7 @@ public sealed partial class DocumentAnalysisService
     public async Task<IReadOnlyList<AnalysisItem>> ListAsync(Guid id, CancellationToken ct)
     {
         await RequireConversationAsync(id, ct);
-        var metadata = await MetadataAsync(database, id, ct);
+        var metadata = await MetadataAsync(database, scope, id, ct);
         var reports = await database.DocumentAnalyses.AsNoTracking().Where(a => a.ConversationId == id)
             .OrderByDescending(a => a.CreatedAtUtc).Select(a => new
             {
@@ -101,9 +94,9 @@ public sealed partial class DocumentAnalysisService
                 != a.SourceFingerprint, a.ScopeBatchId)).ToArray();
     }
 
-    public static async Task<InventoryFile[]> MetadataAsync(ChatDbContext database, Guid id, CancellationToken ct) =>
-        await database.ModelSources(id)
+    public static async Task<InventoryFile[]> MetadataAsync(ChatDbContext database, DocumentScope scope, Guid id, CancellationToken ct) =>
+        await scope.ReadAsync(database, id, false, true, q => q
             .Select(f => new InventoryFile(f.Id, f.BatchId, f.ArchiveId, f.Name, f.Size, f.Sha256,
                 Path.GetExtension(f.Name), f.SourceCreatedAt, f.SourceModifiedAt, f.MetadataSource,
-                f.CreatedAtUtc, f.Status, f.ContextMode)).ToArrayAsync(ct);
+                f.CreatedAtUtc, f.Status, f.ContextMode)).ToArrayAsync(ct), ct);
 }

@@ -3,14 +3,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Alycia.Modules.Chat.Infrastructure;
 
-public sealed class ConversationFileSettings(ChatDbContext database, IConversationFileChanges conversations)
+public sealed class ConversationFileSettings(ChatDbContext database, IConversationFileChanges conversations, DocumentScope scope)
 {
     public async Task<IReadOnlyList<FileSummary>> ListAsync(Guid id, CancellationToken ct)
     {
         await conversations.RequireAsync(id, ct);
         // Project metadata in SQL: do not load extracted documents for this list.
-        return await database.ForConversation(id).OrderBy(f => f.CreatedAtUtc).Select(f => new FileSummary(f.Id, f.Name, f.Size, f.Status,
-            f.AnchorSequence, f.CreatedAtUtc, f.ArchiveId, f.Sha256, f.ContextMode, f.BatchId, f.SourceCreatedAt, f.SourceModifiedAt, f.MetadataSource, f.WorkspaceId)).ToListAsync(ct);
+        return await scope.ReadAsync(database, id, false, false, q => q.OrderBy(f => f.CreatedAtUtc).Select(f => new FileSummary(f.Id, f.Name, f.Size, f.Status,
+            f.AnchorSequence, f.CreatedAtUtc, f.ArchiveId, f.Sha256, f.ContextMode, f.BatchId, f.SourceCreatedAt, f.SourceModifiedAt, f.MetadataSource, f.WorkspaceId)).ToListAsync(ct), ct);
     }
 
     public async Task<FileSummary> SetModeAsync(Guid id, Guid fileId, int revision, string mode, CancellationToken ct)
@@ -26,7 +26,7 @@ public sealed class ConversationFileSettings(ChatDbContext database, IConversati
             else entry.Mode = mode;
             await conversations.StageAdvanceAsync(id, revision, ct);
             await database.SaveVersionedAsync(ct);
-            return FileImport.Summary(await database.ForConversation(id).SingleAsync(f => f.Id == fileId, ct));
+            return FileImport.Summary(await scope.ReadAsync(database, id, false, false, q => q.SingleAsync(f => f.Id == fileId, ct), ct));
         }
         var file = await database.Attachments.SingleOrDefaultAsync(f => f.ConversationId == id && f.Id == fileId, ct)
             ?? throw new ArgumentException("Fichier introuvable.");
