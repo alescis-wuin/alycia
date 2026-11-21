@@ -132,6 +132,7 @@ internal static class ChatRegistration
     private static void RegisterInference(IServiceCollection services, Uri uri, bool mockInference)
     {
         services.AddSingleton<InferenceScheduler>();
+        services.AddSingleton<ModelTokenizationCache>();
         services.AddSingleton<IForegroundActivity, ForegroundActivity>();
         services.AddScoped<IChatModel, ChatGenerationAdapter>();
         if (mockInference)

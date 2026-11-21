@@ -1,0 +1,156 @@
+type	source	destination	détail
+projet	Alycia.Api		src/Alycia.Api/Alycia.Api.csproj
+référence MSBuild	Alycia.Api	Alycia.Contracts	ProjectReference évaluée
+référence MSBuild	Alycia.Api	Alycia.Modules.Chat.Application	ProjectReference évaluée
+référence MSBuild	Alycia.Api	Alycia.Modules.Chat.Domain	ProjectReference évaluée
+référence MSBuild	Alycia.Api	Alycia.Modules.Chat.Infrastructure	ProjectReference évaluée
+référence MSBuild	Alycia.Api	Alycia.Modules.Documents	ProjectReference évaluée
+référence MSBuild	Alycia.Api	Alycia.Modules.Indexing	ProjectReference évaluée
+référence MSBuild	Alycia.Api	Alycia.Modules.Inference	ProjectReference évaluée
+référence MSBuild	Alycia.Api	Alycia.Modules.Retrieval.Onnx	ProjectReference évaluée
+référence MSBuild	Alycia.Api	Alycia.Modules.Retrieval	ProjectReference évaluée
+référence MSBuild	Alycia.Api	Alycia.Modules.Testing	ProjectReference évaluée
+référence MSBuild	Alycia.Api	Alycia.Modules.Workspaces.Application	ProjectReference évaluée
+référence MSBuild	Alycia.Api	Alycia.Modules.Workspaces.Domain	ProjectReference évaluée
+référence MSBuild	Alycia.Api	Alycia.Modules.Workspaces.Infrastructure	ProjectReference évaluée
+référence MSBuild	Alycia.Api	Alycia.Platform.Persistence	ProjectReference évaluée
+projet	Alycia.Client.Avalonia		src/Alycia.Client.Avalonia/Alycia.Client.Avalonia.csproj
+référence MSBuild	Alycia.Client.Avalonia	Alycia.Contracts	ProjectReference évaluée
+projet	Alycia.Client.Avalonia.Tests		tests/Alycia.Client.Avalonia.Tests/Alycia.Client.Avalonia.Tests.csproj
+référence MSBuild	Alycia.Client.Avalonia.Tests	Alycia.Client.Avalonia	ProjectReference évaluée
+référence MSBuild	Alycia.Client.Avalonia.Tests	Alycia.Contracts	ProjectReference évaluée
+projet	Alycia.ContextBenchmarks		benchmarks/Alycia.ContextBenchmarks/Alycia.ContextBenchmarks.csproj
+référence MSBuild	Alycia.ContextBenchmarks	Alycia.Contracts	ProjectReference évaluée
+référence MSBuild	Alycia.ContextBenchmarks	Alycia.Modules.Chat.Application	ProjectReference évaluée
+référence MSBuild	Alycia.ContextBenchmarks	Alycia.Modules.Chat.Domain	ProjectReference évaluée
+référence MSBuild	Alycia.ContextBenchmarks	Alycia.Modules.Chat.Infrastructure	ProjectReference évaluée
+référence MSBuild	Alycia.ContextBenchmarks	Alycia.Modules.Documents	ProjectReference évaluée
+référence MSBuild	Alycia.ContextBenchmarks	Alycia.Modules.Indexing	ProjectReference évaluée
+référence MSBuild	Alycia.ContextBenchmarks	Alycia.Modules.Retrieval.Onnx	ProjectReference évaluée
+référence MSBuild	Alycia.ContextBenchmarks	Alycia.Modules.Retrieval	ProjectReference évaluée
+référence MSBuild	Alycia.ContextBenchmarks	Alycia.Platform.Persistence	ProjectReference évaluée
+projet	Alycia.Contracts		src/Alycia.Contracts/Alycia.Contracts.csproj
+projet	Alycia.Modules.Chat.Application		src/Alycia.Modules.Chat.Application/Alycia.Modules.Chat.Application.csproj
+référence MSBuild	Alycia.Modules.Chat.Application	Alycia.Contracts	ProjectReference évaluée
+référence MSBuild	Alycia.Modules.Chat.Application	Alycia.Modules.Chat.Domain	ProjectReference évaluée
+référence MSBuild	Alycia.Modules.Chat.Application	Alycia.Modules.Retrieval	ProjectReference évaluée
+projet	Alycia.Modules.Chat.Domain		src/Alycia.Modules.Chat.Domain/Alycia.Modules.Chat.Domain.csproj
+projet	Alycia.Modules.Chat.Infrastructure		src/Alycia.Modules.Chat.Infrastructure/Alycia.Modules.Chat.Infrastructure.csproj
+référence MSBuild	Alycia.Modules.Chat.Infrastructure	Alycia.Contracts	ProjectReference évaluée
+référence MSBuild	Alycia.Modules.Chat.Infrastructure	Alycia.Modules.Chat.Application	ProjectReference évaluée
+référence MSBuild	Alycia.Modules.Chat.Infrastructure	Alycia.Modules.Chat.Domain	ProjectReference évaluée
+référence MSBuild	Alycia.Modules.Chat.Infrastructure	Alycia.Modules.Documents	ProjectReference évaluée
+référence MSBuild	Alycia.Modules.Chat.Infrastructure	Alycia.Modules.Indexing	ProjectReference évaluée
+référence MSBuild	Alycia.Modules.Chat.Infrastructure	Alycia.Modules.Retrieval	ProjectReference évaluée
+référence MSBuild	Alycia.Modules.Chat.Infrastructure	Alycia.Platform.Persistence	ProjectReference évaluée
+projet	Alycia.Modules.Chat.Tests		tests/Alycia.Modules.Chat.Tests/Alycia.Modules.Chat.Tests.csproj
+référence MSBuild	Alycia.Modules.Chat.Tests	Alycia.Api	ProjectReference évaluée
+référence MSBuild	Alycia.Modules.Chat.Tests	Alycia.Contracts	ProjectReference évaluée
+référence MSBuild	Alycia.Modules.Chat.Tests	Alycia.Modules.Chat.Application	ProjectReference évaluée
+référence MSBuild	Alycia.Modules.Chat.Tests	Alycia.Modules.Chat.Domain	ProjectReference évaluée
+référence MSBuild	Alycia.Modules.Chat.Tests	Alycia.Modules.Chat.Infrastructure	ProjectReference évaluée
+référence MSBuild	Alycia.Modules.Chat.Tests	Alycia.Modules.Documents	ProjectReference évaluée
+référence MSBuild	Alycia.Modules.Chat.Tests	Alycia.Modules.Indexing	ProjectReference évaluée
+référence MSBuild	Alycia.Modules.Chat.Tests	Alycia.Modules.Inference	ProjectReference évaluée
+référence MSBuild	Alycia.Modules.Chat.Tests	Alycia.Modules.Retrieval.Onnx	ProjectReference évaluée
+référence MSBuild	Alycia.Modules.Chat.Tests	Alycia.Modules.Retrieval	ProjectReference évaluée
+référence MSBuild	Alycia.Modules.Chat.Tests	Alycia.Modules.Testing	ProjectReference évaluée
+référence MSBuild	Alycia.Modules.Chat.Tests	Alycia.Modules.Workspaces.Application	ProjectReference évaluée
+référence MSBuild	Alycia.Modules.Chat.Tests	Alycia.Modules.Workspaces.Domain	ProjectReference évaluée
+référence MSBuild	Alycia.Modules.Chat.Tests	Alycia.Modules.Workspaces.Infrastructure	ProjectReference évaluée
+référence MSBuild	Alycia.Modules.Chat.Tests	Alycia.Platform.Persistence	ProjectReference évaluée
+projet	Alycia.Modules.Documents		src/Alycia.Modules.Documents/Alycia.Modules.Documents.csproj
+référence MSBuild	Alycia.Modules.Documents	Alycia.Contracts	ProjectReference évaluée
+projet	Alycia.Modules.Indexing		src/Alycia.Modules.Indexing/Alycia.Modules.Indexing.csproj
+référence MSBuild	Alycia.Modules.Indexing	Alycia.Contracts	ProjectReference évaluée
+projet	Alycia.Modules.Inference		src/Alycia.Modules.Inference/Alycia.Modules.Inference.csproj
+référence MSBuild	Alycia.Modules.Inference	Alycia.Contracts	ProjectReference évaluée
+projet	Alycia.Modules.Inference.Tests		tests/Alycia.Modules.Inference.Tests/Alycia.Modules.Inference.Tests.csproj
+référence MSBuild	Alycia.Modules.Inference.Tests	Alycia.Contracts	ProjectReference évaluée
+référence MSBuild	Alycia.Modules.Inference.Tests	Alycia.Modules.Inference	ProjectReference évaluée
+référence MSBuild	Alycia.Modules.Inference.Tests	Alycia.Modules.Testing	ProjectReference évaluée
+projet	Alycia.Modules.Retrieval		src/Alycia.Modules.Retrieval/Alycia.Modules.Retrieval.csproj
+référence MSBuild	Alycia.Modules.Retrieval	Alycia.Contracts	ProjectReference évaluée
+projet	Alycia.Modules.Retrieval.Onnx		src/Alycia.Modules.Retrieval.Onnx/Alycia.Modules.Retrieval.Onnx.csproj
+référence MSBuild	Alycia.Modules.Retrieval.Onnx	Alycia.Contracts	ProjectReference évaluée
+projet	Alycia.Modules.Testing		src/Alycia.Modules.Testing/Alycia.Modules.Testing.csproj
+référence MSBuild	Alycia.Modules.Testing	Alycia.Contracts	ProjectReference évaluée
+projet	Alycia.Modules.Workspaces.Application		src/Alycia.Modules.Workspaces.Application/Alycia.Modules.Workspaces.Application.csproj
+référence MSBuild	Alycia.Modules.Workspaces.Application	Alycia.Modules.Workspaces.Domain	ProjectReference évaluée
+projet	Alycia.Modules.Workspaces.Domain		src/Alycia.Modules.Workspaces.Domain/Alycia.Modules.Workspaces.Domain.csproj
+projet	Alycia.Modules.Workspaces.Infrastructure		src/Alycia.Modules.Workspaces.Infrastructure/Alycia.Modules.Workspaces.Infrastructure.csproj
+référence MSBuild	Alycia.Modules.Workspaces.Infrastructure	Alycia.Contracts	ProjectReference évaluée
+référence MSBuild	Alycia.Modules.Workspaces.Infrastructure	Alycia.Modules.Workspaces.Application	ProjectReference évaluée
+référence MSBuild	Alycia.Modules.Workspaces.Infrastructure	Alycia.Modules.Workspaces.Domain	ProjectReference évaluée
+référence MSBuild	Alycia.Modules.Workspaces.Infrastructure	Alycia.Platform.Persistence	ProjectReference évaluée
+projet	Alycia.Modules.Workspaces.Tests		tests/Alycia.Modules.Workspaces.Tests/Alycia.Modules.Workspaces.Tests.csproj
+référence MSBuild	Alycia.Modules.Workspaces.Tests	Alycia.Modules.Workspaces.Application	ProjectReference évaluée
+référence MSBuild	Alycia.Modules.Workspaces.Tests	Alycia.Modules.Workspaces.Domain	ProjectReference évaluée
+projet	Alycia.Platform.Persistence		src/Alycia.Platform.Persistence/Alycia.Platform.Persistence.csproj
+relation logique Chat	Configuration	Context	SlidingContext
+relation logique Chat	Configuration	Conversations	ChatConflictException, ConversationNotFoundException, IChatRepository, IConversationHistoryReader
+relation logique Chat	Configuration	Documents	FileImport, FileSummary
+relation logique Chat	Configuration	Inference	IChatModel
+relation logique Chat	Configuration	Memory	TemporalRecall
+relation logique Chat	Configuration	Persistence	ChatDbContext
+relation logique Chat	Configuration	Projects	WorkspaceSources
+relation logique Chat	Configuration	Tools	ProjectAgent
+relation logique Chat	Context	Configuration	ChatOptions, ConversationConfiguration
+relation logique Chat	Context	Conversations	ChatConflictException, IConversationContextReader, IConversationMessagesReader
+relation logique Chat	Context	Indexing	IndexCallBudget, IndexedKnowledge
+relation logique Chat	Context	Inference	IChatModel, MeteredChatModel
+relation logique Chat	Context	Memory	MemorySelection, PreparedMemoryChange, StructuredMemory, TemporalMemory
+relation logique Chat	Context	Retrieval	EvidenceComposer, EvidenceText, ProjectRetrieval
+relation logique Chat	Conversations	Configuration	ChatOptions, ConversationConfiguration
+relation logique Chat	Conversations	Context	ContextWindow, FileContext, ITurnContext, PreparedContext, SlidingContext, TokenBudget, TurnContextBudget, TurnContextMode, TurnContextResult
+relation logique Chat	Conversations	Documents	DocumentAnalysisService
+relation logique Chat	Conversations	Inference	GenerationReply, IChatModel, MeteredChatModel
+relation logique Chat	Conversations	Memory	IConversationMemory, ITemporalMemory, ITemporalMemoryIndex, StructuredMemory, TemporalFact
+relation logique Chat	Conversations	Persistence	ChatDbContext
+relation logique Chat	Conversations	Projects	IProjectModelDefaults, InventoryFile, ProjectInventory, WorkspaceSources
+relation logique Chat	Conversations	Retrieval	CitationAudit, ClaimAudit, EvidenceText, IProjectRetrieval, QueryRouting, SemanticClaimAudit
+relation logique Chat	Conversations	Tools	IProjectTools, ITurnTools
+relation logique Chat	Documents	Configuration	ChatOptions, ConversationConfiguration, ImportSettingsStore
+relation logique Chat	Documents	Context	FileContext, ProjectContext, RecursiveSummarizer, SummarySource
+relation logique Chat	Documents	Conversations	ChatConflictException, ConversationNotFoundException, ConversationTransfer, EfChatRepository, GenerationGate
+relation logique Chat	Documents	Indexing	IndexCallBudget
+relation logique Chat	Documents	Inference	IChatModel, MeteredChatModel
+relation logique Chat	Documents	Memory	StructuredMemory
+relation logique Chat	Documents	Persistence	ChatDbContext
+relation logique Chat	Documents	Projects	InventoryFile, ProjectInventory, WorkspaceSources
+relation logique Chat	Indexing	Configuration	ChatOptions, ConversationConfiguration
+relation logique Chat	Indexing	Context	FileContext, TokenBudget
+relation logique Chat	Indexing	Conversations	ConversationNotFoundException
+relation logique Chat	Indexing	Documents	CodeStructure, ProjectSource, ProjectSourceReader
+relation logique Chat	Indexing	Inference	IChatModel
+relation logique Chat	Indexing	Memory	ITemporalMemoryIndex, StructuredMemory
+relation logique Chat	Indexing	Persistence	ChatDbContext
+relation logique Chat	Indexing	Projects	ProjectProfiles, WorkspaceSources
+relation logique Chat	Indexing	Retrieval	ProjectRetrieval
+relation logique Chat	Inference	Configuration	ChatOptions
+relation logique Chat	Inference	Context	TokenBudget
+relation logique Chat	Inference	Retrieval	EvidenceText
+relation logique Chat	Memory	Configuration	ChatOptions, ConversationConfiguration
+relation logique Chat	Memory	Context	ContextWindow, FileContext, PreparedContext, ProjectContext, ProjectExcerpts, TokenBudget
+relation logique Chat	Memory	Conversations	ChatConflictException, ConversationNotFoundException, GenerationGate, IChatRepository, IConversationContextReader, IConversationHistoryReader, IConversationMessagesReader
+relation logique Chat	Memory	Indexing	IIndexedEmbeddings, MemoryVectorMatches
+relation logique Chat	Memory	Persistence	ChatDbContext
+relation logique Chat	Memory	Retrieval	EvidenceComposer, EvidenceText, ProjectRetrieval
+relation logique Chat	Projects	Configuration	ConversationConfiguration
+relation logique Chat	Projects	Conversations	ChatConflictException, ConversationNotFoundException, EfChatRepository, GenerationGate
+relation logique Chat	Projects	Documents	FileImport, FileSummary, ProjectSource, ProjectSourceReader
+relation logique Chat	Projects	Persistence	ChatDbContext
+relation logique Chat	Retrieval	Configuration	ChatOptions, RankingLimits
+relation logique Chat	Retrieval	Context	FileContext, ProjectContext, ProjectExcerpts, TokenBudget
+relation logique Chat	Retrieval	Conversations	IConversationContextReader, IConversationMessagesReader
+relation logique Chat	Retrieval	Indexing	IIndexedEmbeddings, SemanticSearch
+relation logique Chat	Retrieval	Inference	MeteredChatModel
+relation logique Chat	Retrieval	Memory	ITemporalMemory, StructuredMemory, TemporalRecall
+relation logique Chat	Retrieval	Tools	ProjectToolResult
+relation logique Chat	Tools	Configuration	ChatOptions, ConversationConfiguration
+relation logique Chat	Tools	Context	ContextWindow, FileContext, ProjectContext, RecursiveSummarizer, SummarySource, TokenBudget, TurnContext, TurnContextBudget
+relation logique Chat	Tools	Conversations	ConversationNotFoundException, IChatRepository, IConversationHistoryReader, IConversationMessagesReader
+relation logique Chat	Tools	Indexing	IIndexedEmbeddings, SemanticSearch
+relation logique Chat	Tools	Inference	GenerationReply, IChatModel, InferenceWindow
+relation logique Chat	Tools	Memory	StructuredMemory
+relation logique Chat	Tools	Retrieval	ClaimAudit, EvidenceText, ProjectRetrieval

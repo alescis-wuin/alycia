@@ -51,6 +51,14 @@ public sealed class Inventory : DiagnosticAnalyzer
                     {
                         var id = s.GetDocumentationCommentId() ?? s.ToDisplayString();
                         Row("D", path, Line(node), s.Kind.ToString(), s.DeclaredAccessibility.ToString(), id);
+                        if (s is INamedTypeSymbol declaration)
+                        {
+                            if (declaration.TypeKind == TypeKind.Interface && declaration.DeclaredAccessibility == Accessibility.Public)
+                                Row("I", path, declaration.ToDisplayString());
+                            else if (declaration.TypeKind is TypeKind.Class or TypeKind.Struct && !declaration.IsAbstract)
+                                foreach (var port in declaration.AllInterfaces.Where(p => p.ContainingAssembly.Name.StartsWith("Alycia.", StringComparison.Ordinal)))
+                                    Row("M", path, declaration.ToDisplayString(), port.ToDisplayString());
+                        }
                     }
                 }
                 if (node is RecordDeclarationSyntax record && record.ParameterList is { } parameters &&

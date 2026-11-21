@@ -6,7 +6,7 @@ using System.Text.Json.Serialization;
 
 namespace Alycia.Modules.Inference;
 
-public sealed partial class OllamaTextGeneration(HttpClient http, InferenceScheduler scheduler) : ITextGeneration
+public sealed partial class OllamaTextGeneration(HttpClient http, InferenceScheduler scheduler, ModelTokenizationCache tokenizers) : ITextGeneration
 {
     public async Task<IReadOnlyList<string>> ListModelsAsync(CancellationToken cancellationToken)
     {

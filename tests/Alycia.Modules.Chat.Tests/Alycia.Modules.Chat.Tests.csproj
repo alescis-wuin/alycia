@@ -11,7 +11,6 @@
     <Using Include="Alycia.Contracts.Retrieval" />
     <Using Include="Alycia.Modules.Retrieval.Onnx" />
     <ProjectReference Include="../../src/Alycia.Modules.Retrieval.Onnx/Alycia.Modules.Retrieval.Onnx.csproj" />
-    <ProjectReference Include="../../src/Alycia.Modules.Testing/Alycia.Modules.Testing.csproj" />
   </ItemGroup>
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>

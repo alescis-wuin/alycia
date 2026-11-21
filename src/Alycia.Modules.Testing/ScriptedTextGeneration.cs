@@ -6,11 +6,13 @@ public sealed class ScriptedTextGeneration : ITextGeneration
     public const string Model = "alycia-mock";
     private readonly string[] _chunks;
     private readonly int? _failAfter;
+    private readonly Func<int, CancellationToken, Task>? _beforeDelta;
 
-    public ScriptedTextGeneration(IEnumerable<string>? chunks = null, int? failAfter = null)
+    public ScriptedTextGeneration(IEnumerable<string>? chunks = null, int? failAfter = null, Func<int, CancellationToken, Task>? beforeDelta = null)
     {
         _chunks = (chunks ?? ["Bon", "jour"]).ToArray();
         _failAfter = failAfter;
+        _beforeDelta = beforeDelta;
     }
 
     public Task<IReadOnlyList<string>> ListModelsAsync(CancellationToken ct)
@@ -47,6 +49,8 @@ public sealed class ScriptedTextGeneration : ITextGeneration
         if (useTools) throw new ChatModelException("Outils indisponibles pour le modèle simulé.");
         for (var i = 0; i < _chunks.Length; i++)
         {
+            ct.ThrowIfCancellationRequested();
+            if (_beforeDelta is not null) await _beforeDelta(i, ct);
             ct.ThrowIfCancellationRequested();
             if (_failAfter == i) throw new ChatModelException("Interruption simulée.");
             await onDelta(new(_chunks[i]));

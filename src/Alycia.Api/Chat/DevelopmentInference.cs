@@ -7,7 +7,7 @@ internal static class DevelopmentInference
     public static void AddMocks(IServiceCollection services)
     {
         services.AddSingleton<ITextGeneration>(_ => new ScriptedTextGeneration());
-        services.AddSingleton<ILocalEmbeddings, DeterministicEmbeddings>();
+        services.AddSingleton<ILocalEmbeddings>(_ => new DeterministicEmbeddings());
     }
 
     public static void MapDemo(WebApplication app)

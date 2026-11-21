@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Net.Http.Json;
 using System.Text.Json;
 
@@ -21,8 +20,6 @@ public sealed partial class OllamaTextGeneration
         catch (Exception e) when (e is HttpRequestException or JsonException or KeyNotFoundException or OperationCanceledException or InvalidOperationException) { }
         return null;
     }
-    private sealed record CounterResult(ITextTokenCounter? Counter, int? ContextLimit);
-    private static readonly ConcurrentDictionary<string, CounterResult> Counters = new();
     public async Task<ModelTokenization> InspectAsync(string model, string tokenCounting, CancellationToken ct)
     {
         // Fail before progress events start the HTTP stream, including with conservative counting.
@@ -40,7 +37,7 @@ public sealed partial class OllamaTextGeneration
             if (item.ValueKind == JsonValueKind.Undefined || !item.TryGetProperty("digest", out var digest) || string.IsNullOrWhiteSpace(digest.GetString())) return new(identity);
             identity = model + ":" + digest.GetString();
             var key = http.BaseAddress + "|" + identity + "|" + tokenCounting;
-            if (Counters.TryGetValue(key, out var existing))
+            if (tokenizers.Entries.TryGetValue(key, out var existing))
             {
                 return new(identity, true, existing.Counter, existing.ContextLimit);
             }
@@ -57,9 +54,10 @@ public sealed partial class OllamaTextGeneration
                 && info.TryGetProperty(architecture.GetString() + ".context_length", out var length)
                 && length.TryGetInt32(out var maximumContext) && maximumContext > 0)
                 contextLimit = maximumContext;
-            if (Counters.Count >= 8) Counters.Clear();
-            Counters[key] = new(counter, contextLimit);
-            return new(identity, true, counter, contextLimit);
+            if (tokenizers.Entries.Count >= 8) tokenizers.Entries.Clear();
+            var inspected = new ModelTokenization(identity, true, counter, contextLimit);
+            tokenizers.Entries[key] = inspected;
+            return inspected;
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested) { }
         catch (Exception e) when (e is HttpRequestException or JsonException or ArgumentException or InvalidOperationException or KeyNotFoundException) { }

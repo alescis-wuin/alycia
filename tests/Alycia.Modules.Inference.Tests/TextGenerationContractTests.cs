@@ -4,7 +4,7 @@ using System.Text.Json;
 using Alycia.Modules.Inference;
 using Alycia.Modules.Testing;
 
-namespace Alycia.Modules.Chat.Tests;
+namespace Alycia.Modules.Inference.Tests;
 
 public sealed class TextGenerationContractTests
 {
@@ -17,7 +17,7 @@ public sealed class TextGenerationContractTests
     public async Task Text_and_stream_agree_and_enforce_capabilities(bool mock)
     {
         using var http = new HttpClient(new ProviderTransport()) { BaseAddress = new("http://localhost/") };
-        ITextGeneration provider = mock ? new ScriptedTextGeneration() : new OllamaTextGeneration(http, new());
+        ITextGeneration provider = mock ? new ScriptedTextGeneration() : new OllamaTextGeneration(http, new(), new());
         var model = Assert.Single(await provider.ListModelsAsync(default));
         var ordinary = await provider.GenerateAsync(model, Input, Settings, default);
         var deltas = new List<string>();
@@ -69,18 +69,63 @@ public sealed class TextGenerationContractTests
         Assert.Equal("type", returned.References[0]);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Vector_provider_preserves_row_order_identity_and_cancellation(bool mock)
+    {
+        using var http = new HttpClient(new ProviderTransport()) { BaseAddress = new("http://localhost/") };
+        ILocalEmbeddings provider = mock
+            ? new DeterministicEmbeddings(new Dictionary<string, string> { ["embedding"] = "fixture-v1" },
+                (_, text) => text == "first" ? [1f, 0f] : [0f, 1f])
+            : new OllamaEmbeddings(http, new());
+        var identity = await provider.IdentityAsync("embedding", default);
+        Assert.Equal(identity, await provider.IdentityAsync("embedding", default));
+        await Assert.ThrowsAsync<ArgumentException>(() => provider.IdentityAsync("missing", default));
+        var batch = await provider.EmbedAsync("embedding", ["second", "first"], default);
+        Assert.Equal([0f, 1f], batch.Vectors[0]);
+        Assert.Equal([1f, 0f], batch.Vectors[1]);
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => provider.EmbedAsync("embedding", ["first"], new(true)));
+    }
+
+    [Fact]
+    public async Task A_waiting_delta_can_be_cancelled_without_waiting_for_a_clock()
+    {
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var pause = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var provider = new ScriptedTextGeneration(beforeDelta: (_, ct) => { started.SetResult(); return pause.Task.WaitAsync(ct); });
+        using var stop = new CancellationTokenSource();
+        var deltas = new List<string>();
+        var pending = provider.StreamAsync(ScriptedTextGeneration.Model, Input, Settings,
+            d => { deltas.Add(d.Content); return Task.CompletedTask; }, false, stop.Token);
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        stop.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => pending);
+        Assert.Empty(deltas);
+    }
+
     private sealed class ProviderTransport : HttpMessageHandler
     {
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
         {
             var text = request.RequestUri!.AbsolutePath switch
             {
-                "/api/tags" => """{"models":[{"name":"alycia-mock"}]}""",
-                "/api/show" => """{"capabilities":["completion"]}""",
+                "/api/tags" => """{"models":[{"name":"alycia-mock"},{"name":"embedding","digest":"fixture-v1"}]}""",
+                "/api/show" => (await request.Content!.ReadAsStringAsync(ct)).Contains("\"embedding\"", StringComparison.Ordinal)
+                    ? """{"capabilities":["embedding"]}""" : """{"capabilities":["completion"]}""",
+                "/api/embed" => Vectors(await request.Content!.ReadAsStringAsync(ct)),
                 "/api/chat" => Reply(await request.Content!.ReadAsStringAsync(ct)),
                 _ => throw new InvalidOperationException("Unexpected provider URL")
             };
             return new(HttpStatusCode.OK) { Content = new StringContent(text, Encoding.UTF8, "application/json") };
+        }
+
+        private static string Vectors(string body)
+        {
+            using var json = JsonDocument.Parse(body);
+            var rows = json.RootElement.GetProperty("input").EnumerateArray()
+                .Select(item => item.GetString() == "first" ? new[] { 1f, 0f } : new[] { 0f, 1f });
+            return JsonSerializer.Serialize(new { embeddings = rows });
         }
 
         private static string Reply(string body)

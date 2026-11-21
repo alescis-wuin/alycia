@@ -18,6 +18,7 @@
     <Project Path="src/Alycia.Modules.Chat.Infrastructure/Alycia.Modules.Chat.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Alycia.Modules.Inference.Tests/Alycia.Modules.Inference.Tests.csproj" />
     <Project Path="tests/Alycia.Modules.Chat.Tests/Alycia.Modules.Chat.Tests.csproj" />
     <Project Path="tests/Alycia.Client.Avalonia.Tests/Alycia.Client.Avalonia.Tests.csproj" />
     <Project Path="tests/Alycia.Modules.Workspaces.Tests/Alycia.Modules.Workspaces.Tests.csproj" />

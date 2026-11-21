@@ -9,8 +9,10 @@ internal static class ChatFixture
     internal static IForegroundActivity Foreground { get; } = new ForegroundActivity();
     internal static InferenceScheduler Scheduler { get; } = new();
 
+    private static readonly ModelTokenizationCache Tokenizers = new();
+
     public static ChatGenerationAdapter Ollama(HttpClient http, ChatOptions options) =>
-        new(new OllamaTextGeneration(http, Scheduler), options);
+        new(new OllamaTextGeneration(http, Scheduler, Tokenizers), options);
 
     public static ChatService Create(IChatRepository repository, IChatModel model, ChatOptions options) =>
         new(repository, model, options, new TurnContext(repository), new ConversationMemory(repository, ChatFixture.Gate),

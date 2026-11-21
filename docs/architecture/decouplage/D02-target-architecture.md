@@ -27,3 +27,23 @@ Les doubles s’injectent dans les mêmes ports, avec données et horloge maîtr
 - Réserver la politique de stockage à l’adaptateur propriétaire. Le passage entre deux propriétaires en transaction requiert la même connexion, la même transaction et une responsabilité de commit identifiée.
 
 Les essais négatifs attendus couvrent le graphe transitif et cyclique, l’utilisation d’un concret via alias, les imports de fournisseurs NuGet dans un port, les lectures EF et SQL hors propriétaire, la réflexion et un témoin autorisé. Les contraintes sont introduites progressivement sur le produit et les exceptions nommées. Une arête cible dessinée ici ne prouve pas qu’un module l’a déjà adoptée.
+
+## Assemblies cibles et sens des références
+
+Chaque flèche désigne une référence de compilation autorisée. L’API connaît les implémentations pour les enregistrer. Les appels entre propriétaires passent par les interfaces du domaine correspondant dans Contracts. La liste des références effectivement compilées à D19 figure dans [D19-graphe-final.tsv](D19-graphe-final.tsv).
+
+```mermaid
+flowchart TD
+    API["API et composition"] --> Chat["Conversations"]
+    API --> Sources["Documents et Workspaces"]
+    API --> RAG["Context, Memory, Retrieval et Indexing"]
+    API --> Transport["Inférence et Tools"]
+    Chat --> Ports["Alycia.Contracts"]
+    Sources --> Ports
+    RAG --> Ports
+    Transport --> Ports
+    API --> Data["Adaptateurs de persistance"]
+    Data --> Ports
+    Data --> Session["Session relationnelle"]
+    Client["Boréale"] --> Ports
+```

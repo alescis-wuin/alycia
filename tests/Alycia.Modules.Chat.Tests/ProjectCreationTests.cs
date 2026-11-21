@@ -107,6 +107,33 @@ public sealed class ProjectCreationTests
             Assert.Equal(retry.Id, (await audit.WorkspaceProfiles.AsNoTracking().SingleAsync()).Id);
         });
 
+    [PostgresFact]
+    public Task DiscoveryReadsEachOwnerOnceAcrossPageBoundaries() =>
+        WithDatabaseAsync(async (options, _) =>
+        {
+            await using var db = new ChatDbContext(options);
+            var owners = Enumerable.Range(0, 129).Select(n =>
+                Alycia.Modules.Chat.Domain.Conversation.Create("C" + n, "local", "")).ToArray();
+            db.Conversations.AddRange(owners);
+            await db.SaveChangesAsync();
+            var read = new ConversationIndexOwners(db);
+            var first = await read.PageAsync(null, 128, default);
+            Assert.Equal(128, first.Length);
+            var last = Assert.Single(await read.PageAsync(first[^1].Id, 128, default));
+            Assert.Empty(await read.PageAsync(last.Id, 128, default));
+            Assert.Equal(owners.Select(o => o.Id).Order(), first.Select(o => o.Id).Append(last.Id).Order());
+
+            var catalog = Catalog(db);
+            var a = await catalog.CreateAsync("Page A", default);
+            var b = await catalog.CreateAsync("Page B", default);
+            var profile = await catalog.GetAsync(b.Id, false, default);
+            await catalog.UpdateAsync(b.Id, profile.Revision, profile.Instructions, profile.DefaultModel, true, default);
+            var active = new ProjectIndexOwners(db);
+            var item = Assert.Single(await active.ActivePageAsync(null, 1, default));
+            Assert.Equal(a.Id, item.Id);
+            Assert.Empty(await active.ActivePageAsync(item.Id, 1, default));
+        });
+
     private static async Task WithDatabaseAsync(Func<DbContextOptions<ChatDbContext>, WorkspacesDbContext, Task> run)
     {
         var connection = Environment.GetEnvironmentVariable("ALYCIA_CHAT_TEST_CONNECTION")!;
