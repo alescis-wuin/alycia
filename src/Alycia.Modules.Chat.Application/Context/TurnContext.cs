@@ -23,7 +23,7 @@ public interface ITurnContext
         MeteredChatModel measured, TurnContextMode mode, Func<string, Task>? progress, CancellationToken ct);
 }
 
-public sealed class TurnContext(IChatRepository repository) : ITurnContext
+public sealed class TurnContext(IConversationContextReader repository) : ITurnContext
 {
     public async Task<TurnContextBudget> AllocateAsync(Conversation conversation, string text, ChatOptions options, bool useTools, CancellationToken ct)
     {

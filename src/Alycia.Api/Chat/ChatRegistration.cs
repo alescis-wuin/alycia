@@ -1,3 +1,4 @@
+using Alycia.Modules.Chat.Application.Conversations;
 using Alycia.Contracts.Workspaces;
 using Alycia.Platform.Persistence;
 using Alycia.Modules.Workspaces.Infrastructure;
@@ -43,6 +44,7 @@ internal static class ChatRegistration
     private static void RegisterConversations(IServiceCollection services)
     {
         services.AddScoped<IChatRepository, EfChatRepository>();
+        services.AddScoped<IConversationContextReader>(sp => sp.GetRequiredService<IChatRepository>());
         services.AddScoped<ConversationHistory>();
         services.AddScoped<ConversationSettingsService>();
         services.AddScoped<PromptCatalog>();

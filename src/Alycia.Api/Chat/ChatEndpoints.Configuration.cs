@@ -1,3 +1,4 @@
+using Alycia.Modules.Chat.Application.Conversations;
 using Alycia.Modules.Chat.Application;
 using Alycia.Modules.Chat.Application.Context;
 using Alycia.Modules.Chat.Infrastructure;

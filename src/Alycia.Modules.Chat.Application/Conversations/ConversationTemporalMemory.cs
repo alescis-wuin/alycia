@@ -1,4 +1,6 @@
-namespace Alycia.Modules.Chat.Application.Context;
+using Alycia.Modules.Chat.Application.Context;
+
+namespace Alycia.Modules.Chat.Application.Conversations;
 
 public sealed class ConversationTemporalMemory(IChatRepository repository, ITemporalMemoryIndex store)
 {

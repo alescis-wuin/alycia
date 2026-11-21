@@ -1,6 +1,8 @@
 using Alycia.Modules.Chat.Domain;
 
-namespace Alycia.Modules.Chat.Application.Context;
+using Alycia.Modules.Chat.Application.Context;
+
+namespace Alycia.Modules.Chat.Application.Conversations;
 
 public sealed record ContextPreparationResult(ContextWindow Context, ChatOptions Options, GenerationUsage Usage, int Revision, int OmittedMessages, string Estimator);
 

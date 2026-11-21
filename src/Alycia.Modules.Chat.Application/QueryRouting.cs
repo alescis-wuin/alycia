@@ -35,7 +35,7 @@ public static class QueryRouting
         return new(mode, reason, mode is "explore" or "retrieval", options.UseProjectTools && mode is "explore" or "retrieval" or "memory");
     }
 
-    public static async Task PrepareAsync(IChatRepository repository, Conversation conversation, string question,
+    public static async Task PrepareAsync(IConversationContextReader repository, Conversation conversation, string question,
         ChatOptions options, IProjectRetrieval? retrieval, MeteredChatModel measured, CancellationToken ct, ITemporalMemory? memory = null)
     {
         ct.ThrowIfCancellationRequested();

@@ -58,7 +58,7 @@ public static class TemporalMemory
             ? at : date == DateOnly.MaxValue ? DateTimeOffset.MaxValue : at.AddDays(1);
     }
 
-    public static async Task<PreparedContext> BuildAsync(IChatRepository repo, Conversation owner, string question, ChatOptions options, CancellationToken ct)
+    public static async Task<PreparedContext> BuildAsync(IConversationContextReader repo, Conversation owner, string question, ChatOptions options, CancellationToken ct)
     {
         var recall = options.Recall!;
         var turns = options.AutoSummarize ? Math.Max(options.MaxHistoryTurns, options.ProtectedHistoryTurns) : options.MaxHistoryTurns;

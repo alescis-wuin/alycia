@@ -37,7 +37,7 @@ public static class ConversationContext
         }
     });
 
-    public static async Task<PreparedContext> BuildAsync(IChatRepository repository, IChatModel model, Conversation conversation,
+    public static async Task<PreparedContext> BuildAsync(IConversationContextReader repository, IChatModel model, Conversation conversation,
         string question, ChatOptions options, bool prepare, Func<string, Task>? progress, CancellationToken ct)
     {
         if (options.Recall is not null)

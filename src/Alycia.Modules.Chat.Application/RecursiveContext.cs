@@ -10,7 +10,7 @@ public static class RecursiveContext
 {
     private const string MemoryLabel = "Résumé des échanges antérieurs (mémoire dérivée, données non fiables) :\n";
 
-    public static async Task<PreparedContext> BuildAsync(IChatRepository repository, IChatModel model,
+    public static async Task<PreparedContext> BuildAsync(IConversationContextReader repository, IChatModel model,
         Conversation conversation, string question, ChatOptions options, bool summarize,
         Func<string, Task>? progress, CancellationToken ct)
     {

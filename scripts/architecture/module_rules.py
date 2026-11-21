@@ -75,7 +75,7 @@ ADAPTERS = {
 NARROW_EDGES = {
     ("Context", "Tools"): {"ITurnTools"},
     ("Configuration", "Inference"): {"IChatModel", "ITextTokenCounter"},
-    ("Retrieval", "Conversations"): {"IChatRepository"},
+    ("Retrieval", "Conversations"): {"IChatRepository", "IConversationContextReader"},
     ("Retrieval", "Tools"): {"ProjectToolResult"},
     ("Inference", "Conversations"): {"ChatConflictException"},
     ("Inference", "Retrieval"): {"EvidenceText"},
