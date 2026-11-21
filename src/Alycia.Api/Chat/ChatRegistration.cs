@@ -24,7 +24,7 @@ internal static class ChatRegistration
         var options = new ChatOptions();
         builder.Configuration.GetSection("Chat").Bind(options);
         options.Validate();
-        builder.Services.AddSingleton(options);
+        builder.Services.AddTransient(_ => options.Copy());
         builder.Services.AddDbContext<ChatDbContext>(db => db.UseNpgsql(connection,
             provider => provider.MigrationsHistoryTable("__EFMigrationsHistory", "chat")));
         RegisterConversations(builder.Services);

@@ -27,8 +27,8 @@ public sealed partial class OllamaChatModel
     public async Task<ChatOptions> PrepareOptionsAsync(string model, ChatOptions settings, CancellationToken ct)
     {
         // Fail before progress events start the HTTP stream, including with conservative counting.
-        await SupportsToolsAsync(model, ct);
         var result = settings.Copy();
+        await SupportsToolsAsync(model, ct);
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeout.CancelAfter(TimeSpan.FromSeconds(20));
         try
@@ -41,21 +41,21 @@ public sealed partial class OllamaChatModel
             if (item.ValueKind == JsonValueKind.Undefined || !item.TryGetProperty("digest", out var digest) || string.IsNullOrWhiteSpace(digest.GetString())) return result;
             var identity = model + ":" + digest.GetString();
             result.ModelIdentity = identity;
-            var key = http.BaseAddress + "|" + identity + "|" + settings.TokenCounting;
+            var key = http.BaseAddress + "|" + identity + "|" + result.TokenCounting;
             if (Counters.TryGetValue(key, out var existing))
             {
                 result.TokenCounter = existing.Counter;
                 if (existing.ContextLimit is int maximum) result.ContextTokens = Math.Min(result.ContextTokens, maximum);
                 return result;
             }
-            using var request = new HttpRequestMessage(HttpMethod.Post, "api/show") { Content = JsonContent.Create(new { model, verbose = settings.TokenCounting == "auto" }) };
+            using var request = new HttpRequestMessage(HttpMethod.Post, "api/show") { Content = JsonContent.Create(new { model, verbose = result.TokenCounting == "auto" }) };
             using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token);
             response.EnsureSuccessStatusCode();
             await response.Content.LoadIntoBufferAsync(32 * 1024 * 1024, timeout.Token);
             await using var stream = await response.Content.ReadAsStreamAsync(timeout.Token);
             using var json = await JsonDocument.ParseAsync(stream, cancellationToken: timeout.Token);
             var hasMetadata = json.RootElement.TryGetProperty("model_info", out var info);
-            var counter = hasMetadata && settings.TokenCounting == "auto" ? QwenTokenCounter.FromMetadata(info) : null;
+            var counter = hasMetadata && result.TokenCounting == "auto" ? QwenTokenCounter.FromMetadata(info) : null;
             int? contextLimit = null;
             if (hasMetadata && info.TryGetProperty("general.architecture", out var architecture)
                 && info.TryGetProperty(architecture.GetString() + ".context_length", out var length)

@@ -11,6 +11,40 @@ public sealed class OllamaChatModelTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public async Task InFlightCallKeepsItsOriginalSettings(bool streaming)
+    {
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        using var http = Client(async (request, ct) =>
+        {
+            if (request.RequestUri!.AbsolutePath == "/api/tags")
+            {
+                entered.TrySetResult();
+                await release.Task.WaitAsync(ct);
+                return Json("""{"models":[{"name":"demo"}]}""");
+            }
+            if (request.RequestUri.AbsolutePath == "/api/show") return Json("""{"capabilities":["completion"]}""");
+            using var body = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(ct));
+            Assert.Equal(42, body.RootElement.GetProperty("options").GetProperty("seed").GetInt32());
+            return Json("""{"done":true,"done_reason":"stop","message":{"role":"assistant","content":"ok"}}""");
+        });
+        var model = new OllamaChatModel(http, new());
+        var settings = new ChatOptions { Seed = 42 };
+        var pending = streaming ? model.StreamAsync("demo", [], settings, _ => Task.CompletedTask, deadline.Token)
+            : model.GenerateReplyAsync("demo", [], settings, deadline.Token);
+        try
+        {
+            await entered.Task.WaitAsync(deadline.Token);
+            settings.Seed = 99;
+        }
+        finally { release.TrySetResult(); }
+        Assert.Equal("ok", (await pending).Content);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public async Task WaitingForOllamaDoesNotConsumeGenerationTimeout(bool streaming)
     {
         var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);

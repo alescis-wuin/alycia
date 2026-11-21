@@ -18,16 +18,16 @@ public sealed partial class OllamaChatModel
     private async Task<GenerationReply> StreamCoreAsync(string model, IReadOnlyList<PromptMessage> messages,
         ChatOptions settings, Func<ModelDelta, Task> onDelta, bool useTools, CancellationToken cancellationToken)
     {
-        settings.Validate();
+        var parameters = settings.GenerationParameters();
         try
         {
-            using var inference = await OllamaInferenceLease.AcquireAsync(TimeSpan.FromSeconds(settings.TimeoutSeconds),
-                cancellationToken, annotation: settings.CallPurpose == "annotation");
+            using var inference = await OllamaInferenceLease.AcquireAsync(TimeSpan.FromSeconds(parameters.TimeoutSeconds),
+                cancellationToken, annotation: parameters.CallPurpose == "annotation");
             var details = await ValidateChatModelAsync(model, inference.Token);
             if (useTools && !details.Capabilities!.Contains("tools", StringComparer.Ordinal))
                 throw new ChatModelException("Ce modèle n’annonce pas la capacité tools. Choisissez un modèle compatible ou désactivez les outils.");
             var payload = new Dictionary<string, object>
-            { ["model"] = model, ["messages"] = messages, ["stream"] = true, ["options"] = GenerationOptions(settings) };
+            { ["model"] = model, ["messages"] = messages, ["stream"] = true, ["options"] = GenerationOptions(parameters) };
             if (useTools) payload["tools"] = ProjectToolCatalog.OllamaTools();
             using var request = new HttpRequestMessage(HttpMethod.Post, "api/chat") { Content = JsonContent.Create(payload) };
             using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, inference.Token);
@@ -77,7 +77,7 @@ public sealed partial class OllamaChatModel
                 {
                     if (string.IsNullOrWhiteSpace(content.ToString()) && calls.Count == 0)
                         throw new ChatModelException("Ollama a terminé sans réponse. Augmentez la réserve de sortie si le modèle raisonne.");
-                    ValidateCompletion(root.TryGetProperty("done_reason", out var finish) ? finish.GetString() : null, settings);
+                    ValidateCompletion(root.TryGetProperty("done_reason", out var finish) ? finish.GetString() : null, parameters);
                     return new(content.ToString(), new(Number(root, "prompt_eval_count"), Number(root, "eval_count"),
                         Long(root, "total_duration"), Long(root, "eval_duration"),
                         root.TryGetProperty("done_reason", out var reason) ? reason.GetString() : null,

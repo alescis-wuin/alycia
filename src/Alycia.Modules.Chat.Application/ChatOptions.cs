@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Alycia.Contracts.Inference;
 
 namespace Alycia.Modules.Chat.Application;
 
@@ -22,6 +23,13 @@ public sealed class ChatOptions : ChatSettings
     internal (int History, int Memory) LimitMemoryBudget(int available) =>
         (HistoryContextTokens > 0 ? Math.Min(available, HistoryContextTokens) : available,
          MemoryContextTokens > 0 ? Math.Min(available, MemoryContextTokens) : available);
+
+    public GenerationParameters GenerationParameters()
+    {
+        Validate();
+        return new(ContextTokens, MaxOutputTokens, GenerateUntilStop, Temperature, Seed, TimeoutSeconds,
+            CallPurpose, ResponseSchema?.Clone());
+    }
 
     public ChatOptions Copy() => (ChatOptions)MemberwiseClone();
 }

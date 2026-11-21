@@ -98,11 +98,11 @@ public sealed partial class OllamaChatModel(HttpClient http, ChatOptions options
 
     public async Task<GenerationReply> GenerateReplyAsync(string model, IReadOnlyList<PromptMessage> messages, ChatOptions settings, CancellationToken cancellationToken)
     {
-        settings.Validate();
+        var parameters = settings.GenerationParameters();
         try
         {
-            using var inference = await OllamaInferenceLease.AcquireAsync(TimeSpan.FromSeconds(settings.TimeoutSeconds),
-                cancellationToken, annotation: settings.CallPurpose == "annotation");
+            using var inference = await OllamaInferenceLease.AcquireAsync(TimeSpan.FromSeconds(parameters.TimeoutSeconds),
+                cancellationToken, annotation: parameters.CallPurpose == "annotation");
             await ValidateChatModelAsync(model, inference.Token);
 
             var request = new Dictionary<string, object>
@@ -110,12 +110,12 @@ public sealed partial class OllamaChatModel(HttpClient http, ChatOptions options
                 ["model"] = model,
                 ["messages"] = messages,
                 ["stream"] = false,
-                ["options"] = GenerationOptions(settings)
+                ["options"] = GenerationOptions(parameters)
             };
             // Auxiliary tasks have a bounded output budget; do not spend it on optional reasoning.
             // This does not change the reasoning setting of conversational/tool turns.
-            if (settings.CallPurpose is "summary" or "memory" or "annotation") request["think"] = false;
-            if (settings.ResponseSchema is { } schema) request["format"] = schema;
+            if (parameters.CallPurpose is "summary" or "memory" or "annotation") request["think"] = false;
+            if (parameters.ResponseSchema is { } schema) request["format"] = schema;
             using var response = await http.PostAsJsonAsync("api/chat", request, inference.Token);
             if (!response.IsSuccessStatusCode)
             {
@@ -123,7 +123,7 @@ public sealed partial class OllamaChatModel(HttpClient http, ChatOptions options
             }
 
             var payload = await response.Content.ReadFromJsonAsync<ChatReply>(inference.Token);
-            var stage = settings.CallPurpose switch { "summary" => "le résumé interne", "memory" => "l’extraction de mémoire", _ => "la génération" };
+            var stage = parameters.CallPurpose switch { "summary" => "le résumé interne", "memory" => "l’extraction de mémoire", _ => "la génération" };
             if (payload is not { Done: true, Message.Role: "assistant" })
             {
                 throw new ChatModelException($"Ollama a renvoyé une réponse incomplète pendant {stage} : fin non confirmée ou rôle invalide.");
@@ -136,14 +136,14 @@ public sealed partial class OllamaChatModel(HttpClient http, ChatOptions options
                 var thinking = string.IsNullOrWhiteSpace(payload.Message.Thinking) ? "" : " Le modèle a produit du raisonnement sans réponse finale.";
                 throw new ChatModelException($"Ollama a renvoyé un contenu vide pendant {stage}. {reason}{thinking}", stats, ChatModelFailure.EmptyContent);
             }
-            ValidateCompletion(payload.DoneReason, settings);
+            ValidateCompletion(payload.DoneReason, parameters);
             return new(payload.Message.Content, stats);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            throw new ChatModelException(settings.CallPurpose == "annotation"
-                ? $"Synthèse d’indexation interrompue après {settings.TimeoutSeconds} s. Augmentez le délai d’enrichissement dans les réglages d’indexation ou choisissez un modèle plus petit."
-                : $"Le délai de génération Ollama ({settings.TimeoutSeconds} s) est dépassé. Augmentez le délai dans les réglages de la conversation ou choisissez un modèle plus petit.",
+            throw new ChatModelException(parameters.CallPurpose == "annotation"
+                ? $"Synthèse d’indexation interrompue après {parameters.TimeoutSeconds} s. Augmentez le délai d’enrichissement dans les réglages d’indexation ou choisissez un modèle plus petit."
+                : $"Le délai de génération Ollama ({parameters.TimeoutSeconds} s) est dépassé. Augmentez le délai dans les réglages de la conversation ou choisissez un modèle plus petit.",
                 failure: ChatModelFailure.Timeout);
         }
         catch (HttpRequestException)
@@ -179,7 +179,7 @@ public sealed partial class OllamaChatModel(HttpClient http, ChatOptions options
         public bool SupportsChat => Capabilities?.Contains("completion", StringComparer.Ordinal) == true
             && string.IsNullOrEmpty(RemoteModel) && string.IsNullOrEmpty(RemoteHost);
     }
-    private static void ValidateCompletion(string? reason, ChatOptions settings)
+    private static void ValidateCompletion(string? reason, IGenerationSettings settings)
     {
         if (settings.GenerateUntilStop && reason != "stop")
             throw new ChatModelException(reason == "length"
