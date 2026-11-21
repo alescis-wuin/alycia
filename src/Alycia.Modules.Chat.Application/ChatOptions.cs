@@ -29,7 +29,7 @@ public sealed class ChatOptions : ChatSettings
     private ChatOptions(ChatOptions source) : base(source)
     {
         ResponseSchema = source.ResponseSchema?.Clone();
-        SourceCandidates = source.SourceCandidates?.Select(c => c with { References = [.. c.References] }).ToArray();
+        SourceCandidates = SearchSnapshots.CopyChunks(source.SourceCandidates);
         RetrievalReport = SearchSnapshots.Copy(source.RetrievalReport);
         Route = source.Route;
         EligibleSourceIds = source.EligibleSourceIds?.ToFrozenSet();
@@ -39,6 +39,33 @@ public sealed class ChatOptions : ChatSettings
         TokenCounter = source.TokenCounter;
         ModelIdentity = source.ModelIdentity;
         CallPurpose = source.CallPurpose;
+    }
+
+    public RoutingRequest RoutingRequest()
+    {
+        var plan = QueryRewriteEnabled || AgentPlanningEnabled || FacetPlanningEnabled || ClassificationEnabled || QueryBriefModelEnabled;
+        var needsSources = RoutingMode != "off" || plan || TemporalMemoryEnabled || EvidenceSelectionEnabled || VerificationSearchEnabled;
+        var scope = new PlannedQuery(UseProjectTools, Route, EligibleSourceIds?.ToFrozenSet(), PinnedSourceIds?.ToFrozenSet(), SearchPlan);
+        var initial = new RoutingState(scope, Recall, SourceCandidates, RetrievalReport);
+        return new(new(RoutingMode, 2 * (AutoSummarize ? ProtectedHistoryTurns : MaxHistoryTurns), MaxSearchQueries,
+            plan, FacetPlanningEnabled || QueryBriefModelEnabled,
+            QueryBriefModelEnabled && Enrichment.Model.Length > 0
+                ? new BriefGeneration(Enrichment.Model, Enrichment.InputTokens, Enrichment.OutputTokens, Enrichment.TimeoutSeconds) : null), needsSources,
+            TemporalMemoryEnabled ? TemporalRecallSettings.Capture(this) : null, ProjectSearch(), initial);
+    }
+
+    public ChatOptions WithRouting(RoutingState state)
+    {
+        var result = Copy();
+        result.UseProjectTools = state.Query.UseTools;
+        result.Route = state.Query.Route;
+        result.EligibleSourceIds = state.Query.Eligible;
+        result.PinnedSourceIds = state.Query.Pinned;
+        result.Recall = state.Recall;
+        result.SearchPlan = state.Query.Plan;
+        result.SourceCandidates = state.Chunks;
+        result.RetrievalReport = state.Report;
+        return result;
     }
 
     public ProjectSearch ProjectSearch() => new(

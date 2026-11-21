@@ -9,9 +9,6 @@ public sealed record ProjectExcerpts(string Text, IReadOnlyList<SourceExcerpt> S
 public static class ProjectContext
 {
     public static bool IsCode(string path) => SourceFileType.IsCode(path);
-    public static bool Eligible(TurnFile file, int first, int last) => file.Text.Length > 0
-        && file.ContextMode != "excluded" && file.AnchorSequence <= last
-        && (file.ContextMode is "pinned" or "project" || file.AnchorSequence >= first);
 
     public static ProjectExcerpts Select(IEnumerable<TurnFile> input, string question, int budget, ChatOptions? options = null)
     {

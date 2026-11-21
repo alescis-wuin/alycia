@@ -9,7 +9,7 @@ public interface IChatTurnScope : IAsyncDisposable
     Task CommitAsync(CancellationToken ct);
 }
 
-public interface IChatRepository : IConversationContextReader, IToolHistoryReader
+public interface IChatRepository : IConversationContextReader, IToolHistoryReader, IQuerySources
 {
     Task<IChatTurnScope?> BeginTurnAsync(Guid id, CancellationToken ct) => Task.FromResult<IChatTurnScope?>(null);
     Task<Conversation?> FindAsync(Guid id, CancellationToken ct);

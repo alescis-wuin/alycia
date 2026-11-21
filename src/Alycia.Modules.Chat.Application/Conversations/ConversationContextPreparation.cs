@@ -11,7 +11,7 @@ namespace Alycia.Modules.Chat.Application.Conversations;
 public sealed record ContextPreparationResult(ContextWindow Context, ChatOptions Options, GenerationUsage Usage, int Revision, int OmittedMessages, string Estimator);
 
 public sealed class ConversationContextPreparation(IChatRepository repository, IChatModel model, ITurnTools tools, ITurnContext turnContext,
-    IConversationMemory memoryWriter, IProjectRetrieval retrieval, ITemporalMemory memory, ChatOptions defaults, GenerationGate gate)
+    IConversationMemory memoryWriter, ITurnRouter routing, ChatOptions defaults, GenerationGate gate)
 {
     private sealed record Inputs(Conversation Conversation, ContextConversation ContextOwner, string Text, ChatOptions Options, MeteredChatModel Measured, TurnContextBudget Budget);
 
@@ -48,7 +48,10 @@ public sealed class ConversationContextPreparation(IChatRepository repository, I
     private async Task<Inputs> RouteAsync(Conversation conversation, string text, ChatOptions options, CancellationToken ct)
     {
         var measured = new MeteredChatModel(model);
-        await QueryRouting.PrepareAsync(repository, conversation.Id, conversation.MessageCount, text, options, retrieval, measured, ct, memory);
+        var routed = await routing.PrepareAsync(conversation.Id, conversation.MessageCount, text, options.RoutingRequest(),
+            new QueryBriefRefiner(measured), null, ct);
+        measured.AddCalls(routed.Calls);
+        options = options.WithRouting(routed.State);
         var useTools = await tools.AvailableForContextAsync(new ToolTurnScope(conversation.Id, conversation.WorkspaceId, conversation.Model),
             options.UseProjectTools, model, ct);
         var contextOwner = conversation.ForContext(options);

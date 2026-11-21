@@ -1,3 +1,4 @@
+using Alycia.Modules.Retrieval;
 using Alycia.Contracts.Retrieval;
 using Alycia.Contracts.Indexing;
 using Alycia.Modules.Chat.Application;
@@ -16,10 +17,10 @@ public class RoutingAndRerankTests
     public void RoutingUsesIntentAndRespectsToolPermission(string question, string mode)
     {
         var settings = new ChatOptions { RoutingMode = "auto", UseProjectTools = false };
-        var route = QueryRouting.Decide(question, settings, [new Attachment { Name = "Plan.cs", ContextMode = "project" }.ToTurnFile()]);
+        var route = QueryPlanner.Decide(question, settings.RoutingMode, settings.UseProjectTools, [new Attachment { Name = "Plan.cs", ContextMode = "project" }.ToTurnFile()]);
         Assert.Equal(mode, route.Mode);
         Assert.False(route.Tools);
-        Assert.True(QueryRouting.Decide("Bonjour", settings, [new Attachment { Name = "memo.md", ContextMode = "pinned" }.ToTurnFile()]).Search);
+        Assert.True(QueryPlanner.Decide("Bonjour", settings.RoutingMode, settings.UseProjectTools, [new Attachment { Name = "memo.md", ContextMode = "pinned" }.ToTurnFile()]).Search);
     }
 
     [Fact]
@@ -29,12 +30,12 @@ public class RoutingAndRerankTests
         var question = "Lis secret.md";
         var other = new Attachment { Name = "public.md", ContextMode = "project" };
         var hidden = new Attachment { Name = "secret.md", ContextMode = "excluded" };
-        var absent = QueryRouting.Decide(question, options, [other.ToTurnFile()]);
+        var absent = QueryPlanner.Decide(question, options.RoutingMode, options.UseProjectTools, [other.ToTurnFile()]);
         Assert.Equal("unavailable", absent.Mode);
         Assert.False(absent.Search);
         Assert.False(absent.Tools);
-        Assert.Equal(absent, QueryRouting.Decide(question, options, [other.ToTurnFile(), hidden.ToTurnFile()]));
-        Assert.True(QueryRouting.Decide("Lis public.md", options, [other.ToTurnFile(), hidden.ToTurnFile()]).Search);
+        Assert.Equal(absent, QueryPlanner.Decide(question, options.RoutingMode, options.UseProjectTools, [other.ToTurnFile(), hidden.ToTurnFile()]));
+        Assert.True(QueryPlanner.Decide("Lis public.md", options.RoutingMode, options.UseProjectTools, [other.ToTurnFile(), hidden.ToTurnFile()]).Search);
     }
 
     [Fact]

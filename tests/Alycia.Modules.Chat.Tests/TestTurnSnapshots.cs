@@ -1,3 +1,4 @@
+using Alycia.Contracts.Retrieval;
 using Alycia.Contracts.Context;
 using Alycia.Contracts.Documents;
 using Alycia.Contracts.Tools;
@@ -33,6 +34,12 @@ internal interface ITestConversationRepository : IChatRepository
     async Task<IReadOnlyList<HistoryMessage>> ITurnHistory.SummaryRangeAsync(Guid id, int after, int through, CancellationToken ct) =>
         (await MessagesAsync(id, through - after, through + 1, ct)).Where(m => m.Sequence > after && m.Sequence <= through)
             .Select(m => m.ToHistory()).ToArray();
+
+    async Task<IReadOnlyList<QueryHistoryItem>> IQuerySources.RecentForQueryAsync(Guid id, int limit, CancellationToken ct) =>
+        (await MessagesAsync(id, limit, null, ct)).Select(m => new QueryHistoryItem(m.ConversationId, m.Sequence, m.Role, m.Content)).ToArray();
+
+    Task<IReadOnlyList<TurnFile>> IQuerySources.ContextFilesAsync(Guid id, int first, CancellationToken ct) =>
+        ((IConversationContextReader)this).ContextFilesAsync(id, first, ct);
 
     async Task<IReadOnlyList<TurnFile>> IConversationContextReader.ContextFilesAsync(Guid id, int first, CancellationToken ct) =>
         (await FilesAsync(id, ct)).Where(f => f.ContextMode != "excluded" &&

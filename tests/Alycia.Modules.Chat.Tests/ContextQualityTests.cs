@@ -1,3 +1,5 @@
+using Alycia.Contracts.Retrieval;
+using Alycia.Modules.Retrieval;
 using System.Text.Json;
 using Alycia.Modules.Chat.Application;
 using Alycia.Modules.Chat.Domain;
@@ -13,11 +15,11 @@ public class ContextQualityTests
         var id = Guid.NewGuid(); var request = Guid.NewGuid();
         var turns = new[] { new ChatMessage(id, 1, request, "user", "Ouvre src/A.cs"),
             new ChatMessage(id, 2, request, "assistant", "Je propose B.cs.") };
-        var plan = QueryPlanning.Build("Et ce fichier ?", turns.Select(m => m.ToHistory()).ToArray(), [], 3);
+        var plan = QueryPlanning.Build("Et ce fichier ?", turns.Select(m => new QueryHistoryItem(m.ConversationId, m.Sequence, m.Role, m.Content)).ToArray(), [], 3);
         Assert.Equal("Et ce fichier ?", plan.Original);
         Assert.Contains(plan.Queries, q => q is { Kind: "exact", Text: "src/A.cs" });
         Assert.StartsWith("H1:", Assert.Single(plan.Resolved).Reference);
-        Assert.True(QueryPlanning.Build("Et cette version ?", [new(id, 3, request, "user", "A.cs et B.cs", DateTimeOffset.UnixEpoch)], [], 3).Ambiguous);
+        Assert.True(QueryPlanning.Build("Et cette version ?", [new(id, 3, "user", "A.cs et B.cs")], [], 3).Ambiguous);
         Assert.Empty(QueryPlanning.Build("Et avant ?", [], [], 3).Resolved);
         Assert.Equal(2, QueryPlanning.Build("Compare A.cs et B.cs", [], [], 2).Queries.Length);
     }
