@@ -1,3 +1,4 @@
+using Alycia.Contracts.Tools;
 using Alycia.Modules.Chat.Application.Context;
 using Alycia.Modules.Chat.Domain;
 
@@ -60,12 +61,13 @@ public sealed class ChatService(IChatRepository repository, IChatModel model, Ch
         using var priority = foreground.PreferForeground();
         var measured = new MeteredChatModel(model);
         await routing.PrepareAsync(conversation, text, settings, measured, onDelta, cancellationToken);
-        var activeTools = await tools.SelectAsync(conversation, settings, model, cancellationToken);
+        var toolScope = new ToolTurnScope(conversation.Id, conversation.WorkspaceId, conversation.Model);
+        var activeTools = await tools.SelectAsync(toolScope, settings.UseProjectTools, model, cancellationToken);
         var budget = await turnContext.AllocateAsync(conversation, text, settings, activeTools is not null, cancellationToken);
         var context = await turnContext.BuildAsync(conversation, text, budget, model, measured, TurnContextMode.Send,
             onDelta is null ? null : status => onDelta(new("", Status: status)), cancellationToken);
         var window = context.Window;
-        var generated = await tools.GenerateAsync(measured, activeTools, conversation, window, settings, onDelta, cancellationToken);
+        var generated = await tools.GenerateAsync(measured, activeTools, toolScope, window, settings, onDelta, cancellationToken);
         var review = await audit.ReviewAsync(id, generated, window, settings, measured, onDelta, cancellationToken);
         var user = new ChatMessage(id, conversation.MessageCount + 1, requestId, "user", text);
         var assistant = new ChatMessage(id, conversation.MessageCount + 2, requestId, "assistant", review.Reply);
