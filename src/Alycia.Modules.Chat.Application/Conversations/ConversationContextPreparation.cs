@@ -51,7 +51,7 @@ public sealed class ConversationContextPreparation(IChatRepository repository, I
     private async Task<ContextPreparationResult> BuildAsync(Inputs inputs, TurnContextMode mode, Func<string, Task>? progress, CancellationToken ct)
     {
         var result = await turnContext.BuildAsync(inputs.Conversation, inputs.Text, inputs.Budget, model, inputs.Measured, mode, progress, ct);
-        if (mode == TurnContextMode.PrepareMemory && memoryWriter.Apply(inputs.Conversation, result.Prepared))
+        if (mode == TurnContextMode.PrepareMemory && memoryWriter.Apply(inputs.Conversation, result.Prepared?.MemoryChange()))
             await repository.SaveAsync(ct);
         return new(result.Window, inputs.Options, inputs.Measured.Snapshot(inputs.Options), inputs.Conversation.Revision,
             inputs.Conversation.MessageCount - result.Window.HistoryMessagesIncluded, TokenBudget.Description(inputs.Options));

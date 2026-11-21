@@ -69,7 +69,7 @@ public sealed class ChatService(IChatRepository repository, IChatModel model, Ch
         var user = new ChatMessage(id, conversation.MessageCount + 1, requestId, "user", text);
         var assistant = new ChatMessage(id, conversation.MessageCount + 2, requestId, "assistant", review.Reply);
         TurnResponseAudit.AttachToolTrace(assistant, generated.Tools);
-        memory.Apply(conversation, context.Prepared);
+        memory.Apply(conversation, context.Prepared?.MemoryChange());
         var usage = measured.Snapshot(settings);
         TurnResponseAudit.AttachDiagnostics(assistant, conversation, generated, window, settings, usage, review);
         conversation.CompleteTurn();

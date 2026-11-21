@@ -66,7 +66,6 @@ ADAPTERS = {
     "Documents": {"ImportSettingsStore", "EfChatRepository", "WorkspaceSources"},
     "Indexing": {"CodeStructure", "FileStorage", "ProjectSource", "ProjectSourceReader", "StructuredDocuments",
                  "ProjectProfiles", "WorkspaceSources"},
-    "Memory": {"KnowledgeStore"},
     "Projects": {"EfChatRepository", "FileImport", "FileStorage", "FileSummary", "ProjectSourceReader"},
     "Tools": {"EfChatRepository", "CodeStructure", "ProjectSourceReader", "ProjectIndexService", "WorkspaceSources"},
 }

@@ -4,7 +4,10 @@ using Alycia.Modules.Chat.Domain;
 
 namespace Alycia.Modules.Chat.Application;
 
-public sealed record PreparedContext(ContextWindow Context, string Memory, int Through, string SourceHash, bool Changed, string? LedgerJson = null);
+public sealed record PreparedContext(ContextWindow Context, string Memory, int Through, string SourceHash, bool Changed, string? LedgerJson = null)
+{
+    public PreparedMemoryChange? MemoryChange() => Changed ? new(Memory, Through, SourceHash, LedgerJson) : null;
+}
 
 public static class RecursiveContext
 {

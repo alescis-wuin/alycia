@@ -89,6 +89,7 @@ internal static class ChatRegistration
         services.AddScoped<IProjectIndex, ProjectIndexService>();
         services.AddScoped<IndexCatalog>();
         services.AddScoped<KnowledgeStore>();
+        services.AddScoped<IHistoryKnowledge>(sp => sp.GetRequiredService<KnowledgeStore>());
         services.AddScoped<KnowledgeBuilder>();
         services.AddScoped(_ => new PostgresEmbeddingStore(connection));
         services.AddScoped<IConversationIndexOwners, ConversationIndexOwners>();

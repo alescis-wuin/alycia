@@ -15,15 +15,15 @@ public sealed class StructuredMemoryTests
         var prepared = new PreparedContext(new([], 0, 0), "Résumé du premier tour", 2, "source", true);
         var revision = conversation.Revision;
         Assert.False(memory.Apply(conversation, null));
-        Assert.False(memory.Apply(conversation, prepared with { Changed = false }));
+        Assert.False(memory.Apply(conversation, (prepared with { Changed = false }).MemoryChange()));
         Assert.Equal(revision, conversation.Revision);
 
-        Assert.True(memory.Apply(conversation, prepared));
+        Assert.True(memory.Apply(conversation, prepared.MemoryChange()));
         Assert.Equal(("Résumé du premier tour", 2, "source", "demo"),
             (conversation.MemoryText, conversation.MemoryThroughSequence, conversation.MemorySourceHash, conversation.MemoryModel));
         Assert.Equal("{}", conversation.MemoryLedgerJson);
         var ledger = StructuredMemory.Serialize(new(1, 2, "chain", []));
-        Assert.True(memory.Apply(conversation, prepared with { LedgerJson = ledger, Memory = "ignoré" }));
+        Assert.True(memory.Apply(conversation, (prepared with { LedgerJson = ledger, Memory = "ignoré" }).MemoryChange()));
         Assert.Equal(ledger, conversation.MemoryLedgerJson);
         Assert.Equal("Résumé du premier tour", conversation.MemoryText);
         Assert.Equal(0, repo.Saves);

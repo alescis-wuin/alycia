@@ -2,18 +2,20 @@ using Alycia.Modules.Chat.Domain;
 
 namespace Alycia.Modules.Chat.Application;
 
+public sealed record PreparedMemoryChange(string Memory, int Through, string SourceHash, string? LedgerJson);
+
 public interface IConversationMemory
 {
-    bool Apply(Conversation conversation, PreparedContext? prepared);
+    bool Apply(Conversation conversation, PreparedMemoryChange? prepared);
     Task<Conversation> ResetAsync(Guid id, int revision, CancellationToken ct);
 }
 
 public sealed class ConversationMemory(IChatRepository repository) : IConversationMemory
 {
     // The caller persists a prepared change together with its turn or context preparation.
-    public bool Apply(Conversation conversation, PreparedContext? prepared)
+    public bool Apply(Conversation conversation, PreparedMemoryChange? prepared)
     {
-        if (prepared is not { Changed: true }) return false;
+        if (prepared is null) return false;
         if (prepared.LedgerJson is not null)
             conversation.SetMemoryLedger(prepared.LedgerJson);
         else

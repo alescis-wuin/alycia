@@ -7,7 +7,7 @@ using NpgsqlTypes;
 namespace Alycia.Modules.Chat.Infrastructure;
 
 // Independent writes checkpoint one immutable unit. Reads for chat use the caller's database snapshot.
-public sealed class KnowledgeStore(ChatDbContext database)
+public sealed class KnowledgeStore(ChatDbContext database) : IHistoryKnowledge
 {
     private readonly string _connection = database.Database.GetConnectionString()!;
     public Task PurgeExcludedAsync(CancellationToken ct) => database.Database.ExecuteSqlRawAsync("""

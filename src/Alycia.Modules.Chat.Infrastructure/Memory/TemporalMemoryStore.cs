@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Alycia.Modules.Chat.Infrastructure;
 
-public sealed class TemporalMemoryStore(ChatDbContext database, IIndexedEmbeddings vectors, ChatOptions defaults, KnowledgeStore? knowledge = null)
+public sealed class TemporalMemoryStore(ChatDbContext database, IIndexedEmbeddings vectors, ChatOptions defaults, IHistoryKnowledge? knowledge = null)
     : ITemporalMemory, ITemporalMemoryIndex
 {
     private const int Version = 1;
