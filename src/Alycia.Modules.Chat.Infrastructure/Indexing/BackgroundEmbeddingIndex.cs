@@ -22,7 +22,7 @@ public sealed class BackgroundEmbeddingIndex(ChatDbContext database, PostgresEmb
         if (conversation is not null)
         {
             var options = ConversationConfiguration.Options(conversation, defaults);
-            if (!options.Enrichment.Enabled && (options.RetrievalMode != "hybrid" || string.IsNullOrWhiteSpace(options.EmbeddingModel)))
+            if (!EmbeddingSettings.RequiresJob(options))
             { await store.DeleteJobAsync(job, ct); return; }
         }
         if (!job.IsDue(DateTimeOffset.UtcNow)) return;

@@ -8,8 +8,17 @@ namespace Alycia.Modules.Chat.Infrastructure;
 
 public sealed record EmbeddingSettings(string Model, int BatchSize, int ChunkCharacters, bool History, string SourceRevision = "", bool Hierarchical = false, string DocumentPrefix = "", string QueryPrefix = "", EnrichmentOptions? Enrichment = null)
 {
-    public static EmbeddingSettings From(IIndexSettings options) => new(options.RetrievalMode == "hybrid" || !options.Enrichment.Enabled ? options.EmbeddingModel : "", options.EmbeddingBatchSize,
-        options.EmbeddingChunkCharacters, options.EmbedHistory, Hierarchical: options.HierarchicalIndexEnabled,
+    internal static bool RequiresJob(IIndexSettings options) =>
+        options.Enrichment.Enabled || options.RetrievalMode == "hybrid" && !string.IsNullOrWhiteSpace(options.EmbeddingModel);
+
+    public static EmbeddingSettings From(IIndexSettings options) =>
+        Capture(options, options.RetrievalMode == "hybrid" || !options.Enrichment.Enabled ? options.EmbeddingModel : "");
+
+    // A direct query uses the selected encoder even when background jobs only perform enrichment.
+    internal static EmbeddingSettings ForQuery(IIndexSettings options) => Capture(options, options.EmbeddingModel);
+
+    private static EmbeddingSettings Capture(IIndexSettings options, string model) => new(
+        model, options.EmbeddingBatchSize, options.EmbeddingChunkCharacters, options.EmbedHistory, Hierarchical: options.HierarchicalIndexEnabled,
         DocumentPrefix: options.EmbeddingDocumentPrefix, QueryPrefix: options.EmbeddingQueryPrefix, Enrichment: options.Enrichment.Enabled ? options.Enrichment : null);
     public bool Versioned => Hierarchical || DocumentPrefix.Length > 0 || QueryPrefix.Length > 0;
     public string VectorSpace(string digest, int dimensions) => !Versioned ? digest : digest + ":pipeline-v4:" + dimensions + ":"

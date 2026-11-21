@@ -112,6 +112,9 @@ public sealed class ChatTests
         var citedId = Guid.NewGuid();
         string citedHash = new string('a', 64);
         var fail = false;
+        var pauseSend = false;
+        var pausedRequestId = Guid.Empty;
+        var paused = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         Action? beforeFailure = null;
         using var http = new HttpClient(new Handler(async (request, ct) =>
         {
@@ -130,7 +133,8 @@ public sealed class ChatTests
 
             if (request.Method == HttpMethod.Get && path.EndsWith("/search"))
             {
-                return Json(new ConversationSearch(conversation is null ? [] : [conversation], false));
+                var empty = request.RequestUri.Query.Contains("sans-resultat", StringComparison.Ordinal);
+                return Json(new ConversationSearch(conversation is null || empty ? [] : [conversation], false));
             }
 
             if (request.Method == HttpMethod.Get && path.EndsWith("/settings"))
@@ -184,6 +188,12 @@ public sealed class ChatTests
                 return Json(conversation, HttpStatusCode.Created);
             }
 
+            if (pauseSend)
+            {
+                pausedRequestId = root.GetProperty("requestId").GetGuid();
+                paused.SetResult();
+                await Task.Delay(Timeout.Infinite, ct);
+            }
             if (fail)
             {
                 beforeFailure?.Invoke();
@@ -294,6 +304,21 @@ public sealed class ChatTests
             PumpUntil(() => diagnostics.GetVisualDescendants().OfType<SelectableTextBlock>().Any(t => t.Text?.Contains("S000000000000") == true));
             Click(window, "CloseInspector");
             Assert.False(window.FindControl<Border>("Inspector")!.IsVisible);
+            window.FindControl<TextBox>("MessageInput")!.Text = "Brouillon privé";
+            evidence.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            PumpUntil(() => window.FindControl<Border>("Inspector")!.IsVisible);
+            window.FindControl<TextBox>("SearchInput")!.Text = "sans-resultat";
+            Click(window, "SearchButton");
+            Assert.False(window.FindControl<Border>("Inspector")!.IsVisible);
+            Assert.Empty(window.FindControl<StackPanel>("InspectorBody")!.Children);
+            Assert.Equal("", window.FindControl<TextBox>("MessageInput")!.Text);
+            Assert.Equal(0, window.FindControl<ItemsControl>("MessageList")!.ItemCount);
+            window.FindControl<TextBox>("SearchInput")!.Text = "";
+            Click(window, "SearchButton");
+            Assert.Equal("Brouillon privé", window.FindControl<TextBox>("MessageInput")!.Text);
+            Assert.Equal(3, window.FindControl<ItemsControl>("MessageList")!.ItemCount);
+            window.FindControl<TextBox>("MessageInput")!.Text = "";
+
             // Optional visual evidence from the actual Avalonia/Skia rendering.
             if (Environment.GetEnvironmentVariable("ALYCIA_UI_CAPTURE") is { Length: > 0 } screenshot)
             {
@@ -392,8 +417,16 @@ public sealed class ChatTests
             window.KeyRelease(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
             PumpUntil(() => window.OwnedWindows.Count == 0 && window.FindControl<Button>("RefreshButton")!.IsEnabled);
 
-            fail = true;
             window.FindControl<TextBox>("MessageInput")!.Text = "Conserver ce brouillon";
+            pauseSend = true;
+            window.FindControl<Button>("SendButton")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            PumpUntil(() => paused.Task.IsCompletedSuccessfully);
+            Assert.False(window.FindControl<ComboBox>("ProjectSelector")!.IsEnabled);
+            Click(window, "CancelButton");
+            Assert.Equal("Conserver ce brouillon", window.FindControl<TextBox>("MessageInput")!.Text);
+            Assert.Equal(pausedRequestId, new DraftStore(stateDirectory).Get(conversation.Id)!.RequestId);
+            pauseSend = false;
+            fail = true;
             beforeFailure = () => window.FindControl<TextBox>("MessageInput")!.Text = "";
             Click(window, "SendButton");
             Assert.Equal("Conserver ce brouillon", window.FindControl<TextBox>("MessageInput")!.Text);

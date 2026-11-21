@@ -18,7 +18,7 @@ public partial class ChatWindow
             ShowPage("Documents").Children.Add(Label("Ouvrez une conversation ou choisissez un projet."));
             return;
         }
-        Indexing.Select(owner, project);
+        FollowIndexScope(new(owner, project));
         var ct = _lifetime.Token;
         var documents = await DocumentList.LoadAsync(_client, owner, project, ct);
         var body = ShowPage(project ? "Documents du projet" : "Documents de la conversation");

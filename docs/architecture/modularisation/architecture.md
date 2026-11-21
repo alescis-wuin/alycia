@@ -55,3 +55,20 @@ The [storage inventory](baseline.md) and [ownership decisions](ownership.md) app
 ## Verifying a change
 
 Run `python3 scripts/check-modules.py` from a checkout. Follow the [parallel contribution guide](CONTRIBUTING-AGENTS.md) to assign a domain, freeze its contract, test it and integrate changes. The [execution report](rapport-execution.md) links the actual test and benchmark results.
+
+## Frontières internes consolidées
+
+La garde de `scripts/check.sh` vérifie aussi les liens entre propriétaires de Chat.Application et Chat.Infrastructure. Elle utilise Python et le compilateur Roslyn livré avec le SDK .NET 10. Le petit projet de lecture de symboles se trouve sous `scripts/architecture`. Il n’entre dans aucune compilation ou publication du produit et ne restaure aucun paquet tiers.
+
+`scripts/architecture/module_rules.py` associe les dossiers aux propriétaires, attribue les anciens fichiers racine et les ports historiquement cohabités, puis déclare les dépendances directes permises. Le compilateur identifie le type référencé, y compris par un alias ou dans le même namespace. Le contexte peut ainsi demander `ITurnTools` sans accéder à `TurnTools`. Les lecteurs, valeurs et exceptions existants admis entre propriétaires sont nommés. Les adaptateurs de persistance peuvent utiliser leur contexte EF partagé. Les migrations et sources générées sont exclues de l’inventaire métier et vérifiées par les contrôles EF et la compilation. Les tests sont libres d’utiliser les adaptateurs et restent soumis au contrôle des références de projets.
+
+| Exception existante | Propriétaire responsable et motif |
+|---|---|
+| Configuration, conversations et projets lisent l’import, les originaux ou les sources | Chaque service appelant coordonne la révision ou les choix du propriétaire de la pièce jointe |
+| Documents et projets utilisent EfChatRepository | Les révisions et la lecture du propriétaire utilisent le dépôt commun |
+| L’index lit ProjectSourceReader, CodeStructure, StructuredDocuments et les profils | Indexation extrait le contenu autorisé et reprend le travail avec la bonne révision |
+| La mémoire lit KnowledgeStore | Mémoire temporelle utilise les unités déjà indexées |
+| Les outils consultent ProjectIndexService et la lecture des sources | Outils exécute la lecture bornée à partir du snapshot autorisé |
+| Les endpoints traduisent les exceptions EF | L’API traduit l’erreur en réponse HTTP. Program et ChatRegistration possèdent l’initialisation et la composition EF |
+
+`python3 scripts/check-modules.py --matrix` donne, pour chaque lien logique direct, les types utilisés. Deux domaines peuvent se référencer par des ports et des valeurs distincts. Le graphe des références de projets et la résolution des services s’examinent séparément. Cette inspection statique des sources produit complète les vérifications de compilation et de comportement.

@@ -9,22 +9,21 @@ public sealed class IndexedEmbeddingSearch(IEmbeddingSimilarityReader store, ILo
     public async Task<SemanticSearch> SearchAsync(Guid conversation, string query, ChatOptions settings,
         IReadOnlyList<SourceChunk> chunks, CancellationToken ct)
     {
-        try { return await SearchCoreAsync(query, settings, chunks, ct); }
+        try { return await SearchCoreAsync(query, EmbeddingSettings.ForQuery(settings), chunks, ct); }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
         catch (Exception e) when (e is ChatModelException or ArgumentException or HttpRequestException or OperationCanceledException)
         { return new(new double[chunks.Count], 0, [], "Recherche sémantique indisponible ; recherche lexicale utilisée. Vérifiez l’indexation et le modèle d’embeddings."); }
     }
 
-    private async Task<SemanticSearch> SearchCoreAsync(string query, ChatOptions settings,
+    private async Task<SemanticSearch> SearchCoreAsync(string query, EmbeddingSettings profile,
         IReadOnlyList<SourceChunk> chunks, CancellationToken ct)
     {
-        var identity = await embeddings.IdentityAsync(settings.EmbeddingModel, ct);
-        var profile = EmbeddingSettings.From(settings);
-        var parts = chunks.Select(c => EmbeddingChunks.Split(c, settings.EmbeddingChunkCharacters).ToArray()).ToArray();
+        var identity = await embeddings.IdentityAsync(profile.Model, ct);
+        var parts = chunks.Select(c => EmbeddingChunks.Split(c, profile.ChunkCharacters).ToArray()).ToArray();
         var keys = parts.SelectMany(p => p).Select(EmbeddingChunks.Key).Distinct().ToArray();
         var calls = new List<ModelCallUsage>();
         if (keys.Length == 0) return new(new double[chunks.Count], 0, calls);
-        var queryVectors = await QueryVectorsAsync(query, settings, profile, identity, calls, ct);
+        var queryVectors = await QueryVectorsAsync(query, profile, identity, calls, ct);
         var scores = new Dictionary<string, double>();
         foreach (var vector in queryVectors)
             foreach (var pair in await store.SimilaritiesAsync(profile.VectorSpace(identity, vector.Length), keys, vector, ct))
@@ -33,20 +32,20 @@ public sealed class IndexedEmbeddingSearch(IEmbeddingSimilarityReader store, ILo
             parts.Count(p => p.Length > 0 && p.All(c => scores.ContainsKey(EmbeddingChunks.Key(c)))), calls);
     }
 
-    private async Task<List<float[]>> QueryVectorsAsync(string query, ChatOptions settings, EmbeddingSettings profile,
+    private async Task<List<float[]>> QueryVectorsAsync(string query, EmbeddingSettings profile,
         string identity, List<ModelCallUsage> calls, CancellationToken ct)
     {
         // Query vectors only. Corpus vectors are produced by the durable worker, never by a chat request.
         var queryChunk = new SourceChunk(Guid.Empty, "", "", "", "query", 0, query.Length, 1, 1, query, [], true);
         var queryVectors = new List<float[]>();
-        foreach (var batch in EmbeddingChunks.Split(queryChunk, settings.EmbeddingChunkCharacters).Chunk(settings.EmbeddingBatchSize))
+        foreach (var batch in EmbeddingChunks.Split(queryChunk, profile.ChunkCharacters).Chunk(profile.BatchSize))
         {
             var timer = System.Diagnostics.Stopwatch.StartNew();
-            var result = await embeddings.EmbedAsync(settings.EmbeddingModel, batch.Select(c => profile.QueryPrefix + c.Text).ToArray(), ct);
+            var result = await embeddings.EmbedAsync(profile.Model, batch.Select(c => profile.QueryPrefix + c.Text).ToArray(), ct);
             calls.Add(new("embedding-query:" + identity, batch.Sum(c => Encoding.UTF8.GetByteCount(c.Text)), timer.Elapsed.TotalMilliseconds, result.Stats));
             queryVectors.AddRange(result.Vectors);
         }
-        if (profile.Versioned && await embeddings.IdentityAsync(settings.EmbeddingModel, ct) != identity)
+        if (profile.Versioned && await embeddings.IdentityAsync(profile.Model, ct) != identity)
             throw new ChatModelException("Modèle modifié pendant la recherche.");
         return queryVectors;
     }
@@ -56,9 +55,9 @@ public sealed class IndexedEmbeddingSearch(IEmbeddingSimilarityReader store, ILo
         var calls = new List<ModelCallUsage>(); var scores = new Dictionary<int, double>();
         try
         {
-            var profile = EmbeddingSettings.From(settings);
-            var identity = await embeddings.IdentityAsync(settings.EmbeddingModel, ct);
-            foreach (var vector in await QueryVectorsAsync(question, settings, profile, identity, calls, ct))
+            var profile = EmbeddingSettings.ForQuery(settings);
+            var identity = await embeddings.IdentityAsync(profile.Model, ct);
+            foreach (var vector in await QueryVectorsAsync(question, profile, identity, calls, ct))
                 foreach (var hit in await store.MemorySimilaritiesAsync(owner, profile.VectorSpace(identity, vector.Length), through, before, vector, ct))
                     scores[hit.Key] = Math.Max(scores.GetValueOrDefault(hit.Key, -1), hit.Value);
             return new(scores, calls);

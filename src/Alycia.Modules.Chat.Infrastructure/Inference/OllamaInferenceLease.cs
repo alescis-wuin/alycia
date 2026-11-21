@@ -4,30 +4,40 @@ namespace Alycia.Modules.Chat.Infrastructure;
 internal sealed class OllamaInferenceLease : IDisposable
 {
     private static readonly SemaphoreSlim Slot = new(1, 1);
+    // A pass can prepare several files in parallel. Admit only one annotation to the
+    // shared slot so already prepared jobs cannot all queue ahead of a new chat.
+    private static readonly SemaphoreSlim AnnotationAdmission = new(1, 1);
+    private readonly SemaphoreSlim? _admission;
     private readonly CancellationTokenSource _deadline;
     private readonly TimeSpan _timeout;
     private int _disposed;
 
-    private OllamaInferenceLease(TimeSpan timeout, CancellationToken ct)
+    private OllamaInferenceLease(TimeSpan timeout, CancellationToken ct, SemaphoreSlim? admission)
     {
         _deadline = CancellationTokenSource.CreateLinkedTokenSource(ct);
         _timeout = timeout;
+        _admission = admission;
         RenewDeadline();
     }
 
     public CancellationToken Token => _deadline.Token;
 
-    public static async Task<OllamaInferenceLease> AcquireAsync(TimeSpan timeout, CancellationToken ct)
+    public static async Task<OllamaInferenceLease> AcquireAsync(TimeSpan timeout, CancellationToken ct, bool annotation = false)
     {
         // Queueing is cancellable by the caller. The execution deadline begins on acquisition.
-        await Slot.WaitAsync(ct);
+        var admission = annotation ? AnnotationAdmission : null;
+        if (admission is not null) await admission.WaitAsync(ct);
+        var hasSlot = false;
         try
         {
-            return new OllamaInferenceLease(timeout, ct);
+            await Slot.WaitAsync(ct);
+            hasSlot = true;
+            return new OllamaInferenceLease(timeout, ct, admission);
         }
         catch
         {
-            Slot.Release();
+            if (hasSlot) Slot.Release();
+            admission?.Release();
             throw;
         }
     }
@@ -41,6 +51,7 @@ internal sealed class OllamaInferenceLease : IDisposable
         {
             _deadline.Dispose();
             Slot.Release();
+            _admission?.Release();
         }
     }
 }

@@ -19,7 +19,7 @@ Depuis le checkout candidat, avec le SDK .NET 10 et Python 3. Le benchmark est u
 
 ```bash
 out=$(mktemp -d)
-git worktree add --detach "$out/base" 309d610425786e668782769f5b7650902d11d37b
+git worktree add --detach "$out/base" "${ALYCIA_COMPARISON_BASE:-309d610425786e668782769f5b7650902d11d37b}"
 (cd "$out/base" && dotnet build benchmarks/Alycia.ContextBenchmarks && python3 scripts/evaluate-context.py offline --pipeline-v2 --output "$out/base.json")
 dotnet build benchmarks/Alycia.ContextBenchmarks
 python3 scripts/evaluate-context.py offline --pipeline-v2 --output "$out/candidat.json"
@@ -42,3 +42,7 @@ PY
 ```
 
 Le point de comparaison local reste dans le worktree créé. Les deux mesures doivent utiliser le même runtime pour comparer l’intégralité des champs stables. Les valeurs de latence sont des observations ponctuelles, sans conclusion de gain ou de perte de débit.
+
+## Consolidation C0–C7
+
+La [recette de consolidation](consolidation/C7.md) contient les résultats du nouvel essai, le lancement de la démo et les limitations matérielles. Pour appliquer le comparatif ci-dessus à cette livraison, exécuter dans Bash `export ALYCIA_COMPARISON_BASE=65494a6a42b6b4a5e84b056eb6cb1d3c3afa9657` avant le bloc de commandes.

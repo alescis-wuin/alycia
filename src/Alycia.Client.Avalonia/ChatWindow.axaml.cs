@@ -39,6 +39,7 @@ public partial class ChatWindow : Window
         _composer = new(drafts ?? new DraftStore());
         _navigation = new(client);
         InitializeComponent();
+        _navigation.OwnerChanged += ResetOwnerView;
         C<ItemsControl>("MessageList").ItemsSource = _messages;
         Opened += async (_, _) => await RunAsync(InitializeAsync);
         Closed += (_, _) => { _draftTimer.Stop(); SaveDraft(); _composer.Flush(); _lifetime.Cancel(); };
@@ -175,6 +176,7 @@ public partial class ChatWindow : Window
         foreach (var name in new[] { "SearchButton", "MoreConversationsButton", "PromptsButton", "ImportConversationButton" })
             C<Button>(name).IsEnabled = !_busy;
         C<ListBox>("ConversationList").IsEnabled = !_busy;
+        C<ComboBox>("ProjectSelector").IsEnabled = !_busy;
         C<Button>("RefreshButton").IsEnabled = !_busy;
         C<Button>("ContextButton").IsEnabled = !_busy && _current is not null;
         C<Button>("MoreButton").IsEnabled = !_busy && _current is not null;
@@ -214,39 +216,48 @@ public partial class ChatWindow : Window
     private async Task RefreshConversationsAsync(Guid? selectId)
     {
         SaveDraft();
-        var page = await _navigation.SearchAsync(C<TextBox>("SearchInput").Text ?? "", _lifetime.Token);
+        var page = await _navigation.SearchAsync(C<TextBox>("SearchInput").Text ?? "", selectId, _lifetime.Token);
+        if (page is null) return;
         C<Button>("MoreConversationsButton").IsVisible = page.HasMore;
         var list = C<ListBox>("ConversationList");
         list.ItemsSource = page.Items;
-        var choices = await _navigation.SelectConversationAsync(page.Items, selectId, _lifetime.Token);
-        if (!ReferenceEquals(choices, page.Items)) list.ItemsSource = choices;
-        ShowDraft();
         list.SelectedItem = _current;
-        if (_current is null)
-        {
-            _timeline.Clear();
-            C<Expander>("StreamingPanel").IsVisible = false;
-            C<Border>("PendingUserPanel").IsVisible = false;
-            C<MarkdownView>("StreamingText").Text = "";
-            C<Expander>("StreamingTools").IsVisible = false;
-            C<SelectableTextBlock>("StreamingToolText").Text = "";
-            C<SelectableTextBlock>("PendingUserText").Text = "";
-            C<TextBox>("TitleInput").Text = "";
-            C<TextBlock>("ViewHeading").Text = "Conversation";
-            C<TextBlock>("ConversationDetails").Text = "";
-            C<Button>("OlderButton").IsVisible = false;
-        }
+        ShowDraft();
+    }
+
+    private void ResetOwnerView()
+    {
+        HideInspector();
+        _inspectorOrigin = null;
+        _evidence = null;
+        _visibleEvidence = null;
+        C<StackPanel>("InspectorBody").Children.Clear();
+        C<StackPanel>("PageBody").Children.Clear();
+        _timeline.Clear();
+        ShowDraft();
+        C<Expander>("StreamingPanel").IsVisible = false;
+        C<Border>("PendingUserPanel").IsVisible = false;
+        C<MarkdownView>("StreamingText").Text = "";
+        C<Expander>("StreamingTools").IsVisible = false;
+        C<SelectableTextBlock>("StreamingToolText").Text = "";
+        C<SelectableTextBlock>("PendingUserText").Text = "";
+        C<TextBox>("TitleInput").Text = _current?.Title ?? "";
+        C<Button>("ActiveModelButton").Content = _current?.Model ?? "";
+        C<TextBlock>("ConversationDetails").Text = "";
+        C<Button>("OlderButton").IsVisible = false;
+        ShowChat();
     }
 
     private async Task LoadAsync(ConversationSummary conversation, bool keepReading = false)
     {
-        Indexing.Select(conversation.Id, false);
         bool follow = !keepReading || _followOutput;
         var previousOffset = C<ScrollViewer>("MessageScroll").Offset;
         SaveDraft();
         HideInspector();
         _evidence = null;
-        var page = await _client.MessagesAsync(conversation.Id, null, _lifetime.Token);
+        _current = conversation;
+        var page = await _navigation.ReadMessagesAsync(null, _lifetime.Token);
+        if (page is null) return;
         _current = page.Conversation;
         ShowDraft();
         C<Expander>("StreamingPanel").IsVisible = false;
@@ -271,7 +282,8 @@ public partial class ChatWindow : Window
             return;
         }
 
-        var page = await _client.MessagesAsync(_current.Id, before, _lifetime.Token);
+        var page = await _navigation.ReadMessagesAsync(before, _lifetime.Token);
+        if (page is null) return;
         var scroll = C<ScrollViewer>("MessageScroll");
         var offset = scroll.Offset;
         double oldHeight = scroll.Extent.Height;

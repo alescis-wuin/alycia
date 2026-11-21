@@ -13,11 +13,11 @@ internal sealed class EmbeddingJobDiscovery(ChatDbContext database, PostgresEmbe
         foreach (var conversation in conversations)
         {
             var options = ConversationConfiguration.Options(conversation, defaults);
-            if (options.Enrichment.Enabled || options.RetrievalMode == "hybrid" && !string.IsNullOrWhiteSpace(options.EmbeddingModel))
+            if (EmbeddingSettings.RequiresJob(options))
                 await store.QueueAsync(conversation.Id, false, options, ct, sourceRevision: conversation.Revision + ":"
                     + (conversation.WorkspaceId is Guid project && projects.TryGetValue(project, out var profile) ? profile.Revision : 0));
         }
-        if (defaults.Enrichment.Enabled || defaults.RetrievalMode == "hybrid" && !string.IsNullOrWhiteSpace(defaults.EmbeddingModel))
+        if (EmbeddingSettings.RequiresJob(defaults))
         {
             var existing = (await store.JobsAsync(ct)).Where(j => j.Progress.IsProject).Select(j => j.Progress.OwnerId).ToHashSet();
             foreach (var project in projects.Values.Where(p => !existing.Contains(p.Id)))
