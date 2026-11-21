@@ -1,4 +1,4 @@
-namespace Alycia.Modules.Chat.Application;
+namespace Alycia.Modules.Indexing;
 
 public static class VectorSimilarity
 {

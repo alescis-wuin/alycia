@@ -1,4 +1,4 @@
-namespace Alycia.Modules.Chat.Application;
+namespace Alycia.Contracts.Indexing;
 
 // All keys in one lookup belong to the caller's eligible index snapshot.
 public interface IEmbeddingSimilarityReader

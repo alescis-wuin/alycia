@@ -3,9 +3,6 @@ using System.Text.RegularExpressions;
 
 namespace Alycia.Modules.Chat.Application;
 
-public sealed record PassageGuide(string Reference, string Summary, string Terms, string Identity, string State,
-    string? Created, string? Modified, DateTimeOffset? Uploaded, DateTimeOffset IndexedAt, string NodeKey, string Level, bool Partial = false);
-
 // Atomic reservations precede model calls. Exhaustion yields to the next worker pass.
 public sealed class IndexCallBudget(int maximum)
 {

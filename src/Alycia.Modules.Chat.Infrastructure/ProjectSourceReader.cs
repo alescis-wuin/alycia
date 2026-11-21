@@ -12,6 +12,8 @@ public sealed record ProjectSource(string Text, bool Complete, string Origin);
 public sealed class ProjectSourceReader(FileStorage storage)
 {
     internal FileStorage Storage => storage;
+    public Stream OpenOriginal(Attachment file) => File.OpenRead(storage.PathFor(file));
+
     private static readonly HashSet<string> ExtractedFormats = new(StringComparer.OrdinalIgnoreCase)
         { ".pdf", ".docx", ".odt", ".pptx", ".xlsx" };
     public async Task<ProjectSource> ReadAsync(Attachment file, CancellationToken ct)
@@ -20,7 +22,7 @@ public sealed class ProjectSourceReader(FileStorage storage)
         if (file.Text.Length == 0) return new("", false, file.Status);
         try
         {
-            await using var stream = File.OpenRead(storage.PathFor(file));
+            await using var stream = OpenOriginal(file);
             var bytes = await DocumentContent.ReadBoundedAsync(stream, ImportLimits.HardFileBytes, ct);
             if (!Convert.ToHexString(SHA256.HashData(bytes)).Equals(file.Sha256, StringComparison.OrdinalIgnoreCase))
                 throw new ArgumentException("L’original a changé : réimportez-le avant consultation.");

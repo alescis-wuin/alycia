@@ -40,7 +40,7 @@ public sealed class ProjectFilesTests
                 writer.Write("Source : échantillon.");
             archive.Position = 0;
             var importer = new FileImport(db, storage);
-            var files = new ProjectFiles(db, importer, storage, new(storage), new WorkspaceIdentityDirectory(new(db.Database)));
+            var files = new ProjectFiles(db, importer, new(storage), new WorkspaceIdentityDirectory(new(db.Database)));
             var original = await importer.ImportAsync(chat.Id, Guid.NewGuid(), [new("lot.zip", archive)], default);
             var archiveId = original.Single(f => f.ArchiveId is null).Id;
             var shared = await files.ShareAsync(chat.Id, archiveId, default);

@@ -1,18 +1,18 @@
 using Alycia.Modules.Chat.Application;
-using Microsoft.EntityFrameworkCore;
+using System.Runtime.CompilerServices;
 
 namespace Alycia.Modules.Chat.Infrastructure;
 
-internal sealed class EmbeddingJobDiscovery(ChatDbContext database, PostgresEmbeddingStore store, ChatOptions defaults, KnowledgeBuilder? knowledge)
+internal sealed class EmbeddingJobDiscovery(IConversationIndexOwners conversations, IProjectIndexOwners projectOwners, PostgresEmbeddingStore store, ChatOptions defaults, KnowledgeBuilder? knowledge)
 {
     public async Task RunAsync(CancellationToken ct)
     {
         if (knowledge is not null) await knowledge.PurgeExcludedAsync(ct);
-        var conversations = await database.Conversations.AsNoTracking().ToArrayAsync(ct);
-        var projects = await database.WorkspaceProfiles.AsNoTracking().Where(p => !p.Archived).ToDictionaryAsync(p => p.Id, ct);
-        foreach (var conversation in conversations)
+        var projects = new Dictionary<Guid, ProjectIndexOwner>();
+        await foreach (var project in Pages(projectOwners.ActivePageAsync, p => p.Id, ct)) projects.Add(project.Id, project);
+        await foreach (var conversation in Pages(conversations.PageAsync, c => c.Id, ct))
         {
-            var options = ConversationConfiguration.Options(conversation, defaults);
+            var options = ConversationConfiguration.Options(conversation.SettingsJson, defaults);
             if (EmbeddingSettings.RequiresJob(options))
                 await store.QueueAsync(conversation.Id, false, options, ct, sourceRevision: conversation.Revision + ":"
                     + (conversation.WorkspaceId is Guid project && projects.TryGetValue(project, out var profile) ? profile.Revision : 0));
@@ -33,6 +33,19 @@ internal sealed class EmbeddingJobDiscovery(ChatDbContext database, PostgresEmbe
             options.HierarchicalIndexEnabled = job.Settings.Hierarchical;
             options.EmbeddingDocumentPrefix = job.Settings.DocumentPrefix; options.EmbeddingQueryPrefix = job.Settings.QueryPrefix;
             await store.QueueAsync(project.Id, true, options, ct, sourceRevision: project.Revision.ToString());
+        }
+    }
+    private static async IAsyncEnumerable<T> Pages<T>(Func<Guid?, int, CancellationToken, Task<T[]>> read,
+        Func<T, Guid> id, [EnumeratorCancellation] CancellationToken ct)
+    {
+        const int size = 128;
+        Guid? after = null;
+        while (true)
+        {
+            var page = await read(after, size, ct);
+            foreach (var item in page) yield return item;
+            if (page.Length < size) yield break;
+            after = id(page[^1]);
         }
     }
 }

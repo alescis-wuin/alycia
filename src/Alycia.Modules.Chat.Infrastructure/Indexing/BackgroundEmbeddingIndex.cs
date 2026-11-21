@@ -5,9 +5,9 @@ using Microsoft.EntityFrameworkCore;
 namespace Alycia.Modules.Chat.Infrastructure;
 
 public sealed class BackgroundEmbeddingIndex(ChatDbContext database, PostgresEmbeddingStore store,
-    ProjectSourceReader reader, ILocalEmbeddings embeddings, ChatOptions defaults, KnowledgeBuilder? knowledge = null) : IIndexedEmbeddings
+    ProjectSourceReader reader, ILocalEmbeddings embeddings, ChatOptions defaults, IConversationIndexOwners conversations, IProjectIndexOwners projects, KnowledgeBuilder? knowledge = null) : IIndexedEmbeddings
 {
-    private readonly EmbeddingJobDiscovery _discovery = new(database, store, defaults, knowledge);
+    private readonly EmbeddingJobDiscovery _discovery = new(conversations, projects, store, defaults, knowledge);
     private readonly IndexedEmbeddingSearch _queries = new(store, embeddings);
 
     public Task DiscoverAsync(CancellationToken ct) => _discovery.RunAsync(ct);

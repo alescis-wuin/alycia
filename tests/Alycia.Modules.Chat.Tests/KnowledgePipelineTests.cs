@@ -48,10 +48,10 @@ public sealed class KnowledgePipelineTests
             owner.CompleteTurn(); await db.SaveChangesAsync();
 
             var notes = new KnowledgeStore(db);
-            var jobs = new PostgresEmbeddingStore(db);
+            var jobs = new PostgresEmbeddingStore(db.Database.GetConnectionString()!);
             var model = new AnnotationModel();
             var reader = new ProjectSourceReader(storage);
-            var worker = new BackgroundEmbeddingIndex(db, jobs, reader, new NoVectors(), new(), new(notes, model));
+            var worker = new BackgroundEmbeddingIndex(db, jobs, reader, new NoVectors(), new(), new ConversationIndexOwners(db), new ProjectIndexOwners(db), new(notes, model));
             var index = new ProjectIndexService(db, storage, reader, options, notes);
             await worker.DiscoverAsync(default);
             async Task<EmbeddingJob> Job() => Assert.Single(await jobs.JobsAsync(default));
@@ -169,7 +169,7 @@ public sealed class KnowledgePipelineTests
             options.RetrievalMode = "hybrid"; options.EmbeddingModel = "vectors-test"; options.HierarchicalIndexEnabled = true;
             owner.Configure(owner.Model, "", "", ConversationConfiguration.Serialize(options)); await db.SaveChangesAsync();
             var encoder = new TinyVectors();
-            var hybrid = new BackgroundEmbeddingIndex(db, jobs, reader, encoder, new(), new(notes, model));
+            var hybrid = new BackgroundEmbeddingIndex(db, jobs, reader, encoder, new(), new ConversationIndexOwners(db), new ProjectIndexOwners(db), new(notes, model));
             await hybrid.DiscoverAsync(default);
             for (int iteration = 0; iteration < 40; iteration++)
             {

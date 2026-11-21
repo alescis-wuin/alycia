@@ -7,11 +7,13 @@ public static class ConversationConfiguration
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
-    public static ChatOptions Options(Conversation conversation, ChatOptions defaults)
+    public static ChatOptions Options(Conversation conversation, ChatOptions defaults) => Options(conversation.SettingsJson, defaults);
+
+    public static ChatOptions Options(string settingsJson, ChatOptions defaults)
     {
         // Existing conversations retain server defaults until explicitly configured.
-        var options = conversation.SettingsJson == "{}" ? defaults.Copy()
-            : JsonSerializer.Deserialize<ChatOptions>(conversation.SettingsJson, Json)
+        var options = settingsJson == "{}" ? defaults.Copy()
+            : JsonSerializer.Deserialize<ChatOptions>(settingsJson, Json)
                 ?? throw new ArgumentException("Réglages de conversation invalides.");
         options.Validate();
         return options;

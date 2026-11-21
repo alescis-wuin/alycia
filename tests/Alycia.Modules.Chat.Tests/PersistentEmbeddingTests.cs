@@ -41,8 +41,8 @@ public sealed class PersistentEmbeddingTests
                 new ChatMessage(chat.Id, 2, request, "assistant", "Je propose une variante indigo."));
             chat.CompleteTurn(); await database.SaveChangesAsync();
             var encoder = new Encoder { FailAt = 2 };
-            var store = new PostgresEmbeddingStore(database);
-            var worker = new BackgroundEmbeddingIndex(database, store, reader, encoder, new());
+            var store = new PostgresEmbeddingStore(database.Database.GetConnectionString()!);
+            var worker = new BackgroundEmbeddingIndex(database, store, reader, encoder, new(), new ConversationIndexOwners(database), new ProjectIndexOwners(database));
             await store.QueueAsync(chat.Id, false, options, default);
             await worker.ProcessAsync(Assert.Single(await store.JobsAsync(default)), default);
             var failed = Assert.Single(await store.JobsAsync(default));
@@ -52,7 +52,7 @@ public sealed class PersistentEmbeddingTests
             // Resume from durable rows with a fresh service instance, without repeating the first batch.
             encoder.FailAt = 0;
             await store.QueueAsync(chat.Id, false, options, default, retry: true);
-            var resumed = new BackgroundEmbeddingIndex(database, new PostgresEmbeddingStore(database), reader, encoder, new());
+            var resumed = new BackgroundEmbeddingIndex(database, new PostgresEmbeddingStore(database.Database.GetConnectionString()!), reader, encoder, new(), new ConversationIndexOwners(database), new ProjectIndexOwners(database));
             using (var interrupted = new CancellationTokenSource())
             {
                 encoder.CancelAt = 4; encoder.Cancel = interrupted.Cancel;

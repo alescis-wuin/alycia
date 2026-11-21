@@ -18,6 +18,9 @@
     <ProjectReference Include="../Alycia.Modules.Documents/Alycia.Modules.Documents.csproj" />
     <Using Include="Alycia.Modules.Documents" />
     <Using Include="Alycia.Contracts.Documents" />
+    <Using Include="Alycia.Contracts.Indexing" />
+    <Using Include="Alycia.Modules.Indexing" />
+    <ProjectReference Include="../Alycia.Modules.Indexing/Alycia.Modules.Indexing.csproj" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../Alycia.Platform.Persistence/Alycia.Platform.Persistence.csproj" />

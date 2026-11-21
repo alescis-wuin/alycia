@@ -7,7 +7,7 @@ namespace Alycia.Modules.Chat.Infrastructure;
 
 public sealed record SourcePreview(string Name, string Sha256, string Text, int Start, int End, bool Partial);
 
-public sealed class ProjectFiles(ChatDbContext db, FileImport importer, FileStorage storage, ProjectSourceReader reader, IWorkspaceIdentityDirectory identities)
+public sealed class ProjectFiles(ChatDbContext db, FileImport importer, ProjectSourceReader reader, IWorkspaceIdentityDirectory identities)
 {
     public async Task<IReadOnlyList<FileSummary>> ShareAsync(Guid conversation, Guid file, CancellationToken ct)
     {
@@ -17,7 +17,7 @@ public sealed class ProjectFiles(ChatDbContext db, FileImport importer, FileStor
         var attachment = await db.Attachments.AsNoTracking().SingleOrDefaultAsync(f => f.ConversationId == conversation && f.Id == file, ct)
             ?? throw new ArgumentException("Pièce jointe introuvable.");
         if (attachment.ContextMode == "excluded") throw new ArgumentException("Une source exclue ne peut pas être promue.");
-        await using var original = File.OpenRead(storage.PathFor(attachment));
+        await using var original = reader.OpenOriginal(attachment);
         return await importer.ImportAsync(project, attachment.Id, [new(attachment.Name, original, attachment.SourceCreatedAt,
             attachment.SourceModifiedAt, attachment.MetadataSource)], ct, workspace: true);
     }

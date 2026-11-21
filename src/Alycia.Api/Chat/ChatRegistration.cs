@@ -33,7 +33,7 @@ internal static class ChatRegistration
         RegisterConversations(builder.Services);
         RegisterProjects(builder.Services);
         RegisterDocuments(builder);
-        RegisterIndexing(builder.Services);
+        RegisterIndexing(builder.Services, connection);
         RegisterRetrieval(builder.Services);
         RegisterMemory(builder.Services);
         RegisterTools(builder.Services);
@@ -82,13 +82,15 @@ internal static class ChatRegistration
             .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false, UseProxy = false });
     }
 
-    private static void RegisterIndexing(IServiceCollection services)
+    private static void RegisterIndexing(IServiceCollection services, string connection)
     {
         services.AddScoped<IProjectIndex, ProjectIndexService>();
         services.AddScoped<IndexCatalog>();
         services.AddScoped<KnowledgeStore>();
         services.AddScoped<KnowledgeBuilder>();
-        services.AddScoped<PostgresEmbeddingStore>();
+        services.AddScoped(_ => new PostgresEmbeddingStore(connection));
+        services.AddScoped<IConversationIndexOwners, ConversationIndexOwners>();
+        services.AddScoped<IProjectIndexOwners, ProjectIndexOwners>();
         services.AddScoped<BackgroundEmbeddingIndex>();
         services.AddScoped<IEmbeddingSimilarityReader>(sp => sp.GetRequiredService<PostgresEmbeddingStore>());
         services.AddScoped<IIndexedEmbeddings, IndexedEmbeddingSearch>();

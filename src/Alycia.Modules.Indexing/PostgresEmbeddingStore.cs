@@ -1,28 +1,26 @@
 using System.Text.Json;
-using Alycia.Modules.Chat.Application;
-using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using NpgsqlTypes;
 
-namespace Alycia.Modules.Chat.Infrastructure;
+namespace Alycia.Modules.Indexing;
 
 public sealed record EmbeddingSettings(string Model, int BatchSize, int ChunkCharacters, bool History, string SourceRevision = "", bool Hierarchical = false, string DocumentPrefix = "", string QueryPrefix = "", EnrichmentOptions? Enrichment = null)
 {
-    internal static bool RequiresJob(IIndexSettings options) =>
+    public static bool RequiresJob(IIndexSettings options) =>
         options.Enrichment.Enabled || options.RetrievalMode == "hybrid" && !string.IsNullOrWhiteSpace(options.EmbeddingModel);
 
     public static EmbeddingSettings From(IIndexSettings options) =>
         Capture(options, options.RetrievalMode == "hybrid" || !options.Enrichment.Enabled ? options.EmbeddingModel : "");
 
     // A direct query uses the selected encoder even when background jobs only perform enrichment.
-    internal static EmbeddingSettings ForQuery(IIndexSettings options) => Capture(options, options.EmbeddingModel);
+    public static EmbeddingSettings ForQuery(IIndexSettings options) => Capture(options, options.EmbeddingModel);
 
     private static EmbeddingSettings Capture(IIndexSettings options, string model) => new(
         model, options.EmbeddingBatchSize, options.EmbeddingChunkCharacters, options.EmbedHistory, Hierarchical: options.HierarchicalIndexEnabled,
         DocumentPrefix: options.EmbeddingDocumentPrefix, QueryPrefix: options.EmbeddingQueryPrefix, Enrichment: options.Enrichment.Enabled ? options.Enrichment : null);
     public bool Versioned => Hierarchical || DocumentPrefix.Length > 0 || QueryPrefix.Length > 0;
     public string VectorSpace(string digest, int dimensions) => !Versioned ? digest : digest + ":pipeline-v4:" + dimensions + ":"
-        + StructuredMemory.Hash(JsonSerializer.Serialize(new { Hierarchical, ChunkCharacters, DocumentPrefix, QueryPrefix, Normalization = "cosine" }));
+        + MemoryTransfer.Hash(JsonSerializer.Serialize(new { Hierarchical, ChunkCharacters, DocumentPrefix, QueryPrefix, Normalization = "cosine" }));
 }
 public sealed record EmbeddingJob(EmbeddingProgress Progress, EmbeddingSettings Settings, int Revision, string Fingerprint, DateTimeOffset? RetryAt = null, string? VectorDigest = null, int? VectorDimensions = null)
 {
@@ -31,19 +29,17 @@ public sealed record EmbeddingJob(EmbeddingProgress Progress, EmbeddingSettings 
 }
 
 // A separate short-lived connection avoids writing indexing state into a chat's repeatable-read snapshot.
-public sealed class PostgresEmbeddingStore(ChatDbContext database) : IEmbeddingSimilarityReader
+public sealed class PostgresEmbeddingStore(string connectionString) : IEmbeddingSimilarityReader
 {
     private async Task<NpgsqlConnection> OpenAsync(CancellationToken ct)
     {
-        var connection = new NpgsqlConnection(database.Database.GetConnectionString());
+        var connection = new NpgsqlConnection(connectionString);
         try { await connection.OpenAsync(ct); return connection; }
         catch { await connection.DisposeAsync(); throw; }
     }
 
-    public async Task QueueAsync(Guid owner, bool project, ChatOptions options, CancellationToken ct, bool retry = false, string sourceRevision = "")
+    public async Task QueueAsync(Guid owner, bool project, EmbeddingSettings profile, CancellationToken ct, bool retry = false)
     {
-        options.Validate();
-        if (string.IsNullOrWhiteSpace(options.EmbeddingModel) && !options.Enrichment.Enabled) return;
         await using var connection = await OpenAsync(ct);
         await using var command = new NpgsqlCommand("""
             INSERT INTO chat.embedding_jobs(owner_id, is_project, options_json) VALUES ($1, $2, $3)
@@ -54,7 +50,7 @@ public sealed class PostgresEmbeddingStore(ChatDbContext database) : IEmbeddingS
             WHERE chat.embedding_jobs.options_json <> EXCLUDED.options_json OR $4
             """, connection);
         command.Parameters.AddWithValue(owner); command.Parameters.AddWithValue(project);
-        command.Parameters.AddWithValue(JsonSerializer.Serialize(EmbeddingSettings.From(options) with { SourceRevision = sourceRevision }, ProjectToolCatalog.Json));
+        command.Parameters.AddWithValue(JsonSerializer.Serialize(profile, ProjectToolCatalog.Json));
         command.Parameters.AddWithValue(retry);
         await command.ExecuteNonQueryAsync(ct);
     }
@@ -143,9 +139,9 @@ public sealed class PostgresEmbeddingStore(ChatDbContext database) : IEmbeddingS
         await command.ExecuteNonQueryAsync(ct);
     }
 
-    public async Task<NpgsqlConnection?> TryLockAsync(EmbeddingJob job, CancellationToken ct)
+    public async Task<IAsyncDisposable?> TryLockAsync(EmbeddingJob job, CancellationToken ct)
     {
-        var connection = new NpgsqlConnection(new NpgsqlConnectionStringBuilder(database.Database.GetConnectionString()) { Pooling = false }.ToString());
+        var connection = new NpgsqlConnection(new NpgsqlConnectionStringBuilder(connectionString) { Pooling = false }.ToString());
         await connection.OpenAsync(ct);
         await using var command = new NpgsqlCommand("SELECT pg_try_advisory_lock(hashtextextended($1, 0))", connection);
         command.Parameters.AddWithValue("alycia-embeddings:" + job.Progress.OwnerId + ":" + job.Progress.IsProject);

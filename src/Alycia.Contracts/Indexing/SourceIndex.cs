@@ -1,4 +1,4 @@
-namespace Alycia.Modules.Chat.Application;
+namespace Alycia.Contracts.Indexing;
 
 public sealed record SourceChunk(Guid FileId, string Path, string Sha256, string Symbol, string Kind,
     int Start, int End, int StartLine, int EndLine, string Text, string[] References, bool CompleteUnit, bool CompleteSource = true, string? IndexContext = null, PassageGuide? Guide = null);

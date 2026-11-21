@@ -16,6 +16,8 @@
     <Using Include="Alycia.Contracts.Documents" />
     <Using Include="Alycia.Modules.Inference" />
     <ProjectReference Include="../Alycia.Modules.Inference/Alycia.Modules.Inference.csproj" />
+    <Using Include="Alycia.Contracts.Indexing" />
+    <Using Include="Alycia.Modules.Indexing" />
   </ItemGroup>
 
   <ItemGroup>

@@ -21,17 +21,15 @@ src/Alycia.Modules.Chat.Infrastructure/Indexing/BackgroundEmbeddingIndex.cs	E	ch
 src/Alycia.Modules.Chat.Infrastructure/Indexing/BackgroundEmbeddingIndex.cs	E	chat.conversations	2026-11-21	D11
 src/Alycia.Modules.Chat.Infrastructure/Indexing/BackgroundEmbeddingIndex.cs	E	chat.messages	2026-11-21	D11
 src/Alycia.Modules.Chat.Infrastructure/Indexing/BackgroundEmbeddingIndex.cs	E	chat.workspace_profiles	2026-11-21	D11
-src/Alycia.Modules.Chat.Infrastructure/Indexing/EmbeddingJobDiscovery.cs	E	chat.conversations	2026-11-21	D11
-src/Alycia.Modules.Chat.Infrastructure/Indexing/EmbeddingJobDiscovery.cs	E	chat.workspace_profiles	2026-11-21	D11
 src/Alycia.Modules.Chat.Infrastructure/Indexing/IndexCatalog.cs	E	chat.attachments	2026-11-21	D11
 src/Alycia.Modules.Chat.Infrastructure/Indexing/IndexCatalog.cs	E	chat.conversations	2026-11-21	D11
 src/Alycia.Modules.Chat.Infrastructure/Indexing/KnowledgeStore.cs	E	chat.attachments	2026-11-21	D11
 src/Alycia.Modules.Chat.Infrastructure/Indexing/KnowledgeStore.cs	E	chat.workspace_profiles	2026-11-21	D11
 src/Alycia.Modules.Chat.Infrastructure/Indexing/KnowledgeStore.cs	S	chat.attachments	2026-11-21	D11
-src/Alycia.Modules.Chat.Infrastructure/Indexing/PostgresEmbeddingStore.cs	S	chat.conversations	2026-11-21	D11
-src/Alycia.Modules.Chat.Infrastructure/Indexing/PostgresEmbeddingStore.cs	S	chat.temporal_memory	2026-11-21	D11
-src/Alycia.Modules.Chat.Infrastructure/Indexing/PostgresEmbeddingStore.cs	S	chat.workspace_profiles	2026-11-21	D11
-src/Alycia.Modules.Chat.Infrastructure/Indexing/PostgresEmbeddingStore.cs	Y	NpgsqlCommand with interpolated SQL	2026-11-21	audit dynamique
+src/Alycia.Modules.Indexing/PostgresEmbeddingStore.cs	S	chat.conversations	2026-11-21	D11
+src/Alycia.Modules.Indexing/PostgresEmbeddingStore.cs	S	chat.temporal_memory	2026-11-21	D11
+src/Alycia.Modules.Indexing/PostgresEmbeddingStore.cs	S	chat.workspace_profiles	2026-11-21	D11
+src/Alycia.Modules.Indexing/PostgresEmbeddingStore.cs	Y	NpgsqlCommand with interpolated SQL	2026-11-21	audit dynamique
 src/Alycia.Modules.Chat.Infrastructure/Indexing/ProjectIndexService.cs	E	chat.conversations	2026-11-21	D11
 src/Alycia.Modules.Chat.Infrastructure/Memory/TemporalMemoryStore.cs	E	chat.conversations	2026-11-21	D14
 src/Alycia.Modules.Chat.Infrastructure/Memory/TemporalMemoryStore.cs	E	chat.messages	2026-11-21	D14
