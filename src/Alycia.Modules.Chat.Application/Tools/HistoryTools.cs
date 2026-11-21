@@ -1,3 +1,4 @@
+using Alycia.Contracts.Documents;
 using Alycia.Contracts.Indexing;
 using Alycia.Contracts.Context;
 using System.Text;
@@ -37,7 +38,7 @@ public sealed class HistoryTools(IToolHistoryReader repository, IIndexedEmbeddin
             }
         }
         if (messages.Count == 0 && stopped) throw new ArgumentException("Un message dépasse le budget de recherche ; utilisez history_read.");
-        var chunks = messages.Select(m => new SourceChunk(m.RequestId, "history/" + m.Sequence, StructuredMemory.Hash(m.Content),
+        var chunks = messages.Select(m => new SourceChunk(m.RequestId, "history/" + m.Sequence, MemoryTransfer.Hash(m.Content),
             m.Role, "history", 0, m.Content.Length, 1, 1, m.Content, [], true)).ToArray();
         var scores = ProjectRetrieval.Bm25(chunks, query);
         var scoreKind = "BM25";
@@ -96,8 +97,8 @@ public sealed class HistoryTools(IToolHistoryReader repository, IIndexedEmbeddin
             {
                 var offset = Integer(args, message.Role + "Offset", 0, 0, message.Content.Length);
                 if (offset < message.Content.Length && char.IsLowSurrogate(message.Content[offset])) throw new ArgumentException("Offset Unicode invalide.");
-                var text = FileContext.Utf8Prefix(message.Content[offset..], size);
-                var end = offset + text.Length; var sha = StructuredMemory.Hash(message.Content);
+                var text = Utf8Text.Prefix(message.Content[offset..], size);
+                var end = offset + text.Length; var sha = MemoryTransfer.Hash(message.Content);
                 var reference = "H" + message.Sequence + ":" + sha[..12];
                 entries.Add(new
                 {

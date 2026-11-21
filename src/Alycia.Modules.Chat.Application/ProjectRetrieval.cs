@@ -32,9 +32,9 @@ public static class ProjectRetrieval
             var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(chunk.Text.Trim())));
             if (seen.Contains(hash)) continue;
             var reference = Reference(chunk);
-            var header = $"\n--- [{reference}] {FileContext.Utf8Prefix(chunk.Path, 240)}:L{chunk.StartLine}-L{chunk.EndLine} · {FileContext.Utf8Prefix(chunk.Symbol, 160)} ---\n";
+            var header = $"\n--- [{reference}] {Utf8Text.Prefix(chunk.Path, 240)}:L{chunk.StartLine}-L{chunk.EndLine} · {Utf8Text.Prefix(chunk.Symbol, 160)} ---\n";
             var value = chunk.Text;
-            if (chunk.Kind == "summary") value = FileContext.Utf8Prefix(value, Math.Max(0, budget / 4));
+            if (chunk.Kind == "summary") value = Utf8Text.Prefix(value, Math.Max(0, budget / 4));
             var complete = chunk.CompleteUnit && chunk.CompleteSource;
             if (value.Length != chunk.Text.Length) complete = false;
             if (TokenBudget.Count(text + header + value + "\n", options) > budget)
@@ -42,14 +42,14 @@ public static class ProjectRetrieval
                 // Prefer complete smaller units; only the first candidate may be shortened to fit.
                 if (chosen.Count > 0) continue;
                 while (value.Length > 64 && TokenBudget.Count(text + header + value + "\n[extrait partiel]\n", options) > budget)
-                    value = FileContext.Utf8Prefix(value, Math.Max(0, Encoding.UTF8.GetByteCount(value) * 3 / 4));
+                    value = Utf8Text.Prefix(value, Math.Max(0, Encoding.UTF8.GetByteCount(value) * 3 / 4));
                 if (value.Length < 64) continue;
                 complete = false;
             }
             var endLine = Math.Min(chunk.EndLine, chunk.StartLine + value.AsSpan(0, Math.Max(0, value.Length - 1)).Count('\n'));
             var rendered = chunk with { End = chunk.Start + value.Length, EndLine = endLine, Text = value, CompleteUnit = complete };
             reference = Reference(rendered);
-            header = $"\n--- [{reference}] {FileContext.Utf8Prefix(chunk.Path, 240)}:L{chunk.StartLine}-L{endLine} · {FileContext.Utf8Prefix(chunk.Symbol, 160)} ---\n";
+            header = $"\n--- [{reference}] {Utf8Text.Prefix(chunk.Path, 240)}:L{chunk.StartLine}-L{endLine} · {Utf8Text.Prefix(chunk.Symbol, 160)} ---\n";
             var block = header + value + (complete ? "\n" : "\n[extrait partiel]\n");
             if (TokenBudget.Count(text + block, options) > budget) continue;
             text.Append(block); ranges.Add(rendered); seen.Add(hash);

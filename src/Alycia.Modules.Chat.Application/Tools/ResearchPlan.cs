@@ -1,3 +1,4 @@
+using Alycia.Contracts.Documents;
 using System.Text.Json;
 
 namespace Alycia.Modules.Chat.Application;
@@ -38,7 +39,7 @@ public sealed class ResearchPlan
         _readingOriginal = false;
         _current = _goals.FindIndex(g => g.State == "not_searched");
         if (_current < 0) return null;
-        var q = FileContext.Utf8Prefix(_goals[_current].Query, 120).Trim();
+        var q = Utf8Text.Prefix(_goals[_current].Query, 120).Trim();
         if (q.Length < 2) { _goals[_current] = _goals[_current] with { State = "not_searchable" }; return null; }
         return new(new(_history ? "history_search" : "project_search_passages",
             JsonSerializer.SerializeToElement(new { query = q, limit = 3 })));
@@ -71,7 +72,7 @@ public sealed class ResearchPlan
         }
         else if (!result.IsError && original.Length == 0 && more && _paged.Add(_current))
         {
-            var args = new Dictionary<string, object> { ["query"] = FileContext.Utf8Prefix(previous.Query, 120), ["limit"] = 3 };
+            var args = new Dictionary<string, object> { ["query"] = Utf8Text.Prefix(previous.Query, 120), ["limit"] = 3 };
             if (nextOffset.HasValue) args["offset"] = nextOffset.Value;
             if (nextBefore.HasValue) args["before"] = nextBefore.Value;
             _followup = (_current, new(new(_history ? "history_search" : "project_search_passages", JsonSerializer.SerializeToElement(args))));

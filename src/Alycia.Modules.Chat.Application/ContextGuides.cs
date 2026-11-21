@@ -56,7 +56,7 @@ public static class ContextGuides
                 catch (Exception ex) when (ex is ChatModelException or HttpRequestException or OperationCanceledException) { continue; }
             }
             if (string.IsNullOrWhiteSpace(summary)) continue;
-            var original = ProjectRetrieval.Reference(chunk);
+            var original = SourceCoordinates.Reference(chunk);
             var scope = original == source.Reference ? "extrait complet ci-dessus" : "unité complète, extrait ci-dessus partiel";
             var heading = $"\nSynthèse dérivée · {source.Path} · {scope} · vérifier les affirmations dans le passage fourni [{source.Reference}]\n";
             var text = IndexedKnowledge.Fit(summary, allowance - added - TokenBudget.Count(heading, settings), settings);
@@ -66,7 +66,7 @@ public static class ContextGuides
             var increase = TokenBudget.Count(extended, settings) - TokenBudget.Count(last.Content, settings);
             if (added + increase > allowance || cost + increase > maximum) continue;
             prompt[^1] = last with { Content = extended }; cost += increase; added += increase;
-            guides.Add(new(source.Reference!, ProjectRetrieval.Reference(chunk), chunk.FileId, identity!, state!, increase,
+            guides.Add(new(source.Reference!, SourceCoordinates.Reference(chunk), chunk.FileId, identity!, state!, increase,
                 cached?.Created ?? source.Created, cached?.Modified ?? source.Modified, cached?.Uploaded ?? source.Uploaded, cached?.NodeKey, chunk.Sha256, chunk.Path, chunk.Start, chunk.End, text.Length < summary.Length || cached?.Partial == true));
         }
         return guides.Count == 0 ? window : window with { Messages = prompt, EstimatedInputTokens = cost, Guides = guides.ToArray() };

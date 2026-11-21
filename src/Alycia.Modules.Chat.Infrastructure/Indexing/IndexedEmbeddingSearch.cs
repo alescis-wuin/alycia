@@ -74,7 +74,7 @@ public sealed class IndexedEmbeddingSearch(IEmbeddingSimilarityReader store, ILo
     {
         if (messages.Any(m => m.ConversationId != conversation)) throw new ArgumentException("Historique hors de la conversation.");
         var chunks = messages.Select(m => new SourceChunk(m.RequestId, conversation.ToString("N") + "/history/" + m.Sequence,
-            StructuredMemory.Hash(m.Content), m.Role, "history", 0, m.Content.Length, 1, 1 + m.Content.Count(c => c == '\n'), m.Content, [], true)).ToArray();
+            MemoryTransfer.Hash(m.Content), m.Role, "history", 0, m.Content.Length, 1, 1 + m.Content.Count(c => c == '\n'), m.Content, [], true)).ToArray();
         return SearchAsync(conversation, query, settings, chunks, ct);
     }
 }

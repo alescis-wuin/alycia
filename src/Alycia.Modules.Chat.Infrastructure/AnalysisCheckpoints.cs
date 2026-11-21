@@ -14,7 +14,7 @@ public sealed class AnalysisCheckpoints(FileStorage storage)
     public const string PipelineVersion = "analysis-v1";
     private string DirectoryFor(Guid id) => Path.Combine(storage.DirectoryFor(id), PipelineVersion);
     public static string UnitKey(Guid file, string sha, string path, string status, string identity, int budget, ChatOptions options) =>
-        StructuredMemory.Hash($"{PipelineVersion}|{StructuredDocuments.Version}|{CodeStructure.Version}|{file}|{sha}|{path}|{status}|{identity}|{budget}|{JsonSerializer.Serialize(options, ProjectToolCatalog.Json)}");
+        MemoryTransfer.Hash($"{PipelineVersion}|{StructuredDocuments.Version}|{CodeStructure.Version}|{file}|{sha}|{path}|{status}|{identity}|{budget}|{JsonSerializer.Serialize(options, ProjectToolCatalog.Json)}");
     public async Task<AnalysisRun[]> ListAsync(Guid conversation, CancellationToken ct)
     {
         var directory = DirectoryFor(conversation);

@@ -44,7 +44,7 @@ public sealed class TemporalMemoryStore(ITemporalFactStorage storage, ITemporalH
     {
         var before = TemporalMemory.AsOf(question) ?? DateTimeOffset.MaxValue;
         var indexed = await storage.CountAsync(owner, through, ct);
-        var query = string.Join(" OR ", ProjectRetrieval.Tokens(question).Distinct().Take(24));
+        var query = string.Join(" OR ", LexicalTerms.Split(question).Distinct().Take(24));
         var candidates = await storage.LexicalAsync(owner, through, before, query, ct);
         MemoryVectorMatches matches = new(new Dictionary<int, double>(), []);
         if (indexed > 0 && settings.SearchVectors)

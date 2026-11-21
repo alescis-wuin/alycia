@@ -83,13 +83,13 @@ public sealed class StructuredMemoryTests
         Assert.Equal(StructuredMemory.Hash(source.Content), entries[0].SourceHash);
         var other = new MemoryEntry("base", "fact", "La base est PostgreSQL.", 3, "user", "hash");
         var ledger = new MemoryLedger(1, 4, "hash", [entries[0], other]);
-        var selected = StructuredMemory.Select(ledger, "base", [], 2000, new());
+        var selected = StructuredMemory.Select(ledger, "base", [], 2000);
         Assert.Equal(1, selected.Report.Conflicts);
         Assert.Contains("SQLite", selected.Text); Assert.Contains("PostgreSQL", selected.Text);
-        Assert.Equal(0, StructuredMemory.Select(ledger, "base", [], 100, new()).Report.Selected);
+        Assert.Equal(0, StructuredMemory.Select(ledger, "base", [], 100).Report.Selected);
         var assistant = new ChatMessage(id, 6, Guid.NewGuid(), "assistant", "Correction [base]: MySQL");
-        Assert.Equal(1, StructuredMemory.Select(ledger, "base", [assistant.ToHistory()], 2000, new()).Report.Conflicts);
-        var corrected = StructuredMemory.Select(ledger, "Correction [base]: MariaDB", [], 2000, new());
+        Assert.Equal(1, StructuredMemory.Select(ledger, "base", [assistant.ToHistory()], 2000).Report.Conflicts);
+        var corrected = StructuredMemory.Select(ledger, "Correction [base]: MariaDB", [], 2000);
         Assert.Equal(0, corrected.Report.Selected);
         Assert.DoesNotContain("SQLite", corrected.Text);
     }

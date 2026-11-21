@@ -17,7 +17,8 @@ public sealed class SnapshotConversations(IEnumerable<ConversationIndexOwner> ow
     public async Task<Guid?> FindWorkspaceAsync(Guid id, CancellationToken ct) => (await FindAsync(id, ct))?.WorkspaceId;
 
     public async Task<ToolConversationPolicy?> ReadAsync(Guid id, CancellationToken ct) =>
-        await FindAsync(id, ct) is { } c ? new(c.SettingsJson, c.MessageCount) : null;
+        await FindAsync(id, ct) is { } c ? ToolConversationPolicy.Capture(
+            StoredConversationSettings.Read(c.SettingsJson, () => new ChatSettings()), c.MessageCount) : null;
 
     public Task<bool> HasHistoryAsync(Guid id, CancellationToken ct)
     {

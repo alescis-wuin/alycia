@@ -65,9 +65,9 @@ public static class StructuredMemory
         return new(1, messages[^1].Sequence, Hash(ledger.ChainHash + "\n" + string.Join("\n", messages.Select(m => $"{m.Sequence}:{m.Role}:{Hash(m.Content)}"))),
             entries.OrderBy(e => e.Sequence).ToArray(), omitted, ledger.FallbackSegments + fallbackSegments, ledger.ModelIdentity, ledger.PromptVersion);
     }
-    public static MemorySelection Select(MemoryLedger ledger, string question, IReadOnlyList<HistoryMessage> recent, int budget, ChatOptions options)
+    public static MemorySelection Select(MemoryLedger ledger, string question, IReadOnlyList<HistoryMessage> recent, int budget, ITextTokenCounter? counter = null)
     {
-        var terms = ProjectRetrieval.Tokens(question).ToHashSet(StringComparer.Ordinal);
+        var terms = LexicalTerms.Split(question).ToHashSet(StringComparer.Ordinal);
         var currentCorrections = recent.SelectMany(m => Corrections(m.Sequence, m.Role, m.Content))
             .Concat(Corrections(int.MaxValue, "user", question)).Select(e => CanonicalKey(e.Key)).ToHashSet(StringComparer.Ordinal);
         var groups = ledger.Entries.Where(e => !currentCorrections.Contains(CanonicalKey(e.Key))).GroupBy(e => CanonicalKey(e.Key)).Select(g =>
@@ -75,7 +75,7 @@ public static class StructuredMemory
             var lastCorrection = g.Where(e => e.Correction).Select(e => e.Sequence).DefaultIfEmpty(0).Max();
             return g.Where(e => e.Sequence >= lastCorrection).DistinctBy(e => (e.Role, e.Quote)).ToArray();
         }).Where(g => g.Length > 0).ToArray();
-        var ordered = groups.OrderByDescending(g => g.Max(e => ProjectRetrieval.Tokens(e.Key + " " + e.Quote).Distinct().Count(terms.Contains) * 3
+        var ordered = groups.OrderByDescending(g => g.Max(e => LexicalTerms.Split(e.Key + " " + e.Quote).Distinct().Count(terms.Contains) * 3
             + (e.Kind is "constraint" or "decision" ? 2 : 0))).ThenByDescending(g => g.Max(e => e.Sequence));
         var text = ""; var selected = 0;
         foreach (var group in ordered)
@@ -84,7 +84,7 @@ public static class StructuredMemory
                 + string.Join("\n", group.Select(e => $"[M{e.Sequence}:{e.Key}] {e.Kind} · {e.Role}{(e.Correction ? " · correction explicite" : "")}{(e.Fallback ? " · extrait de repli" : "")} : {e.Quote}")) + "\n";
             var candidate = (text.Length == 0 ? Label : text) + block;
             // A conflicting group is indivisible: never hide a variant while asserting the other.
-            if (TokenBudget.Count(candidate, options) > budget) continue;
+            if (PromptTokens.Count(candidate, counter) > budget) continue;
             text = candidate; selected += group.Length;
         }
         return new(text, new(ledger.Through, ledger.Entries.Length, selected, ledger.Omitted + ledger.Entries.Length - selected,

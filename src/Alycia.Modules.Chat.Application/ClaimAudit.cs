@@ -1,3 +1,4 @@
+using Alycia.Contracts.Documents;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -27,8 +28,8 @@ public static class ClaimAudit
                 { status = "direct_quote"; reason = "Texte retrouvé littéralement ; ni vérité externe ni approbation utilisateur déduites."; }
                 else
                 {
-                    var terms = ProjectRetrieval.Tokens(claim).Distinct().ToArray();
-                    var sourceTerms = texts.SelectMany(ProjectRetrieval.Tokens).ToHashSet(StringComparer.Ordinal);
+                    var terms = LexicalTerms.Split(claim).Distinct().ToArray();
+                    var sourceTerms = texts.SelectMany(LexicalTerms.Split).ToHashSet(StringComparer.Ordinal);
                     var overlap = terms.Length == 0 ? 0 : (double)terms.Count(sourceTerms.Contains) / terms.Length;
                     var numbers = Regex.Matches(claim, @"\b\d+\b", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1)).Select(m => m.Value);
                     if (numbers.Any(n => !texts.Any(t => t.Contains(n, StringComparison.Ordinal))))
@@ -38,7 +39,7 @@ public static class ClaimAudit
                     else { status = "uncertain"; reason = "Référence connue mais adéquation de l’affirmation non établie."; }
                 }
             }
-            findings.Add(new(FileContext.Utf8Prefix(line, 1200), refs, status, reason));
+            findings.Add(new(Utf8Text.Prefix(line, 1200), refs, status, reason));
         }
         return new(findings.ToArray(), Math.Max(0, lines.Length - findings.Count));
     }

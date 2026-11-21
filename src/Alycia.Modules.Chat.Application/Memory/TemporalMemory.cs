@@ -1,3 +1,4 @@
+using Alycia.Contracts.Documents;
 using Alycia.Contracts.Memory;
 using System.Text.RegularExpressions;
 
@@ -9,10 +10,10 @@ public static class TemporalMemory
     public static TemporalFact[] Extract(TemporalMessage m)
     {
         var anchors = Topic.Matches(m.Content).Cast<Match>().Take(16).ToArray();
-        var hash = StructuredMemory.Hash(m.Content);
+        var hash = MemoryTransfer.Hash(m.Content);
         TemporalFact Fact(int at, int length, string key, bool correction, string kind)
         {
-            var quote = FileContext.Utf8Prefix(m.Content.Substring(at, length), 1024);
+            var quote = Utf8Text.Prefix(m.Content.Substring(at, length), 1024);
             return new(key, quote, m.Role, m.Sequence, m.CreatedAtUtc, hash, at, m.Content.Length,
                 correction && m.Role == "user", m.Role == "assistant" ? "proposition" : kind);
         }

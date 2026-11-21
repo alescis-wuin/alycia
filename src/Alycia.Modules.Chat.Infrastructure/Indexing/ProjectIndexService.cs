@@ -45,7 +45,7 @@ public sealed class ProjectIndexService(IConversationIndexOwners conversations, 
                         var notes = await knowledge.PassagesAsync(file.Id, root, ct);
                         parts = parts.Select(c =>
                         {
-                            var reference = ProjectRetrieval.Reference(c);
+                            var reference = SourceCoordinates.Reference(c);
                             if (!notes.TryGetValue(reference, out var leaf)) return c;
                             var terms = IndexedKnowledge.Terms(leaf.Labels) + " " + root.Labels.Title + " " + IndexedKnowledge.Terms(root.Labels)
                                 + " " + root.Labels.Summary;

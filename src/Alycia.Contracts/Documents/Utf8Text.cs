@@ -15,4 +15,20 @@ public static class Utf8Text
         }
         return result.ToString();
     }
+
+    public static IEnumerable<string> Chunks(string text, int maxBytes)
+    {
+        if (maxBytes < 4) throw new ArgumentOutOfRangeException(nameof(maxBytes));
+        var chunk = new StringBuilder();
+        var bytes = 0;
+        foreach (var rune in text.EnumerateRunes())
+        {
+            if (bytes + rune.Utf8SequenceLength > maxBytes)
+            {
+                yield return chunk.ToString(); chunk.Clear(); bytes = 0;
+            }
+            chunk.Append(rune.ToString()); bytes += rune.Utf8SequenceLength;
+        }
+        if (chunk.Length > 0) yield return chunk.ToString();
+    }
 }
