@@ -43,7 +43,7 @@ public sealed class DocumentAnalysisTests
             Assert.Equal("", code.SourceCreatedAt);
             Assert.Contains("fuseau non fourni", code.MetadataSource);
             var model = new Model();
-            var service = new DocumentAnalysisService(database, model, new(), new ProjectSourceReader(storage), ChatFixture.Gate, new AnalysisConversationOwner(database), ChatFixture.DocumentScope, new ModelMeterFactory());
+            var service = new DocumentAnalysisService(database, model, new ProjectSourceReader(storage), ChatFixture.Gate, new AnalysisConversationOwner(database, new(), model), ChatFixture.DocumentScope, new ModelMeterFactory());
             var report = await service.AnalyzeAsync(conversation.Id, conversation.Revision, null, 1024, null, default);
             Assert.Equal(4, report.FileCount);
             Assert.Contains("Source : tree.txt intégral", string.Join("\n", model.Inputs));
@@ -143,12 +143,28 @@ public sealed class DocumentAnalysisTests
         return output.ToArray();
     }
 
-    private sealed class Model : IChatModel
+    [PostgresFact]
+    public Task InspectingModelWindowKeepsExistingAnalysisCheckpointAddresses() =>
+        ProjectCreationTests.WithDatabaseAsync(async (options, _) =>
+        {
+            await using var database = new ChatDbContext(options);
+            var conversation = Conversation.Create("Analyse", "demo", "");
+            database.Add(conversation);
+            await database.SaveChangesAsync();
+            var adapter = new AnalysisConversationOwner(database, new ChatOptions { ContextTokens = 8192 }, new Model(4096));
+            var preferences = await adapter.PreferencesAsync(conversation.Id, conversation.Revision, default);
+            Assert.Equal(4096, preferences.Summary.ContextTokens);
+            var key = AnalysisCheckpoints.UnitKey(Guid.Parse("009f475f-b5cd-4526-995c-18e732948313"),
+                "sha", "code.cs", "complete", "model:digest", 1024, preferences.Cache);
+            Assert.Equal("D5F4B70F56EE8584A1D4781B3C9EEA0C940CAF7AAE3D6E91F0643D81DF473CF0", key);
+        });
+
+    private sealed class Model(int? contextLimit = null) : IChatModel
     {
         public System.Collections.Concurrent.ConcurrentQueue<string> Inputs { get; } = new();
         public bool Fail;
         public Task<ModelTokenization> InspectAsync(string model, string tokenCounting, CancellationToken ct) =>
-            Task.FromResult(new ModelTokenization("synthetic:digest-v1"));
+            Task.FromResult(new ModelTokenization("synthetic:digest-v1", ContextLimit: contextLimit));
         public Task<IReadOnlyList<string>> ListModelsAsync(CancellationToken ct) => Task.FromResult<IReadOnlyList<string>>(["demo"]);
         public Task<string> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages, CancellationToken ct)
         {

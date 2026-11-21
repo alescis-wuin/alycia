@@ -13,8 +13,8 @@ public sealed class AnalysisCheckpoints(FileStorage storage)
 {
     public const string PipelineVersion = "analysis-v1";
     private string DirectoryFor(Guid id) => Path.Combine(storage.DirectoryFor(id), PipelineVersion);
-    public static string UnitKey(Guid file, string sha, string path, string status, string identity, int budget, ChatOptions options) =>
-        MemoryTransfer.Hash($"{PipelineVersion}|{StructuredDocuments.Version}|{CodeStructure.Version}|{file}|{sha}|{path}|{status}|{identity}|{budget}|{JsonSerializer.Serialize(options, ProjectToolCatalog.Json)}");
+    public static string UnitKey(Guid file, string sha, string path, string status, string identity, int budget, AnalysisCacheProfile profile) =>
+        profile.Key($"{PipelineVersion}|{StructuredDocuments.Version}|{CodeStructure.Version}|{file}|{sha}|{path}|{status}|{identity}|{budget}");
     public async Task<AnalysisRun[]> ListAsync(Guid conversation, CancellationToken ct)
     {
         var directory = DirectoryFor(conversation);

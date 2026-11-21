@@ -51,14 +51,21 @@ public sealed class OwnerContractTests
             await db.SaveChangesAsync();
             var ids = new[] { primary.Id, empty.Id }.Order().ToArray();
             var mock = new SnapshotConversations(new[] { primary, empty }.Select(c =>
-                new ConversationIndexOwner(c.Id, c.WorkspaceId, c.Revision, c.SettingsJson, c.MessageCount)),
-                new[] { ask, reply }.Select(m => new IndexHistoryMessage(m.ConversationId, m.RequestId, m.Sequence, m.Role, m.Content, m.CreatedAtUtc)));
+                new ConversationIndexOwner(c.Id, c.WorkspaceId, c.Revision, c.SettingsJson == "{}" ? null : IndexParameters.Capture(ConversationConfiguration.Options(c, new())), c.MessageCount)),
+                new[] { ask, reply }.Select(m => new IndexHistoryMessage(m.ConversationId, m.RequestId, m.Sequence, m.Role, m.Content, m.CreatedAtUtc)),
+                new[] { primary, empty }.ToDictionary(c => c.Id, c => ToolConversationPolicy.Capture(ConversationConfiguration.Options(c, new()), c.MessageCount)));
             foreach (var adapter in new IConversationIndexOwners[] { new ConversationIndexOwners(new(db.Database)), mock })
             {
                 Assert.Equal(ids[0], Assert.Single(await adapter.PageAsync(null, 1, default)).Id);
                 Assert.Equal(ids[1], Assert.Single(await adapter.PageAsync(ids[0], 1, default)).Id);
                 Assert.Empty(await adapter.PageAsync(ids[1], 1, default));
-                Assert.Equal(2, (await adapter.FindAsync(primary.Id, default))!.MessageCount);
+                Assert.True(await adapter.ExistsAsync(primary.Id, default));
+                Assert.False(await adapter.ExistsAsync(Guid.Empty, default));
+                await Assert.ThrowsAnyAsync<OperationCanceledException>(() => adapter.ExistsAsync(primary.Id, new(true)));
+                var indexOwner = await adapter.FindAsync(primary.Id, default);
+                Assert.Equal(2, indexOwner!.MessageCount);
+                Assert.Equal("projection-fixture", indexOwner.Override?.EmbeddingModel);
+                Assert.Null((await adapter.FindAsync(empty.Id, default))!.Override);
                 Assert.Null(await adapter.FindAsync(Guid.Empty, default));
                 var message = Assert.Single(await adapter.HistoryPageAsync(primary.Id, 1, 2, 1, default));
                 Assert.Equal((turn, 2, "assistant", "B"), (message.RequestId, message.Sequence, message.Role, message.Content));

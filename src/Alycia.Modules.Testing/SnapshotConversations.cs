@@ -2,11 +2,15 @@ using Alycia.Contracts.Documents;
 
 namespace Alycia.Modules.Testing;
 
-public sealed class SnapshotConversations(IEnumerable<ConversationIndexOwner> owners, IEnumerable<IndexHistoryMessage> history)
+public sealed class SnapshotConversations(IEnumerable<ConversationIndexOwner> owners, IEnumerable<IndexHistoryMessage> history,
+    IReadOnlyDictionary<Guid, ToolConversationPolicy>? toolPolicies = null)
     : IConversationIndexOwners, IToolConversationPolicy, IConversationWorkspaceLookup
 {
+    private readonly Dictionary<Guid, ToolConversationPolicy> _policies = toolPolicies?.ToDictionary() ?? [];
     private readonly ConversationIndexOwner[] _owners = owners.OrderBy(c => c.Id).ToArray();
     private readonly IndexHistoryMessage[] _messages = history.OrderBy(m => m.Sequence).ToArray();
+
+    public async Task<bool> ExistsAsync(Guid id, CancellationToken ct) => await FindAsync(id, ct) is not null;
 
     public Task<ConversationIndexOwner?> FindAsync(Guid id, CancellationToken ct)
     {
@@ -17,8 +21,8 @@ public sealed class SnapshotConversations(IEnumerable<ConversationIndexOwner> ow
     public async Task<Guid?> FindWorkspaceAsync(Guid id, CancellationToken ct) => (await FindAsync(id, ct))?.WorkspaceId;
 
     public async Task<ToolConversationPolicy?> ReadAsync(Guid id, CancellationToken ct) =>
-        await FindAsync(id, ct) is { } c ? ToolConversationPolicy.Capture(
-            StoredConversationSettings.Read(c.SettingsJson, () => new ChatSettings()), c.MessageCount) : null;
+        await FindAsync(id, ct) is { } c ? _policies.GetValueOrDefault(id)
+            ?? ToolConversationPolicy.Capture(new ChatSettings(), c.MessageCount) : null;
 
     public Task<bool> HasHistoryAsync(Guid id, CancellationToken ct)
     {

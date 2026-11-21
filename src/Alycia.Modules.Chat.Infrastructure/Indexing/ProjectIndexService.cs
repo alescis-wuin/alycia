@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Alycia.Modules.Chat.Infrastructure;
 
-public sealed class ProjectIndexService(IConversationIndexOwners conversations, FileStorage storage, IIndexSourceDocuments documents, ILiveIndexFileAccess live, ChatOptions? defaults = null, KnowledgeStore? knowledge = null) : IProjectIndex
+public sealed class ProjectIndexService(IConversationIndexOwners conversations, FileStorage storage, IIndexSourceDocuments documents, ILiveIndexFileAccess live, IndexParameters? defaults = null, KnowledgeStore? knowledge = null) : IProjectIndex
 {
     public Task<ProjectIndexSnapshot> BuildAsync(Guid conversation, CancellationToken ct) => BuildScopedAsync(conversation, null, ct);
     public async Task<ProjectIndexSnapshot> BuildScopedAsync(Guid conversation, IReadOnlySet<Guid>? allowed, CancellationToken ct)
@@ -11,7 +11,7 @@ public sealed class ProjectIndexService(IConversationIndexOwners conversations, 
         var ids = allowed?.ToArray();
         var owner = await conversations.FindAsync(conversation, ct)
             ?? throw new ConversationNotFoundException();
-        var settings = ConversationConfiguration.Options(owner.SettingsJson, defaults ?? new());
+        var settings = owner.Override ?? defaults ?? IndexParameters.Default;
         var maximum = settings.IndexMaxCharacters;
         var files = await IndexFiles.SnapshotAsync(documents, conversation, false, ids, true, ct);
         files = files.OrderByDescending(f => f.ContextMode == "pinned").DistinctBy(f => (f.Name, f.Sha256)).ToArray();

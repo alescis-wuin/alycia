@@ -77,7 +77,7 @@ public sealed class ProjectToolStorageTests
             var history = new EfChatRepository(db, ChatFixture.Profiles(db), new TurnDocuments(db, ChatFixture.DocumentScope));
             var policy = new ToolConversationPolicyReader(db, new());
             var sources = new AuthorizedToolSources(db, reader, policy, ChatFixture.LiveFiles(db), ChatFixture.DocumentScope);
-            var tools = new ProjectToolService(sources, new Alycia.Modules.Tools.SourceCommands(sources), policy, history, new ProjectIndexService(new ConversationIndexOwners(new(db.Database)), storage, ChatFixture.IndexFiles(db, reader), ChatFixture.LiveFiles(db), new()));
+            var tools = new ProjectToolService(sources, new Alycia.Modules.Tools.SourceCommands(sources), policy, history, new ProjectIndexService(new ConversationIndexOwners(new(db.Database)), storage, ChatFixture.IndexFiles(db, reader), ChatFixture.LiveFiles(db), IndexParameters.Default));
             Task<ProjectToolResult> Call(string tool, object args, Guid? scope = null, int budget = 2048) =>
                 tools.CallAsync(scope ?? conversation.Id, tool, JsonSerializer.SerializeToElement(args), budget, default);
             var found = await Call("project_search", new { query = "hiddenatend" });
@@ -117,7 +117,7 @@ public sealed class ProjectToolStorageTests
             using var pageJson = JsonDocument.Parse(page.Text);
             Assert.Equal(1, pageJson.RootElement.GetProperty("nextOffset").GetInt32());
             var model = new SummaryModel();
-            var report = await new DocumentAnalysisService(db, model, new(), reader, ChatFixture.Gate, new AnalysisConversationOwner(db), ChatFixture.DocumentScope, new ModelMeterFactory()).AnalyzeAsync(conversation.Id, conversation.Revision, null, 1024, null, default);
+            var report = await new DocumentAnalysisService(db, model, reader, ChatFixture.Gate, new AnalysisConversationOwner(db, new(), model), ChatFixture.DocumentScope, new ModelMeterFactory()).AnalyzeAsync(conversation.Id, conversation.Revision, null, 1024, null, default);
             Assert.Contains(model.Inputs, s => s.Contains("HiddenAtEnd"));
             Assert.DoesNotContain(model.Inputs, s => s.Contains("SECRET_NEVER_READ"));
             Assert.InRange(Encoding.UTF8.GetByteCount(report.SummaryText), 1, 1024);

@@ -72,6 +72,12 @@ class ModuleBoundariesTests(unittest.TestCase):
         self.assertIn("specialized input: Context -> ChatMessage", errors)
         self.assertIn("specialized input: Inference -> ChatSettings", errors)
 
+    def test_two_contract_compatible_edges_cannot_form_a_business_cycle(self):
+        app = self.project(APP)
+        self.source(app, "Context/ContextValue.cs", "public class ContextValue { public MemoryValue Read() => null; }")
+        self.source(app, "Memory/MemoryValue.cs", "public class MemoryValue { public ContextValue Read() => null; }")
+        self.assertIn("logical owner cycle: Context -> Memory -> Context", self.guard(False))
+
     def test_independent_module_cannot_reference_a_sibling_implementation(self):
         core = "Alycia.Modules.Retrieval"
         sibling = "Alycia.Modules.Indexing"

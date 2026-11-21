@@ -8,11 +8,11 @@ public static class IndexedKnowledge
 {
     public const string Extractive = "extractive-v1";
     public static string Terms(UnitLabels labels) => labels.Terms();
-    public static UnitLabels Extract(string title, string text, string type, string[] ids, int target, ChatOptions counter)
+    public static UnitLabels Extract(string title, string text, string type, string[] ids, int target, ITextTokenCounter? counter)
     {
         var keywords = LexicalTerms.Split(text).GroupBy(t => t).OrderByDescending(g => g.Count())
             .ThenBy(g => g.Key, StringComparer.Ordinal).Take(12).Select(g => g.Key).ToArray();
-        var summary = PromptTokens.Fit(text.Trim(), target, counter.TokenCounter);
+        var summary = PromptTokens.Fit(text.Trim(), target, counter);
         var dates = Regex.Matches(text, @"\b\d{4}-\d{2}-\d{2}\b").Select(m => m.Value).Distinct().Take(12).ToArray();
         return new(Utf8Text.Prefix(title, 200), "", keywords, [], [], type, [], "und", summary, [], dates, [], ids);
     }
@@ -29,7 +29,7 @@ public static class IndexedKnowledge
             .ToDictionary(p => p.Key, p => p.Value)
     });
 
-    public static UnitLabels? Validate(string json, string[] expectedIds, int target, ChatOptions counter)
+    public static UnitLabels? Validate(string json, string[] expectedIds, int target, ITextTokenCounter? counter)
     {
         if (json.Length > 32000) return null;
         try
@@ -42,7 +42,7 @@ public static class IndexedKnowledge
                     || v.EnumerateArray().Any(x => x.ValueKind != JsonValueKind.String || x.GetString()!.Length > 256))) return null;
             var labels = root.Deserialize<UnitLabels>(ProjectToolCatalog.Json)!;
             return labels.SourceUnitIds.SequenceEqual(expectedIds) && !string.IsNullOrWhiteSpace(labels.Summary)
-                && PromptTokens.Count(labels.Summary, counter.TokenCounter) <= target ? labels : null;
+                && PromptTokens.Count(labels.Summary, counter) <= target ? labels : null;
         }
         catch (JsonException) { return null; }
     }

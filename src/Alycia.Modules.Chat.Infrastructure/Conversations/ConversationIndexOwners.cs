@@ -5,8 +5,22 @@ namespace Alycia.Modules.Chat.Infrastructure;
 
 public sealed class ConversationIndexOwners(RelationalSession session) : IConversationIndexOwners
 {
-    private static ConversationIndexOwner Read(DbDataReader rows) => new(rows.GetGuid(0),
-        rows.IsDBNull(1) ? null : rows.GetGuid(1), rows.GetInt32(2), rows.GetString(3), rows.GetInt32(4));
+    private static ConversationIndexOwner Read(DbDataReader rows)
+    {
+        var stored = rows.GetString(3);
+        var policy = stored == "{}" ? null : IndexParameters.Capture(StoredConversationSettings.Read(stored, () => new ChatSettings()));
+        return new(rows.GetGuid(0), rows.IsDBNull(1) ? null : rows.GetGuid(1), rows.GetInt32(2), policy, rows.GetInt32(4));
+    }
+
+    public Task<bool> ExistsAsync(Guid id, CancellationToken ct) =>
+        session.WithConnectionAsync(async (db, tx, token) =>
+        {
+            await using var query = db.CreateCommand();
+            query.Transaction = tx;
+            query.CommandText = """SELECT EXISTS(SELECT 1 FROM chat.conversations WHERE "Id"=@id)""";
+            RelationalSession.AddParameter(query, "id", id);
+            return (bool)(await query.ExecuteScalarAsync(token))!;
+        }, ct);
 
     public Task<ConversationIndexOwner?> FindAsync(Guid id, CancellationToken ct) =>
         session.WithConnectionAsync(async (db, tx, token) =>

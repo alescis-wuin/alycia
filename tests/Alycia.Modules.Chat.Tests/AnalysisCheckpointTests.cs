@@ -14,7 +14,9 @@ public sealed class AnalysisCheckpointTests
         {
             var store = new AnalysisCheckpoints(storage);
             var run = await store.StartAsync(id, null, "source", "model:digest", 1024, null, default);
-            var key = AnalysisCheckpoints.UnitKey(file, "sha", "code.cs", "complete", "model:digest", 1024, new());
+            var profile = new Alycia.Contracts.Documents.AnalysisCacheProfile(
+                System.Text.Json.JsonSerializer.Serialize(new ChatOptions(), ProjectToolCatalog.Json));
+            var key = AnalysisCheckpoints.UnitKey(file, "sha", "code.cs", "complete", "model:digest", 1024, profile);
             await store.SaveUnitAsync(id, new(key, "résumé validé", true, "original", 100, 100), default);
             await store.SaveRunAsync(run with { State = "cancelled", CompletedUnits = 1 }, default);
             store = new AnalysisCheckpoints(storage);
@@ -24,7 +26,7 @@ public sealed class AnalysisCheckpointTests
             Assert.Equal(run.Id, (await store.StartAsync(id, null, "source", "model:digest", 1024, run.Id, default)).Id);
             await Assert.ThrowsAsync<ArgumentException>(() => store.StartAsync(id, null, "changed", "model:digest", 1024, run.Id, default));
             await Assert.ThrowsAsync<ArgumentException>(() => store.StartAsync(id, null, "source", "model:new", 1024, run.Id, default));
-            Assert.NotEqual(key, AnalysisCheckpoints.UnitKey(file, "newsha", "code.cs", "complete", "model:digest", 1024, new()));
+            Assert.NotEqual(key, AnalysisCheckpoints.UnitKey(file, "newsha", "code.cs", "complete", "model:digest", 1024, profile));
             var path = Path.Combine(storage.DirectoryFor(id), AnalysisCheckpoints.PipelineVersion, key + ".json");
             await File.WriteAllTextAsync(path, "broken");
             Assert.Null(await store.ReadUnitAsync(id, key, default));

@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Alycia.Modules.Chat.Infrastructure;
 
 public sealed class BackgroundEmbeddingIndex(IIndexSourceDocuments documents, ILiveIndexFileAccess live, PostgresEmbeddingStore store,
-     ILocalEmbeddings embeddings, ChatOptions defaults, IConversationIndexOwners conversations, IProjectIndexOwners projects, IWorkspaceProfiles profiles, IForegroundActivity foreground, KnowledgeBuilder? knowledge = null) : IIndexedEmbeddings
+     ILocalEmbeddings embeddings, IndexParameters defaults, IConversationIndexOwners conversations, IProjectIndexOwners projects, IWorkspaceProfiles profiles, IForegroundActivity foreground, KnowledgeBuilder? knowledge = null) : IIndexedEmbeddings
 {
     private readonly EmbeddingJobDiscovery _discovery = new(conversations, projects, store, defaults, knowledge);
     private readonly IndexedEmbeddingSearch _queries = new(store, embeddings);
@@ -24,7 +24,7 @@ public sealed class BackgroundEmbeddingIndex(IIndexSourceDocuments documents, IL
         { await store.DeleteJobAsync(job, ct); return; }
         if (conversation is not null)
         {
-            var options = ConversationConfiguration.Options(conversation.SettingsJson, defaults);
+            var options = conversation.Override ?? defaults;
             if (!EmbeddingSettings.RequiresJob(options))
             { await store.DeleteJobAsync(job, ct); return; }
         }

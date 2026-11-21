@@ -124,11 +124,11 @@ public class ChatSettings : IGenerationSettings, IIndexSettings, IToolWindowSett
             || QuerySummaryMaxCalls is < 0 or > 8 || MemoryContextTokens < 0 || HistoryContextTokens < 0)
             throw new ArgumentException("Réglages de classification ou de contexte invalides.");
         Enrichment.Validate();
-        if (AgentPlanMaxCalls is < 1 or > 64 || EmbeddingDocumentPrefix is null or { Length: > 256 } || EmbeddingQueryPrefix is null or { Length: > 256 } || MaxSearchQueries is < 1 or > 8 || RoutingMode is not ("off" or "auto" or "direct" or "memory" or "retrieval" or "explore") || RerankCandidateLimit is < 1 or > 64 || RerankTimeoutMs is < 50 or > 30000 || RetrievalMode is not ("legacy" or "lexical" or "hybrid") || EmbeddingModel is null || EmbeddingModel.Length > 200 || TokenCounting is not ("auto" or "conservative") || ToolMaxCalls is < 0 or > 4096 || SummaryMaxCalls is < 8 or > 2048 || MaxHistoryTurns is < 0 or > 100 || ContextTokens is < 1024 or > 131072
+        if (AgentPlanMaxCalls is < 1 or > 64 || MaxSearchQueries is < 1 or > 8 || RoutingMode is not ("off" or "auto" or "direct" or "memory" or "retrieval" or "explore") || RerankCandidateLimit is < 1 or > 64 || RerankTimeoutMs is < 50 or > 30000 || TokenCounting is not ("auto" or "conservative") || ToolMaxCalls is < 0 or > 4096 || SummaryMaxCalls is < 8 or > 2048 || MaxHistoryTurns is < 0 or > 100 || ContextTokens is < 1024 or > 131072
             || ToolContextTokens < 0 || ToolContextTokens >= ContextTokens || DocumentContextTokens < 0 || DocumentContextTokens >= ContextTokens
-            || ToolResultBytes is < 1024 or > 131072 || IndexMaxCharacters < 0
+            || ToolResultBytes is < 1024 or > 131072
             || ToolTimeoutSeconds is < 30 or > 86400
-            || EmbeddingBatchSize is < 1 or > 64 || EmbeddingChunkCharacters is < 128 or > 3200
+            || !Alycia.Contracts.Indexing.IndexParameters.Valid(this, IndexMaxCharacters)
             || ProtectedHistoryTurns is < 0 or > 20
             || MaxOutputTokens < 1 || SafetyTokens < 128
             || (long)MaxOutputTokens + SafetyTokens >= ContextTokens

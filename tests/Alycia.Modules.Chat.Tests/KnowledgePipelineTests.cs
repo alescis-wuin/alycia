@@ -55,8 +55,8 @@ public sealed class KnowledgePipelineTests
             var notes = ChatFixture.Knowledge(db, reader);
             var jobs = ChatFixture.Embeddings(db);
             var model = new AnnotationModel();
-            var worker = new BackgroundEmbeddingIndex(ChatFixture.IndexFiles(db, reader), ChatFixture.LiveFiles(db), jobs, new NoVectors(), new(), new ConversationIndexOwners(new(db.Database)), ChatFixture.Profiles(db), ChatFixture.Profiles(db), ChatFixture.Foreground, new(notes, model, ChatFixture.Foreground));
-            var index = new ProjectIndexService(new ConversationIndexOwners(new(db.Database)), storage, ChatFixture.IndexFiles(db, reader), ChatFixture.LiveFiles(db), options, notes);
+            var worker = new BackgroundEmbeddingIndex(ChatFixture.IndexFiles(db, reader), ChatFixture.LiveFiles(db), jobs, new NoVectors(), IndexParameters.Default, new ConversationIndexOwners(new(db.Database)), ChatFixture.Profiles(db), ChatFixture.Profiles(db), ChatFixture.Foreground, new(notes, model, ChatFixture.Foreground));
+            var index = new ProjectIndexService(new ConversationIndexOwners(new(db.Database)), storage, ChatFixture.IndexFiles(db, reader), ChatFixture.LiveFiles(db), IndexParameters.Capture(options), notes);
             await worker.DiscoverAsync(default);
             async Task<EmbeddingJob> Job() => Assert.Single(await jobs.JobsAsync(default));
             async Task<EmbeddingJob> Complete()
@@ -114,7 +114,7 @@ public sealed class KnowledgePipelineTests
             Assert.Single(hits); Assert.Contains(1, hits.Keys);
             Assert.Empty(await notes.HistoryAsync(other.Id, "quasar", options.Enrichment.Profile, 5, DateTimeOffset.UtcNow.AddMinutes(1), default));
             var initialCalls = model.Prompts.Count;
-            await jobs.QueueAsync(owner.Id, false, options, default, retry: true);
+            await jobs.QueueAsync(owner.Id, false, IndexParameters.Capture(options), default, retry: true);
             await Complete(); Assert.Equal(initialCalls, model.Prompts.Count);
 
             // Invalid model JSON remains usable. Manual retry replaces only fallback derivatives.
@@ -124,7 +124,7 @@ public sealed class KnowledgePipelineTests
             var fallback = await notes.DocumentAsync(added.Id, added.Sha256, options.Enrichment.Profile, default);
             Assert.True(fallback!.HasFallback); Assert.Equal("extractive_fallback", fallback.State);
             model.Invalid = false;
-            await jobs.QueueAsync(owner.Id, false, options, default, retry: true);
+            await jobs.QueueAsync(owner.Id, false, IndexParameters.Capture(options), default, retry: true);
             await Complete();
             var recovered = await notes.DocumentAsync(added.Id, added.Sha256, options.Enrichment.Profile, default);
             Assert.False(recovered!.HasFallback); Assert.NotEqual(fallback.Key, recovered.Key);
@@ -140,7 +140,7 @@ public sealed class KnowledgePipelineTests
             Assert.Equal("timeout_fallback", timedNote!.State);
             Assert.True(timedNote.HasFallback);
             model.TimesOut = false;
-            await jobs.QueueAsync(owner.Id, false, options, default, retry: true);
+            await jobs.QueueAsync(owner.Id, false, IndexParameters.Capture(options), default, retry: true);
             await Complete();
             var retried = await notes.DocumentAsync(timed.Id, timed.Sha256, options.Enrichment.Profile, default);
             Assert.Equal("generated", retried!.State);
@@ -173,7 +173,7 @@ public sealed class KnowledgePipelineTests
             options.RetrievalMode = "hybrid"; options.EmbeddingModel = "vectors-test"; options.HierarchicalIndexEnabled = true;
             owner.Configure(owner.Model, "", "", ConversationConfiguration.Serialize(options)); await db.SaveChangesAsync();
             var encoder = new TinyVectors();
-            var hybrid = new BackgroundEmbeddingIndex(ChatFixture.IndexFiles(db, reader), ChatFixture.LiveFiles(db), jobs, encoder, new(), new ConversationIndexOwners(new(db.Database)), ChatFixture.Profiles(db), ChatFixture.Profiles(db), ChatFixture.Foreground, new(notes, model, ChatFixture.Foreground));
+            var hybrid = new BackgroundEmbeddingIndex(ChatFixture.IndexFiles(db, reader), ChatFixture.LiveFiles(db), jobs, encoder, IndexParameters.Default, new ConversationIndexOwners(new(db.Database)), ChatFixture.Profiles(db), ChatFixture.Profiles(db), ChatFixture.Foreground, new(notes, model, ChatFixture.Foreground));
             await hybrid.DiscoverAsync(default);
             for (int iteration = 0; iteration < 40; iteration++)
             {
@@ -227,13 +227,13 @@ public sealed class KnowledgePipelineTests
     {
         var options = new ChatOptions();
         string[] refs = ["SABCDEF123456"];
-        var original = IndexedKnowledge.Extract("test", "Fait daté 2025-02-16 🧭.", "document", refs, 128, options);
+        var original = IndexedKnowledge.Extract("test", "Fait daté 2025-02-16 🧭.", "document", refs, 128, options.TokenCounter);
         Assert.Contains("2025-02-16", original.DateMentions);
         string Encode(UnitLabels note) => JsonSerializer.Serialize(note, ProjectToolCatalog.Json);
-        Assert.NotNull(IndexedKnowledge.Validate(Encode(original), refs, 128, options));
-        Assert.Null(IndexedKnowledge.Validate(Encode(original with { SourceUnitIds = ["H99:FOREIGN"] }), refs, 128, options));
-        Assert.Null(IndexedKnowledge.Validate(Encode(original with { Summary = new string('a', 800) }), refs, 64, options));
-        Assert.Null(IndexedKnowledge.Validate("{\"unsupported\":true}", refs, 128, options));
+        Assert.NotNull(IndexedKnowledge.Validate(Encode(original), refs, 128, options.TokenCounter));
+        Assert.Null(IndexedKnowledge.Validate(Encode(original with { SourceUnitIds = ["H99:FOREIGN"] }), refs, 128, options.TokenCounter));
+        Assert.Null(IndexedKnowledge.Validate(Encode(original with { Summary = new string('a', 800) }), refs, 64, options.TokenCounter));
+        Assert.Null(IndexedKnowledge.Validate("{\"unsupported\":true}", refs, 128, options.TokenCounter));
     }
 
     [Fact]

@@ -96,7 +96,5 @@ public sealed partial class DocumentAnalysisService
 
     public static async Task<InventoryFile[]> MetadataAsync(ChatDbContext database, DocumentScope scope, Guid id, CancellationToken ct) =>
         await scope.ReadAsync(database, id, false, true, q => q
-            .Select(f => new InventoryFile(f.Id, f.BatchId, f.ArchiveId, f.Name, f.Size, f.Sha256,
-                Path.GetExtension(f.Name), f.SourceCreatedAt, f.SourceModifiedAt, f.MetadataSource,
-                f.CreatedAtUtc, f.Status, f.ContextMode)).ToArrayAsync(ct), ct);
+            .Select(DocumentInventory.Projection).ToArrayAsync(ct), ct);
 }
