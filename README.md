@@ -3,6 +3,12 @@
 
 Alycia is a local generative AI client for Ollama. It combines an Avalonia desktop interface, an ASP.NET Core API, PostgreSQL-backed conversations and retrieval from local documents and source code.
 
+## Modular architecture
+
+[Product projects, domain owners and dependency diagram](docs/architecture/modularisation/architecture.md) · [Parallel contribution guide](docs/architecture/modularisation/CONTRIBUTING-AGENTS.md) · [Execution and verification report](docs/architecture/modularisation/rapport-execution.md).
+
+Check project dependencies locally with `python3 scripts/check-modules.py`. The standard `bash scripts/check.sh` runs the same guard, builds and tests the solution, and checks both EF models against their existing migrations. For database tests use `bash scripts/check.sh --integration` with a dedicated test PostgreSQL connection.
+
 ## Client Avalonia Boréale
 
 [Guide de démarrage et d’utilisation sur CachyOS](docs/boreale/guide-cachyos.md) · [Compte rendu et statut des vérifications](docs/boreale/compte-rendu.md) · [Phases et étapes](docs/boreale/plan.md)

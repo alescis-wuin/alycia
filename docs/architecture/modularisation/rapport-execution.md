@@ -64,3 +64,37 @@ Historique 5/5, analyse 9/9, configuration 56/56. Intégration des services : 36
 Base `cf8e5db`. Les chantiers `5f11808` (conversations/navigation), `50cc76d` (documents/connaissances/index), `e6c729d` (inspecteur/outils) et `61fe70a` (configuration) sont intégrés. [presentation.md](presentation.md) cartographie les 13 partiels initiaux, 89 contrôles nommés et les événements. Les présentateurs portent le brouillon et son RequestId de réessai, la pagination, la portée projet, la révision des opérations sur les documents, l’annulation du suivi d’index et la résolution des citations. Les contrôles, le focus et les raccourcis restent dans Boréale. Le formulaire de configuration et sa validation sont autonomes.
 
 Par chantier : 51 tests client pour la navigation, 11 pour les sources et l’index, 7 pour l’inspecteur et les outils, 12 pour les fonctionnalités et la configuration (filtres recouvrants). Après intégration : 59/59 dans la suite Avalonia. Sur un affichage X11 virtuel à rendu logiciel, le client Release a ouvert sa fenêtre de 1240 × 840 et Ctrl+Maj+F a masqué puis rétabli la barre latérale. Une sonde du véritable éditeur sur X11 avec transport simulé a vérifié l’annulation sans écriture, puis un seul PUT avec le modèle choisi et la révision d’origine. Le GPU, le bureau KDE/Wayland et le parcours visuel exhaustif n’ont pas été testés.
+
+## P10 — Recette et livraison
+
+Base de la phase `e24b4ef`. Le [graphe final](architecture.md), le [guide de contribution](CONTRIBUTING-AGENTS.md) et le README décrivent les projets, leurs propriétaires, les commandes d’intégration et les reprises. Le contrôle local vérifie projets, cycles, imports et dépendances transitives du client. Son premier essai signalait à tort la référence légitime du projet de tests Chat vers l’API. La règle concerne désormais les couches produit ; les tests restent dans la vérification des cycles. Une fixture temporaire a confirmé le rejet de dépendances effectivement interdites.
+
+| Recette finale sur Linux x64, SDK 10.0.404 | Résultat |
+|---|---|
+| `ALYCIA_TEST_PGVECTOR=1 bash scripts/check.sh --integration` avec PostgreSQL 17.12 jetable | Une campagne globale, 86,6 s. Compilation sans avertissement ni erreur, lint réussi, deux modèles EF sans changement en attente. Avalonia 59/59, Chat 230/230, Workspaces 11/11 : **300 réussis, 0 échec, 0 ignoré**. Extension pgvector 0.8.0 activée dans les tests de vecteurs persistants et de mémoire temporelle. |
+| `python3 scripts/tests/http-integration.py` | 35/35, 21,8 s. API réelle, PostgreSQL isolé, Ollama simulé. Révisions, commit/rejeu du tour, import/export, MCP, index et sources ; les scénarios isolés ont nettoyé leurs données. |
+| Compilation du benchmark et `python3 scripts/evaluate-context.py offline --pipeline-v2` | 11,4 s pour l’évaluation. 92 lignes ordonnées identiques hors mesures de ressources ; mêmes sources, budgets et résultats sur chaque jeu. [Comparatif et reproduction](recette.md). |
+| Inspection par rapport à `309d610` | 63 déclarations de routes et deux préfixes identiques. Les 25 fichiers de migrations historiques et 36 déclarations de paquets NuGet sont identiques. Sur les trois fichiers AXAML, seul le type de binding partagé de la conversation et sa déclaration de namespace changent. Ressources, licences de polices et workflows existants correspondent. |
+| `dotnet publish src/Alycia.Api -c Release` | Publication locale réussie, comprenant Alycia.Contracts. Sur l’API publiée, huit assertions vérifient santé, chat, Workspaces et OpenAPI en Production avec opt-in et Development sans opt-in. La construction d’une image Docker n’a pas été exécutée. |
+| Présentation | 59 tests Avalonia dans la campagne globale ; affichage X11 réel en mémoire et interaction avec le clavier validés en P9. Les poids Ollama/ONNX, l’accélération GPU et KDE/Wayland n’ont pas été exercés. |
+
+Pour reproduire la partie base de données, fournir `ALYCIA_CHAT_TEST_CONNECTION` pour une instance dédiée autorisant la création de bases temporaires. Pour la variante pgvector, installer le serveur d’extension correspondant ; la suite crée l’extension dans ses bases de test. Les mesures initiales se trouvent en P0. Le nombre de tests ignorés à cette étape venait de l’absence de connexion de test pendant la campagne de référence.
+
+## Critères d’acceptation
+
+| Critère | Preuve sur la branche de revue |
+|---|---|
+| AC01 | Les sept têtes et leurs relations figurent dans l’inventaire P0. Le premier parent de P0 est `309d610`. |
+| AC02 | [Carte avant](baseline.md), [graphe final](architecture.md), [propriété des données et décisions](ownership.md). |
+| AC03 | Le contrôle d’architecture parcourt les 13 projets ; une fixture négative rejette cycles, imports de couches interdits et dépendance transitive du client. |
+| AC04 | Le client ne référence que Alycia.Contracts. Réglages v1, DTO de conversation et messages NDJSON sont couverts par les tests de transport. |
+| AC05 | Les sept chantiers A à G ont chacun leur commit, leur port ou point d’entrée et leurs tests de domaine aux phases P4 à P6. |
+| AC06 | ChatService possède le commit du tour ; contexte, outils, routage, audit et historique ont leurs propriétaires. Aucun handler Chat ne reçoit un DbContext. |
+| AC07 | Collision réelle, rollback inter-schémas injecté, révisions concurrentes et usages d’un espace préexistant. Les 25 fichiers de migrations correspondent aux blobs de la base ; les deux modèles EF sont à jour. |
+| AC08 | [Composants de présentation](presentation.md), tests headless, fenêtre Release et raccourci sur X11, annulation et enregistrement du formulaire. |
+| AC09 | Tests de sécurité du pair réseau et des fichiers, rejeu et annulation, citations/provenance, version stricte des exports, flux et reprise des index ; cas HTTP en environnement isolé. |
+| AC10 | Résultats séparés ci-dessus pour la suite globale, PostgreSQL/pgvector, l’API, la présentation et le RAG hors ligne. |
+| AC11 | [Contrat de tâche, développement et intégration parallèles, reprise par commit](CONTRIBUTING-AGENTS.md). |
+| AC12 | Historique de phase lisible via le premier parent, commits de chantier accessibles comme parents supplémentaires, branche dédiée à la revue. |
+
+Les identifiants exacts des phases se récupèrent avec `git log --first-parent --reverse --format='%H %s' 309d610..HEAD`. Pour obtenir la liste de fichiers et les volumes par phase, utiliser `git diff --stat <phase>^1 <phase>` et `git diff --name-status -M 309d610 HEAD`. Les sorties de test sont produites localement dans `artifacts/tests/` au format TRX. Les montées de version des paquets, une revue visuelle complète sur KDE/Wayland, une mesure de débit GPU avec un vrai modèle et l’orchestration Docker restent hors de cette recette.

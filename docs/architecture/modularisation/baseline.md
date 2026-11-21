@@ -127,4 +127,4 @@ Chat registrations by lifetime at the base revision:
 | Job continuation, obsolete revision ignored, history scope | PersistentEmbeddingTests and KnowledgePipelineTests |
 | Project membership, shared notes, optimistic revisions | HTTP harness, verify_boreale |
 
-Rollback of a published phase uses `git revert <phase-commit>` on a review branch, in reverse dependency order. Restoring the source checkout needs no database rollback.
+Rollback on a review branch follows reverse dependency order. Use `git revert <phase-commit>` for a single-parent commit or `git revert -m 1 <phase-commit>` for a phase merge. Restoring the source checkout needs no database rollback.
