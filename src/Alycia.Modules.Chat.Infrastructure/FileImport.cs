@@ -5,26 +5,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Alycia.Modules.Chat.Infrastructure;
 
-public sealed record IncomingFile(string Name, Stream Content, string SourceCreatedAt = "", string SourceModifiedAt = "", string MetadataSource = "unknown");
 public sealed record SourceFileMetadata(string Name, DateTimeOffset? CreatedAt, DateTimeOffset? ModifiedAt);
 public sealed record FileSummary(Guid Id, string Name, long Size, string Status, int AnchorSequence,
     DateTimeOffset CreatedAtUtc, Guid? ArchiveId, string Sha256, string ContextMode = "window", Guid BatchId = default, string SourceCreatedAt = "", string SourceModifiedAt = "", string MetadataSource = "unknown", Guid? WorkspaceId = null);
-
-public sealed class FileStorage(string root)
-{
-    public string Root { get; } = Path.GetFullPath(root);
-    public string DirectoryFor(Guid conversation) => Path.Combine(Root, conversation.ToString("N"));
-    public string PathFor(Guid conversation, Guid file) => Path.Combine(DirectoryFor(conversation), file.ToString("N") + ".bin");
-    public string WorkspaceDirectory(Guid id) => Path.Combine(Root, "projects", id.ToString("N"));
-    public string PathFor(Attachment file) => file.WorkspaceId is Guid project
-        ? Path.Combine(WorkspaceDirectory(project), file.Id.ToString("N") + ".bin")
-        : PathFor(file.ConversationId!.Value, file.Id);
-    public void DeleteConversation(Guid conversation)
-    {
-        var directory = DirectoryFor(conversation);
-        if (Directory.Exists(directory)) Directory.Delete(directory, true);
-    }
-}
 
 public sealed class FileImport(ChatDbContext database, FileStorage storage, ImportSettingsStore? settings = null)
 {

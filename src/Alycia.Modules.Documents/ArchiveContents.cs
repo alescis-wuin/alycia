@@ -2,9 +2,9 @@ using System.Formats.Tar;
 using System.Globalization;
 using System.IO.Compression;
 
-namespace Alycia.Modules.Chat.Infrastructure.Documents;
+namespace Alycia.Modules.Documents;
 
-internal static class ArchiveContents
+public static class ArchiveContents
 {
     private static readonly string[] Extensions = [".zip", ".tar", ".gz", ".tgz"];
     public static bool Supports(string name) => Extensions.Any(ext => name.EndsWith(ext, StringComparison.OrdinalIgnoreCase));

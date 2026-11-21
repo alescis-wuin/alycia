@@ -3,11 +3,9 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
-using Alycia.Modules.Chat.Application;
-using Alycia.Modules.Chat.Infrastructure.Documents;
 using UglyToad.PdfPig;
 
-namespace Alycia.Modules.Chat.Infrastructure;
+namespace Alycia.Modules.Documents;
 
 public sealed record DocumentSegment(string Location, string Text);
 public sealed record ExtractedDocument(string Text, bool Complete, IReadOnlyList<DocumentSegment> Segments);
@@ -27,7 +25,7 @@ public static class StructuredDocuments
             var heading = "# " + location + "\n";
             var room = remaining - Encoding.UTF8.GetByteCount(heading) - 1;
             if (room < 32) { complete = false; return false; }
-            var value = FileContext.Utf8Prefix(text, room);
+            var value = Utf8Text.Prefix(text, room);
             if (value.Length != text.Length) complete = false;
             segments.Add(new(location, value)); builder.Append(heading).Append(value).Append('\n');
             remaining -= Encoding.UTF8.GetByteCount(heading + value + "\n");

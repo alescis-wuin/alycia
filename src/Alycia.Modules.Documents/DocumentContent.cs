@@ -2,9 +2,8 @@ using System.IO.Compression;
 using System.Text;
 using System.Xml;
 using System.Xml.Linq;
-using Alycia.Modules.Chat.Application;
 
-namespace Alycia.Modules.Chat.Infrastructure.Documents;
+namespace Alycia.Modules.Documents;
 
 public static class DocumentContent
 {
@@ -81,7 +80,7 @@ public static class DocumentContent
             text = text.Replace("\0", "").Trim();
             if (text.Length == 0) return ("", "Aucun texte extractible · sans OCR");
             var truncated = partial || Encoding.UTF8.GetByteCount(text) > MaxTextBytes;
-            return (FileContext.Utf8Prefix(text, MaxTextBytes), truncated ? "Texte extrait partiellement" : "Texte extrait");
+            return (Utf8Text.Prefix(text, MaxTextBytes), truncated ? "Texte extrait partiellement" : "Texte extrait");
         }
         catch (Exception ex) when (ex is not (OutOfMemoryException or OperationCanceledException))
         {

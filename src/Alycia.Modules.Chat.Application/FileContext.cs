@@ -33,15 +33,5 @@ public static class FileContext
             Sources: excerpts.Sources, FilesAvailable: excerpts.Available, Retrieval: options.RetrievalReport, Assembly: excerpts.Assembly);
     }
 
-    public static string Utf8Prefix(string text, int bytes)
-    {
-        var result = new StringBuilder();
-        foreach (var rune in text.EnumerateRunes())
-        {
-            if (rune.Utf8SequenceLength > bytes) break;
-            result.Append(rune.ToString());
-            bytes -= rune.Utf8SequenceLength;
-        }
-        return result.ToString();
-    }
+    public static string Utf8Prefix(string text, int bytes) => Alycia.Contracts.Documents.Utf8Text.Prefix(text, bytes);
 }
