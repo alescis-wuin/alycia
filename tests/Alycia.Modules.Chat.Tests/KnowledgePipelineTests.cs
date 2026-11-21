@@ -36,7 +36,7 @@ public sealed class KnowledgePipelineTests
             var other = Conversation.Create("Autre", "principal", "");
             owner.Configure(owner.Model, "", "", ConversationConfiguration.Serialize(options));
             db.Conversations.AddRange(owner, other); await db.SaveChangesAsync();
-            var importer = new FileImport(db, storage);
+            var importer = new FileImport(db, storage, ChatFixture.Profiles(db));
             var files = await importer.ImportAsync(owner.Id, Guid.NewGuid(),
                 [Source("alpha.md", "La période alpha couvre 37 jours."), Source("beta.txt", "Le delta couvre 15 jours."),
                  Source("ferme.txt", "NE_PAS_TRANSMETTRE")], default);
@@ -47,11 +47,11 @@ public sealed class KnowledgePipelineTests
                 new ChatMessage(owner.Id, 2, request, "assistant", "Je propose une couleur indigo."));
             owner.CompleteTurn(); await db.SaveChangesAsync();
 
-            var notes = new KnowledgeStore(db);
+            var notes = ChatFixture.Knowledge(db);
             var jobs = new PostgresEmbeddingStore(db.Database.GetConnectionString()!);
             var model = new AnnotationModel();
             var reader = new ProjectSourceReader(storage);
-            var worker = new BackgroundEmbeddingIndex(db, jobs, reader, new NoVectors(), new(), new ConversationIndexOwners(db), new ProjectIndexOwners(db), ChatFixture.Foreground, new(notes, model, ChatFixture.Foreground));
+            var worker = new BackgroundEmbeddingIndex(db, jobs, reader, new NoVectors(), new(), new ConversationIndexOwners(db), ChatFixture.Profiles(db), ChatFixture.Profiles(db), ChatFixture.Foreground, new(notes, model, ChatFixture.Foreground));
             var index = new ProjectIndexService(db, storage, reader, options, notes);
             await worker.DiscoverAsync(default);
             async Task<EmbeddingJob> Job() => Assert.Single(await jobs.JobsAsync(default));
@@ -169,7 +169,7 @@ public sealed class KnowledgePipelineTests
             options.RetrievalMode = "hybrid"; options.EmbeddingModel = "vectors-test"; options.HierarchicalIndexEnabled = true;
             owner.Configure(owner.Model, "", "", ConversationConfiguration.Serialize(options)); await db.SaveChangesAsync();
             var encoder = new TinyVectors();
-            var hybrid = new BackgroundEmbeddingIndex(db, jobs, reader, encoder, new(), new ConversationIndexOwners(db), new ProjectIndexOwners(db), ChatFixture.Foreground, new(notes, model, ChatFixture.Foreground));
+            var hybrid = new BackgroundEmbeddingIndex(db, jobs, reader, encoder, new(), new ConversationIndexOwners(db), ChatFixture.Profiles(db), ChatFixture.Profiles(db), ChatFixture.Foreground, new(notes, model, ChatFixture.Foreground));
             await hybrid.DiscoverAsync(default);
             for (int iteration = 0; iteration < 40; iteration++)
             {

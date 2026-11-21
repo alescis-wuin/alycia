@@ -7,7 +7,7 @@ using NpgsqlTypes;
 namespace Alycia.Modules.Chat.Infrastructure;
 
 // Independent writes checkpoint one immutable unit. Reads for chat use the caller's database snapshot.
-public sealed class KnowledgeStore(ChatDbContext database) : IHistoryKnowledge
+public sealed class KnowledgeStore(ChatDbContext database, ILiveIndexFileAccess fileAccess) : IHistoryKnowledge
 {
     private readonly string _connection = database.Database.GetConnectionString()!;
     public Task PurgeExcludedAsync(CancellationToken ct) => database.Database.ExecuteSqlRawAsync("""
@@ -15,13 +15,8 @@ public sealed class KnowledgeStore(ChatDbContext database) : IHistoryKnowledge
         WHERE k.file_id=f."Id" AND f."ContextMode"='excluded'
         """, ct);
 
-    public async Task<bool> AllowedAsync(Guid owner, bool project, Guid file, CancellationToken ct)
-    {
-        await using var db = new ChatDbContext(new DbContextOptionsBuilder<ChatDbContext>().UseNpgsql(_connection).Options);
-        var files = project ? db.Attachments.Where(f => f.WorkspaceId == owner && db.WorkspaceProfiles.Any(p => p.Id == owner && !p.Archived))
-            : db.ModelSources(owner);
-        return await files.AnyAsync(f => f.Id == file && f.ContextMode != "excluded", ct);
-    }
+    public Task<bool> AllowedAsync(Guid owner, bool project, Guid file, CancellationToken ct) =>
+        fileAccess.IsAllowedAsync(owner, project, file, ct);
 
     public async Task<IndexedNote?> CachedAsync(string key, CancellationToken ct)
     {

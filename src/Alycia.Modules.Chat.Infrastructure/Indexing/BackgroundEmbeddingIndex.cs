@@ -1,3 +1,4 @@
+using Alycia.Contracts.Workspaces;
 using Alycia.Modules.Chat.Application;
 using Alycia.Modules.Chat.Domain;
 using Microsoft.EntityFrameworkCore;
@@ -5,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Alycia.Modules.Chat.Infrastructure;
 
 public sealed class BackgroundEmbeddingIndex(ChatDbContext database, PostgresEmbeddingStore store,
-    ProjectSourceReader reader, ILocalEmbeddings embeddings, ChatOptions defaults, IConversationIndexOwners conversations, IProjectIndexOwners projects, IForegroundActivity foreground, KnowledgeBuilder? knowledge = null) : IIndexedEmbeddings
+    ProjectSourceReader reader, ILocalEmbeddings embeddings, ChatOptions defaults, IConversationIndexOwners conversations, IProjectIndexOwners projects, IWorkspaceProfiles profiles, IForegroundActivity foreground, KnowledgeBuilder? knowledge = null) : IIndexedEmbeddings
 {
     private readonly EmbeddingJobDiscovery _discovery = new(conversations, projects, store, defaults, knowledge);
     private readonly IndexedEmbeddingSearch _queries = new(store, embeddings);
@@ -17,7 +18,7 @@ public sealed class BackgroundEmbeddingIndex(ChatDbContext database, PostgresEmb
         var owner = job.Progress.OwnerId;
         var project = job.Progress.IsProject;
         var conversation = project ? null : await database.Conversations.AsNoTracking().SingleOrDefaultAsync(c => c.Id == owner, ct);
-        if (project ? !await database.WorkspaceProfiles.AnyAsync(p => p.Id == owner, ct) : conversation is null)
+        if (project ? await profiles.FindAsync(owner, ct) is null : conversation is null)
         { await store.DeleteJobAsync(job, ct); return; }
         if (conversation is not null)
         {

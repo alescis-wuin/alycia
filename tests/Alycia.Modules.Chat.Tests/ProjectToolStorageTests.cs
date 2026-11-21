@@ -32,7 +32,7 @@ public sealed class ProjectToolStorageTests
             var other = Conversation.Create("Autre", "demo", "");
             db.Conversations.AddRange(conversation, other); await db.SaveChangesAsync();
             var original = "🙂\n" + new string('x', 200100) + "\nclass HiddenAtEnd { int Value => 42; int ValueOf() => Value; }\n";
-            var added = await new FileImport(db, storage).ImportAsync(conversation.Id, Guid.NewGuid(),
+            var added = await new FileImport(db, storage, ChatFixture.Profiles(db)).ImportAsync(conversation.Id, Guid.NewGuid(),
                 [new("src/A.cs", new MemoryStream(Encoding.UTF8.GetBytes(original))), new(".env", new MemoryStream("SECRET_NEVER_READ"u8.ToArray()))], default);
             // Seed through the current importer, then exercise the upgrade from the old schema.
             // No current EF conversation mapping is used while the new column is absent.
@@ -49,7 +49,7 @@ public sealed class ProjectToolStorageTests
             Assert.Equal(original, await File.ReadAllTextAsync(storage.PathFor(file)));
             Assert.Equal("project", file.ContextMode); Assert.Equal("excluded", excluded.ContextMode);
             Assert.DoesNotContain("HiddenAtEnd", file.Text);
-            Assert.Single(await new EfChatRepository(db).ContextFilesAsync(conversation.Id, 99, default));
+            Assert.Single(await new EfChatRepository(db, ChatFixture.Profiles(db)).ContextFilesAsync(conversation.Id, 99, default));
             var reader = new ProjectSourceReader(storage);
             var index = new ProjectIndexService(db, storage, reader);
             var indexed = await index.BuildAsync(conversation.Id, default);
@@ -73,7 +73,7 @@ public sealed class ProjectToolStorageTests
             Assert.Empty((await index.BuildAsync(conversation.Id, default)).Chunks);
             file.ContextMode = "project"; await db.SaveChangesAsync();
             Assert.Equal(0, (await index.BuildAsync(conversation.Id, default)).ReusedFiles);
-            var history = new EfChatRepository(db);
+            var history = new EfChatRepository(db, ChatFixture.Profiles(db));
             var policy = new ToolConversationPolicyReader(db);
             var tools = new ProjectToolService(new AuthorizedToolSources(db, reader, policy, new()), policy, history, new(), new ProjectIndexService(db, storage, reader, new()));
             Task<ProjectToolResult> Call(string tool, object args, Guid? scope = null, int budget = 2048) =>

@@ -1,3 +1,4 @@
+using Alycia.Contracts.Workspaces;
 using Alycia.Modules.Chat.Application;
 using Alycia.Modules.Chat.Infrastructure;
 
@@ -21,7 +22,7 @@ internal static partial class ChatEndpoints
             Results.Ok(await projects.GetAsync(id, true, ct)));
         routes.MapPut("/projects/{id:guid}", async (Guid id, EditProject update, IProjectCatalog projects, CancellationToken ct) =>
             Results.Ok(await projects.UpdateAsync(id, update.Revision, update.Instructions, update.DefaultModel, update.Archived, ct)));
-        routes.MapPut("/conversations/{id:guid}/project", async (Guid id, ProjectMembership update, IProjectCatalog projects, CancellationToken ct) =>
+        routes.MapPut("/conversations/{id:guid}/project", async (Guid id, ProjectMembership update, ConversationMembership projects, CancellationToken ct) =>
             Results.Ok((await projects.SetMembershipAsync(id, update.Revision, update.WorkspaceId, ct)).ToResponse()));
         routes.MapPost("/projects/{id:guid}/notes", async (Guid id, NoteEdit update, IProjectCatalog projects, CancellationToken ct) =>
             Results.Ok(await projects.ChangeNoteAsync(id, null, update.Revision, update.Text, update.OriginConversationId, update.OriginSequence, false, ct)));

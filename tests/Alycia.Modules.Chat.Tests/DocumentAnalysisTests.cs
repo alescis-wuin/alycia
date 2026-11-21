@@ -32,7 +32,7 @@ public sealed class DocumentAnalysisTests
             await database.SaveChangesAsync();
             var source = Encoding.UTF8.GetBytes("public class Sample { }");
             var archive = Zip(("nested.zip", Zip(("src/code.cs", source))), (".env", "SECRET_SHOULD_NOT_LEAK"u8.ToArray()));
-            var importer = new FileImport(database, storage);
+            var importer = new FileImport(database, storage, ChatFixture.Profiles(database));
             var added = await importer.ImportAsync(conversation.Id, Guid.NewGuid(),
                 [new("project.zip", new MemoryStream(archive), "2025-01-02T03:04:05Z", "2025-02-03T04:05:06Z", "client-os")], default);
             Assert.Equal(4, added.Count);
@@ -50,7 +50,7 @@ public sealed class DocumentAnalysisTests
             Assert.Contains(code.Name, report.TreeText);
             Assert.Contains("sourceFingerprint", report.ManifestJson);
             Assert.Contains("2025-01-02T03:04:05Z", report.TreeText);
-            var context = await new EfChatRepository(database).ContextFilesAsync(conversation.Id, 1, default);
+            var context = await new EfChatRepository(database, ChatFixture.Profiles(database)).ContextFilesAsync(conversation.Id, 1, default);
             Assert.Equal(2, context.Count);
             Assert.Contains(context, f => f.Id == code.Id);
             Assert.EndsWith(report.SummaryText, Assert.Single(context, f => f.Id == report.Id).Text);
@@ -81,7 +81,7 @@ public sealed class DocumentAnalysisTests
             code.ContextMode = "excluded"; conversation.AttachFiles();
             await database.SaveChangesAsync();
             Assert.All(await service.ListAsync(conversation.Id, default), a => Assert.True(a.IsStale));
-            Assert.Empty(await new EfChatRepository(database).ContextFilesAsync(conversation.Id, 1, default));
+            Assert.Empty(await new EfChatRepository(database, ChatFixture.Profiles(database)).ContextFilesAsync(conversation.Id, 1, default));
 
             var unsafeArchive = Zip(("nested.zip", Zip(("../escape.txt", "no"u8.ToArray()))));
             await Assert.ThrowsAsync<ArgumentException>(() => importer.ImportAsync(conversation.Id, Guid.NewGuid(),

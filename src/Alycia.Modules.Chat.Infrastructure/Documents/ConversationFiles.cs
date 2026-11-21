@@ -34,7 +34,7 @@ public sealed class ConversationFiles(ChatDbContext database, FileStorage storag
         var files = all.Where(f => ids.Contains(f.Id)).ToArray();
         database.Attachments.RemoveRange(files);
         conversation.AttachFiles();
-        await new EfChatRepository(database).SaveAsync(ct);
+        await database.SaveVersionedAsync(ct);
         foreach (var file in files)
         {
             try { File.Delete(storage.PathFor(id, file.Id)); }

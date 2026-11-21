@@ -48,7 +48,7 @@ public sealed class WorkspaceIdentityDirectory(RelationalSession session) : IWor
         }, ct);
     }
 
-    private static void AddParameter(DbCommand command, string name, object value)
+    internal static void AddParameter(DbCommand command, string name, object value)
     {
         var parameter = command.CreateParameter();
         parameter.ParameterName = name;
