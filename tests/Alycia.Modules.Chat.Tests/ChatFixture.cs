@@ -25,7 +25,21 @@ internal static class ChatFixture
     public static LiveIndexFileAccess LiveFiles(ChatDbContext database) => new((DbContextOptions<ChatDbContext>)database.GetService<IDbContextOptions>(),
             session => new WorkspaceProfileStore(session, new WorkspaceIdentityDirectory(session)));
 
-    public static KnowledgeStore Knowledge(ChatDbContext database) => new(database, LiveFiles(database));
+    public static IndexSourceDocumentsAdapter IndexFiles(ChatDbContext database, ProjectSourceReader reader) => new(database,
+        (DbContextOptions<ChatDbContext>)database.GetService<IDbContextOptions>(), reader, LiveFiles(database));
+
+    public static KnowledgeStore Knowledge(ChatDbContext database, ProjectSourceReader reader) =>
+        new(database, LiveFiles(database), IndexFiles(database, reader));
+
+    public static PostgresEmbeddingStore Embeddings(ChatDbContext database)
+    {
+        var connection = database.Database.GetConnectionString()!;
+        return new(connection, new Alycia.Modules.Memory.MemoryVectorEligibility(connection), transaction =>
+        {
+            var session = new RelationalSession(transaction);
+            return new(new ConversationIndexOwners(session), new WorkspaceProfileStore(session, new WorkspaceIdentityDirectory(session)));
+        });
+    }
 
     public static ChatGenerationAdapter Ollama(HttpClient http, ChatOptions options) =>
         new(new OllamaTextGeneration(http, Scheduler, Tokenizers), options);

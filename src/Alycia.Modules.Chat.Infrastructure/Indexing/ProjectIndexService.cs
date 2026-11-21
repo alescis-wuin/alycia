@@ -3,19 +3,17 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Alycia.Modules.Chat.Infrastructure;
 
-public sealed class ProjectIndexService(ChatDbContext database, FileStorage storage, ProjectSourceReader reader, ChatOptions? defaults = null, KnowledgeStore? knowledge = null) : IProjectIndex
+public sealed class ProjectIndexService(IConversationIndexOwners conversations, FileStorage storage, IIndexSourceDocuments documents, ILiveIndexFileAccess live, ChatOptions? defaults = null, KnowledgeStore? knowledge = null) : IProjectIndex
 {
     public Task<ProjectIndexSnapshot> BuildAsync(Guid conversation, CancellationToken ct) => BuildScopedAsync(conversation, null, ct);
     public async Task<ProjectIndexSnapshot> BuildScopedAsync(Guid conversation, IReadOnlySet<Guid>? allowed, CancellationToken ct)
     {
         var ids = allowed?.ToArray();
-        var owner = await database.Conversations.AsNoTracking().SingleOrDefaultAsync(c => c.Id == conversation, ct)
+        var owner = await conversations.FindAsync(conversation, ct)
             ?? throw new ConversationNotFoundException();
-        var settings = ConversationConfiguration.Options(owner, defaults ?? new());
+        var settings = ConversationConfiguration.Options(owner.SettingsJson, defaults ?? new());
         var maximum = settings.IndexMaxCharacters;
-        var sources = database.ModelSources(conversation).Where(f => f.ContextMode != "excluded" && f.Text != "");
-        if (ids is not null) sources = sources.Where(f => ids.Contains(f.Id));
-        var files = await sources.OrderBy(f => f.Name).ThenBy(f => f.Id).ToArrayAsync(ct);
+        var files = await IndexFiles.SnapshotAsync(documents, conversation, false, ids, true, ct);
         files = files.OrderByDescending(f => f.ContextMode == "pinned").DistinctBy(f => (f.Name, f.Sha256)).ToArray();
         var chunks = new List<SourceChunk>(); var omissions = new List<string>(); long characters = 0; var indexed = 0; var reused = 0;
         var cache = new ProjectPassageCache(storage, conversation, settings.HierarchicalIndexEnabled);
@@ -28,7 +26,7 @@ public sealed class ProjectIndexService(ChatDbContext database, FileStorage stor
                 var reusedFile = parts is not null;
                 if (parts is null)
                 {
-                    var original = await reader.ReadAsync(file, ct);
+                    var original = await documents.ReadAsync(conversation, false, file.Id, file.Sha256, ct);
                     if (maximum > 0 && (long)characters + original.Text.Length > maximum)
                     { omissions.Add(file.Name + " : budget d’index atteint ; original accessible par outils"); continue; }
                     parts = CodeStructure.Split(file.Id, file.Name, file.Sha256, original.Text, ct, settings.HierarchicalIndexEnabled).Select(c => c with { CompleteSource = original.Complete }).ToArray();
@@ -59,6 +57,8 @@ public sealed class ProjectIndexService(ChatDbContext database, FileStorage stor
                         }).ToArray();
                     }
                 }
+                if (!await live.IsAllowedAsync(conversation, false, file.Id, ct))
+                { omissions.Add(file.Name + " : source ou cache indisponible"); continue; }
                 characters += size; chunks.AddRange(parts); indexed++; if (reusedFile) reused++;
             }
             catch (Exception e) when (e is ArgumentException or IOException or UnauthorizedAccessException)

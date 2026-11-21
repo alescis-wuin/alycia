@@ -83,7 +83,8 @@ NARROW_EDGES = {
 # historical namespace for transport compatibility; no module implementation is a contract.
 CONTRACT_AREAS = {
     "Alycia.Modules.Documents": {"Chat", "Documents"},
-    "Alycia.Modules.Indexing": {"Chat", "Indexing", "Inference"},
+    "Alycia.Modules.Indexing": {"Chat", "Indexing", "Inference", "Workspaces"},
+    "Alycia.Modules.Memory": {"Indexing", "Chat"},
     "Alycia.Modules.Inference": {"Chat", "Inference"},
     "Alycia.Modules.Retrieval": {"Indexing", "Retrieval"},
     "Alycia.Modules.Retrieval.Onnx": {"Indexing", "Retrieval"},

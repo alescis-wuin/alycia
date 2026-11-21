@@ -22,6 +22,7 @@ ISOLATED = {
     "Alycia.Modules.Documents": {"Alycia.Contracts"},
     "Alycia.Modules.Inference": {"Alycia.Contracts"},
     "Alycia.Modules.Indexing": {"Alycia.Contracts"},
+    "Alycia.Modules.Memory": {"Alycia.Contracts"},
     "Alycia.Modules.Retrieval": {"Alycia.Contracts"},
     "Alycia.Modules.Retrieval.Onnx": {"Alycia.Contracts"},
     "Alycia.Modules.Testing": {"Alycia.Contracts"},
@@ -209,7 +210,7 @@ def check_records(rows, root):
             problems.add(f"{location}: endpoint persistence belongs in the database adapter ({fields[3]})")
         elif kind in ("S", "E", "Y") and "/Migrations/" not in path:
             resource = SETS.get(fields[4], fields[4]) if kind == "E" else fields[3]
-            area = ("Indexing" if project == "Alycia.Modules.Indexing" else owner(path)) or ("Workspaces" if ".Workspaces." in project else project)
+            area = ({"Alycia.Modules.Indexing": "Indexing", "Alycia.Modules.Memory": "Memory"}.get(project) or owner(path)) or ("Workspaces" if ".Workspaces." in project else project)
             if kind != "Y" and (area == TABLE_OWNERS.get(resource)):
                 continue
             if (path, kind, resource) not in exceptions:

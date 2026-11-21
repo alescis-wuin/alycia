@@ -45,14 +45,14 @@ public sealed class KnowledgePass(KnowledgeStore store, IChatModel model, Enrich
     public string Identity { get; } = counter.ModelIdentity ?? IndexedKnowledge.Extractive;
     private bool Reusable(IndexedNote unit) => !unit.HasFallback || retryAt is null || unit.IndexedAt >= retryAt;
 
-    public async Task<IndexedNote> FileAsync(Attachment file, ProjectSourceReader reader, bool hierarchical, CancellationToken ct)
+    public async Task<IndexedNote> FileAsync(Guid owner, bool project, IndexSourceFile file, IIndexSourceDocuments documents, bool hierarchical, CancellationToken ct)
     {
         var prefix = IndexedKnowledge.Key(file.Id.ToString(), file.Name, file.Status, file.Sha256, file.SourceCreatedAt, file.SourceModifiedAt, config.Profile, Identity,
             CodeStructure.Version.ToString(), StructuredDocuments.Version.ToString(), hierarchical.ToString());
         var fileProfile = KnowledgeStore.DocumentProfile(config.Profile, hierarchical);
         var rootKey = IndexedKnowledge.Key(prefix, "document");
         if (await store.CachedAsync(rootKey, ct) is { } ready && Reusable(ready)) return ready;
-        var original = await reader.ReadAsync(file, ct);
+        var original = await documents.ReadAsync(owner, project, file.Id, file.Sha256, ct);
         var chunks = CodeStructure.Split(file.Id, file.Name, file.Sha256, original.Text, ct, hierarchical);
         var leaves = new List<IndexedNote>();
         foreach (var chunk in chunks)
@@ -85,7 +85,7 @@ public sealed class KnowledgePass(KnowledgeStore store, IChatModel model, Enrich
         }
     }
 
-    public async Task HistoryAsync(Guid owner, IReadOnlyList<ChatMessage> messages, CancellationToken ct)
+    public async Task HistoryAsync(Guid owner, IReadOnlyList<IndexHistoryMessage> messages, CancellationToken ct)
     {
         if (messages.Any(m => m.ConversationId != owner)) throw new ArgumentException("Historique hors portée.");
         foreach (var role in messages.GroupBy(m => (m.Role, m.CreatedAtUtc.UtcDateTime.Date)))
@@ -111,7 +111,7 @@ public sealed class KnowledgePass(KnowledgeStore store, IChatModel model, Enrich
         }
     }
 
-    private async Task<IndexedNote> Node(string key, string level, Attachment? file, Guid? owner, string hash, string title,
+    private async Task<IndexedNote> Node(string key, string level, IndexSourceFile? file, Guid? owner, string hash, string title,
         string text, string[] refs, string[] children, string role, string assertion, int first, int last, DateTimeOffset? date,
         bool complete, CancellationToken ct, bool childFallback = false, string? profile = null)
     {

@@ -17,7 +17,7 @@ internal sealed class ProjectPassageCache
 
     private string PathFor(Guid file) => Path.Combine(_directory, file.ToString("N") + ".json");
 
-    public async Task<SourceChunk[]?> TryReadAsync(Attachment file, CancellationToken ct)
+    public async Task<SourceChunk[]?> TryReadAsync(IndexSourceFile file, CancellationToken ct)
     {
         var path = PathFor(file.Id);
         if (!File.Exists(path) || new FileInfo(path).Length > 64 * 1024 * 1024) return null;
@@ -33,7 +33,7 @@ internal sealed class ProjectPassageCache
         catch (Exception e) when (e is JsonException or IOException or UnauthorizedAccessException) { return null; }
     }
 
-    public async Task WriteAsync(Attachment file, SourceChunk[] chunks, CancellationToken ct)
+    public async Task WriteAsync(IndexSourceFile file, SourceChunk[] chunks, CancellationToken ct)
     {
         var path = PathFor(file.Id);
         var temporary = path + "." + Guid.NewGuid().ToString("N");

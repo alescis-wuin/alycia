@@ -25,7 +25,7 @@ public sealed class WorkspaceIdentityDirectory(RelationalSession session) : IWor
             await using var command = connection.CreateCommand();
             command.Transaction = transaction;
             command.CommandText = "SELECT EXISTS (SELECT 1 FROM workspaces.workspaces WHERE id = @id)";
-            AddParameter(command, "id", id);
+            RelationalSession.AddParameter(command, "id", id);
             return (bool)(await command.ExecuteScalarAsync(token))!;
         }, ct);
 
@@ -40,19 +40,11 @@ public sealed class WorkspaceIdentityDirectory(RelationalSession session) : IWor
                 INSERT INTO workspaces.workspaces (id, name, created_at_utc) VALUES (@id, @name, @created)
                 ON CONFLICT (name) DO NOTHING
                 """;
-            AddParameter(command, "id", workspace.Id);
-            AddParameter(command, "name", workspace.Name);
-            AddParameter(command, "created", workspace.CreatedAtUtc);
+            RelationalSession.AddParameter(command, "id", workspace.Id);
+            RelationalSession.AddParameter(command, "name", workspace.Name);
+            RelationalSession.AddParameter(command, "created", workspace.CreatedAtUtc);
             if (await command.ExecuteNonQueryAsync(token) == 0) throw new ArgumentException("Ce nom de projet existe déjà.");
             return new WorkspaceIdentity(workspace.Id, workspace.Name);
         }, ct);
-    }
-
-    internal static void AddParameter(DbCommand command, string name, object value)
-    {
-        var parameter = command.CreateParameter();
-        parameter.ParameterName = name;
-        parameter.Value = value;
-        command.Parameters.Add(parameter);
     }
 }
