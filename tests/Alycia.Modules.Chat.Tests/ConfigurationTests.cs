@@ -10,7 +10,7 @@ public sealed class ConfigurationTests
     {
         var conversation = Conversation.Create("test", "demo", "initial");
         var defaults = new ChatOptions { ContextTokens = 4096 };
-        Assert.Same(defaults, ConversationConfiguration.Options(conversation, defaults));
+        Assert.Equal(defaults.ContextTokens, ConversationConfiguration.Options(conversation, defaults).ContextTokens);
         conversation.Configure("other", "new system", "project facts", ConversationConfiguration.Serialize(
             new ChatOptions { ContextTokens = 2048, MaxOutputTokens = 256, Temperature = 0.2, Seed = 42 }));
         var options = ConversationConfiguration.Options(conversation, defaults);
@@ -20,6 +20,27 @@ public sealed class ConfigurationTests
         Assert.Contains("project facts", ConversationConfiguration.System(conversation));
         Assert.Throws<ChatConflictException>(() => ConversationConfiguration.CheckRevision(conversation, 0));
         Assert.Equal(0, conversation.MessageCount);
+    }
+
+    [Fact]
+    public void UnconfiguredConversationsDoNotShareMutableDefaultOptions()
+    {
+        var defaults = new ChatOptions { ContextTokens = 4096, Temperature = 0.25 };
+        var first = Conversation.Create("Première", "demo", "Instruction");
+        var second = Conversation.Create("Deuxième", "demo", "Instruction");
+
+        var firstOptions = ConversationConfiguration.Options(first, defaults);
+        var secondOptions = ConversationConfiguration.Options(second, defaults);
+        Assert.NotSame(defaults, firstOptions);
+        Assert.NotSame(firstOptions, secondOptions);
+
+        firstOptions.ContextTokens = 16384;
+        firstOptions.Temperature = 1.5;
+        Assert.Equal(4096, defaults.ContextTokens);
+        Assert.Equal(0.25, defaults.Temperature);
+        Assert.Equal(4096, secondOptions.ContextTokens);
+        Assert.Equal(0.25, secondOptions.Temperature);
+        Assert.Equal(4096, ConversationConfiguration.Options(first, defaults).ContextTokens);
     }
 
     [Theory]

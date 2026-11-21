@@ -10,7 +10,7 @@ public static class ConversationConfiguration
     public static ChatOptions Options(Conversation conversation, ChatOptions defaults)
     {
         // Existing conversations retain server defaults until explicitly configured.
-        var options = conversation.SettingsJson == "{}" ? defaults
+        var options = conversation.SettingsJson == "{}" ? defaults.Copy()
             : JsonSerializer.Deserialize<ChatOptions>(conversation.SettingsJson, Json)
                 ?? throw new ArgumentException("Réglages de conversation invalides.");
         options.Validate();
