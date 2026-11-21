@@ -31,29 +31,34 @@ internal static class ChatRegistration
         builder.Services.AddTransient(_ => options.Copy());
         builder.Services.AddDbContext<ChatDbContext>(db => db.UseNpgsql(connection,
             provider => provider.MigrationsHistoryTable("__EFMigrationsHistory", "chat")));
-        RegisterConversations(builder.Services);
-        RegisterProjects(builder.Services);
-        RegisterDocuments(builder);
-        RegisterIndexing(builder.Services, connection);
-        RegisterRetrieval(builder.Services);
-        RegisterMemory(builder.Services);
-        RegisterTools(builder.Services);
-        RegisterInference(builder.Services, uri, mockInference);
+        AddAlyciaContext(builder.Services);
+        AddAlyciaConversations(builder.Services);
+        AddAlyciaProjects(builder.Services);
+        AddAlyciaDocuments(builder);
+        AddAlyciaIndexing(builder.Services, connection);
+        AddAlyciaRetrieval(builder.Services);
+        AddAlyciaMemory(builder.Services);
+        AddAlyciaTools(builder.Services);
+        AddAlyciaInference(builder.Services, uri, mockInference);
     }
 
-    private static void RegisterConversations(IServiceCollection services)
+    private static void AddAlyciaContext(IServiceCollection services)
+    {
+        services.AddScoped<ITurnContext, TurnContext>();
+        services.AddSingleton<Alycia.Contracts.Context.ISlidingHistory, Alycia.Modules.Context.SlidingHistory>();
+        services.AddScoped<ConversationContextPreparation>();
+    }
+
+    private static void AddAlyciaConversations(IServiceCollection services)
     {
         services.AddSingleton<GenerationGate>();
         services.AddScoped<IChatRepository, EfChatRepository>();
         services.AddScoped<IConversationContextReader>(sp => sp.GetRequiredService<IChatRepository>());
+        services.AddScoped<IAnalysisConversation, AnalysisConversationOwner>();
         services.AddScoped<IConversationFileChanges, ConversationFileChanges>();
-        services.AddScoped<IConversationOriginals, ConversationOriginals>();
-        services.AddScoped<IArchiveDocuments, ArchiveDocuments>();
         services.AddScoped<ConversationHistory>();
         services.AddScoped<ConversationSettingsService>();
         services.AddScoped<PromptCatalog>();
-        services.AddScoped<ConversationContextPreparation>();
-        services.AddScoped<ITurnContext, TurnContext>();
         services.AddScoped<ITurnRouting, TurnRouting>();
         services.AddScoped<ITurnResponseAudit, TurnResponseAudit>();
         services.AddScoped(sp => new ChatService(
@@ -63,7 +68,7 @@ internal static class ChatRegistration
             sp.GetRequiredService<GenerationGate>(), sp.GetRequiredService<IForegroundActivity>()));
     }
 
-    private static void RegisterProjects(IServiceCollection services)
+    private static void AddAlyciaProjects(IServiceCollection services)
     {
         services.AddScoped(sp => new RelationalSession(sp.GetRequiredService<ChatDbContext>().Database));
         services.AddScoped<IWorkspaceIdentityDirectory, WorkspaceIdentityDirectory>();
@@ -78,24 +83,22 @@ internal static class ChatRegistration
         services.AddScoped<ProjectFiles>();
     }
 
-    private static void RegisterMemory(IServiceCollection services)
+    private static void AddAlyciaMemory(IServiceCollection services)
     {
         services.AddScoped<IConversationMemory, ConversationMemory>();
         services.AddScoped<ConversationTemporalMemory>();
         services.AddScoped<Alycia.Contracts.Memory.ITemporalFactStorage>(sp => new Alycia.Modules.Memory.TemporalFactStorage(sp.GetRequiredService<ChatDbContext>().Database));
         services.AddScoped<Alycia.Contracts.Memory.ITemporalHistorySources, TemporalHistorySources>();
-        services.AddSingleton<Alycia.Contracts.Context.ISlidingHistory, Alycia.Modules.Context.SlidingHistory>();
         services.AddScoped<TemporalMemoryStore>();
         services.AddScoped<ITemporalMemoryIndex>(sp => sp.GetRequiredService<TemporalMemoryStore>());
         services.AddScoped<ITemporalMemory>(sp => sp.GetRequiredService<TemporalMemoryStore>());
     }
 
-    private static void RegisterTools(IServiceCollection services)
+    private static void AddAlyciaTools(IServiceCollection services)
     {
         services.AddScoped<ITurnTools, TurnTools>();
         services.AddScoped<IConversationHistoryReader>(sp => sp.GetRequiredService<IChatRepository>());
         services.AddScoped<IToolConversationPolicy, ToolConversationPolicyReader>();
-        services.AddScoped<IAuthorizedToolSources, AuthorizedToolSources>();
         services.AddScoped<ISourceCommands, Alycia.Modules.Tools.SourceCommands>();
         services.AddScoped<ProjectToolService>();
         services.AddScoped<ISnapshotProjectTools>(sp => sp.GetRequiredService<ProjectToolService>());
@@ -103,16 +106,15 @@ internal static class ChatRegistration
             .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false, UseProxy = false });
     }
 
-    private static void RegisterIndexing(IServiceCollection services, string connection)
+    private static void AddAlyciaIndexing(IServiceCollection services, string connection)
     {
         services.AddScoped<IProjectIndex, ProjectIndexService>();
         services.AddScoped<IndexCatalog>();
         services.AddScoped<ILiveIndexFileAccess>(sp => new LiveIndexFileAccess(sp.GetRequiredService<DbContextOptions<ChatDbContext>>(),
-            session => new WorkspaceProfileStore(session, new WorkspaceIdentityDirectory(session))));
+            session => new WorkspaceProfileStore(session, new WorkspaceIdentityDirectory(session)), sp.GetRequiredService<DocumentScope>()));
         services.AddScoped<KnowledgeStore>();
         services.AddScoped<IHistoryKnowledge>(sp => sp.GetRequiredService<KnowledgeStore>());
         services.AddScoped<KnowledgeBuilder>();
-        services.AddScoped<IIndexSourceDocuments, IndexSourceDocumentsAdapter>();
         services.AddScoped(_ => new PostgresEmbeddingStore(connection, new Alycia.Modules.Memory.MemoryVectorEligibility(connection), transaction =>
         {
             var session = new RelationalSession(transaction);
@@ -127,7 +129,7 @@ internal static class ChatRegistration
         services.AddHostedService<EmbeddingWorker>();
     }
 
-    private static void RegisterRetrieval(IServiceCollection services)
+    private static void AddAlyciaRetrieval(IServiceCollection services)
     {
         services.AddSingleton<LexicalIndexCache>();
         services.AddSingleton<IPassageReranker>(_ => new OnnxPassageReranker(Environment.GetEnvironmentVariable("ALYCIA_RERANK_DIRECTORY")));
@@ -135,8 +137,14 @@ internal static class ChatRegistration
         services.AddScoped<IProjectRetrieval, ProjectRetrievalService>();
     }
 
-    private static void RegisterDocuments(WebApplicationBuilder builder)
+    private static void AddAlyciaDocuments(WebApplicationBuilder builder)
     {
+        builder.Services.AddSingleton(new DocumentScope(session => new ConversationWorkspaceLookup(session)));
+        builder.Services.AddScoped<ITurnDocuments, TurnDocuments>();
+        builder.Services.AddScoped<IConversationOriginals, ConversationOriginals>();
+        builder.Services.AddScoped<IArchiveDocuments, ArchiveDocuments>();
+        builder.Services.AddScoped<IAuthorizedToolSources, AuthorizedToolSources>();
+        builder.Services.AddScoped<IIndexSourceDocuments, IndexSourceDocumentsAdapter>();
         builder.Services.AddSingleton(new FileStorage(builder.Configuration["ALYCIA_FILES_DIRECTORY"]
             ?? Path.Combine(builder.Environment.ContentRootPath, "data", "files")));
         builder.Services.AddScoped<ImportSettingsStore>();
@@ -149,7 +157,7 @@ internal static class ChatRegistration
         builder.WebHost.ConfigureKestrel(server => server.Limits.MaxRequestBodySize = ImportLimits.HardBatchBytes + 32 * 1024 * 1024);
     }
 
-    private static void RegisterInference(IServiceCollection services, Uri uri, bool mockInference)
+    private static void AddAlyciaInference(IServiceCollection services, Uri uri, bool mockInference)
     {
         services.AddSingleton<InferenceScheduler>();
         services.AddSingleton<ModelTokenizationCache>();

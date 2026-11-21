@@ -49,7 +49,7 @@ public sealed class ProjectToolStorageTests
             Assert.Equal(original, await File.ReadAllTextAsync(storage.PathFor(file)));
             Assert.Equal("project", file.ContextMode); Assert.Equal("excluded", excluded.ContextMode);
             Assert.DoesNotContain("HiddenAtEnd", file.Text);
-            Assert.Single(await new EfChatRepository(db, ChatFixture.Profiles(db)).ContextFilesAsync(conversation.Id, 99, default));
+            Assert.Single(await new EfChatRepository(db, ChatFixture.Profiles(db), new TurnDocuments(db, ChatFixture.DocumentScope)).ContextFilesAsync(conversation.Id, 99, default));
             var reader = new ProjectSourceReader(storage);
             var index = new ProjectIndexService(new ConversationIndexOwners(new(db.Database)), storage, ChatFixture.IndexFiles(db, reader), ChatFixture.LiveFiles(db));
             var indexed = await index.BuildAsync(conversation.Id, default);
@@ -73,9 +73,9 @@ public sealed class ProjectToolStorageTests
             Assert.Empty((await index.BuildAsync(conversation.Id, default)).Chunks);
             file.ContextMode = "project"; await db.SaveChangesAsync();
             Assert.Equal(0, (await index.BuildAsync(conversation.Id, default)).ReusedFiles);
-            var history = new EfChatRepository(db, ChatFixture.Profiles(db));
+            var history = new EfChatRepository(db, ChatFixture.Profiles(db), new TurnDocuments(db, ChatFixture.DocumentScope));
             var policy = new ToolConversationPolicyReader(db);
-            var sources = new AuthorizedToolSources(db, reader, policy, new(), ChatFixture.LiveFiles(db));
+            var sources = new AuthorizedToolSources(db, reader, policy, new(), ChatFixture.LiveFiles(db), ChatFixture.DocumentScope);
             var tools = new ProjectToolService(sources, new Alycia.Modules.Tools.SourceCommands(sources), policy, history, new(), new ProjectIndexService(new ConversationIndexOwners(new(db.Database)), storage, ChatFixture.IndexFiles(db, reader), ChatFixture.LiveFiles(db), new()));
             Task<ProjectToolResult> Call(string tool, object args, Guid? scope = null, int budget = 2048) =>
                 tools.CallAsync(scope ?? conversation.Id, tool, JsonSerializer.SerializeToElement(args), budget, default);
@@ -116,7 +116,7 @@ public sealed class ProjectToolStorageTests
             using var pageJson = JsonDocument.Parse(page.Text);
             Assert.Equal(1, pageJson.RootElement.GetProperty("nextOffset").GetInt32());
             var model = new SummaryModel();
-            var report = await new DocumentAnalysisService(db, model, new(), reader, ChatFixture.Gate).AnalyzeAsync(conversation.Id, conversation.Revision, null, 1024, null, default);
+            var report = await new DocumentAnalysisService(db, model, new(), reader, ChatFixture.Gate, new AnalysisConversationOwner(db), ChatFixture.DocumentScope).AnalyzeAsync(conversation.Id, conversation.Revision, null, 1024, null, default);
             Assert.Contains(model.Inputs, s => s.Contains("HiddenAtEnd"));
             Assert.DoesNotContain(model.Inputs, s => s.Contains("SECRET_NEVER_READ"));
             Assert.InRange(Encoding.UTF8.GetByteCount(report.SummaryText), 1, 1024);

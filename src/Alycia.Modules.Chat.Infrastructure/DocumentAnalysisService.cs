@@ -8,7 +8,7 @@ namespace Alycia.Modules.Chat.Infrastructure;
 public sealed record AnalysisItem(Guid Id, string Title, DateTimeOffset CreatedAtUtc, string Model,
     int FileCount, int SummaryCalls, bool UseInContext, bool IsStale, Guid? ScopeBatchId);
 
-public sealed partial class DocumentAnalysisService(ChatDbContext database, IChatModel model, ChatOptions defaults, ProjectSourceReader reader, GenerationGate conversationGate)
+public sealed partial class DocumentAnalysisService(ChatDbContext database, IChatModel model, ChatOptions defaults, ProjectSourceReader reader, GenerationGate conversationGate, IAnalysisConversation conversations, DocumentScope scope)
 {
     public async Task<DocumentAnalysis> AnalyzeAsync(Guid id, int revision, Guid? batch, int budget,
         Func<string, Task>? progress, CancellationToken ct, Guid? resumeRunId = null)
@@ -27,9 +27,9 @@ public sealed partial class DocumentAnalysisService(ChatDbContext database, ICha
         }
         if (await database.DocumentAnalyses.CountAsync(a => a.ConversationId == id, ct) >= 50)
             throw new ArgumentException("Limite de 50 analyses : supprimez une ancienne analyse avant de continuer.");
-        var files = await database.ModelSources(id).Where(f => (!batch.HasValue || f.BatchId == batch)).OrderBy(f => f.Name).ThenBy(f => f.Id).ToArrayAsync(ct);
+        var files = await scope.ReadAsync(database, id, false, true, q => q.Where(f => (!batch.HasValue || f.BatchId == batch)).OrderBy(f => f.Name).ThenBy(f => f.Id).ToArrayAsync(ct), ct);
         if (files.Length == 0) throw new ArgumentException("Aucun fichier dans ce périmètre. Importez un dossier ou une archive.");
-        var options = await model.PrepareOptionsAsync(conversation.Model, ConversationConfiguration.Options(conversation, defaults), ct);
+        var options = await model.PrepareOptionsAsync(conversation.Model, ConversationConfiguration.Options(conversation.SettingsJson, defaults), ct);
         var measured = new MeteredChatModel(model);
         var eligible = files.Where(f => f.Text.Length > 0 && f.ContextMode != "excluded").ToArray();
         var inventory = ProjectInventory.Describe(files);
@@ -204,7 +204,7 @@ public sealed partial class DocumentAnalysisService(ChatDbContext database, ICha
             foreach (var previous in await database.DocumentAnalyses.Where(a => a.ConversationId == id && a.UseInContext).ToListAsync(ct))
                 previous.UseInContext = false;
             database.DocumentAnalyses.Add(analysis);
-            conversation.AttachFiles();
+            await conversations.StageAdvanceAsync(id, revision, ct);
             await database.SaveVersionedAsync(ct);
             await checkpoints.SaveRunAsync(run with { State = "completed", AnalysisId = analysis.Id }, CancellationToken.None);
             return analysis;

@@ -7,7 +7,7 @@ namespace Alycia.Modules.Chat.Infrastructure;
 
 public sealed record SourcePreview(string Name, string Sha256, string Text, int Start, int End, bool Partial);
 
-public sealed class ProjectFiles(ChatDbContext db, FileImport importer, ProjectSourceReader reader, IWorkspaceProfiles profiles, IConversationFileChanges conversations)
+public sealed class ProjectFiles(ChatDbContext db, FileImport importer, ProjectSourceReader reader, IWorkspaceProfiles profiles, IConversationFileChanges conversations, DocumentScope scope)
 {
     public async Task<IReadOnlyList<FileSummary>> ShareAsync(Guid conversation, Guid file, CancellationToken ct)
     {
@@ -84,8 +84,7 @@ public sealed class ProjectFiles(ChatDbContext db, FileImport importer, ProjectS
 
     public async Task<SourcePreview?> PreviewAsync(Guid owner, bool workspace, Guid file, string? sha, int? start, int? end, CancellationToken ct)
     {
-        var files = workspace ? db.Attachments.AsNoTracking().Where(f => f.WorkspaceId == owner) : db.ForConversation(owner);
-        var attachment = await files.SingleOrDefaultAsync(f => f.Id == file, ct);
+        var attachment = await scope.ReadAsync(db, owner, workspace, false, q => q.SingleOrDefaultAsync(f => f.Id == file, ct), ct);
         if (attachment is null) return null;
         if (sha is not null && !string.Equals(sha, attachment.Sha256, StringComparison.OrdinalIgnoreCase))
             throw new ArgumentException("Cette version de la source est indisponible.");
