@@ -1,6 +1,6 @@
 using System.Text.Json;
 using Alycia.Modules.Chat.Application;
-using Alycia.Modules.Chat.Domain;
+using Alycia.Contracts.Tools;
 
 namespace Alycia.Modules.Chat.Tests;
 
@@ -12,20 +12,19 @@ public sealed class TurnToolsTests
     [InlineData(true, false)]
     public async Task SendSelectsSnapshotOnlyForAttachedConversationWithSnapshotProvider(bool attached, bool hasSnapshot)
     {
-        var conversation = Conversation.Create("Test", "demo", "");
-        if (attached) conversation.AssignWorkspace(Guid.NewGuid());
+        var scope = new ToolTurnScope(Guid.NewGuid(), attached ? Guid.NewGuid() : null, "demo");
         var ordinary = new Sources(true);
         var snapshot = hasSnapshot ? new Sources(true) : null;
         var model = new Model(true);
 
-        var selected = await new TurnTools(ordinary, snapshot).SelectAsync(conversation, new(), model, default);
+        var selected = await new TurnTools(ordinary, snapshot).SelectAsync(scope, true, model, default);
 
         var expected = attached && hasSnapshot ? snapshot! : ordinary;
         Assert.Same(expected, selected);
-        Assert.Equal([conversation.Id], expected.Probes);
+        Assert.Equal([scope.ConversationId], expected.Probes);
         if (!ReferenceEquals(ordinary, expected)) Assert.Empty(ordinary.Probes);
         if (snapshot is not null && !ReferenceEquals(snapshot, expected)) Assert.Empty(snapshot.Probes);
-        Assert.Equal([conversation.Model], model.Probes);
+        Assert.Equal([scope.Model], model.Probes);
     }
 
     [Theory]
@@ -35,13 +34,12 @@ public sealed class TurnToolsTests
     public async Task RefusalStopsAtFirstFailedConditionWithoutTryingOtherProvider(bool enabled, bool hasSources,
         bool supported, int expectedSourceProbes, int expectedModelProbes)
     {
-        var conversation = Conversation.Create("Test", "demo", "");
-        conversation.AssignWorkspace(Guid.NewGuid());
+        var scope = new ToolTurnScope(Guid.NewGuid(), Guid.NewGuid(), "demo");
         var ordinary = new Sources(true);
         var snapshot = new Sources(hasSources);
         var model = new Model(supported);
 
-        var selected = await new TurnTools(ordinary, snapshot).SelectAsync(conversation, new() { UseProjectTools = enabled }, model, default);
+        var selected = await new TurnTools(ordinary, snapshot).SelectAsync(scope, enabled, model, default);
 
         Assert.Null(selected);
         Assert.Equal(expectedSourceProbes, snapshot.Probes.Count);
@@ -54,28 +52,27 @@ public sealed class TurnToolsTests
     [InlineData(false)]
     public async Task ContextChecksOnlyOrdinarySourcesEvenWhenAttached(bool available)
     {
-        var conversation = Conversation.Create("Test", "demo", "");
-        conversation.AssignWorkspace(Guid.NewGuid());
+        var scope = new ToolTurnScope(Guid.NewGuid(), Guid.NewGuid(), "demo");
         var ordinary = new Sources(available);
         var snapshot = new Sources(!available);
 
-        var result = await new TurnTools(ordinary, snapshot).AvailableForContextAsync(conversation, new(), new Model(true), default);
+        var result = await new TurnTools(ordinary, snapshot).AvailableForContextAsync(scope, true, new Model(true), default);
 
         Assert.Equal(available, result);
-        Assert.Equal([conversation.Id], ordinary.Probes);
+        Assert.Equal([scope.ConversationId], ordinary.Probes);
         Assert.Empty(snapshot.Probes);
     }
 
     [Fact]
     public async Task CancellationAtSourceCheckDoesNotQueryModel()
     {
-        var conversation = Conversation.Create("Test", "demo", "");
+        var scope = new ToolTurnScope(Guid.NewGuid(), null, "demo");
         var model = new Model(true);
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
         var error = await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            new TurnTools(new Sources(true)).SelectAsync(conversation, new(), model, cancellation.Token));
+            new TurnTools(new Sources(true)).SelectAsync(scope, true, model, cancellation.Token));
 
         Assert.Equal(cancellation.Token, error.CancellationToken);
         Assert.Empty(model.Probes);
@@ -88,7 +85,7 @@ public sealed class TurnToolsTests
     [InlineData(true, true, "agent")]
     public async Task PresenceOfActiveToolsAndConsumerSelectsTheGenerationPath(bool active, bool streaming, string expected)
     {
-        var conversation = Conversation.Create("Test", "demo", "");
+        var scope = new ToolTurnScope(Guid.NewGuid(), null, "demo");
         var window = new ContextWindow([new("user", "Bonjour")], 0, 10);
         var deltas = new List<string>();
         Task OnDelta(ModelDelta delta)
@@ -98,7 +95,7 @@ public sealed class TurnToolsTests
         }
 
         var reply = await new TurnTools().GenerateAsync(new Model(true), active ? new Sources(true) : null,
-            conversation, window, new(), streaming ? OnDelta : null, default);
+            scope, window, new(), streaming ? OnDelta : null, default);
 
         Assert.Equal(expected, reply.Content);
         if (streaming) Assert.Equal([expected], deltas);

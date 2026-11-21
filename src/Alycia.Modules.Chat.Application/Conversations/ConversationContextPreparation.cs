@@ -1,3 +1,4 @@
+using Alycia.Contracts.Tools;
 using Alycia.Modules.Chat.Domain;
 
 using Alycia.Modules.Chat.Application.Context;
@@ -43,7 +44,8 @@ public sealed class ConversationContextPreparation(IChatRepository repository, I
     {
         var measured = new MeteredChatModel(model);
         await QueryRouting.PrepareAsync(repository, conversation, text, options, retrieval, measured, ct, memory);
-        var useTools = await tools.AvailableForContextAsync(conversation, options, model, ct);
+        var useTools = await tools.AvailableForContextAsync(new ToolTurnScope(conversation.Id, conversation.WorkspaceId, conversation.Model),
+            options.UseProjectTools, model, ct);
         var budget = await turnContext.AllocateAsync(conversation, text, options, useTools, ct);
         return new(conversation, text, options, measured, budget);
     }
