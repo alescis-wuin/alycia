@@ -12,7 +12,7 @@ namespace Alycia.Api.Chat;
 
 internal static class ChatRegistration
 {
-    public static void AddLocalChat(this WebApplicationBuilder builder, bool mockInference)
+    public static void AddLocalChat(this WebApplicationBuilder builder, Action<IServiceCollection>? registerMocks)
     {
         var connection = builder.Configuration["ALYCIA_CHAT_CONNECTION"];
         if (string.IsNullOrWhiteSpace(connection))
@@ -39,7 +39,7 @@ internal static class ChatRegistration
         AddAlyciaRetrieval(builder.Services);
         AddAlyciaMemory(builder.Services);
         AddAlyciaTools(builder.Services);
-        AddAlyciaInference(builder.Services, uri, mockInference);
+        AddAlyciaInference(builder.Services, uri, registerMocks);
     }
 
     private static void AddAlyciaContext(IServiceCollection services)
@@ -157,15 +157,15 @@ internal static class ChatRegistration
         builder.WebHost.ConfigureKestrel(server => server.Limits.MaxRequestBodySize = ImportLimits.HardBatchBytes + 32 * 1024 * 1024);
     }
 
-    private static void AddAlyciaInference(IServiceCollection services, Uri uri, bool mockInference)
+    private static void AddAlyciaInference(IServiceCollection services, Uri uri, Action<IServiceCollection>? registerMocks)
     {
         services.AddSingleton<InferenceScheduler>();
         services.AddSingleton<ModelTokenizationCache>();
         services.AddSingleton<IForegroundActivity, ForegroundActivity>();
         services.AddScoped<IChatModel, ChatGenerationAdapter>();
-        if (mockInference)
+        if (registerMocks is not null)
         {
-            DevelopmentInference.AddMocks(services);
+            registerMocks(services);
             return;
         }
         services.AddHttpClient<ILocalEmbeddings, OllamaEmbeddings>(http =>

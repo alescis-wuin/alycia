@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Alycia.DevHost/Alycia.DevHost.csproj" />
     <Project Path="src/Alycia.Modules.Testing/Alycia.Modules.Testing.csproj" />
     <Project Path="src/Alycia.Modules.Retrieval.Onnx/Alycia.Modules.Retrieval.Onnx.csproj" />
     <Project Path="src/Alycia.Modules.Retrieval/Alycia.Modules.Retrieval.csproj" />
@@ -21,6 +22,12 @@
     <Project Path="src/Alycia.Modules.Chat.Infrastructure/Alycia.Modules.Chat.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Alycia.Modules.Context.Tests/Alycia.Modules.Context.Tests.csproj" />
+    <Project Path="tests/Alycia.Modules.Tools.Tests/Alycia.Modules.Tools.Tests.csproj" />
+    <Project Path="tests/Alycia.Modules.Documents.Tests/Alycia.Modules.Documents.Tests.csproj" />
+    <Project Path="tests/Alycia.Modules.Indexing.Tests/Alycia.Modules.Indexing.Tests.csproj" />
+    <Project Path="tests/Alycia.Modules.Retrieval.Tests/Alycia.Modules.Retrieval.Tests.csproj" />
+    <Project Path="tests/Alycia.Modules.Memory.Tests/Alycia.Modules.Memory.Tests.csproj" />
     <Project Path="tests/Alycia.Modules.Inference.Tests/Alycia.Modules.Inference.Tests.csproj" />
     <Project Path="tests/Alycia.Modules.Chat.Tests/Alycia.Modules.Chat.Tests.csproj" />
     <Project Path="tests/Alycia.Client.Avalonia.Tests/Alycia.Client.Avalonia.Tests.csproj" />
