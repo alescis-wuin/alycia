@@ -34,7 +34,7 @@ public class ContextQualityTests
         var options = new ChatOptions { EvidenceSelectionEnabled = true };
         var packed = ProjectRetrieval.Pack(chunks, files.Select(f => f.ToTurnFile()).ToArray(), 750, options.Context());
         Assert.Equal(2, packed.Sources.Count);
-        Assert.Equal(TokenBudget.Count(packed.Text, options), packed.Assembly!.Used);
+        Assert.Equal(PromptTokens.Count(packed.Text, options.TokenCounter), packed.Assembly!.Used);
         Assert.InRange(packed.Assembly.Used, 1, 750);
         foreach (var source in packed.Sources)
         {

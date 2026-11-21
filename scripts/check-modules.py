@@ -9,7 +9,7 @@ import sys
 import tempfile
 import xml.etree.ElementTree as ET
 
-from architecture.module_rules import ALLOWED, CHAT_PROJECTS, CONTRACT_AREAS, NARROW_EDGES, owner
+from architecture.module_rules import ALLOWED, CHAT_PROJECTS, CONTRACT_AREAS, NARROW_EDGES, OWNER_INPUT_TYPES, SNAPSHOT_CONSUMERS, owner
 
 ROOT = Path(__file__).resolve().parents[1]
 CAPTURE = ROOT / "scripts/architecture/capture"
@@ -214,6 +214,9 @@ def check_records(rows, root):
             problems.add(f"{location}: unreviewed {kind}: {area} -> {resource}")
         elif kind == "R":
             source_type, assembly, type_id, target_type = fields[3:]
+            consumer = owner(path, source_type) if project == "Alycia.Modules.Chat.Application" else project.removeprefix("Alycia.Modules.")
+            if consumer in SNAPSHOT_CONSUMERS and type_id in OWNER_INPUT_TYPES:
+                problems.add(f"{location}: specialized input: {consumer} -> {target_type}")
             if assembly == "Alycia.Contracts" and project in CONTRACT_AREAS:
                 area = type_id.removeprefix("T:Alycia.Contracts.").split(".", 1)[0]
                 if area not in CONTRACT_AREAS[project]:

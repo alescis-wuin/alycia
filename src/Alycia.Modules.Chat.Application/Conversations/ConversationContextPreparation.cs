@@ -65,7 +65,7 @@ public sealed class ConversationContextPreparation(IChatRepository repository, I
         if (mode == TurnContextMode.PrepareMemory && memoryWriter.Apply(inputs.Conversation, result.Prepared?.MemoryChange()))
             await repository.SaveAsync(ct);
         return new(result.Window, inputs.Options, inputs.Measured.Snapshot(inputs.Options.ModelIdentity, inputs.Options.TokenCounter), inputs.Conversation.Revision,
-            inputs.Conversation.MessageCount - result.Window.HistoryMessagesIncluded, TokenBudget.Description(inputs.Options));
+            inputs.Conversation.MessageCount - result.Window.HistoryMessagesIncluded, PromptTokens.Description(inputs.Options.TokenCounter));
     }
 
     // The caller holds the conversation lease through its final write, including a failed or cancelled stream.

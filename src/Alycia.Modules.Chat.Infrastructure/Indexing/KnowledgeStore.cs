@@ -60,7 +60,7 @@ public sealed class KnowledgeStore(ChatDbContext database, ILiveIndexFileAccess 
     }
 
     // Only a published root is a retrieval entry point. Its children belong to that same generation.
-    public static string DocumentProfile(string profile, bool hierarchical) => IndexedKnowledge.Key(profile, hierarchical.ToString(), IndexedOriginal.StructureVersion.ToString(), StructuredDocuments.Version.ToString());
+    public static string DocumentProfile(string profile, bool hierarchical) => KnowledgeCacheKey.Compute(profile, hierarchical.ToString(), IndexedOriginal.StructureVersion.ToString(), StructuredDocuments.Version.ToString());
     public async Task<IndexedNote?> DocumentAsync(Guid file, string sha, string profile, CancellationToken ct, bool hierarchical = false)
     {
         profile = DocumentProfile(profile, hierarchical);

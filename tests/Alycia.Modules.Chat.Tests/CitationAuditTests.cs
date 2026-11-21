@@ -1,3 +1,4 @@
+using Alycia.Modules.Retrieval;
 using Alycia.Modules.Chat.Application;
 
 namespace Alycia.Modules.Chat.Tests;

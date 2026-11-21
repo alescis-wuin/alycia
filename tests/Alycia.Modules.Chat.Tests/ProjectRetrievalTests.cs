@@ -29,7 +29,7 @@ public sealed class ProjectRetrievalTests
         var result = ProjectRetrieval.Pack([c], [file.ToTurnFile(), summary.ToTurnFile()], 2000, new ChatOptions().Context());
         Assert.Contains(result.Sources, s => s.Id == file.Id);
         Assert.InRange(result.Sources.Single(s => s.Id == summary.Id).Utf8Bytes, 1, 500);
-        Assert.True(TokenBudget.Count(result.Text, new()) <= 2000);
+        Assert.True(PromptTokens.Count(result.Text, null) <= 2000);
     }
 
     private static SourceChunk Chunk(string path, string symbol, string text) => new(Guid.NewGuid(), path, "hash", symbol, "method", 0, text.Length, 1, 1, text, [], true);
@@ -45,7 +45,7 @@ public sealed class ProjectRetrievalTests
         var packed = ProjectRetrieval.Pack(ranked, files.Select(f => f.ToTurnFile()).ToArray(), 1500, new ChatOptions().Context());
         Assert.Single(packed.Sources, c => c.Path.EndsWith(".cs"));
         Assert.All(packed.Sources, s => Assert.NotNull(s.Reference));
-        Assert.True(TokenBudget.Count(packed.Text, new()) <= 1500);
+        Assert.True(PromptTokens.Count(packed.Text, null) <= 1500);
     }
     [Fact]
     public void SemanticRankingCanRetrieveAParaphraseAndExclusionsAlwaysWin()

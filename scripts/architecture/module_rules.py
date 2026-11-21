@@ -70,6 +70,17 @@ NARROW_EDGES = {
     ("Tools", "Indexing"): {"IIndexedEmbeddings"},
 }
 
+# These consumers use request snapshots. Stored settings and tracked chat rows belong at the owning adapter.
+SNAPSHOT_CONSUMERS = {"Context", "Inference", "Memory", "Retrieval", "Tools"}
+OWNER_INPUT_TYPES = {
+    "T:Alycia.Contracts.Chat.ChatSettings",
+    "T:Alycia.Modules.Chat.Application.ChatOptions",
+    "T:Alycia.Modules.Chat.Domain.Conversation",
+    "T:Alycia.Modules.Chat.Domain.ChatMessage",
+    "T:Alycia.Modules.Chat.Domain.Attachment",
+    "T:Alycia.Modules.Chat.Domain.WorkspaceProfile",
+}
+
 # Contract namespaces accepted by already isolated assemblies. Chat DTOs retain their
 # historical namespace for transport compatibility; no module implementation is a contract.
 CONTRACT_AREAS = {

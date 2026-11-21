@@ -53,7 +53,7 @@ public sealed class ChatService(IChatRepository repository, IChatModel model, Ch
                 throw new ChatConflictException();
             }
 
-            return new(previous, null, true, Usage: TokenBudget.ReadUsage(previous[1].DiagnosticsJson));
+            return new(previous, null, true, Usage: TurnResponseAudit.ReadUsage(previous[1].DiagnosticsJson));
         }
 
         if (revision.HasValue) ConversationConfiguration.CheckRevision(conversation, revision.Value);
@@ -72,7 +72,7 @@ public sealed class ChatService(IChatRepository repository, IChatModel model, Ch
             onDelta is null ? null : status => onDelta(new("", Status: status)), cancellationToken);
         var window = context.Window;
         var generated = await tools.GenerateAsync(measured, activeTools, toolScope, window.ToolPrompt(), settings.ToolGeneration(), onDelta, cancellationToken);
-        var review = await audit.ReviewAsync(id, generated, window, settings, measured, onDelta, cancellationToken);
+        var review = await audit.ReviewAsync(id, generated, window, settings.Verification(), measured, onDelta, cancellationToken);
         var user = new ChatMessage(id, conversation.MessageCount + 1, requestId, "user", text);
         var assistant = new ChatMessage(id, conversation.MessageCount + 2, requestId, "assistant", review.Reply);
         TurnResponseAudit.AttachToolTrace(assistant, generated.Tools);

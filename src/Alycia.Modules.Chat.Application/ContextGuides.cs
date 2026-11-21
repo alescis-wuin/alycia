@@ -18,7 +18,7 @@ public static class ContextGuides
             allowance = Math.Min(allowance, settings.Evidence.DocumentContextTokens - originalCost);
         }
         var guides = new List<UsedGuide>();
-        var added = 0; var calls = new IndexCallBudget(settings.Guides.MaxCalls);
+        var added = 0; var calls = new ModelCallBudget(settings.Guides.MaxCalls);
         foreach (var source in selected.Where(s => s.Reference is not null))
         {
             ct.ThrowIfCancellationRequested();
@@ -66,7 +66,7 @@ public static class ContextGuides
     }
 
     private static async Task<string?> ReduceAsync(string text, EnrichmentOptions config, InferenceCall local, int target,
-        IndexCallBudget calls, IModelMeter model, CancellationToken ct)
+        ModelCallBudget calls, IModelMeter model, CancellationToken ct)
     {
         var instruction = $"Résume les données fournies en {target} tokens maximum. Conserve incertitudes, désaccords et termes exacts.";
         var perInput = local.Generation.ContextTokens - local.SafetyTokens - local.Generation.MaxOutputTokens - PromptTokens.Count(instruction, local.TokenCounter) - 64;
