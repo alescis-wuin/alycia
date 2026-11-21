@@ -24,7 +24,7 @@ internal sealed class ProjectPassageCache
         try
         {
             var cached = JsonSerializer.Deserialize<Cached>(await File.ReadAllTextAsync(path, ct), ProjectToolCatalog.Json);
-            if (cached is null || cached.Version != CodeStructure.Version || cached.ExtractorVersion != StructuredDocuments.Version
+            if (cached is null || cached.Version != IndexedOriginal.StructureVersion || cached.ExtractorVersion != StructuredDocuments.Version
                 || cached.Sha256 != file.Sha256 || cached.Path != file.Name || cached.Status != file.Status) return null;
             return cached.Chunks is not null && cached.Chunks.All(c => c is not null && c.FileId == file.Id
                 && c.Sha256 == file.Sha256 && c.Path == file.Name && c.Text is not null && c.Symbol is not null
@@ -39,7 +39,7 @@ internal sealed class ProjectPassageCache
         var temporary = path + "." + Guid.NewGuid().ToString("N");
         try
         {
-            var entry = new Cached(CodeStructure.Version, file.Sha256, file.Name, file.Status, chunks, StructuredDocuments.Version);
+            var entry = new Cached(IndexedOriginal.StructureVersion, file.Sha256, file.Name, file.Status, chunks, StructuredDocuments.Version);
             await File.WriteAllTextAsync(temporary, JsonSerializer.Serialize(entry, ProjectToolCatalog.Json), ct);
             ct.ThrowIfCancellationRequested();
             File.Move(temporary, path, true);

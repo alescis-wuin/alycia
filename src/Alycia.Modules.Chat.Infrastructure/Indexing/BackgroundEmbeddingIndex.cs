@@ -54,7 +54,7 @@ public sealed class BackgroundEmbeddingIndex(IIndexSourceDocuments documents, IL
 
             // Probe only once per processing pass when the digest or job inputs require indexing.
             var identity = digest;
-            fingerprint = StructuredMemory.Hash($"{pass?.Identity}|{job.Settings.Enrichment?.Profile}|{job.Settings.VectorSpace(digest, 0)}|{CodeStructure.Version}|{StructuredDocuments.Version}|{messages}|"
+            fingerprint = StructuredMemory.Hash($"{pass?.Identity}|{job.Settings.Enrichment?.Profile}|{job.Settings.VectorSpace(digest, 0)}|{IndexedOriginal.StructureVersion}|{StructuredDocuments.Version}|{messages}|"
                 + string.Join('|', files.Select(f => $"{f.Id}:{f.Sha256}:{f.Name}:{f.Status}:{f.SourceCreatedAt}:{f.SourceModifiedAt}:{f.ContextMode}")));
             if (job.Progress.State == "completed" && fingerprint == job.Fingerprint)
             { await store.ProgressAsync(job, "completed", total, total, job.Progress.Detail, fingerprint, ct); return; }
@@ -103,7 +103,7 @@ public sealed class BackgroundEmbeddingIndex(IIndexSourceDocuments documents, IL
                 ct.ThrowIfCancellationRequested();
                 var source = await documents.ReadAsync(owner, project, file.Id, file.Sha256, ct);
                 if (!source.Complete) omissions++;
-                var chunks = CodeStructure.Split(file.Id, file.Name, file.Sha256, source.Text, ct, job.Settings.Hierarchical)
+                var chunks = documents.Split(file, source, job.Settings.Hierarchical, ct)
                     .SelectMany(c => EmbeddingChunks.Split(c with { CompleteSource = source.Complete }, job.Settings.ChunkCharacters));
                 if (!await IndexAsync(chunks, null, 0, file.Name)) return;
                 completed++;

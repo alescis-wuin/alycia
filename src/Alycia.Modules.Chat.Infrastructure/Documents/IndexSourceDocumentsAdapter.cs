@@ -41,6 +41,9 @@ public sealed class IndexSourceDocumentsAdapter(ChatDbContext database, DbContex
         return new(read.Text, read.Complete, read.Origin);
     }
 
+    public IReadOnlyList<SourceChunk> Split(IndexSourceFile file, IndexedOriginal original, bool hierarchical, CancellationToken ct) =>
+        CodeStructure.Split(file.Id, file.Name, file.Sha256, original.Text, ct, hierarchical);
+
     public Task<Guid[]> ExcludedPageAsync(Guid? after, int count, CancellationToken ct)
     {
         if (count is < 1 or > 128) throw new ArgumentOutOfRangeException(nameof(count));

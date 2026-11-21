@@ -5,7 +5,7 @@ using Npgsql;
 
 namespace Alycia.Modules.Chat.Infrastructure;
 
-public sealed class ImportSettingsStore(ChatDbContext database)
+public sealed class ImportSettingsStore(ChatDbContext database) : IImportLimitsReader
 {
     public async Task<ImportLimits> LoadAsync(CancellationToken ct)
     {

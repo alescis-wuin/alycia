@@ -60,7 +60,7 @@ internal static partial class ChatEndpoints
             catch (Exception exception)
             {
                 // Never log prompts, generated text, connection strings or provider messages.
-                app.Logger.LogError("Chat request failed: {ErrorType}", exception.GetType().Name);
+                app.Logger.LogError("Chat request failed: {ErrorType}", Alycia.Contracts.Diagnostics.FailureType.Name(exception));
                 return exception is DbException or DbUpdateException or TimeoutException
                     ? Error(http, 503, "STORAGE_UNAVAILABLE", "PostgreSQL est indisponible ou le schéma manque. Vérifiez la connexion et lancez make migrate.")
                     : Error(http, 500, "INTERNAL_ERROR", "L’opération a échoué. Consultez les journaux du backend.");

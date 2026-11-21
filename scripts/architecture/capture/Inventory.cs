@@ -148,7 +148,12 @@ public sealed class Inventory : DiagnosticAnalyzer
                 {
                     if (methodSymbol.Name is "GetType" or "CreateInstance" or "LoadFrom" or "MakeGenericType"
                         && referenced.ContainingNamespace.ToDisplayString() is "System" or "System.Reflection")
-                        Row("Y", path, Line(node), methodSymbol.ToDisplayString());
+                    {
+                        if (IsTypeNameBoundary(node, model))
+                            Row("K", path, Line(node), "diagnostic-or-markdown-type-name");
+                        else
+                            Row("Y", path, Line(node), methodSymbol.ToDisplayString());
+                    }
                     if (methodSymbol.Name is "AddScoped" or "AddTransient" or "AddSingleton" or "AddHostedService" or "AddHttpClient" or "AddDbContext"
                         && methodSymbol.ContainingNamespace.ToDisplayString().StartsWith("Microsoft.Extensions.DependencyInjection", StringComparison.Ordinal))
                         Row("L", path, Line(node), methodSymbol.Name, string.Join(", ", methodSymbol.TypeArguments.Select(a => a.ToDisplayString())));
@@ -162,6 +167,30 @@ public sealed class Inventory : DiagnosticAnalyzer
         }
         var destination = Path.Combine(output, compilation.AssemblyName + ".tsv");
         File.WriteAllLines(destination, rows);
+    }
+
+    // These two value projections return the short name of a statically known parameter type.
+    // Loading a type, inspecting members, or returning a Type never matches this expression.
+    private static bool IsTypeNameBoundary(SyntaxNode node, SemanticModel model)
+    {
+        if (node.Parent is not MemberAccessExpressionSyntax access || access.Name.Identifier.Text != "GetType"
+            || access.Parent is not InvocationExpressionSyntax call || call.ArgumentList.Arguments.Count != 0
+            || call.Parent is not MemberAccessExpressionSyntax name || name.Expression != call
+            || model.GetSymbolInfo(name).Symbol is not IPropertySymbol property || property.Name != "Name"
+            || property.ContainingType.ToDisplayString() is not ("System.Reflection.MemberInfo" or "System.Type")
+            || name.Parent is not ArrowExpressionClauseSyntax { Parent: MethodDeclarationSyntax declaration }
+            || model.GetDeclaredSymbol(declaration) is not IMethodSymbol method || method.Parameters.Length != 1
+            || !method.IsStatic || method.ReturnType.SpecialType != SpecialType.System_String
+            || model.GetSymbolInfo(access.Expression).Symbol is not IParameterSymbol parameter
+            || !SymbolEqualityComparer.Default.Equals(parameter, method.Parameters[0])) return false;
+        return (method.ContainingAssembly.Name, method.ContainingType.ToDisplayString(), method.Name) switch
+        {
+            ("Alycia.Contracts", "Alycia.Contracts.Diagnostics.FailureType", "Name") =>
+                SymbolEqualityComparer.Default.Equals(parameter.Type, model.Compilation.GetTypeByMetadataName("System.Exception")),
+            ("Alycia.Client.Avalonia", "Alycia.Client.Avalonia.MarkdownView", "BlockKind") =>
+                parameter.Type.ContainingAssembly.Name == "Markdig" && parameter.Type.ToDisplayString() == "Markdig.Syntax.Block",
+            _ => false
+        };
     }
 
     private static string Line(SyntaxNode node) => (node.GetLocation().GetLineSpan().StartLinePosition.Line + 1).ToString();

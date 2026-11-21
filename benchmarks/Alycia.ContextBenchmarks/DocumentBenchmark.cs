@@ -1,3 +1,4 @@
+using Alycia.Modules.Documents;
 using System.Diagnostics;
 using System.Text.Json;
 using Alycia.Modules.Chat.Application;

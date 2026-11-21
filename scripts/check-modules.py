@@ -9,7 +9,7 @@ import sys
 import tempfile
 import xml.etree.ElementTree as ET
 
-from architecture.module_rules import ADAPTERS, ALLOWED, CHAT_PROJECTS, CONTRACT_AREAS, NARROW_EDGES, owner
+from architecture.module_rules import ALLOWED, CHAT_PROJECTS, CONTRACT_AREAS, NARROW_EDGES, owner
 
 ROOT = Path(__file__).resolve().parents[1]
 CAPTURE = ROOT / "scripts/architecture/capture"
@@ -184,12 +184,6 @@ def inspect_symbols(root):
 def check_records(rows, root):
     declared = {(r[1].split("/")[1], r[5]): r[1] for r in rows if r[0] == "D" and r[3] == "NamedType"
                 and r[1].startswith("src/") and "/obj/" not in r[1]}
-    reviewed = root / "scripts/architecture/transition.tsv"
-    exceptions = set()
-    if reviewed.exists():
-        for line in reviewed.read_text().splitlines()[1:]:
-            path, kind, target, *_ = line.split("\t")
-            exceptions.add((path, kind, target))
     problems = set()
     matrix = defaultdict(set)
     for fields in rows:
@@ -217,8 +211,7 @@ def check_records(rows, root):
             area = ({"Alycia.Modules.Indexing": "Indexing", "Alycia.Modules.Memory": "Memory"}.get(project) or owner(path)) or ("Workspaces" if ".Workspaces." in project else project)
             if kind != "Y" and (area == TABLE_OWNERS.get(resource)):
                 continue
-            if (path, kind, resource) not in exceptions:
-                problems.add(f"{location}: unreviewed {kind}: {area} -> {resource}")
+            problems.add(f"{location}: unreviewed {kind}: {area} -> {resource}")
         elif kind == "R":
             source_type, assembly, type_id, target_type = fields[3:]
             if assembly == "Alycia.Contracts" and project in CONTRACT_AREAS:
@@ -237,12 +230,13 @@ def check_records(rows, root):
             if not left or not right or left == right:
                 continue
             matrix[left, right].add(target_type)
-            if right not in ALLOWED[left]:
+            narrow = NARROW_EDGES.get((left, right))
+            if right not in ALLOWED[left] and narrow is None:
                 problems.add(f"{location}: logical boundary: {left} -> {right} ({target_type})")
-            elif (left, right) in NARROW_EDGES and target_type not in NARROW_EDGES[left, right]:
+            elif narrow is not None and target_type not in narrow:
                 problems.add(f"{location}: narrow boundary: {left} -> {right}.{target_type}")
             elif target_project == "Alycia.Modules.Chat.Infrastructure" and not (
-                    right == "Persistence" and target_type == "ChatDbContext" or target_type in ADAPTERS.get(left, ()) or (path, "R", right + "." + target_type) in exceptions):
+                    right == "Persistence" and target_type == "ChatDbContext"):
                 problems.add(f"{location}: cross-owner adapter: {left} -> {right}.{target_type}")
     return sorted(problems), matrix
 

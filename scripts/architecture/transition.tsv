@@ -1,8 +1,1 @@
 fichier	type	ressource	date	phase de retrait ou audit
-src/Alycia.Api/Chat/ChatEndpoints.Streaming.cs	Y	System.Exception.GetType()	2026-11-21	audit dynamique
-src/Alycia.Api/Chat/ChatEndpoints.cs	Y	System.Exception.GetType()	2026-11-21	audit dynamique
-src/Alycia.Api/Chat/EmbeddingWorker.cs	Y	System.Exception.GetType()	2026-11-21	audit dynamique
-src/Alycia.Api/Workspaces/WorkspaceEndpoints.cs	Y	System.Exception.GetType()	2026-11-21	audit dynamique
-src/Alycia.Client.Avalonia/ChatWindow.axaml.cs	Y	System.Exception.GetType()	2026-11-21	audit dynamique
-src/Alycia.Client.Avalonia/MainWindow.axaml.cs	Y	System.Exception.GetType()	2026-11-21	audit dynamique
-src/Alycia.Client.Avalonia/MarkdownView.cs	Y	object.GetType()	2026-11-21	audit dynamique

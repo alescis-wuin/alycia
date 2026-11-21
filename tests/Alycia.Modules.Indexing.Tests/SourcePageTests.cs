@@ -31,6 +31,7 @@ public sealed class SourcePageTests
         }
         public Task<IndexSourceFile?> FindAsync(Guid owner, bool project, Guid file, CancellationToken ct) => throw new NotSupportedException();
         public Task<IndexedOriginal> ReadAsync(Guid owner, bool project, Guid file, string sha256, CancellationToken ct) => throw new NotSupportedException();
+        public IReadOnlyList<SourceChunk> Split(IndexSourceFile file, IndexedOriginal original, bool hierarchical, CancellationToken ct) => throw new NotSupportedException();
         public Task<Guid[]> ExcludedPageAsync(Guid? after, int count, CancellationToken ct) => throw new NotSupportedException();
     }
 }

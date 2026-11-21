@@ -15,6 +15,7 @@ import tempfile
 import threading
 import time
 import uuid
+from contextlib import closing
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -630,13 +631,52 @@ def verify_originals(call, directory, checks):
     original.write_bytes(data)
     revision = call("GET", prefix + "/settings")["conversation"]["revision"]
     call("PATCH", resource, {"revision": revision, "mode": "excluded"})
+    assert call("GET", resource, headers=header, expected=206) == b"2345"
+    checks.append("private_original_survives_context_exclusion")
+
+    project = call("POST", "/projects", {"name": "Portée des originaux"})
+    project_path = "/projects/" + project["id"]
+    member = call("POST", "/conversations", {"title": "Membre", "model": "demo", "workspaceId": project["id"]}, expected=201)["id"]
+    member_path = "/conversations/" + member
+    shared = call("POST", project_path + "/files/" + str(uuid.uuid4()), raw=body,
+                  headers={"Content-Type": "multipart/form-data; boundary=part"})[0]["id"]
+    resource = member_path + "/files/" + shared
+    assert call("GET", resource, headers=header, expected=206) == b"2345"
+    call("PUT", project_path + "/files/" + shared, {"mode": "excluded", "revision": call("GET", project_path)["revision"]})
     call("GET", resource, headers=header, expected=404)
+    call("PUT", project_path + "/files/" + shared, {"mode": "pinned", "revision": call("GET", project_path)["revision"]})
+    assert call("GET", resource, headers=header, expected=206) == b"2345"
+    call("PUT", member_path + "/project", {"workspaceId": None, "revision": call("GET", member_path + "/settings")["conversation"]["revision"]})
+    call("GET", resource, headers=header, expected=404)
+    checks.append("shared_original_after_membership_revocation")
     checks.extend(["original_range_bytes", "original_owner_scope", "original_same_size_hash_mismatch", "original_range_after_revocation"])
+
+
+def measured_ollama_turn(port, path, request):
+    headers = {"Content-Type": "application/json"}
+    if token := os.environ.get("ALYCIA_CHAT_ACCESS_TOKEN"):
+        headers["Authorization"] = "Bearer " + token
+    start = time.perf_counter()
+    first_delta = None
+    events = []
+    with closing(http.client.HTTPConnection("127.0.0.1", port, timeout=660)) as connection:
+        connection.request("POST", "/api/chat" + path + "/stream", json.dumps(request), headers)
+        response = connection.getresponse()
+        assert response.status == 200 and "application/x-ndjson" in response.getheader("Content-Type", "")
+        for line in response:
+            if not line.strip():
+                continue
+            event = json.loads(line)
+            if event["type"] == "delta" and first_delta is None:
+                first_delta = time.perf_counter() - start
+            events.append(event)
+    assert first_delta is not None
+    return events, {"firstDeltaMs": round(first_delta * 1000, 2), "turnMs": round((time.perf_counter() - start) * 1000, 2)}
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--case", choices=("all", "transport", "tool-summary", "boreale", "indexing", "context-quality", "knowledge", "originals", "mock"), default="all")
+    parser.add_argument("--case", choices=("all", "transport", "tool-summary", "boreale", "indexing", "context-quality", "knowledge", "originals", "mock", "ollama"), default="all")
     args = parser.parse_args()
     connection = os.environ.get("ALYCIA_CHAT_TEST_CONNECTION")
     if not connection:
@@ -658,6 +698,13 @@ def main():
     if args.case == "mock":
         env["ALYCIA_MOCK_INFERENCE"] = "true"
         env["ALYCIA_OLLAMA_BASE_URL"] = "http://127.0.0.1:1/"
+    elif args.case == "ollama":
+        from urllib.parse import urlsplit
+        base = os.environ["ALYCIA_TEST_OLLAMA_URL"]
+        if urlsplit(base).hostname not in {"127.0.0.1", "::1", "localhost"}:
+            raise ValueError("Serveur Ollama local requis pour la recette.")
+        env["ALYCIA_MOCK_INFERENCE"] = "false"
+        env["ALYCIA_OLLAMA_BASE_URL"] = base
     else:
         env["ALYCIA_MOCK_INFERENCE"] = "false"
         provider = ThreadingHTTPServer(("127.0.0.1", 0), Ollama)
@@ -698,7 +745,21 @@ def main():
                 module = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(module)
                 checks = []
+                timings = {}
                 client = module.create_client(f"http://127.0.0.1:{port}")
+                if args.case == "ollama":
+                    chat_model = os.environ["ALYCIA_TEST_CHAT_MODEL"]
+                    assert chat_model in client("GET", "/models")
+                    conversation = client("POST", "/conversations", {"title": "Recette locale", "model": chat_model}, expected=201)
+                    path = "/conversations/" + conversation["id"]
+                    request = {"requestId": str(uuid.uuid4()), "content": "Reply with the single word Paris.", "revision": conversation["revision"]}
+                    events, timings = measured_ollama_turn(port, path, request)
+                    assert events[-1]["type"] == "done"
+                    assert events[-1]["result"]["messages"][1]["content"].strip()
+                    checks.append("real_ollama_model_selection_and_ndjson_turn")
+                    replay = client("POST", path + "/stream", request)
+                    assert replay[-1]["result"]["replayed"] and len(client("GET", path + "/messages")["messages"]) == 2
+                    checks.append("real_ollama_replay")
                 if args.case == "mock":
                     assert client("GET", "/models") == ["alycia-mock"]
                     conversation = client("POST", "/conversations", {"title": "Mock", "model": "alycia-mock"}, expected=201)
@@ -742,7 +803,7 @@ def main():
                 if args.case in ("all", "boreale"):
                     verify_project_conflicts(port, client, checks)
                     verify_boreale(client, checks)
-                print(json.dumps({"passed": len(checks), "checks": checks, "provider": "mock",
+                print(json.dumps({**timings, "passed": len(checks), "checks": checks, "provider": "ollama" if args.case == "ollama" else "mock",
                     "database": "isolated PostgreSQL", "test_data_cleaned": True,
                     "continuous_chat_calls": Ollama.chat_calls, "tool_rounds": Ollama.tool_rounds, "bounded_summary_calls": Ollama.summary_calls,
                     "pressure_tool_rounds": Ollama.pressure_rounds, "empty_tool_summaries": Ollama.pressure_summaries}, indent=2))

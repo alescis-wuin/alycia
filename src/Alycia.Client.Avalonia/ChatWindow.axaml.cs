@@ -150,7 +150,7 @@ public partial class ChatWindow : Window
         }
         catch (Exception exception)
         {
-            Console.Error.WriteLine($"Chat operation failed: {exception.GetType().Name}");
+            Console.Error.WriteLine($"Chat operation failed: {Alycia.Contracts.Diagnostics.FailureType.Name(exception)}");
             Feedback("Une erreur inattendue est survenue. Votre texte est conservé.", true);
         }
         finally

@@ -10,7 +10,7 @@ public sealed record SourceFileMetadata(string Name, DateTimeOffset? CreatedAt, 
 public sealed record FileSummary(Guid Id, string Name, long Size, string Status, int AnchorSequence,
     DateTimeOffset CreatedAtUtc, Guid? ArchiveId, string Sha256, string ContextMode = "window", Guid BatchId = default, string SourceCreatedAt = "", string SourceModifiedAt = "", string MetadataSource = "unknown", Guid? WorkspaceId = null);
 
-public sealed class FileImport(ChatDbContext database, FileStorage storage, IWorkspaceProfiles profiles, IConversationFileChanges conversations, ImportSettingsStore? settings = null)
+public sealed class FileImport(ChatDbContext database, FileStorage storage, IWorkspaceProfiles profiles, IConversationFileChanges conversations, IImportLimitsReader? settings = null)
 {
     public const int MaxFileBytes = 25 * 1024 * 1024;
     public const int MaxBatchBytes = 100 * 1024 * 1024;

@@ -71,7 +71,7 @@ public partial class MainWindow : Window
         catch (Exception exception)
         {
             Console.Error.WriteLine(
-                $"Backend check failed: {exception.GetType().Name}");
+                $"Backend check failed: {Alycia.Contracts.Diagnostics.FailureType.Name(exception)}");
             _statusText.Text = "Unavailable";
             _detailsText.Text =
                 "An unexpected error occurred while checking the backend.";
@@ -130,7 +130,7 @@ public partial class MainWindow : Window
         catch (Exception exception)
         {
             Console.Error.WriteLine(
-                $"Workspace operation failed: {exception.GetType().Name}");
+                $"Workspace operation failed: {Alycia.Contracts.Diagnostics.FailureType.Name(exception)}");
             _workspaceStatusText.Text = "Error";
             _workspaceDetailsText.Text = "An unexpected Workspace error occurred.";
         }
