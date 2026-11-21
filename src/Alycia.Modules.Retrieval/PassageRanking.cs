@@ -1,4 +1,4 @@
-namespace Alycia.Modules.Chat.Application.Retrieval;
+namespace Alycia.Modules.Retrieval;
 
 public sealed record RankedPassages(IReadOnlyList<SourceChunk> Chunks, RetrievalDecision[] Decisions,
     int ZeroLexicalScores, ClassificationReport? Classification, RerankReport? Rerank);
@@ -50,14 +50,14 @@ public sealed class PassageRanking
 
     private void AddRanking(string query, double[] terms, double[]? vectors)
     {
-        var ranked = ProjectRetrieval.Rank(_chunks, query, vectors, terms);
+        var ranked = PassageSearch.Rank(_chunks, query, vectors, terms);
         var queryNumber = _rankings.Count;
         _rankings.Add(ranked);
         if (_positions is null) return;
         for (var i = 0; i < Math.Min(ranked.Count, _settings.RerankCandidateLimit); i++)
         {
             var chunk = ranked[i];
-            var reference = ProjectRetrieval.Reference(chunk);
+            var reference = PassageSearch.Reference(chunk);
             if (!_hits.TryGetValue(reference, out var hits)) _hits[reference] = hits = [];
             var position = _positions[chunk];
             hits.Add(new(queryNumber, i + 1, terms[position], vectors?[position]));
@@ -70,10 +70,10 @@ public sealed class PassageRanking
         ClassificationReport? classification = null;
         if (_settings.ClassificationEnabled)
         {
-            var brief = _brief ?? PassageClassification.Brief(_question, [], []);
-            var semanticScores = _similarities is null ? null : _chunks.Select((c, i) => (Key: ProjectRetrieval.Reference(c), Score: _similarities[i]))
+            var brief = _brief ?? PassageClassifier.Brief(_question, [], []);
+            var semanticScores = _similarities is null ? null : _chunks.Select((c, i) => (Key: PassageSearch.Reference(c), Score: _similarities[i]))
                 .GroupBy(p => p.Key).ToDictionary(g => g.Key, g => g.Max(p => p.Score));
-            (ranked, classification) = PassageClassification.Classify(_question, brief, ranked, _settings, semanticScores);
+            (ranked, classification) = PassageClassifier.Classify(_question, brief, ranked, _settings, semanticScores);
         }
         var (ordered, rerank) = await RerankAsync(ranked, reranker, ct);
         if (_settings.PinnedSourceIds is { Count: > 0 } pins)
@@ -87,7 +87,7 @@ public sealed class PassageRanking
 
     private IReadOnlyList<SourceChunk> Fuse() =>
         _rankings.SelectMany(list => list.Select((chunk, rank) => (Chunk: chunk, Score: 1.0 / (61 + rank))))
-            .GroupBy(hit => ProjectRetrieval.Reference(hit.Chunk)).OrderByDescending(g => g.Sum(hit => hit.Score))
+            .GroupBy(hit => PassageSearch.Reference(hit.Chunk)).OrderByDescending(g => g.Sum(hit => hit.Score))
             .ThenBy(g => g.First().Chunk.Path, StringComparer.Ordinal).ThenBy(g => g.First().Chunk.Start).Select(g => g.First().Chunk).ToArray();
 
     private async Task<(IReadOnlyList<SourceChunk> Chunks, RerankReport? Report)> RerankAsync(
@@ -108,7 +108,7 @@ public sealed class PassageRanking
             var order = Enumerable.Range(0, candidates.Length).OrderByDescending(i => scores.Values[i]).ThenBy(i => i);
             var ordered = order.Select(i => candidates[i]).Concat(ranked.Skip(candidates.Length)).ToArray();
             return (ordered, new("applied", scores.Identity, elapsed.Elapsed.TotalMilliseconds, candidates
-                .Select((c, i) => (Ref: ProjectRetrieval.Reference(c), Score: scores.Values[i])).ToDictionary(p => p.Ref, p => p.Score)));
+                .Select((c, i) => (Ref: PassageSearch.Reference(c), Score: scores.Values[i])).ToDictionary(p => p.Ref, p => p.Score)));
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
         catch (Exception ex) when (ex is not (OutOfMemoryException or AccessViolationException))
@@ -119,10 +119,10 @@ public sealed class PassageRanking
 
     private RetrievalDecision[] Describe(IReadOnlyList<SourceChunk> ranked, bool classified)
     {
-        var retained = ranked.Select(ProjectRetrieval.Reference).ToHashSet(StringComparer.Ordinal);
+        var retained = ranked.Select(PassageSearch.Reference).ToHashSet(StringComparer.Ordinal);
         return _chunks.Take(256).Select((chunk, i) =>
         {
-            var reference = ProjectRetrieval.Reference(chunk);
+            var reference = PassageSearch.Reference(chunk);
             var matched = _originalScores[i] > 0;
             var reason = retained.Contains(reference) ? matched ? "lexical_match" : "semantic_match"
                 : matched ? classified ? "rank_or_class_filtered" : "duplicate_filtered" : "no_match_filtered";

@@ -114,7 +114,7 @@ internal static class OfflineEvaluation
         var allowed = files.Where(f => f.ContextMode != "excluded").ToArray();
         var chunks = allowed.SelectMany(f => CodeStructure.Split(f.Id, f.Name, f.Sha256, f.Text, hierarchical: settings.HierarchicalIndexEnabled)).ToArray();
         using var reranker = new OnnxPassageReranker(Environment.GetEnvironmentVariable("ALYCIA_RERANK_DIRECTORY"));
-        var service = new ProjectRetrievalService(new Index(chunks, allowed.Length), reranker: reranker);
+        var service = new ProjectRetrievalService(new RetrievalPipeline(new Index(chunks, allowed.Length), new(), reranker));
         var rows = new List<object>();
         var recalls = new List<double>(); var ndcgs = new List<double>(); var reciprocal = new List<double>();
         var elapsed = new List<double>(); var empty = new List<bool>(); var costs = new List<int>();

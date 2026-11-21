@@ -71,7 +71,7 @@ public sealed class ProjectRetrievalTests
     public async Task HybridSearchUsesOnlyPreparedVectorsAndReportsPendingCoverage()
     {
         var semantic = new PreparedEmbeddings();
-        var service = new ProjectRetrievalService(new Index(), semantic);
+        var service = ChatFixture.Retrieval(new Index(), semantic);
         var options = new ChatOptions { RetrievalMode = "hybrid", EmbeddingModel = "embed" };
         var first = await service.PrepareAsync(Guid.NewGuid(), "database", options, default);
         Assert.Equal(1, semantic.Calls);
@@ -119,7 +119,7 @@ public sealed class ProjectRetrievalTests
     [Fact]
     public async Task HybridSearchHasNo2048PassageQuota()
     {
-        var service = new ProjectRetrievalService(new LargeIndex(), new PreparedEmbeddings { Ready = true });
+        var service = ChatFixture.Retrieval(new LargeIndex(), new PreparedEmbeddings { Ready = true });
         var result = await service.PrepareAsync(Guid.NewGuid(), "database", new() { RetrievalMode = "hybrid", EmbeddingModel = "embed" }, default);
         Assert.Equal(3000, result.Report.CandidateChunks);
         Assert.Equal(3000, result.Report.Cache!.VectorHits);

@@ -1,6 +1,5 @@
 namespace Alycia.Modules.Chat.Application;
 
-public sealed record SemanticSearch(double[] Scores, int Hits, IReadOnlyList<ModelCallUsage> Calls, string? Warning = null);
 public sealed record MemoryVectorMatches(IReadOnlyDictionary<int, double> Scores, IReadOnlyList<ModelCallUsage> Calls, string? Warning = null);
 public interface IIndexedEmbeddings
 {

@@ -41,13 +41,13 @@ public class RoutingAndRerankTests
         var corpus = new[] { "nord.cs", "est.cs", "sud.cs" }.Select(path => new SourceChunk(Guid.NewGuid(),
             path, "sha", "Orion", "text", 0, path.Length, 1, 1, path, [], true)).ToArray();
         var id = Guid.NewGuid();
-        var baseline = (await new ProjectRetrievalService(new FixtureIndex(corpus)).PrepareAsync(id, "Orion", new(), default)).Chunks;
+        var baseline = (await ChatFixture.Retrieval(new FixtureIndex(corpus)).PrepareAsync(id, "Orion", new(), default)).Chunks;
         var options = new ChatOptions { RerankEnabled = true, RerankCandidateLimit = 2, RerankTimeoutMs = 50 };
-        var stable = await new ProjectRetrievalService(new FixtureIndex(corpus), reranker: new FakeReranker(false))
+        var stable = await ChatFixture.Retrieval(new FixtureIndex(corpus), reranker: new FakeReranker(false))
             .PrepareAsync(id, "Orion", options, default);
         Assert.Equal(baseline.Select(ProjectRetrieval.Reference), stable.Chunks.Select(ProjectRetrieval.Reference));
         Assert.Equal(2, stable.Report.Rerank!.Scores!.Count);
-        var delayed = new ProjectRetrievalService(new FixtureIndex(corpus), reranker: new FakeReranker(true));
+        var delayed = ChatFixture.Retrieval(new FixtureIndex(corpus), reranker: new FakeReranker(true));
         var fallback = await delayed.PrepareAsync(id, "Orion", options, default);
         Assert.Equal("timeout", fallback.Report.Rerank!.State);
         Assert.Equal(baseline.Select(ProjectRetrieval.Reference), fallback.Chunks.Select(ProjectRetrieval.Reference));
@@ -66,7 +66,7 @@ public class RoutingAndRerankTests
             Text = "Orion private"
         };
         var provider = new RecordingRanker();
-        var service = new ProjectRetrievalService(new FixtureIndex([excluded, visible]), provider, reranker: provider);
+        var service = ChatFixture.Retrieval(new FixtureIndex([excluded, visible]), provider, reranker: provider);
         var options = new ChatOptions
         {
             RetrievalMode = "hybrid",

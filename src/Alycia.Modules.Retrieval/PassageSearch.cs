@@ -13,8 +13,8 @@ public static class PassageSearch
     public static string[] Tokens(string text) => Terms.Matches(Camel.Replace(text, " ").ToLowerInvariant()).Select(m => m.Value)
         .Where(t => t.Length > 1 && !Stop.Contains(t)).ToArray();
     public static string Reference(SourceChunk c) => Reference(c.FileId, c.Sha256, c.Start, c.End);
-    // Version the coordinate system when extraction changes; old diagnostics keep their recorded IDs.
-    public static string Reference(Guid fileId, string sha, int start, int end) => "S" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"coordinates-v2:{fileId}:{sha}:{start}:{end}")))[..12];
+    public static string Reference(Guid fileId, string sha, int start, int end) => SourceCoordinates.Reference(fileId, sha, start, end);
+
 
     public static double[] Bm25(IReadOnlyList<SourceChunk> chunks, string query) => new LexicalIndex(chunks).Score(query);
 
