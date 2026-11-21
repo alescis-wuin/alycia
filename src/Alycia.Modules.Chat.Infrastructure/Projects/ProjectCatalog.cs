@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Alycia.Platform.Persistence;
 using Alycia.Modules.Chat.Application;
 using Alycia.Modules.Chat.Domain;
 using Alycia.Modules.Workspaces.Domain;
@@ -20,16 +21,17 @@ public sealed class ProjectCatalog(ChatDbContext db) : IProjectCatalog
     public async Task<ProjectEntry> CreateAsync(string name, CancellationToken ct)
     {
         var workspace = Workspace.Create(name);
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
-        var rows = await db.Database.ExecuteSqlInterpolatedAsync($"""
-            INSERT INTO workspaces.workspaces (id, name, created_at_utc) VALUES ({workspace.Id}, {workspace.Name}, {workspace.CreatedAtUtc})
-            ON CONFLICT (name) DO NOTHING
-            """, ct);
-        if (rows == 0) throw new ArgumentException("Ce nom de projet existe déjà.");
-        db.WorkspaceProfiles.Add(new() { Id = workspace.Id });
-        await db.SaveChangesAsync(ct);
-        await tx.CommitAsync(ct);
-        return new(workspace.Id, workspace.Name, false);
+        return await new RelationalSession(db.Database).AtomicAsync(async token =>
+        {
+            var rows = await db.Database.ExecuteSqlInterpolatedAsync($"""
+                INSERT INTO workspaces.workspaces (id, name, created_at_utc) VALUES ({workspace.Id}, {workspace.Name}, {workspace.CreatedAtUtc})
+                ON CONFLICT (name) DO NOTHING
+                """, token);
+            if (rows == 0) throw new ArgumentException("Ce nom de projet existe déjà.");
+            db.WorkspaceProfiles.Add(new() { Id = workspace.Id });
+            await db.SaveChangesAsync(token);
+            return new ProjectEntry(workspace.Id, workspace.Name, false);
+        }, ct);
     }
 
     public async Task<ProjectProfile> GetAsync(Guid id, bool allowArchived, CancellationToken ct) =>

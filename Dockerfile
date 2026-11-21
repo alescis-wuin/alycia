@@ -4,6 +4,7 @@ WORKDIR /src
 COPY src/Alycia.Modules.Workspaces.Domain/Alycia.Modules.Workspaces.Domain.csproj src/Alycia.Modules.Workspaces.Domain/
 COPY src/Alycia.Modules.Workspaces.Application/Alycia.Modules.Workspaces.Application.csproj src/Alycia.Modules.Workspaces.Application/
 COPY src/Alycia.Modules.Workspaces.Infrastructure/Alycia.Modules.Workspaces.Infrastructure.csproj src/Alycia.Modules.Workspaces.Infrastructure/
+COPY src/Alycia.Platform.Persistence/Alycia.Platform.Persistence.csproj src/Alycia.Platform.Persistence/
 COPY src/Alycia.Contracts/Alycia.Contracts.csproj src/Alycia.Contracts/
 COPY src/Alycia.Modules.Chat.Domain/Alycia.Modules.Chat.Domain.csproj src/Alycia.Modules.Chat.Domain/
 COPY src/Alycia.Modules.Chat.Application/Alycia.Modules.Chat.Application.csproj src/Alycia.Modules.Chat.Application/
@@ -14,6 +15,7 @@ RUN dotnet restore src/Alycia.Api/Alycia.Api.csproj
 COPY src/Alycia.Modules.Workspaces.Domain/ src/Alycia.Modules.Workspaces.Domain/
 COPY src/Alycia.Modules.Workspaces.Application/ src/Alycia.Modules.Workspaces.Application/
 COPY src/Alycia.Modules.Workspaces.Infrastructure/ src/Alycia.Modules.Workspaces.Infrastructure/
+COPY src/Alycia.Platform.Persistence/ src/Alycia.Platform.Persistence/
 COPY src/Alycia.Contracts/ src/Alycia.Contracts/
 COPY src/Alycia.Modules.Chat.Domain/ src/Alycia.Modules.Chat.Domain/
 COPY src/Alycia.Modules.Chat.Application/ src/Alycia.Modules.Chat.Application/
