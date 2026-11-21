@@ -1,3 +1,4 @@
+using Alycia.Modules.Inference;
 using Alycia.Contracts.Retrieval;
 using Alycia.Modules.Retrieval;
 using System.Text.Json;
@@ -98,12 +99,12 @@ public class ContextQualityTests
     {
         var options = new ChatOptions { ContextTokens = 8192, MaxOutputTokens = 300, SafetyTokens = 256, GenerateUntilStop = false, AdaptiveInferenceEnabled = true };
         PromptMessage[] input = [new("user", "Bonjour")];
-        Assert.Equal(1024, InferenceWindow.ForCall(options, input, false).ContextTokens);
-        var tools = InferenceWindow.ForCall(options, input, true);
-        Assert.InRange(tools.ContextTokens, InferenceWindow.InputCost(input, options, true) + 556, 8192);
-        Assert.Throws<ArgumentException>(() => InferenceWindow.ForCall(options, [new("user", new string('a', 8000))], false));
+        Assert.Equal(1024, InferenceWindow.ForCall(options.InferenceCall(), input, false).Generation.ContextTokens);
+        var tools = InferenceWindow.ForCall(options.InferenceCall(), input, true);
+        Assert.InRange(tools.Generation.ContextTokens, PromptTokens.InputCost(input, options.TokenCounter, true) + 556, 8192);
+        Assert.Throws<ArgumentException>(() => InferenceWindow.ForCall(options.InferenceCall(), [new("user", new string('a', 8000))], false));
         options.GenerateUntilStop = true;
-        Assert.Equal(8192, InferenceWindow.ForCall(options, input, false).ContextTokens);
+        Assert.Equal(8192, InferenceWindow.ForCall(options.InferenceCall(), input, false).Generation.ContextTokens);
     }
 
     private sealed class FinalModel : IChatModel

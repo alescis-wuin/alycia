@@ -1,3 +1,4 @@
+using Alycia.Modules.Inference;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -37,7 +38,7 @@ public sealed class ToolSummaryRecoveryTests
             Assert.Equal(original.Messages.Skip(1), input.Skip(1).Take(5));
         });
         Assert.Equal("SYSTEM", original.Messages[0].Content);
-        var usage = model.Snapshot(options);
+        var usage = model.Snapshot(options.ModelIdentity, options.TokenCounter);
         Assert.True(usage.Complete);
         var summary = Assert.Single(usage.Calls, c => c.Purpose == "summary");
         Assert.Equal(256, summary.Stats!.OutputTokens);

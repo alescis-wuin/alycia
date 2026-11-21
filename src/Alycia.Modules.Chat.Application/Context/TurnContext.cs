@@ -20,7 +20,7 @@ public interface ITurnContext
 {
     Task<TurnContextBudget> AllocateAsync(ContextConversation conversation, string text, ChatOptions options, bool useTools, CancellationToken ct);
     Task<TurnContextResult> BuildAsync(ContextConversation conversation, string text, TurnContextBudget budget, IChatModel model,
-        MeteredChatModel measured, TurnContextMode mode, Func<string, Task>? progress, CancellationToken ct);
+        IModelMeter measured, TurnContextMode mode, Func<string, Task>? progress, CancellationToken ct);
 }
 
 public sealed class TurnContext(IConversationContextReader repository, Alycia.Contracts.Context.ISlidingHistory windowPolicy) : ITurnContext
@@ -43,7 +43,7 @@ public sealed class TurnContext(IConversationContextReader repository, Alycia.Co
     }
 
     public async Task<TurnContextResult> BuildAsync(ContextConversation conversation, string text, TurnContextBudget budget, IChatModel model,
-        MeteredChatModel measured, TurnContextMode mode, Func<string, Task>? progress, CancellationToken ct)
+        IModelMeter measured, TurnContextMode mode, Func<string, Task>? progress, CancellationToken ct)
     {
         var options = budget.Options;
         var generate = mode != TurnContextMode.Preview;

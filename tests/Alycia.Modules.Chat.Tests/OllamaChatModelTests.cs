@@ -1,3 +1,4 @@
+using Alycia.Modules.Inference;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -31,8 +32,8 @@ public sealed class OllamaChatModelTests
         });
         var model = ChatFixture.Ollama(http, new());
         var settings = new ChatOptions { Seed = 42 };
-        var pending = streaming ? model.StreamAsync("demo", [], settings, _ => Task.CompletedTask, deadline.Token)
-            : model.GenerateReplyAsync("demo", [], settings, deadline.Token);
+        var pending = streaming ? model.StreamAsync("demo", [], settings.InferenceCall(), _ => Task.CompletedTask, deadline.Token)
+            : model.GenerateReplyAsync("demo", [], settings.InferenceCall(), deadline.Token);
         try
         {
             await entered.Task.WaitAsync(deadline.Token);
@@ -64,14 +65,14 @@ public sealed class OllamaChatModelTests
         });
         using var cancel = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         var blocking = new OllamaEmbeddings(http, ChatFixture.Scheduler).EmbedAsync("embed", ["source"], cancel.Token);
-        Task<GenerationReply>? queued = null;
+        Task<ModelReply>? queued = null;
         try
         {
             await entered.Task.WaitAsync(cancel.Token);
             var model = ChatFixture.Ollama(http, new());
             var settings = new ChatOptions { TimeoutSeconds = 1, CallPurpose = "annotation" };
-            queued = streaming ? model.StreamAsync("demo", [], settings, _ => Task.CompletedTask, cancel.Token)
-                : model.GenerateReplyAsync("demo", [], settings, cancel.Token);
+            queued = streaming ? model.StreamAsync("demo", [], settings.InferenceCall(), _ => Task.CompletedTask, cancel.Token)
+                : model.GenerateReplyAsync("demo", [], settings.InferenceCall(), cancel.Token);
             await Task.Delay(1300, cancel.Token);
             Assert.False(queued.IsCompleted, "Waiting for another inference must not exhaust the generation deadline.");
         }
@@ -100,12 +101,12 @@ public sealed class OllamaChatModelTests
         var settings = new ChatOptions { TimeoutSeconds = 1, CallPurpose = "annotation" };
         using var cancel = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         var error = await Assert.ThrowsAsync<ChatModelException>(() => streaming
-            ? model.StreamAsync("demo", [], settings, _ => Task.CompletedTask, cancel.Token)
-            : model.GenerateReplyAsync("demo", [], settings, cancel.Token));
+            ? model.StreamAsync("demo", [], settings.InferenceCall(), _ => Task.CompletedTask, cancel.Token)
+            : model.GenerateReplyAsync("demo", [], settings.InferenceCall(), cancel.Token));
         Assert.Equal(ChatModelFailure.Timeout, error.Failure);
         if (!streaming) Assert.Contains("délai d’enrichissement", error.Message);
         stall = false;
-        Assert.Equal("ok", await model.GenerateAsync("demo", [], settings, cancel.Token));
+        Assert.Equal("ok", await model.GenerateAsync("demo", [], settings.InferenceCall(), cancel.Token));
     }
 
     [Fact]
@@ -214,12 +215,12 @@ public sealed class OllamaChatModelTests
         });
         var model = new MeteredChatModel(ChatFixture.Ollama(http, new()));
         var options = new ChatOptions { CallPurpose = purpose };
-        var error = await Assert.ThrowsAsync<ChatModelException>(() => model.GenerateAsync("demo", [], options, default));
+        var error = await Assert.ThrowsAsync<ChatModelException>(() => model.GenerateAsync("demo", [], options.InferenceCall(), default));
         Assert.Equal(ChatModelFailure.EmptyContent, error.Failure);
         Assert.Contains(stage, error.Message);
         Assert.Contains("Limite de génération", error.Message);
         Assert.DoesNotContain("PRIVATE_THINKING", error.Message);
-        Assert.Equal(128, model.Snapshot(options).OutputTokens);
+        Assert.Equal(128, model.Snapshot(options.ModelIdentity, options.TokenCounter).OutputTokens);
     }
 
     [Fact]
@@ -330,7 +331,7 @@ public sealed class OllamaChatModelTests
         var model = ChatFixture.Ollama(http, new());
         var error = await Assert.ThrowsAsync<ChatModelException>(async () =>
         {
-            if (streaming) await model.StreamAsync("embeddinggemma:latest", [], new(), _ => Task.CompletedTask, default);
+            if (streaming) await model.StreamAsync("embeddinggemma:latest", [], new ChatOptions().InferenceCall(), _ => Task.CompletedTask, default);
             else await model.GenerateAsync("embeddinggemma:latest", [], default);
         });
         Assert.Contains("embeddinggemma:latest", error.Message);
@@ -350,7 +351,7 @@ public sealed class OllamaChatModelTests
         }));
         var model = ChatFixture.Ollama(http, new());
         Assert.Equal(["local"], await model.ListModelsAsync(default));
-        await Assert.ThrowsAsync<ChatModelException>(() => model.StreamAsync("local", [], new(), _ => Task.CompletedTask, default));
+        await Assert.ThrowsAsync<ChatModelException>(() => model.StreamAsync("local", [], new ChatOptions().InferenceCall(), _ => Task.CompletedTask, default));
         Assert.Equal(2, shows);
     }
 
@@ -377,7 +378,7 @@ public sealed class OllamaChatModelTests
         var model = ChatFixture.Ollama(http, new());
         var error = await Assert.ThrowsAsync<ChatModelException>(async () =>
         {
-            if (streaming) await model.StreamAsync("local", [], new(), _ => Task.CompletedTask, default);
+            if (streaming) await model.StreamAsync("local", [], new ChatOptions().InferenceCall(), _ => Task.CompletedTask, default);
             else await model.GenerateAsync("local", [], default);
         });
         Assert.Contains("local", error.Message);

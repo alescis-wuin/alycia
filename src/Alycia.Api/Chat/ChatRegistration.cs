@@ -72,7 +72,7 @@ internal static class ChatRegistration
             sp.GetRequiredService<IChatRepository>(), sp.GetRequiredService<IChatModel>(), sp.GetRequiredService<ChatOptions>(),
             sp.GetRequiredService<ITurnContext>(), sp.GetRequiredService<IConversationMemory>(), sp.GetRequiredService<ITurnTools>(),
             sp.GetRequiredService<ITurnRouter>(), sp.GetRequiredService<ITurnResponseAudit>(),
-            sp.GetRequiredService<GenerationGate>(), sp.GetRequiredService<IForegroundActivity>()));
+            sp.GetRequiredService<GenerationGate>(), sp.GetRequiredService<IForegroundActivity>(), sp.GetRequiredService<IModelMeterFactory>()));
     }
 
     private static void AddAlyciaProjects(IServiceCollection services)
@@ -170,7 +170,9 @@ internal static class ChatRegistration
         services.AddSingleton<InferenceScheduler>();
         services.AddSingleton<ModelTokenizationCache>();
         services.AddSingleton<IForegroundActivity, ForegroundActivity>();
-        services.AddScoped<IChatModel, ChatGenerationAdapter>();
+        services.AddScoped<IChatModel>(sp => new ChatGenerationAdapter(sp.GetRequiredService<ITextGeneration>(),
+            sp.GetRequiredService<ChatOptions>().InferenceCall()));
+        services.AddSingleton<IModelMeterFactory, ModelMeterFactory>();
         if (registerMocks is not null)
         {
             registerMocks(services);

@@ -153,12 +153,12 @@ public sealed class StructuredMemoryTests
         public int Calls; public bool Malformed; public bool FailAnswer;
         public Task<IReadOnlyList<string>> ListModelsAsync(CancellationToken ct) => Task.FromResult<IReadOnlyList<string>>(["demo"]);
         public Task<string> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages, CancellationToken ct) => throw new NotSupportedException();
-        public Task<string> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages, ChatOptions options, CancellationToken ct)
+        public Task<string> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages, InferenceCall options, CancellationToken ct)
         {
             ct.ThrowIfCancellationRequested();
-            if (options.CallPurpose != "memory") return FailAnswer ? Task.FromException<string>(new ChatModelException("fail")) : Task.FromResult("réponse");
-            Calls++; Assert.NotNull(options.ResponseSchema); Assert.False(options.GenerateUntilStop);
-            Assert.True(messages.Sum(m => TokenBudget.Count(m.Content, options)) <= options.ContextTokens - options.MaxOutputTokens - options.SafetyTokens);
+            if (options.Generation.CallPurpose != "memory") return FailAnswer ? Task.FromException<string>(new ChatModelException("fail")) : Task.FromResult("réponse");
+            Calls++; Assert.NotNull(options.Generation.ResponseSchema); Assert.False(options.Generation.GenerateUntilStop);
+            Assert.True(messages.Sum(m => PromptTokens.Count(m.Content, options.TokenCounter)) <= options.Generation.ContextTokens - options.Generation.MaxOutputTokens - options.SafetyTokens);
             if (Malformed) return Task.FromResult("pas du JSON");
             using var input = JsonDocument.Parse(messages[^1].Content);
             return Task.FromResult(JsonSerializer.Serialize(new

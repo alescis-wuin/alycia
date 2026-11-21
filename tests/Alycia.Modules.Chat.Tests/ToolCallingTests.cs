@@ -26,7 +26,7 @@ public sealed class ToolCallingTests
             """);
         var model = ChatFixture.Ollama(http, new());
         Assert.True(await model.SupportsToolsAsync("demo", default));
-        var reply = await model.StreamWithToolsAsync("demo", [new("user", "Analyse")], new(), _ => Task.CompletedTask, default);
+        var reply = await model.StreamWithToolsAsync("demo", [new("user", "Analyse")], new ChatOptions().InferenceCall(), _ => Task.CompletedTask, default);
         Assert.Equal("", reply.Content);
         Assert.Equal("Lire le code", reply.Thinking);
         Assert.True(reply.ToolCalls!.Single().Function.Arguments.GetProperty("codeOnly").GetBoolean());
@@ -38,14 +38,14 @@ public sealed class ToolCallingTests
     public async Task IncompleteOrMalformedCallsNeverBecomeExecutable(string response)
     {
         using var http = Http(response);
-        await Assert.ThrowsAsync<ChatModelException>(() => ChatFixture.Ollama(http, new()).StreamWithToolsAsync("demo", [], new(), _ => Task.CompletedTask, default));
+        await Assert.ThrowsAsync<ChatModelException>(() => ChatFixture.Ollama(http, new()).StreamWithToolsAsync("demo", [], new ChatOptions().InferenceCall(), _ => Task.CompletedTask, default));
     }
 
     [Fact]
     public async Task UnsupportedModelCannotReceiveToolPayload()
     {
         using var http = Http("unused", supports: false);
-        await Assert.ThrowsAsync<ChatModelException>(() => ChatFixture.Ollama(http, new()).StreamWithToolsAsync("demo", [], new(), _ => Task.CompletedTask, default));
+        await Assert.ThrowsAsync<ChatModelException>(() => ChatFixture.Ollama(http, new()).StreamWithToolsAsync("demo", [], new ChatOptions().InferenceCall(), _ => Task.CompletedTask, default));
     }
 
     [Fact]
@@ -140,10 +140,10 @@ public sealed class ToolCallingTests
         private int _calls;
         public Task<IReadOnlyList<string>> ListModelsAsync(CancellationToken ct) => Task.FromResult<IReadOnlyList<string>>(["demo"]);
         public Task<string> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages, CancellationToken ct) => Task.FromResult("résumé");
-        public Task<GenerationReply> StreamWithToolsAsync(string model, IReadOnlyList<PromptMessage> messages, ChatOptions settings, Func<ModelDelta, Task> delta, CancellationToken ct)
+        public Task<ModelReply> StreamWithToolsAsync(string model, IReadOnlyList<PromptMessage> messages, InferenceCall settings, Func<ModelDelta, Task> delta, CancellationToken ct)
         {
             var args = ++_calls % 2 == 0 ? "{\"offset\":0,\"fileId\":\"file\"}" : "{\"fileId\":\"file\",\"offset\":0}";
-            return Task.FromResult(new GenerationReply("", ToolCalls: [new(new("project_read", JsonSerializer.Deserialize<JsonElement>(args)))]));
+            return Task.FromResult(new ModelReply("", ToolCalls: [new(new("project_read", JsonSerializer.Deserialize<JsonElement>(args)))]));
         }
     }
     private sealed class AgentModel : IChatModel
@@ -153,11 +153,11 @@ public sealed class ToolCallingTests
         public Task<IReadOnlyList<string>> ListModelsAsync(CancellationToken ct) => Task.FromResult<IReadOnlyList<string>>(["demo"]);
         public Task<string> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages, CancellationToken ct)
         { Summaries++; return Task.FromResult("Source src/A.cs : return 42."); }
-        public Task<GenerationReply> StreamWithToolsAsync(string model, IReadOnlyList<PromptMessage> messages, ChatOptions settings, Func<ModelDelta, Task> delta, CancellationToken ct)
+        public Task<ModelReply> StreamWithToolsAsync(string model, IReadOnlyList<PromptMessage> messages, InferenceCall settings, Func<ModelDelta, Task> delta, CancellationToken ct)
         {
             Inputs.Add(messages);
-            if (Inputs.Count > 3) return Task.FromResult(new GenerationReply("Réponse sourcée"));
-            return Task.FromResult(new GenerationReply("", ToolCalls: [new(new("project_read", JsonSerializer.SerializeToElement(new { fileId = Guid.NewGuid() })))], Thinking: "Consulter"));
+            if (Inputs.Count > 3) return Task.FromResult(new ModelReply("Réponse sourcée"));
+            return Task.FromResult(new ModelReply("", ToolCalls: [new(new("project_read", JsonSerializer.SerializeToElement(new { fileId = Guid.NewGuid() })))], Thinking: "Consulter"));
         }
     }
 }

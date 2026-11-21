@@ -1,3 +1,4 @@
+using Alycia.Modules.Inference;
 using Alycia.Modules.Chat.Application;
 using Alycia.Modules.Chat.Application.Context;
 using Alycia.Modules.Chat.Domain;
@@ -43,7 +44,7 @@ public sealed class RecursiveContextTests
         var result = await turn.BuildAsync(repository.Conversation.ForContext(options), "Question", budget, model, meter,
             TurnContextMode.Preview, _ => throw new InvalidOperationException("Unexpected progress in preview"), default);
         Assert.True(result.Window.NeedsSummary);
-        Assert.Empty(meter.Snapshot(options).Calls);
+        Assert.Empty(meter.Snapshot(options.ModelIdentity, options.TokenCounter).Calls);
         Assert.Equal(0, model.Calls);
         Assert.Equal("", repository.Conversation.MemoryText);
     }
@@ -68,7 +69,7 @@ public sealed class RecursiveContextTests
         Assert.True(result.Prepared!.Changed);
         Assert.Equal(result.Prepared.Memory, result.Window.SummaryText);
         Assert.NotEmpty(result.Prepared.SourceHash);
-        Assert.Equal(model.Calls, meter.Snapshot(options).Calls.Count);
+        Assert.Equal(model.Calls, meter.Snapshot(options.ModelIdentity, options.TokenCounter).Calls.Count);
         Assert.NotEmpty(progress);
         Assert.Equal(0, owner.MemoryThroughSequence);
         Assert.Equal("", owner.MemoryText);
@@ -100,7 +101,7 @@ public sealed class RecursiveContextTests
         var model = new Model();
         var turn = new TurnContext(repository, new Alycia.Modules.Context.SlidingHistory());
         var budget = await turn.AllocateAsync(owner.ForContext(options), "Question", options, true, default);
-        var result = await turn.BuildAsync(owner.ForContext(options), "Question", budget, model, new(model), mode, null, default);
+        var result = await turn.BuildAsync(owner.ForContext(options), "Question", budget, model, new MeteredChatModel(model), mode, null, default);
 
         Assert.Null(result.Prepared);
         Assert.Equal(repository.Messages.TakeLast(2).Select(m => m.Content), result.Window.Messages.Skip(1).Take(2).Select(m => m.Content));
@@ -126,7 +127,7 @@ public sealed class RecursiveContextTests
         var turn = new TurnContext(repository, new Alycia.Modules.Context.SlidingHistory());
         var budget = await turn.AllocateAsync(repository.Conversation.ForContext(options), "Question", options, false, default);
         var model = new Model();
-        var result = await turn.BuildAsync(repository.Conversation.ForContext(options), "Question", budget, model, new(model), mode, null, default);
+        var result = await turn.BuildAsync(repository.Conversation.ForContext(options), "Question", budget, model, new MeteredChatModel(model), mode, null, default);
 
         Assert.Equal(fact.Sequence, Assert.Single(result.Window.Temporal!.Sources).Sequence);
         Assert.Contains(result.Window.Messages, m => m.Content.Contains(fact.Quote));
@@ -185,12 +186,12 @@ public sealed class RecursiveContextTests
         public Task<IReadOnlyList<string>> ListModelsAsync(CancellationToken ct) => Task.FromResult<IReadOnlyList<string>>(["demo"]);
         public Task<string> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages, CancellationToken ct) =>
             throw new NotSupportedException();
-        public Task<string> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages, ChatOptions settings, CancellationToken ct)
+        public Task<string> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages, InferenceCall settings, CancellationToken ct)
         {
             Calls++; ct.ThrowIfCancellationRequested();
-            Assert.False(settings.GenerateUntilStop);
+            Assert.False(settings.Generation.GenerateUntilStop);
             Assert.True(messages.Sum(m => SlidingContext.EstimateTokens(m.Content))
-                <= settings.ContextTokens - settings.MaxOutputTokens - settings.SafetyTokens);
+                <= settings.Generation.ContextTokens - settings.Generation.MaxOutputTokens - settings.SafetyTokens);
             return Task.FromResult(DoesNotCompress ? new string('x', 20000) : "Décisions et contraintes conservées.");
         }
     }

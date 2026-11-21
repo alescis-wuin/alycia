@@ -11,9 +11,9 @@ namespace Alycia.Modules.Chat.Application.Conversations;
 public sealed record ContextPreparationResult(ContextWindow Context, ChatOptions Options, GenerationUsage Usage, int Revision, int OmittedMessages, string Estimator);
 
 public sealed class ConversationContextPreparation(IChatRepository repository, IChatModel model, ITurnTools tools, ITurnContext turnContext,
-    IConversationMemory memoryWriter, ITurnRouter routing, ChatOptions defaults, GenerationGate gate)
+    IConversationMemory memoryWriter, ITurnRouter routing, ChatOptions defaults, GenerationGate gate, IModelMeterFactory meters)
 {
-    private sealed record Inputs(Conversation Conversation, ContextConversation ContextOwner, string Text, ChatOptions Options, MeteredChatModel Measured, TurnContextBudget Budget);
+    private sealed record Inputs(Conversation Conversation, ContextConversation ContextOwner, string Text, ChatOptions Options, IModelMeter Measured, TurnContextBudget Budget);
 
     public async Task<ContextPreparationResult> PreviewAsync(Guid id, string? content, CancellationToken ct)
     {
@@ -47,7 +47,7 @@ public sealed class ConversationContextPreparation(IChatRepository repository, I
 
     private async Task<Inputs> RouteAsync(Conversation conversation, string text, ChatOptions options, CancellationToken ct)
     {
-        var measured = new MeteredChatModel(model);
+        var measured = meters.Create(model);
         var routed = await routing.PrepareAsync(conversation.Id, conversation.MessageCount, text, options.RoutingRequest(),
             new QueryBriefRefiner(measured), null, ct);
         measured.AddCalls(routed.Calls);
@@ -64,7 +64,7 @@ public sealed class ConversationContextPreparation(IChatRepository repository, I
         var result = await turnContext.BuildAsync(inputs.ContextOwner, inputs.Text, inputs.Budget, model, inputs.Measured, mode, progress, ct);
         if (mode == TurnContextMode.PrepareMemory && memoryWriter.Apply(inputs.Conversation, result.Prepared?.MemoryChange()))
             await repository.SaveAsync(ct);
-        return new(result.Window, inputs.Options, inputs.Measured.Snapshot(inputs.Options), inputs.Conversation.Revision,
+        return new(result.Window, inputs.Options, inputs.Measured.Snapshot(inputs.Options.ModelIdentity, inputs.Options.TokenCounter), inputs.Conversation.Revision,
             inputs.Conversation.MessageCount - result.Window.HistoryMessagesIncluded, TokenBudget.Description(inputs.Options));
     }
 

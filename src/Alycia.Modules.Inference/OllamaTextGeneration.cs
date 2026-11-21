@@ -91,6 +91,8 @@ public sealed partial class OllamaTextGeneration(HttpClient http, InferenceSched
     public async Task<ModelReply> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages,
         GenerationParameters parameters, CancellationToken cancellationToken)
     {
+        messages = PromptSnapshot.Capture(messages);
+        parameters = parameters with { ResponseSchema = parameters.ResponseSchema?.Clone() };
         try
         {
             using var inference = await scheduler.AcquireAsync(TimeSpan.FromSeconds(parameters.TimeoutSeconds),

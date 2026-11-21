@@ -5,7 +5,7 @@ using Alycia.Modules.Chat.Domain;
 namespace Alycia.Modules.Chat.Application;
 
 public sealed class ChatService(IChatRepository repository, IChatModel model, ChatOptions options,
-    ITurnContext turnContext, IConversationMemory memory, ITurnTools tools, ITurnRouter routing, ITurnResponseAudit audit, GenerationGate gate, IForegroundActivity foreground)
+    ITurnContext turnContext, IConversationMemory memory, ITurnTools tools, ITurnRouter routing, ITurnResponseAudit audit, GenerationGate gate, IForegroundActivity foreground, IModelMeterFactory meters)
 {
     public async Task<Conversation> CreateAsync(string? title, string? modelName, string? systemPrompt,
         CancellationToken cancellationToken, Guid? workspaceId = null)
@@ -59,7 +59,7 @@ public sealed class ChatService(IChatRepository repository, IChatModel model, Ch
         if (revision.HasValue) ConversationConfiguration.CheckRevision(conversation, revision.Value);
         var settings = await model.PrepareOptionsAsync(conversation.Model, ConversationConfiguration.Options(conversation, defaults), cancellationToken);
         using var priority = foreground.PreferForeground();
-        var measured = new MeteredChatModel(model);
+        var measured = meters.Create(model);
         var routed = await routing.PrepareAsync(conversation.Id, conversation.MessageCount, text, settings.RoutingRequest(),
             new QueryBriefRefiner(measured), onDelta is null ? null : () => onDelta(new("", Status: "Préparation du contexte…")), cancellationToken);
         measured.AddCalls(routed.Calls);
@@ -77,7 +77,7 @@ public sealed class ChatService(IChatRepository repository, IChatModel model, Ch
         var assistant = new ChatMessage(id, conversation.MessageCount + 2, requestId, "assistant", review.Reply);
         TurnResponseAudit.AttachToolTrace(assistant, generated.Tools);
         memory.Apply(conversation, context.Prepared?.MemoryChange());
-        var usage = measured.Snapshot(settings);
+        var usage = measured.Snapshot(settings.ModelIdentity, settings.TokenCounter);
         TurnResponseAudit.AttachDiagnostics(assistant, conversation, generated, window, settings, usage, review);
         conversation.CompleteTurn();
         // One atomic SaveChanges for both messages and the revision. A failed

@@ -70,10 +70,10 @@ public sealed class AdaptiveBudgetTests
         public Task<IReadOnlyList<string>> ListModelsAsync(CancellationToken ct) => Task.FromResult<IReadOnlyList<string>>(["local"]);
         public Task<string> GenerateAsync(string name, IReadOnlyList<PromptMessage> messages, CancellationToken ct)
         { Summaries++; return Task.FromResult("Résumé des sources précédentes."); }
-        public Task<GenerationReply> StreamWithToolsAsync(string name, IReadOnlyList<PromptMessage> messages, ChatOptions settings, Func<ModelDelta, Task> delta, CancellationToken ct)
+        public Task<ModelReply> StreamWithToolsAsync(string name, IReadOnlyList<PromptMessage> messages, InferenceCall settings, Func<ModelDelta, Task> delta, CancellationToken ct)
         {
             Inputs.Add(messages);
-            return Task.FromResult(Inputs.Count > 30 ? new GenerationReply("Terminé") : new GenerationReply("", ToolCalls:
+            return Task.FromResult(Inputs.Count > 30 ? new ModelReply("Terminé") : new ModelReply("", ToolCalls:
                 [new(new("project_read", JsonSerializer.SerializeToElement(new { fileId = Guid.NewGuid() })))]));
         }
     }

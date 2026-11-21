@@ -126,16 +126,16 @@ public sealed class TurnToolsTests
 
         public Task<IReadOnlyList<string>> ListModelsAsync(CancellationToken ct) => throw new NotSupportedException();
         public Task<string> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages, CancellationToken ct) => throw new NotSupportedException();
-        public Task<string> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages, ChatOptions settings, CancellationToken ct) =>
+        public Task<string> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages, InferenceCall settings, CancellationToken ct) =>
             Task.FromResult("sync");
-        public async Task<GenerationReply> StreamAsync(string model, IReadOnlyList<PromptMessage> messages, ChatOptions settings,
+        public async Task<ModelReply> StreamAsync(string model, IReadOnlyList<PromptMessage> messages, InferenceCall settings,
             Func<ModelDelta, Task> onDelta, CancellationToken ct)
         {
             await onDelta(new("stream"));
             return new("stream");
         }
 
-        public async Task<GenerationReply> StreamWithToolsAsync(string model, IReadOnlyList<PromptMessage> messages, ChatOptions settings,
+        public async Task<ModelReply> StreamWithToolsAsync(string model, IReadOnlyList<PromptMessage> messages, InferenceCall settings,
             Func<ModelDelta, Task> onDelta, CancellationToken ct)
         {
             await onDelta(new("agent"));

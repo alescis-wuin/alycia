@@ -143,7 +143,7 @@ public sealed class KnowledgePass(KnowledgeStore store, IChatModel model, Enrich
                     try
                     {
                         // The provider applies the per-inference deadline after waiting for Ollama.
-                        var output = await model.GenerateAsync(config.Model, prompt, counter, ct);
+                        var output = await model.GenerateAsync(config.Model, prompt, counter.InferenceCall(), ct);
                         if (IndexedKnowledge.Validate(output, refs, config.TargetTokens, counter) is not { } valid) continue;
                         var verify = counter.Copy(); verify.ModelIdentity = null;
                         var current = await model.PrepareOptionsAsync(config.Model, verify, ct);

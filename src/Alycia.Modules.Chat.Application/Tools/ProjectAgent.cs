@@ -40,7 +40,7 @@ public static class ProjectAgent
             progress is null ? null : status => progress(new("", Status: "Mémoire des outils · " + status)));
         Task Emit(ModelDelta delta) => progress?.Invoke(delta) ?? Task.CompletedTask;
         int Cost(IEnumerable<PromptMessage> messages) => settings.AdaptiveInferenceEnabled || settings.EvidenceSelectionEnabled || settings.AgentPlanningEnabled
-            ? InferenceWindow.InputCost(messages.ToArray(), settings, true) : SchemaCost(settings) + messages.Sum(m => TokenBudget.Count(m.Content, settings)
+            ? PromptTokens.InputCost(messages.ToArray(), settings.TokenCounter, true) : SchemaCost(settings) + messages.Sum(m => TokenBudget.Count(m.Content, settings)
             + Encoding.UTF8.GetByteCount(m.Thinking ?? "")
             + (m.ToolCalls is null ? 0 : Encoding.UTF8.GetByteCount(JsonSerializer.Serialize(m.ToolCalls, ProjectToolCatalog.Json))));
         // Only outputs still in Input(), including their retained summary, consume this budget.
@@ -105,12 +105,12 @@ public static class ProjectAgent
             {
                 var reason = repeated >= 2 ? "repeated_call" : "call_limit";
                 warnings.Add("Exploration arrêtée : " + reason + ". La réponse utilise les passages déjà lus.");
-                var final = await model.StreamAsync(modelName, input, settings, Emit, ct);
+                var final = await model.StreamAsync(modelName, input, settings.InferenceCall(), Emit, ct);
                 answer.Append(final.Content);
                 return new(answer.ToString(), final.Stats, Tools: observations, Warnings: warnings, EvidenceTexts: evidenceTexts, Research: plan!.Report(reason, observations.Count));
             }
-            var reply = forced is null ? await model.StreamWithToolsAsync(modelName, input, settings, Emit, ct)
-                : new GenerationReply("", ToolCalls: [forced]);
+            var reply = forced is null ? await model.StreamWithToolsAsync(modelName, input, settings.InferenceCall(), Emit, ct)
+                : new ModelReply("", ToolCalls: [forced]);
             answer.Append(reply.Content);
             if (answer.Length > 1_000_000) throw new ChatModelException("Réponse cumulée trop volumineuse.");
             var calls = reply.ToolCalls ?? [];
@@ -118,7 +118,7 @@ public static class ProjectAgent
             if (plan is not null && plan.Exhausted(observations.Count + calls.Count - 1))
             {
                 warnings.Add("Groupe d’appels supérieur au budget restant. Les appels groupés ont été écartés.");
-                var final = await model.StreamAsync(modelName, input, settings, Emit, ct);
+                var final = await model.StreamAsync(modelName, input, settings.InferenceCall(), Emit, ct);
                 answer.Append(final.Content);
                 return new(answer.ToString(), final.Stats, Tools: observations, Warnings: warnings, EvidenceTexts: evidenceTexts,
                     Research: plan.Report("group_over_limit", observations.Count));

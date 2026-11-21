@@ -128,13 +128,13 @@ public sealed class OllamaSchedulingTests(ITestOutputHelper output)
             if (name == "embedding")
                 Assert.Equal(2, (await new OllamaEmbeddings(http, ChatFixture.Scheduler).EmbedAsync("vectors", ["a", "b"], ct)).Vectors.Length);
             else if (name == "chat")
-                Assert.Equal("ok", (await model.StreamAsync("local", [], settings, delta =>
+                Assert.Equal("ok", (await model.StreamAsync("local", [], settings.InferenceCall(), delta =>
                 {
                     if (delta.Content.Length > 0) Interlocked.CompareExchange(ref FirstDelta, Stopwatch.GetTimestamp(), 0);
                     return Task.CompletedTask;
                 }, ct)).Content);
             else
-                Assert.Equal("ok", await model.GenerateAsync("local", [], settings, ct));
+                Assert.Equal("ok", await model.GenerateAsync("local", [], settings.InferenceCall(), ct));
             Completed = Stopwatch.GetTimestamp();
         }
 

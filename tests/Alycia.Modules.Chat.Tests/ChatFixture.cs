@@ -1,3 +1,4 @@
+using Alycia.Modules.Inference;
 using Alycia.Modules.Retrieval;
 using Alycia.Contracts.Indexing;
 using Alycia.Modules.Chat.Infrastructure;
@@ -48,9 +49,9 @@ internal static class ChatFixture
     }
 
     public static ChatGenerationAdapter Ollama(HttpClient http, ChatOptions options) =>
-        new(new OllamaTextGeneration(http, Scheduler, Tokenizers), options);
+        new(new OllamaTextGeneration(http, Scheduler, Tokenizers), options.InferenceCall());
 
     public static ChatService Create(IChatRepository repository, IChatModel model, ChatOptions options) =>
         new(repository, model, options, new TurnContext(repository, new Alycia.Modules.Context.SlidingHistory()), new ConversationMemory(repository, ChatFixture.Gate),
-            new TurnTools(), new TurnRouting(new QueryPlanner(repository)), new TurnResponseAudit(), Gate, Foreground);
+            new TurnTools(), new TurnRouting(new QueryPlanner(repository)), new TurnResponseAudit(), Gate, Foreground, new ModelMeterFactory());
 }

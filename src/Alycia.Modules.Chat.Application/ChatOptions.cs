@@ -74,11 +74,10 @@ public sealed class ChatOptions : ChatSettings
             QueryRewriteEnabled || FacetPlanningEnabled || QueryBriefModelEnabled, SearchPlan),
         EmbeddingQuery.Capture(this));
 
-    public GenerationParameters GenerationParameters()
+    public InferenceCall InferenceCall()
     {
         Validate();
-        return new(ContextTokens, MaxOutputTokens, GenerateUntilStop, Temperature, Seed, TimeoutSeconds,
-            CallPurpose, ResponseSchema?.Clone());
+        return Alycia.Contracts.Inference.InferenceCall.Capture(this, CallPurpose, ResponseSchema, TokenCounter);
     }
 
     public ChatOptions Copy() => new(this);
