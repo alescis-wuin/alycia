@@ -432,6 +432,47 @@ def verify_empty_tool_summary(call, checks):
         call("DELETE", prefix, expected=204)
 
 
+def verify_project_conflicts(port, call, checks):
+    def race(method, path, left, right):
+        ready = threading.Barrier(2, timeout=10)
+        headers = {"Content-Type": "application/json"}
+        if token := os.environ.get("ALYCIA_CHAT_ACCESS_TOKEN"):
+            headers["Authorization"] = "Bearer " + token
+
+        def send(body):
+            connection = http.client.HTTPConnection("127.0.0.1", port, timeout=30)
+            try:
+                connection.connect()
+                ready.wait()
+                connection.request(method, "/api/chat" + path, json.dumps(body), headers)
+                response = connection.getresponse()
+                return response.status, json.load(response)
+            finally:
+                connection.close()
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            results = list(pool.map(send, (left, right)))
+        return sorted(results, key=lambda result: result[0])
+
+    name = "Créations concurrentes"
+    success, conflict = race("POST", "/projects", {"name": name}, {"name": name})
+    assert success[0] == 200 and conflict[0] == 400, (success, conflict)
+    assert conflict[1]["code"] == "INVALID_REQUEST"
+    project = success[1]
+    assert [p["id"] for p in call("GET", "/projects") if p["name"] == name] == [project["id"]]
+    checks.append("concurrent_project_creation_returns_one_identity_and_one_refusal")
+
+    path = "/projects/" + project["id"]
+    profile = call("GET", path)
+    success, conflict = race("PUT", path, dict(profile, instructions="Première"), dict(profile, instructions="Deuxième"))
+    assert success[0] == 200 and conflict[0] == 409, (success, conflict)
+    assert conflict[1]["code"] == "CONVERSATION_CHANGED"
+    assert success[1]["revision"] == profile["revision"] + 1
+    assert success[1]["instructions"] in ("Première", "Deuxième")
+    assert call("GET", path) == success[1]
+    checks.append("concurrent_profile_edits_persist_only_the_winning_revision")
+
+
 def verify_boreale(call, checks):
     project = call("POST", "/projects", {"name": "Recette boréale"})
     rejected = call("POST", "/projects", {"name": "Recette boréale"}, expected=400)
@@ -638,6 +679,7 @@ def main():
                 if args.case in ("all", "tool-summary"):
                     verify_empty_tool_summary(client, checks)
                 if args.case in ("all", "boreale"):
+                    verify_project_conflicts(port, client, checks)
                     verify_boreale(client, checks)
                 print(json.dumps({"passed": len(checks), "checks": checks, "provider": "mock",
                     "database": "isolated PostgreSQL", "test_data_cleaned": True,
