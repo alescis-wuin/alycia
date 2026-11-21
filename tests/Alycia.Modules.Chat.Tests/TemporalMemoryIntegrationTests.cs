@@ -46,7 +46,7 @@ public class TemporalMemoryIntegrationTests
             {
                 var copy = options.Copy();
                 copy.Recall = await store.RecallAsync(owner.Id, question, copy, owner.MessageCount, default);
-                return (await TemporalMemory.BuildAsync(new EfChatRepository(db), owner, question, copy, default)).Context;
+                return (await TemporalMemory.BuildAsync(new EfChatRepository(db, ChatFixture.Profiles(db)), owner, question, copy, default)).Context;
             }
             var current = await Recall("Quelle région ?");
             Assert.Contains(current.MemoryTexts!, t => t.Text.Contains("Bretagne"));
@@ -66,7 +66,7 @@ public class TemporalMemoryIntegrationTests
                 await embeddings.WriteAsync("fixture:digest", chunk, [1, 0], scope, fact.Sequence, default);
             }
             var semanticOptions = options.Copy(); semanticOptions.RetrievalMode = "hybrid"; semanticOptions.EmbeddingModel = "fixture";
-            var engine = new BackgroundEmbeddingIndex(db, embeddings, new ProjectSourceReader(new FileStorage(Path.GetTempPath())), new QueryEncoder(), options, new ConversationIndexOwners(db), new ProjectIndexOwners(db), ChatFixture.Foreground);
+            var engine = new BackgroundEmbeddingIndex(db, embeddings, new ProjectSourceReader(new FileStorage(Path.GetTempPath())), new QueryEncoder(), options, new ConversationIndexOwners(db), ChatFixture.Profiles(db), ChatFixture.Profiles(db), ChatFixture.Foreground);
             var semanticStore = new TemporalMemoryStore(db, engine, options);
             var paraphrase = await semanticStore.RecallAsync(owner.Id, "Territoire géographique ?", semanticOptions, 4, default);
             Assert.Single(paraphrase.Calls);

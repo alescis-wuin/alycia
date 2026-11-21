@@ -152,7 +152,7 @@ public sealed class ConversationForkFailureTests
             var archive = new ConversationArchive(1, "Source", "demo", "", "", new(),
                 [new("user", "Question", DateTimeOffset.UnixEpoch), new("assistant", "Réponse", DateTimeOffset.UnixEpoch)]);
             var source = await history.ImportAsync(ConversationTransfer.ExportJson(archive), default);
-            await new FileImport(db, storage).ImportAsync(source.Id, Guid.NewGuid(),
+            await new FileImport(db, storage, ChatFixture.Profiles(db)).ImportAsync(source.Id, Guid.NewGuid(),
                 [new("dossier/original.txt", new MemoryStream("original"u8.ToArray()))], default);
             await test(options, storage, source);
         }

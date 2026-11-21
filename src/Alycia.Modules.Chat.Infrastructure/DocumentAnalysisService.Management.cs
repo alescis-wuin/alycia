@@ -21,7 +21,7 @@ public sealed partial class DocumentAnalysisService
     public async Task DeleteRunAsync(Guid id, Guid runId, CancellationToken ct)
     {
         using var lease = AcquireAnalysisLease(id);
-        if (await new EfChatRepository(database).FindAsync(id, ct) is null) throw new ConversationNotFoundException();
+        await RequireConversationAsync(id, ct);
         new AnalysisCheckpoints(reader.Storage).DeleteRun(id, runId);
     }
 
@@ -41,7 +41,7 @@ public sealed partial class DocumentAnalysisService
         }
         analysis.UseInContext = useInContext;
         conversation.AttachFiles();
-        await new EfChatRepository(database).SaveAsync(ct);
+        await database.SaveVersionedAsync(ct);
         return conversation;
     }
 
@@ -53,7 +53,7 @@ public sealed partial class DocumentAnalysisService
         if (analysis is null) return false;
         database.DocumentAnalyses.Remove(analysis);
         conversation.AttachFiles();
-        await new EfChatRepository(database).SaveAsync(ct);
+        await database.SaveVersionedAsync(ct);
         return true;
     }
 

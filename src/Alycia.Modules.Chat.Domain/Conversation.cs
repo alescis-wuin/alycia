@@ -5,7 +5,7 @@ public sealed class Conversation
     public Guid Id { get; private set; }
     public Guid? WorkspaceId { get; private set; }
     [System.ComponentModel.DataAnnotations.Schema.NotMapped, System.Text.Json.Serialization.JsonIgnore]
-    public WorkspaceProfile? ProjectSnapshot { get; set; }
+    public ConversationProjectSnapshot? ProjectSnapshot { get; set; }
 
     public void AssignWorkspace(Guid? id)
     {
@@ -114,5 +114,15 @@ public sealed class Conversation
         }
 
         return text;
+    }
+}
+
+public sealed record ConversationProjectSnapshot(int Revision, string Instructions, IReadOnlyList<string> Notes)
+{
+    public string SystemText()
+    {
+        var notes = string.Join("\n", Notes);
+        return (Instructions.Length == 0 ? "" : "Consignes du projet :\n" + Instructions + "\n\n")
+            + (notes.Length == 0 ? "" : "Notes de référence partagées par l’utilisateur :\n" + notes + "\n\n");
     }
 }

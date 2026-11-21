@@ -115,7 +115,7 @@ def check_namespace(project, location, name):
 
 
 TABLE_OWNERS = {
-    "workspaces.workspaces": "Workspaces", "chat.workspace_profiles": "Projects",
+    "workspaces.workspaces": "Workspaces", "chat.workspace_profiles": "Workspaces",
     "chat.workspace_file_overrides": "Documents", "chat.attachments": "Documents", "chat.document_analyses": "Documents",
     "chat.conversations": "Conversations", "chat.messages": "Conversations",
     "chat.embedding_jobs": "Indexing", "chat.embedding_vectors": "Indexing", "chat.knowledge_units": "Indexing",

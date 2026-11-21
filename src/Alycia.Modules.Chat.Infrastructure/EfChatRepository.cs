@@ -1,3 +1,4 @@
+using Alycia.Contracts.Workspaces;
 using Alycia.Modules.Chat.Application;
 using Alycia.Modules.Chat.Domain;
 using Microsoft.EntityFrameworkCore;
@@ -5,7 +6,7 @@ using Npgsql;
 
 namespace Alycia.Modules.Chat.Infrastructure;
 
-public sealed class EfChatRepository(ChatDbContext database) : IChatRepository
+public sealed class EfChatRepository(ChatDbContext database, IWorkspaceProfiles profiles) : IChatRepository
 {
     public async Task<IChatTurnScope?> BeginTurnAsync(Guid id, CancellationToken ct)
     {
@@ -90,7 +91,10 @@ public sealed class EfChatRepository(ChatDbContext database) : IChatRepository
     {
         var conversation = await database.Conversations.SingleOrDefaultAsync(item => item.Id == id, cancellationToken);
         if (conversation?.WorkspaceId is Guid project)
-            conversation.ProjectSnapshot = await database.WorkspaceProfiles.AsNoTracking().SingleAsync(p => p.Id == project, cancellationToken);
+        {
+            var profile = await profiles.FindAsync(project, cancellationToken) ?? throw new ChatConflictException();
+            conversation.ProjectSnapshot = new(profile.Revision, profile.Instructions, profile.Notes.Select(n => n.Text).ToArray());
+        }
         return conversation;
     }
 
@@ -100,22 +104,7 @@ public sealed class EfChatRepository(ChatDbContext database) : IChatRepository
         await SaveAsync(cancellationToken);
     }
 
-    public async Task SaveAsync(CancellationToken cancellationToken)
-    {
-        try
-        {
-            await database.SaveChangesAsync(cancellationToken);
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            throw new ChatConflictException();
-        }
-        catch (DbUpdateException exception) when (exception.InnerException is PostgresException
-        { SqlState: PostgresErrorCodes.UniqueViolation or PostgresErrorCodes.ForeignKeyViolation or PostgresErrorCodes.SerializationFailure })
-        {
-            throw new ChatConflictException();
-        }
-    }
+    public Task SaveAsync(CancellationToken cancellationToken) => database.SaveVersionedAsync(cancellationToken);
 
     public async Task DeleteAsync(Conversation conversation, CancellationToken cancellationToken)
     {

@@ -1,3 +1,4 @@
+using Npgsql;
 using Alycia.Modules.Chat.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
@@ -13,6 +14,23 @@ public sealed class ChatDbContext(DbContextOptions<ChatDbContext> options) : DbC
     public DbSet<Conversation> Conversations => Set<Conversation>();
     public DbSet<ChatMessage> Messages => Set<ChatMessage>();
     public DbSet<PromptProfile> PromptProfiles => Set<PromptProfile>();
+
+    internal async Task SaveVersionedAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw new ChatConflictException();
+        }
+        catch (DbUpdateException exception) when (exception.InnerException is PostgresException
+        { SqlState: PostgresErrorCodes.UniqueViolation or PostgresErrorCodes.ForeignKeyViolation or PostgresErrorCodes.SerializationFailure })
+        {
+            throw new ChatConflictException();
+        }
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

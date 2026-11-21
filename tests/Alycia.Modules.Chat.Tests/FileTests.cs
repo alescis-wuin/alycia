@@ -130,7 +130,7 @@ public sealed class FileTests
                 db.Conversations.Add(conversation);
                 await db.SaveChangesAsync();
                 conversationId = conversation.Id;
-                var importer = new FileImport(db, storage);
+                var importer = new FileImport(db, storage, ChatFixture.Profiles(db));
                 var batch = Guid.NewGuid();
                 var data = Zip("./folder/./note.txt", "persistent source", windowsDirectory: true);
                 var added = await importer.ImportAsync(conversationId, batch, [new("bundle.zip", new MemoryStream(data))], default);
@@ -164,10 +164,10 @@ public sealed class FileTests
                 Assert.Equal("persistent source", file.Text);
                 Assert.True(File.Exists(storage.PathFor(conversationId, fileId)));
                 var model = new CaptureModel();
-                await ChatFixture.Create(new EfChatRepository(db), model, new()).SendAsync(conversationId, Guid.NewGuid(), "résume", default);
+                await ChatFixture.Create(new EfChatRepository(db, ChatFixture.Profiles(db)), model, new()).SendAsync(conversationId, Guid.NewGuid(), "résume", default);
                 Assert.Contains("persistent source", model.Prompt![^1].Content);
                 var conversation = await db.Conversations.SingleAsync();
-                await new EfChatRepository(db).DeleteAsync(conversation, default);
+                await new EfChatRepository(db, ChatFixture.Profiles(db)).DeleteAsync(conversation, default);
                 Assert.Empty(await db.Attachments.ToListAsync());
                 storage.DeleteConversation(conversationId);
                 Assert.False(Directory.Exists(storage.DirectoryFor(conversationId)));

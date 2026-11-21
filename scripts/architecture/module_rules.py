@@ -88,5 +88,5 @@ CONTRACT_AREAS = {
     "Alycia.Modules.Retrieval": {"Indexing", "Retrieval"},
     "Alycia.Modules.Retrieval.Onnx": {"Indexing", "Retrieval"},
     "Alycia.Modules.Testing": {"Chat", "Indexing", "Inference"},
-    "Alycia.Modules.Workspaces.Infrastructure": {"Workspaces"},
+    "Alycia.Modules.Workspaces.Infrastructure": {"Workspaces", "Chat", "Indexing"},
 }

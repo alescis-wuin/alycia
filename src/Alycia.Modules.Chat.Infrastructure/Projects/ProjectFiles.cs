@@ -7,7 +7,7 @@ namespace Alycia.Modules.Chat.Infrastructure;
 
 public sealed record SourcePreview(string Name, string Sha256, string Text, int Start, int End, bool Partial);
 
-public sealed class ProjectFiles(ChatDbContext db, FileImport importer, ProjectSourceReader reader, IWorkspaceIdentityDirectory identities)
+public sealed class ProjectFiles(ChatDbContext db, FileImport importer, ProjectSourceReader reader, IWorkspaceProfiles profiles)
 {
     public async Task<IReadOnlyList<FileSummary>> ShareAsync(Guid conversation, Guid file, CancellationToken ct)
     {
@@ -24,7 +24,7 @@ public sealed class ProjectFiles(ChatDbContext db, FileImport importer, ProjectS
 
     public async Task<FileSummary[]> ListAsync(Guid project, CancellationToken ct)
     {
-        await ProjectProfiles.RequireAsync(db, identities, project, ct, archived: true);
+        await profiles.RequireAsync(project, true, ct);
         return await db.Attachments.AsNoTracking().Where(f => f.WorkspaceId == project)
             .OrderBy(f => f.Name).ThenBy(f => f.Id).Select(f => new FileSummary(f.Id, f.Name, f.Size, f.Status, f.AnchorSequence,
                 f.CreatedAtUtc, f.ArchiveId, f.Sha256, f.ContextMode, f.BatchId, f.SourceCreatedAt, f.SourceModifiedAt, f.MetadataSource, f.WorkspaceId))
@@ -39,9 +39,11 @@ public sealed class ProjectFiles(ChatDbContext db, FileImport importer, ProjectS
         if (mode is not ("project" or "pinned" or "excluded")) throw new ArgumentException("Mode de source invalide.");
         if (ImportPolicy.Excluded(attachment.Name) && mode != "excluded")
             throw new ArgumentException("Cette source est exclue par la politique d’import.");
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
         attachment.ContextMode = mode;
-        profile.Revision++;
-        await new EfChatRepository(db).SaveAsync(ct);
+        await profiles.AdvanceAsync(project, profile.Revision, ct);
+        await db.SaveVersionedAsync(ct);
+        await tx.CommitAsync(ct);
         return FileImport.Summary(attachment);
     }
 
@@ -60,8 +62,7 @@ public sealed class ProjectFiles(ChatDbContext db, FileImport importer, ProjectS
 
         await using var tx = await db.Database.BeginTransactionAsync(ct);
         await db.Attachments.Where(f => f.WorkspaceId == project && removed.Contains(f.Id)).ExecuteDeleteAsync(ct);
-        profile.Revision++;
-        await new EfChatRepository(db).SaveAsync(ct);
+        await profiles.AdvanceAsync(project, profile.Revision, ct);
         await tx.CommitAsync(ct);
         // Retain immutable originals for already running snapshot reads and backups.
         return true;
@@ -75,7 +76,7 @@ public sealed class ProjectFiles(ChatDbContext db, FileImport importer, ProjectS
         if (rule is null) return;
         db.Remove(rule);
         chat.AttachFiles();
-        await new EfChatRepository(db).SaveAsync(ct);
+        await db.SaveVersionedAsync(ct);
     }
 
     public async Task<SourcePreview?> PreviewAsync(Guid owner, bool workspace, Guid file, string? sha, int? start, int? end, CancellationToken ct)
@@ -94,10 +95,10 @@ public sealed class ProjectFiles(ChatDbContext db, FileImport importer, ProjectS
             !source.Complete || from > 0 || through < source.Text.Length);
     }
 
-    private async Task<WorkspaceProfile> RequireRevisionAsync(Guid project, int revision, CancellationToken ct)
+    private async Task<ProjectProfile> RequireRevisionAsync(Guid project, int revision, CancellationToken ct)
     {
-        var profile = await ProjectProfiles.RequireAsync(db, identities, project, ct);
-        ProjectProfiles.CheckRevision(profile, revision);
+        var profile = await profiles.RequireAsync(project, false, ct);
+        if (profile.Revision != revision) throw new ChatConflictException();
         return profile;
     }
 }

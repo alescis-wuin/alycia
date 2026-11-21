@@ -205,7 +205,7 @@ public sealed partial class DocumentAnalysisService(ChatDbContext database, ICha
                 previous.UseInContext = false;
             database.DocumentAnalyses.Add(analysis);
             conversation.AttachFiles();
-            await new EfChatRepository(database).SaveAsync(ct);
+            await database.SaveVersionedAsync(ct);
             await checkpoints.SaveRunAsync(run with { State = "completed", AnalysisId = analysis.Id }, CancellationToken.None);
             return analysis;
         }

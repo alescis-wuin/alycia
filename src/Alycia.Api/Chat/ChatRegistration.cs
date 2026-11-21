@@ -64,6 +64,11 @@ internal static class ChatRegistration
     {
         services.AddScoped(sp => new RelationalSession(sp.GetRequiredService<ChatDbContext>().Database));
         services.AddScoped<IWorkspaceIdentityDirectory, WorkspaceIdentityDirectory>();
+        services.AddScoped<WorkspaceProfileStore>();
+        services.AddScoped<IWorkspaceProfiles>(sp => sp.GetRequiredService<WorkspaceProfileStore>());
+        services.AddScoped<IProjectNoteOrigins, ProjectNoteOrigins>();
+        services.AddScoped<IDocumentMembershipOverrides, DocumentMembershipOverrides>();
+        services.AddScoped<ConversationMembership>();
         services.AddScoped<IProjectCatalog, ProjectCatalog>();
         services.AddScoped<IProjectModelDefaults>(sp => sp.GetRequiredService<IProjectCatalog>());
         services.AddScoped<ConversationCreation>();
@@ -95,12 +100,14 @@ internal static class ChatRegistration
     {
         services.AddScoped<IProjectIndex, ProjectIndexService>();
         services.AddScoped<IndexCatalog>();
+        services.AddScoped<ILiveIndexFileAccess>(sp => new LiveIndexFileAccess(sp.GetRequiredService<DbContextOptions<ChatDbContext>>(),
+            session => new WorkspaceProfileStore(session, new WorkspaceIdentityDirectory(session))));
         services.AddScoped<KnowledgeStore>();
         services.AddScoped<IHistoryKnowledge>(sp => sp.GetRequiredService<KnowledgeStore>());
         services.AddScoped<KnowledgeBuilder>();
         services.AddScoped(_ => new PostgresEmbeddingStore(connection));
         services.AddScoped<IConversationIndexOwners, ConversationIndexOwners>();
-        services.AddScoped<IProjectIndexOwners, ProjectIndexOwners>();
+        services.AddScoped<IProjectIndexOwners>(sp => sp.GetRequiredService<WorkspaceProfileStore>());
         services.AddScoped<BackgroundEmbeddingIndex>();
         services.AddScoped<IEmbeddingSimilarityReader>(sp => sp.GetRequiredService<PostgresEmbeddingStore>());
         services.AddScoped<IIndexedEmbeddings, IndexedEmbeddingSearch>();
