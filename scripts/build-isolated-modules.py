@@ -14,7 +14,16 @@ guard = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(guard)
 
 
-CONTRACT_SUITES = {"Alycia.Modules.Inference.Tests": {"Alycia.Contracts", "Alycia.Modules.Inference", "Alycia.Modules.Testing"}}
+CONTRACT_SUITES = {
+    "Alycia.Modules.Inference.Tests": {"Alycia.Contracts", "Alycia.Modules.Inference", "Alycia.Modules.Testing"},
+    "Alycia.Modules.Workspaces.Tests": {"Alycia.Modules.Workspaces.Domain", "Alycia.Modules.Workspaces.Application"},
+    "Alycia.Modules.Context.Tests": {"Alycia.Contracts", "Alycia.Modules.Context"},
+    "Alycia.Modules.Tools.Tests": {"Alycia.Contracts", "Alycia.Modules.Tools", "Alycia.Modules.Testing"},
+    "Alycia.Modules.Documents.Tests": {"Alycia.Contracts", "Alycia.Modules.Documents"},
+    "Alycia.Modules.Indexing.Tests": {"Alycia.Contracts", "Alycia.Modules.Indexing", "Alycia.Modules.Testing"},
+    "Alycia.Modules.Retrieval.Tests": {"Alycia.Contracts", "Alycia.Modules.Retrieval", "Alycia.Modules.Testing"},
+    "Alycia.Modules.Memory.Tests": {"Alycia.Contracts", "Alycia.Modules.Memory", "Alycia.Modules.Testing"},
+}
 
 
 def build(name):
@@ -39,8 +48,14 @@ def build(name):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("modules", nargs="*", metavar="MODULE")
-    selected = parser.parse_args().modules
+    parser.add_argument("--require-complete", action="store_true", help="also require isolation of every remaining Chat assembly")
+    args = parser.parse_args()
+    selected = args.modules
     for item in selected or sorted(guard.ISOLATED.keys() | CONTRACT_SUITES.keys()):
         if item not in guard.ISOLATED and item not in CONTRACT_SUITES:
             parser.error(f"unregistered module {item}")
         build(item)
+    if args.require_complete:
+        residual = sorted(p.stem for p in (ROOT / "src").glob("Alycia.Modules.*/*.csproj") if p.stem not in guard.ISOLATED)
+        if residual:
+            raise SystemExit("Modules sans isolation démontrée: " + ", ".join(residual))

@@ -1,6 +1,9 @@
 using Alycia.Modules.Testing;
 
-namespace Alycia.Api.Chat;
+using Alycia.Api.Chat;
+using Alycia.Contracts.Inference;
+
+namespace Alycia.DevHost;
 
 internal static class DevelopmentInference
 {

@@ -90,6 +90,6 @@ CONTRACT_AREAS = {
     "Alycia.Modules.Inference": {"Chat", "Inference"},
     "Alycia.Modules.Retrieval": {"Indexing", "Retrieval", "Chat", "Documents"},
     "Alycia.Modules.Retrieval.Onnx": {"Indexing", "Retrieval"},
-    "Alycia.Modules.Testing": {"Chat", "Indexing", "Inference"},
+    "Alycia.Modules.Testing": {"Chat", "Indexing", "Inference", "Documents", "Workspaces", "Retrieval"},
     "Alycia.Modules.Workspaces.Infrastructure": {"Workspaces", "Chat", "Indexing"},
 }

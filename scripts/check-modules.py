@@ -38,6 +38,8 @@ ISOLATED = {
 
 
 def forbidden(project, dependency):
+    if project == "Alycia.Api" and dependency in {"Alycia.Modules.Testing", "Alycia.DevHost"}:
+        return True
     if project in ISOLATED and dependency.startswith("Alycia.") and dependency != project:
         return dependency not in ISOLATED[project]
 

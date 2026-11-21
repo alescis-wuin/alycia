@@ -26,6 +26,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/Alycia.Modules.Chat.Infrastructure/Alycia.Modules.Chat.Infrastructure.csproj" />
+    <ProjectReference Include="../../src/Alycia.Modules.Testing/Alycia.Modules.Testing.csproj" />
     <ProjectReference Include="../../src/Alycia.Api/Alycia.Api.csproj" />
   </ItemGroup>
   <ItemGroup>

@@ -636,12 +636,13 @@ def verify_originals(call, directory, checks):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--case", choices=("all", "transport", "tool-summary", "boreale", "indexing", "context-quality", "knowledge", "originals"), default="all")
+    parser.add_argument("--case", choices=("all", "transport", "tool-summary", "boreale", "indexing", "context-quality", "knowledge", "originals", "mock"), default="all")
     args = parser.parse_args()
     connection = os.environ.get("ALYCIA_CHAT_TEST_CONNECTION")
     if not connection:
         raise SystemExit("ALYCIA_CHAT_TEST_CONNECTION requis (administrateur de test avec CREATEDB).")
-    dll = ROOT / "src/Alycia.Api/bin/Debug/net10.0/Alycia.Api.dll"
+    host = "Alycia.DevHost" if args.case == "mock" else "Alycia.Api"
+    dll = ROOT / f"src/{host}/bin/Debug/net10.0/{host}.dll"
     if not dll.exists():
         raise SystemExit("Exécutez dotnet build Alycia.slnx avant cette recette.")
     database = "alycia_http_test_" + uuid.uuid4().hex
@@ -653,9 +654,15 @@ def main():
     env.pop("ALYCIA_RERANK_DIRECTORY", None)
     ef = ["dotnet", "tool", "run", "dotnet-ef", "database"]
     ef_options = ["--project", "src/Alycia.Modules.Chat.Infrastructure", "--context", "ChatDbContext", "--no-build"]
-    provider = ThreadingHTTPServer(("127.0.0.1", 0), Ollama)
-    threading.Thread(target=provider.serve_forever, daemon=True).start()
-    env["ALYCIA_OLLAMA_BASE_URL"] = f"http://127.0.0.1:{provider.server_port}/"
+    provider = None
+    if args.case == "mock":
+        env["ALYCIA_MOCK_INFERENCE"] = "true"
+        env["ALYCIA_OLLAMA_BASE_URL"] = "http://127.0.0.1:1/"
+    else:
+        env["ALYCIA_MOCK_INFERENCE"] = "false"
+        provider = ThreadingHTTPServer(("127.0.0.1", 0), Ollama)
+        threading.Thread(target=provider.serve_forever, daemon=True).start()
+        env["ALYCIA_OLLAMA_BASE_URL"] = f"http://127.0.0.1:{provider.server_port}/"
     backend = None
     created = False
     with tempfile.TemporaryDirectory(prefix="alycia-http-") as directory:
@@ -692,6 +699,18 @@ def main():
                 spec.loader.exec_module(module)
                 checks = []
                 client = module.create_client(f"http://127.0.0.1:{port}")
+                if args.case == "mock":
+                    assert client("GET", "/models") == ["alycia-mock"]
+                    conversation = client("POST", "/conversations", {"title": "Mock", "model": "alycia-mock"}, expected=201)
+                    path = "/conversations/" + conversation["id"]
+                    request = {"requestId": str(uuid.uuid4()), "content": "Bonjour", "revision": conversation["revision"]}
+                    events = client("POST", path + "/stream", request)
+                    assert events[-1]["type"] == "done" and events[-1]["result"]["messages"][1]["content"] == "Bonjour"
+                    checks.append("devhost_mock_full_chat_stream")
+                    replay = client("POST", path + "/stream", request)
+                    assert replay[-1]["result"]["replayed"] is True
+                    assert len(client("GET", path + "/messages")["messages"]) == 2
+                    checks.append("devhost_mock_idempotent_replay")
                 if args.case == "originals":
                     verify_originals(client, Path(env["ALYCIA_FILES_DIRECTORY"]), checks)
                 if args.case in ("all", "transport"):
@@ -742,8 +761,9 @@ def main():
                     except subprocess.TimeoutExpired:
                         backend.kill()
                         backend.wait()
-                provider.shutdown()
-                provider.server_close()
+                if provider is not None:
+                    provider.shutdown()
+                    provider.server_close()
                 if created:
                     subprocess.run(ef + ["drop", "--force"] + ef_options, cwd=ROOT, env=env,
                         check=True, stdout=log, stderr=log, timeout=60)
