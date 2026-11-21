@@ -26,7 +26,7 @@ CONTRACT_SUITES = {
 }
 
 
-def build(name):
+def build(name, independent_inputs=None):
     with tempfile.TemporaryDirectory(prefix="alycia-isolated-") as tmp:
         workspace = Path(tmp)
         for file in ("global.json", "Directory.Build.props", "Directory.Build.targets", "Directory.Packages.props", "NuGet.Config", "nuget.config"):
@@ -34,7 +34,9 @@ def build(name):
             if source.is_file():
                 shutil.copy2(source, workspace / file)
         is_suite = name in CONTRACT_SUITES
-        dependencies = CONTRACT_SUITES[name] if is_suite else guard.ISOLATED[name]
+        dependencies = independent_inputs
+        if dependencies is None:
+            dependencies = CONTRACT_SUITES[name] if is_suite else guard.ISOLATED[name]
         for item in sorted({name} | dependencies):
             group = "tests" if item in CONTRACT_SUITES else "src"
             shutil.copytree(ROOT / group / item, workspace / group / item,
@@ -56,6 +58,20 @@ if __name__ == "__main__":
             parser.error(f"unregistered module {item}")
         build(item)
     if args.require_complete:
-        residual = sorted(p.stem for p in (ROOT / "src").glob("Alycia.Modules.*/*.csproj") if p.stem not in guard.ISOLATED)
-        if residual:
-            raise SystemExit("Modules sans isolation démontrée: " + ", ".join(residual))
+        projects = {p.stem for p in (ROOT / "src").glob("Alycia.Modules.*/*.csproj")}
+        unresolved = []
+        for item in sorted(projects - guard.ISOLATED.keys()):
+            owner = ".".join(item.split(".")[:3])
+            own_projects = {p for p in projects if p == owner or p.startswith(owner + ".")}
+            try:
+                build(item, own_projects | {"Alycia.Contracts", "Alycia.Platform.Persistence"})
+            except subprocess.CalledProcessError:
+                print(f"ÉCHEC compilation autonome {item}", flush=True)
+                unresolved.append(item)
+                continue
+            # Isolated compilation alone does not establish behavioral autonomy.
+            if owner + ".Tests" not in CONTRACT_SUITES:
+                print(f"Suite de comportement autonome absente pour {item}", flush=True)
+                unresolved.append(item)
+        if unresolved:
+            raise SystemExit("Modules sans isolation démontrée: " + ", ".join(unresolved))

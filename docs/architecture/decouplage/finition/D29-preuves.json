@@ -161,10 +161,11 @@
     ],
     "commandeStricte": "python3 scripts/build-isolated-modules.py --require-complete",
     "codeSortieStrict": 1,
-    "nonIsolés": [
+    "compilationsIndépendantesEnÉchec": [
       "Alycia.Modules.Chat.Application",
       "Alycia.Modules.Chat.Infrastructure"
-    ]
+    ],
+    "dépendancesPrésentesPendantCesEssais": "Projets du même domaine Chat, Alycia.Contracts et Alycia.Platform.Persistence"
   },
   "publication": {
     "buildDebug": true,
