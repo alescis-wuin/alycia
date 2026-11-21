@@ -15,10 +15,14 @@ public sealed record EmbeddingSettings(string Model, int BatchSize, int ChunkCha
     public string VectorSpace(string digest, int dimensions) => !Versioned ? digest : digest + ":pipeline-v4:" + dimensions + ":"
         + StructuredMemory.Hash(JsonSerializer.Serialize(new { Hierarchical, ChunkCharacters, DocumentPrefix, QueryPrefix, Normalization = "cosine" }));
 }
-public sealed record EmbeddingJob(EmbeddingProgress Progress, EmbeddingSettings Settings, int Revision, string Fingerprint, DateTimeOffset? RetryAt = null, string? VectorDigest = null, int? VectorDimensions = null);
+public sealed record EmbeddingJob(EmbeddingProgress Progress, EmbeddingSettings Settings, int Revision, string Fingerprint, DateTimeOffset? RetryAt = null, string? VectorDigest = null, int? VectorDimensions = null)
+{
+    public bool IsDue(DateTimeOffset now) => Progress.State is not ("failed" or "paused")
+        && (Progress.State != "completed" || now - Progress.UpdatedAt >= TimeSpan.FromSeconds(30));
+}
 
 // A separate short-lived connection avoids writing indexing state into a chat's repeatable-read snapshot.
-public sealed class PostgresEmbeddingStore(ChatDbContext database)
+public sealed class PostgresEmbeddingStore(ChatDbContext database) : IEmbeddingSimilarityReader
 {
     private async Task<NpgsqlConnection> OpenAsync(CancellationToken ct)
     {
@@ -208,7 +212,7 @@ public sealed class PostgresEmbeddingStore(ChatDbContext database)
         await using var extension = new NpgsqlCommand("SELECT EXISTS(SELECT 1 FROM pg_extension WHERE extname = 'vector')", connection);
         if (await extension.ExecuteScalarAsync(ct) is not true)
             return (await ReadAsync(identity, keys, ct)).Where(v => v.Value.Length == query.Length)
-                .ToDictionary(v => v.Key, v => ProjectRetrievalService.Cosine(query, v.Value));
+                .ToDictionary(v => v.Key, v => VectorSimilarity.Cosine(query, v.Value));
         var scores = new Dictionary<string, double>();
         foreach (var batch in keys.Chunk(256))
         {

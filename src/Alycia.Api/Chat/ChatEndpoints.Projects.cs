@@ -16,24 +16,6 @@ internal static partial class ChatEndpoints
     private sealed record NoteEdit(int Revision, string Text, Guid? OriginConversationId = null, int? OriginSequence = null);
     private sealed record NewProject(string Name);
 
-    private static async Task<WorkspaceProfile> RequireProjectAsync(ChatDbContext db, Guid id, CancellationToken ct, bool archived = false)
-    {
-        var profile = await db.WorkspaceProfiles.FindAsync([id], ct);
-        if (profile is null)
-        {
-            // Projects created by the original Workspaces API acquire chat metadata on first use.
-            var exists = await db.Database.SqlQuery<bool>($"SELECT EXISTS (SELECT 1 FROM workspaces.workspaces WHERE id = {id}) AS \"Value\"").SingleAsync(ct);
-            if (!exists) throw new ArgumentException("Projet introuvable.");
-            await db.Database.ExecuteSqlInterpolatedAsync($"""
-                INSERT INTO chat.workspace_profiles ("Id", "Instructions", "DefaultModel", "NotesJson", "Archived", "Revision")
-                VALUES ({id}, '', '', '[]', FALSE, 0) ON CONFLICT ("Id") DO NOTHING
-                """, ct);
-            profile = await db.WorkspaceProfiles.SingleAsync(p => p.Id == id, ct);
-        }
-        if (profile.Archived && !archived) throw new ArgumentException("Restaurez d’abord ce projet archivé.");
-        return profile;
-    }
-
     private static object Profile(WorkspaceProfile p) => new { p.Id, p.Instructions, p.DefaultModel, p.Archived, p.Revision, notes = p.ReadNotes() };
 
     private static void CheckProjectRevision(WorkspaceProfile profile, int revision)
@@ -64,10 +46,10 @@ internal static partial class ChatEndpoints
             return Results.Ok(new { workspace.Id, workspace.Name, archived = false });
         });
         routes.MapGet("/projects/{id:guid}", async (Guid id, ChatDbContext db, CancellationToken ct) =>
-            Results.Ok(Profile(await RequireProjectAsync(db, id, ct, true))));
+            Results.Ok(Profile(await ProjectProfiles.RequireAsync(db, id, ct, true))));
         routes.MapPut("/projects/{id:guid}", async (Guid id, EditProject update, ChatDbContext db, CancellationToken ct) =>
         {
-            var project = await RequireProjectAsync(db, id, ct, true);
+            var project = await ProjectProfiles.RequireAsync(db, id, ct, true);
             CheckProjectRevision(project, update.Revision);
             if (update.Instructions is null || update.Instructions.Length > 4000 || update.DefaultModel is null
                 || update.DefaultModel.Length > 200 || update.Instructions.Contains('\0') || update.DefaultModel.Contains('\0'))
@@ -85,7 +67,7 @@ internal static partial class ChatEndpoints
             await using var tx = await db.Database.BeginTransactionAsync(ct);
             var chat = await db.Conversations.SingleOrDefaultAsync(c => c.Id == id, ct) ?? throw new ConversationNotFoundException();
             ConversationConfiguration.CheckRevision(chat, update.Revision);
-            if (update.WorkspaceId is Guid destination) await RequireProjectAsync(db, destination, ct);
+            if (update.WorkspaceId is Guid destination) await ProjectProfiles.RequireAsync(db, destination, ct);
             if (chat.WorkspaceId != update.WorkspaceId)
             {
                 await db.WorkspaceFileOverrides.Where(o => o.ConversationId == id).ExecuteDeleteAsync(ct);
@@ -117,17 +99,17 @@ internal static partial class ChatEndpoints
         });
         routes.MapGet("/projects/{id:guid}/files", async (Guid id, ChatDbContext db, CancellationToken ct) =>
         {
-            await RequireProjectAsync(db, id, ct, true);
+            await ProjectProfiles.RequireAsync(db, id, ct, true);
             return Results.Ok(await FileSummaries(db.Attachments.AsNoTracking().Where(f => f.WorkspaceId == id)).ToArrayAsync(ct));
         });
         routes.MapPost("/projects/{id:guid}/files/{batch:guid}", async (Guid id, Guid batch, HttpRequest request, FileImport importer, ChatDbContext db, CancellationToken ct) =>
         {
-            await RequireProjectAsync(db, id, ct);
+            await ProjectProfiles.RequireAsync(db, id, ct);
             return await UploadFilesAsync(id, batch, request, importer, true, ct);
         });
         routes.MapPut("/projects/{id:guid}/files/{fileId:guid}", async (Guid id, Guid fileId, SetProjectMode update, ChatDbContext db, CancellationToken ct) =>
         {
-            var profile = await RequireProjectAsync(db, id, ct);
+            var profile = await ProjectProfiles.RequireAsync(db, id, ct);
             CheckProjectRevision(profile, update.Revision);
             var file = await db.Attachments.SingleOrDefaultAsync(f => f.WorkspaceId == id && f.Id == fileId, ct)
                 ?? throw new ArgumentException("Document absent de ce projet.");
@@ -140,7 +122,7 @@ internal static partial class ChatEndpoints
         });
         routes.MapDelete("/projects/{id:guid}/files/{fileId:guid}", async (Guid id, Guid fileId, int revision, ChatDbContext db, CancellationToken ct) =>
         {
-            var profile = await RequireProjectAsync(db, id, ct);
+            var profile = await ProjectProfiles.RequireAsync(db, id, ct);
             CheckProjectRevision(profile, revision);
             var owned = await db.Attachments.Where(f => f.WorkspaceId == id).Select(f => new { f.Id, f.ArchiveId }).ToArrayAsync(ct);
             if (!owned.Any(f => f.Id == fileId)) return Results.NotFound();
@@ -188,13 +170,20 @@ internal static partial class ChatEndpoints
         int from = start ?? 0;
         if (from < 0 || from > source.Text.Length || end.HasValue && end < from) throw new ArgumentException("Position source invalide.");
         int through = Math.Min(Math.Min(end ?? source.Text.Length, source.Text.Length), from + 12000);
-        return Results.Ok(new { file.Name, file.Sha256, text = source.Text[from..through], start = from, end = through,
-            partial = !source.Complete || from > 0 || through < source.Text.Length });
+        return Results.Ok(new
+        {
+            file.Name,
+            file.Sha256,
+            text = source.Text[from..through],
+            start = from,
+            end = through,
+            partial = !source.Complete || from > 0 || through < source.Text.Length
+        });
     }
 
     private static async Task<IResult> ChangeNoteAsync(Guid id, Guid? key, NoteEdit edit, bool remove, ChatDbContext db, CancellationToken ct)
     {
-        var profile = await RequireProjectAsync(db, id, ct);
+        var profile = await ProjectProfiles.RequireAsync(db, id, ct);
         CheckProjectRevision(profile, edit.Revision);
         var notes = profile.ReadNotes().ToList();
         int index = notes.FindIndex(n => n.Id == key);

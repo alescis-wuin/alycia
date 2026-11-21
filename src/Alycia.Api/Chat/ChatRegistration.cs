@@ -29,23 +29,36 @@ internal static class ChatRegistration
         builder.Services.AddScoped<IChatRepository, EfChatRepository>();
         builder.Services.AddScoped<ChatService>();
         RegisterDocuments(builder);
-        builder.Services.AddScoped<IProjectIndex, ProjectIndexService>();
-        builder.Services.AddSingleton<LexicalIndexCache>();
-        builder.Services.AddScoped<KnowledgeStore>();
-        builder.Services.AddScoped<KnowledgeBuilder>();
-        builder.Services.AddScoped<PostgresEmbeddingStore>();
+        RegisterIndexing(builder.Services);
+        RegisterRetrieval(builder.Services);
         builder.Services.AddScoped<TemporalMemoryStore>();
         builder.Services.AddScoped<ITemporalMemory>(sp => sp.GetRequiredService<TemporalMemoryStore>());
-        builder.Services.AddScoped<BackgroundEmbeddingIndex>();
-        builder.Services.AddScoped<IIndexedEmbeddings>(sp => sp.GetRequiredService<BackgroundEmbeddingIndex>());
-        builder.Services.AddHostedService<EmbeddingWorker>();
-        builder.Services.AddSingleton<IPassageReranker>(_ => new OnnxPassageReranker(Environment.GetEnvironmentVariable("ALYCIA_RERANK_DIRECTORY")));
-        builder.Services.AddScoped<IProjectRetrieval, ProjectRetrievalService>();
         builder.Services.AddScoped<ProjectToolService>();
         builder.Services.AddScoped<ISnapshotProjectTools>(sp => sp.GetRequiredService<ProjectToolService>());
         builder.Services.AddHttpClient<IProjectTools, ProjectMcpClient>(http => http.Timeout = Timeout.InfiniteTimeSpan)
             .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false, UseProxy = false });
         RegisterInference(builder.Services, uri);
+    }
+
+    private static void RegisterIndexing(IServiceCollection services)
+    {
+        services.AddScoped<IProjectIndex, ProjectIndexService>();
+        services.AddScoped<IndexCatalog>();
+        services.AddScoped<KnowledgeStore>();
+        services.AddScoped<KnowledgeBuilder>();
+        services.AddScoped<PostgresEmbeddingStore>();
+        services.AddScoped<BackgroundEmbeddingIndex>();
+        services.AddScoped<IEmbeddingSimilarityReader>(sp => sp.GetRequiredService<PostgresEmbeddingStore>());
+        services.AddScoped<IIndexedEmbeddings, IndexedEmbeddingSearch>();
+        services.AddScoped<IIndexMaintenance, IndexMaintenance>();
+        services.AddHostedService<EmbeddingWorker>();
+    }
+
+    private static void RegisterRetrieval(IServiceCollection services)
+    {
+        services.AddSingleton<LexicalIndexCache>();
+        services.AddSingleton<IPassageReranker>(_ => new OnnxPassageReranker(Environment.GetEnvironmentVariable("ALYCIA_RERANK_DIRECTORY")));
+        services.AddScoped<IProjectRetrieval, ProjectRetrievalService>();
     }
 
     private static void RegisterDocuments(WebApplicationBuilder builder)
