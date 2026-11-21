@@ -1,3 +1,4 @@
+using Alycia.Contracts.Indexing;
 using System.Collections.Concurrent;
 using System.Text;
 using System.Text.Json;
@@ -184,7 +185,7 @@ public sealed class KnowledgePipelineTests
             Assert.Equal("completed", (await Job()).Progress.State);
             var hybridScope = await index.BuildAsync(owner.Id, default);
             var encoded = encoder.Calls;
-            var ranked = await hybrid.SearchAsync(owner.Id, "delta", options, hybridScope.Chunks, default);
+            var ranked = await hybrid.SearchAsync(owner.Id, "delta", EmbeddingQuery.Capture(options), hybridScope.Chunks, default);
             Assert.Equal(hybridScope.Chunks.Count, ranked.Hits); Assert.Equal(encoded + 1, encoder.Calls);
             await using var deleteScope = new ChatDbContext(dbOptions);
             deleteScope.Conversations.Remove(await deleteScope.Conversations.SingleAsync(c => c.Id == owner.Id));

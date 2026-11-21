@@ -4,10 +4,6 @@ using System.Text;
 
 namespace Alycia.Modules.Chat.Application;
 
-public interface IProjectRetrieval
-{
-    Task<RetrievalPreparation> PrepareAsync(Guid conversation, string query, ChatOptions settings, CancellationToken ct);
-}
 public static class ProjectRetrieval
 {
     public static string[] Tokens(string text) => PassageSearch.Tokens(text);

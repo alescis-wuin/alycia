@@ -1,3 +1,4 @@
+using Alycia.Contracts.Indexing;
 using Alycia.Contracts.Context;
 using System.Text;
 using Alycia.Modules.Chat.Application;
@@ -7,7 +8,7 @@ namespace Alycia.Modules.Chat.Infrastructure;
 
 public sealed class IndexedEmbeddingSearch(IEmbeddingSimilarityReader store, ILocalEmbeddings embeddings) : IIndexedEmbeddings
 {
-    public async Task<SemanticSearch> SearchAsync(Guid conversation, string query, ChatOptions settings,
+    public async Task<SemanticSearch> SearchAsync(Guid conversation, string query, EmbeddingQuery settings,
         IReadOnlyList<SourceChunk> chunks, CancellationToken ct)
     {
         try { return await SearchCoreAsync(query, EmbeddingSettings.ForQuery(settings), chunks, ct); }
@@ -51,7 +52,7 @@ public sealed class IndexedEmbeddingSearch(IEmbeddingSimilarityReader store, ILo
         return queryVectors;
     }
 
-    public async Task<MemoryVectorMatches> SearchMemoryAsync(Guid owner, string question, ChatOptions settings, int through, DateTimeOffset before, CancellationToken ct)
+    public async Task<MemoryVectorMatches> SearchMemoryAsync(Guid owner, string question, EmbeddingQuery settings, int through, DateTimeOffset before, CancellationToken ct)
     {
         var calls = new List<ModelCallUsage>(); var scores = new Dictionary<int, double>();
         try
@@ -68,7 +69,7 @@ public sealed class IndexedEmbeddingSearch(IEmbeddingSimilarityReader store, ILo
         { return new(scores, calls, "Vecteurs historiques indisponibles ; rappel lexical utilisé."); }
     }
 
-    public Task<SemanticSearch> SearchHistoryAsync(Guid conversation, string query, ChatOptions settings,
+    public Task<SemanticSearch> SearchHistoryAsync(Guid conversation, string query, EmbeddingQuery settings,
         IReadOnlyList<HistoryMessage> messages, CancellationToken ct)
     {
         if (messages.Any(m => m.ConversationId != conversation)) throw new ArgumentException("Historique hors de la conversation.");

@@ -1,3 +1,4 @@
+using Alycia.Contracts.Indexing;
 using Alycia.Modules.Chat.Application;
 using Alycia.Modules.Chat.Infrastructure;
 
@@ -27,8 +28,8 @@ public sealed class EmbeddingQuerySettingsTests
         var owner = Guid.NewGuid();
         var source = new SourceChunk(Guid.NewGuid(), "corpus.txt", "hash", "", "text", 0, 4, 1, 1, "text", [], true);
         Task lookup = memory
-            ? search.SearchMemoryAsync(owner, question, settings, 2, DateTimeOffset.UnixEpoch, default)
-            : search.SearchAsync(owner, question, settings, [source], default);
+            ? search.SearchMemoryAsync(owner, question, EmbeddingQuery.Capture(settings), 2, DateTimeOffset.UnixEpoch, default)
+            : search.SearchAsync(owner, question, EmbeddingQuery.Capture(settings), [source], default);
 
         Assert.False(lookup.IsCompleted);
         settings.EmbeddingModel = "second";

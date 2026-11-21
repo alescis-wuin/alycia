@@ -1,3 +1,5 @@
+using Alycia.Contracts.Context;
+using Alycia.Contracts.Documents;
 using Alycia.Modules.Documents;
 using Alycia.Contracts.Retrieval;
 using Alycia.Modules.Retrieval;
@@ -6,7 +8,6 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Alycia.Modules.Chat.Application;
-using Alycia.Modules.Chat.Domain;
 using Alycia.Modules.Chat.Infrastructure;
 
 internal static class OfflineEvaluation
@@ -77,19 +78,17 @@ internal static class OfflineEvaluation
         public Task<ProjectIndexSnapshot> BuildAsync(Guid id, CancellationToken ct) =>
             Task.FromResult(new ProjectIndexSnapshot(chunks, files, files, files, []));
     }
-    private sealed class FixtureRepository(Attachment[] documents, ChatMessage[] history) : IChatRepository
+    private sealed class FixtureRepository(TurnFile[] documents, HistoryMessage[] history) : IConversationContextReader
     {
-        public Task<IReadOnlyList<Attachment>> FilesAsync(Guid id, CancellationToken ct) =>
-            Task.FromResult<IReadOnlyList<Attachment>>(documents.Where(f => f.ConversationId == id).ToArray());
-        public Task<IReadOnlyList<ChatMessage>> MessagesAsync(Guid id, int limit, int? before, CancellationToken ct) =>
-            Task.FromResult<IReadOnlyList<ChatMessage>>(history.Where(m => m.ConversationId == id && (before == null || m.Sequence < before)).TakeLast(limit).ToArray());
-        public Task<IReadOnlyList<Conversation>> ListAsync(CancellationToken ct) => throw new NotSupportedException();
-        public Task<Conversation?> FindAsync(Guid id, CancellationToken ct) => throw new NotSupportedException();
-        public Task AddAsync(Conversation c, CancellationToken ct) => throw new NotSupportedException();
-        public Task SaveAsync(CancellationToken ct) => throw new NotSupportedException();
-        public Task DeleteAsync(Conversation c, CancellationToken ct) => throw new NotSupportedException();
-        public Task<IReadOnlyList<ChatMessage>> FindTurnAsync(Guid id, Guid request, CancellationToken ct) => throw new NotSupportedException();
-        public Task AppendTurnAsync(Conversation c, ChatMessage u, ChatMessage r, CancellationToken ct) => throw new NotSupportedException();
+        public Task<IReadOnlyList<TurnFile>> ContextFilesAsync(Guid id, int first, CancellationToken ct) =>
+            Task.FromResult<IReadOnlyList<TurnFile>>(documents.Where(f => f.ConversationId == id && f.ContextMode != "excluded"
+                && (f.ContextMode is "pinned" or "project" || f.AnchorSequence >= first)).ToArray());
+
+        public Task<IReadOnlyList<HistoryMessage>> RecentAsync(Guid id, int limit, int? before, CancellationToken ct) =>
+            Task.FromResult<IReadOnlyList<HistoryMessage>>(history.Where(m => m.ConversationId == id && (before == null || m.Sequence < before)).TakeLast(limit).ToArray());
+
+        public Task<IReadOnlyList<HistoryMessage>> SummaryRangeAsync(Guid id, int after, int through, CancellationToken ct) =>
+            Task.FromResult<IReadOnlyList<HistoryMessage>>(history.Where(m => m.ConversationId == id && m.Sequence > after && m.Sequence <= through).ToArray());
     }
     private sealed class NoInference : IChatModel
     {
@@ -103,17 +102,11 @@ internal static class OfflineEvaluation
         var suite = JsonSerializer.Deserialize<Suite>(data, json)!;
         var settings = settingsPath is null ? new ChatOptions() : JsonSerializer.Deserialize<ChatOptions>(await File.ReadAllTextAsync(settingsPath), json)!;
         settings.Validate();
-        var owner = Conversation.Create("Fixture", "local", "");
-        var conversation = owner.Id;
-        var files = suite.Documents.Select(d => new Attachment
-        {
-            Id = new Guid(SHA256.HashData(Encoding.UTF8.GetBytes(d[0]))[..16]),
-            Name = d[0],
-            Sha256 = StructuredMemory.Hash(d[1]),
-            Text = d[1],
-            ContextMode = suite.Excluded.Contains(d[0]) ? "excluded" : "project",
-            ConversationId = conversation
-        }).ToArray();
+        var conversation = Guid.NewGuid();
+        var files = suite.Documents.Select(d => new TurnFile(
+            new Guid(SHA256.HashData(Encoding.UTF8.GetBytes(d[0]))[..16]),
+            null, conversation, Guid.Empty, null, d[0], 0, MemoryTransfer.Hash(d[1]), "", d[1], 0,
+            default, "", "", "unknown", suite.Excluded.Contains(d[0]) ? "excluded" : "project")).ToArray();
         var allowed = files.Where(f => f.ContextMode != "excluded").ToArray();
         var chunks = allowed.SelectMany(f => CodeStructure.Split(f.Id, f.Name, f.Sha256, f.Text, hierarchical: settings.HierarchicalIndexEnabled)).ToArray();
         using var reranker = new OnnxPassageReranker(Environment.GetEnvironmentVariable("ALYCIA_RERANK_DIRECTORY"));
@@ -126,8 +119,8 @@ internal static class OfflineEvaluation
             var options = settings.Copy();
             var allocated = GC.GetTotalAllocatedBytes();
             var timer = Stopwatch.StartNew();
-            var history = item.Turns.Select((text, n) => new ChatMessage(conversation, n + 1, Guid.NewGuid(), "user", text)).ToArray();
-            await QueryRouting.PrepareAsync(new FixtureRepository(files, history), owner, item.Question, options, service, new(new NoInference()), default);
+            var history = item.Turns.Select((text, n) => new HistoryMessage(conversation, n + 1, Guid.NewGuid(), "user", text, DateTimeOffset.UnixEpoch)).ToArray();
+            await QueryRouting.PrepareAsync(new FixtureRepository(files, history), conversation, 0, item.Question, options, service, new(new NoInference()), default);
             var packed = ProjectRetrieval.Pack(options.SourceCandidates ?? [], files, suite.Budget, options);
             elapsed.Add(timer.Elapsed.TotalMilliseconds);
             var paths = packed.Sources.Select(s => s.Path).Distinct().Take(suite.K).ToArray();

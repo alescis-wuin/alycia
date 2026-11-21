@@ -1,3 +1,5 @@
+using Alycia.Contracts.Indexing;
+using Alycia.Contracts.Memory;
 using System.Collections.Frozen;
 using Alycia.Contracts.Retrieval;
 using System.Text.Json.Serialization;
@@ -31,13 +33,19 @@ public sealed class ChatOptions : ChatSettings
         RetrievalReport = SearchSnapshots.Copy(source.RetrievalReport);
         Route = source.Route;
         EligibleSourceIds = source.EligibleSourceIds?.ToFrozenSet();
-        Recall = source.Recall is { } recall ? recall with { Facts = [.. recall.Facts], Calls = recall.Calls.ToArray() } : null;
+        Recall = source.Recall;
         SearchPlan = SearchSnapshots.Copy(source.SearchPlan);
         PinnedSourceIds = source.PinnedSourceIds?.ToFrozenSet();
         TokenCounter = source.TokenCounter;
         ModelIdentity = source.ModelIdentity;
         CallPurpose = source.CallPurpose;
     }
+
+    public ProjectSearch ProjectSearch() => new(
+        new RetrievalRequest(RetrievalMode, EligibleSourceIds?.ToFrozenSet(),
+            PassageRankingSettings.Capture(this, PinnedSourceIds),
+            QueryRewriteEnabled || FacetPlanningEnabled || QueryBriefModelEnabled, SearchPlan),
+        EmbeddingQuery.Capture(this));
 
     public GenerationParameters GenerationParameters()
     {

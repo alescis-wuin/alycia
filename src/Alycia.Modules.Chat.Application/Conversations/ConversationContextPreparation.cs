@@ -1,3 +1,5 @@
+using Alycia.Contracts.Retrieval;
+using Alycia.Contracts.Memory;
 using Alycia.Contracts.Context;
 using Alycia.Contracts.Tools;
 using Alycia.Modules.Chat.Domain;
@@ -15,8 +17,9 @@ public sealed class ConversationContextPreparation(IChatRepository repository, I
 
     public async Task<ContextPreparationResult> PreviewAsync(Guid id, string? content, CancellationToken ct)
     {
+        var settingsSnapshot = defaults.Copy();
         var conversation = await repository.FindAsync(id, ct) ?? throw new ConversationNotFoundException();
-        var options = await model.PrepareOptionsAsync(conversation.Model, ConversationConfiguration.Options(conversation, defaults), ct);
+        var options = await model.PrepareOptionsAsync(conversation.Model, ConversationConfiguration.Options(conversation, settingsSnapshot), ct);
         var text = Conversation.RequiredText(content, 32000, "Le message");
         var inputs = await RouteAsync(conversation, text, options, ct);
         return await BuildAsync(inputs, TurnContextMode.Preview, null, ct);
@@ -24,13 +27,14 @@ public sealed class ConversationContextPreparation(IChatRepository repository, I
 
     public async Task<PendingPreparation> BeginAsync(Guid id, int revision, string? content, CancellationToken ct)
     {
+        var settingsSnapshot = defaults.Copy();
         var lease = gate.Enter(id);
         try
         {
             var conversation = await repository.FindAsync(id, ct) ?? throw new ConversationNotFoundException();
             ConversationConfiguration.CheckRevision(conversation, revision);
             var text = Conversation.RequiredText(content, 32000, "La demande");
-            var options = await model.PrepareOptionsAsync(conversation.Model, ConversationConfiguration.Options(conversation, defaults), ct);
+            var options = await model.PrepareOptionsAsync(conversation.Model, ConversationConfiguration.Options(conversation, settingsSnapshot), ct);
             var inputs = await RouteAsync(conversation, text, options, ct);
             return new(lease, progress => BuildAsync(inputs, TurnContextMode.PrepareMemory, progress, ct));
         }

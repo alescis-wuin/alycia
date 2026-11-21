@@ -1,3 +1,4 @@
+using Alycia.Contracts.Memory;
 using Alycia.Modules.Chat.Application.Context;
 
 namespace Alycia.Modules.Chat.Application.Conversations;

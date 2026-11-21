@@ -8,8 +8,16 @@ public sealed record EvidenceText(string Reference, string Text, string? Role = 
 public sealed record RetrievalPreparation(IReadOnlyList<SourceChunk> Chunks, RetrievalReport Report, IReadOnlyList<ModelCallUsage> Calls);
 public sealed record SemanticSearch(double[] Scores, int Hits, IReadOnlyList<ModelCallUsage> Calls, string? Warning = null);
 
-public sealed record RetrievalRequest(string Mode, FrozenSet<Guid>? EligibleSourceIds, PassageRankingSettings Ranking,
-    bool ExpandQueries, SearchQueryPlan? Plan);
+public sealed class RetrievalRequest(string mode, FrozenSet<Guid>? eligibleSourceIds, PassageRankingSettings ranking,
+    bool expandQueries, SearchQueryPlan? plan)
+{
+    private readonly SearchQueryPlan? _plan = SearchSnapshots.Copy(plan);
+    public string Mode { get; } = mode;
+    public FrozenSet<Guid>? EligibleSourceIds { get; } = eligibleSourceIds;
+    public PassageRankingSettings Ranking { get; } = ranking;
+    public bool ExpandQueries { get; } = expandQueries;
+    public SearchQueryPlan? Plan => SearchSnapshots.Copy(_plan);
+}
 
 public delegate Task<SemanticSearch> PassageSimilarities(string query, IReadOnlyList<SourceChunk> chunks, CancellationToken ct);
 public interface IRetrievalPipeline

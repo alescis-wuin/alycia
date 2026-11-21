@@ -1,3 +1,4 @@
+using Alycia.Contracts.Indexing;
 using Alycia.Contracts.Context;
 using Alycia.Contracts.Workspaces;
 using Alycia.Modules.Chat.Application;
@@ -173,15 +174,15 @@ public sealed class BackgroundEmbeddingIndex(IIndexSourceDocuments documents, IL
         }
     }
 
-    public Task<SemanticSearch> SearchAsync(Guid conversation, string query, ChatOptions settings,
+    public Task<SemanticSearch> SearchAsync(Guid conversation, string query, EmbeddingQuery settings,
         IReadOnlyList<SourceChunk> chunks, CancellationToken ct) =>
         _queries.SearchAsync(conversation, query, settings, chunks, ct);
 
-    public Task<MemoryVectorMatches> SearchMemoryAsync(Guid owner, string question, ChatOptions settings,
+    public Task<MemoryVectorMatches> SearchMemoryAsync(Guid owner, string question, EmbeddingQuery settings,
         int through, DateTimeOffset before, CancellationToken ct) =>
         _queries.SearchMemoryAsync(owner, question, settings, through, before, ct);
 
-    public Task<SemanticSearch> SearchHistoryAsync(Guid conversation, string query, ChatOptions settings,
+    public Task<SemanticSearch> SearchHistoryAsync(Guid conversation, string query, EmbeddingQuery settings,
         IReadOnlyList<HistoryMessage> messages, CancellationToken ct) =>
         _queries.SearchHistoryAsync(conversation, query, settings, messages, ct);
 }

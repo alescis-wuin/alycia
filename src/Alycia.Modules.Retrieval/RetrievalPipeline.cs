@@ -4,7 +4,7 @@ public sealed class RetrievalPipeline(IProjectIndex index, LexicalIndexCache cac
 {
     public async Task<RetrievalPreparation> PrepareAsync(Guid conversation, string query, RetrievalRequest request, PassageSimilarities? semantic, CancellationToken ct)
     {
-        var planSnapshot = SearchSnapshots.Copy(request.Plan);
+        var planSnapshot = request.Plan;
         var timer = System.Diagnostics.Stopwatch.StartNew();
         var snapshot = await index.BuildScopedAsync(conversation, request.EligibleSourceIds, ct);
         var indexMilliseconds = timer.Elapsed.TotalMilliseconds;

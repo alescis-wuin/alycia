@@ -1,3 +1,4 @@
+using Alycia.Contracts.Indexing;
 using System.Text;
 using Alycia.Modules.Chat.Application;
 using Alycia.Modules.Chat.Domain;
@@ -84,28 +85,28 @@ public sealed class PersistentEmbeddingTests
             finally { await count.Connection.DisposeAsync(); }
             var index = new ProjectIndexService(new ConversationIndexOwners(new(database.Database)), storage, ChatFixture.IndexFiles(database, reader), ChatFixture.LiveFiles(database), options);
             var snapshot = await index.BuildAsync(chat.Id, default);
-            var searched = await resumed.SearchAsync(chat.Id, "Passage", options, snapshot.Chunks, default);
+            var searched = await resumed.SearchAsync(chat.Id, "Passage", EmbeddingQuery.Capture(options), snapshot.Chunks, default);
             Assert.Equal(snapshot.Chunks.Count, searched.Hits);
             Assert.Single(searched.Calls); // Only the query is embedded when sending a message.
             var history = await database.Messages.Where(m => m.ConversationId == chat.Id).OrderBy(m => m.Sequence).ToArrayAsync();
-            Assert.Equal(2, (await resumed.SearchHistoryAsync(chat.Id, "couleur", options, history.Select(m => m.ToHistory()).ToArray(), default)).Hits);
-            await Assert.ThrowsAsync<ArgumentException>(() => resumed.SearchHistoryAsync(other.Id, "couleur", options, history.Select(m => m.ToHistory()).ToArray(), default));
+            Assert.Equal(2, (await resumed.SearchHistoryAsync(chat.Id, "couleur", EmbeddingQuery.Capture(options), history.Select(m => m.ToHistory()).ToArray(), default)).Hits);
+            await Assert.ThrowsAsync<ArgumentException>(() => resumed.SearchHistoryAsync(other.Id, "couleur", EmbeddingQuery.Capture(options), history.Select(m => m.ToHistory()).ToArray(), default));
             Assert.Empty((await index.BuildAsync(other.Id, default)).Chunks);
 
             // Model identity changes select a separate vector space; old vectors are never mixed in.
             encoder.Identity = "local-embed:new-digest";
-            Assert.Equal(0, (await resumed.SearchAsync(chat.Id, "Passage", options, snapshot.Chunks, default)).Hits);
+            Assert.Equal(0, (await resumed.SearchAsync(chat.Id, "Passage", EmbeddingQuery.Capture(options), snapshot.Chunks, default)).Hits);
             encoder.Identity = "local-embed:digest";
             var enriched = options.Copy(); enriched.HierarchicalIndexEnabled = true;
             enriched.EmbeddingDocumentPrefix = "passage: "; enriched.EmbeddingQueryPrefix = "query: ";
             chat.Configure(chat.Model, chat.SystemPrompt, chat.ContextNotes, ConversationConfiguration.Serialize(enriched));
             await database.SaveChangesAsync();
             var hierarchical = await index.BuildAsync(chat.Id, default);
-            Assert.Equal(0, (await resumed.SearchAsync(chat.Id, "Passage", enriched, hierarchical.Chunks, default)).Hits);
+            Assert.Equal(0, (await resumed.SearchAsync(chat.Id, "Passage", EmbeddingQuery.Capture(enriched), hierarchical.Chunks, default)).Hits);
             await store.QueueAsync(chat.Id, false, enriched, default, retry: true);
             await resumed.ProcessAsync(Assert.Single(await store.JobsAsync(default)), default);
-            Assert.Equal(hierarchical.Chunks.Count, (await resumed.SearchAsync(chat.Id, "Passage", enriched, hierarchical.Chunks, default)).Hits);
-            Assert.Equal(snapshot.Chunks.Count, (await resumed.SearchAsync(chat.Id, "Passage", options, snapshot.Chunks, default)).Hits);
+            Assert.Equal(hierarchical.Chunks.Count, (await resumed.SearchAsync(chat.Id, "Passage", EmbeddingQuery.Capture(enriched), hierarchical.Chunks, default)).Hits);
+            Assert.Equal(snapshot.Chunks.Count, (await resumed.SearchAsync(chat.Id, "Passage", EmbeddingQuery.Capture(options), snapshot.Chunks, default)).Hits);
             Assert.Contains(encoder.Inputs, value => value.StartsWith("passage: "));
             Assert.Contains(encoder.Inputs, value => value.StartsWith("query: "));
             var attachment = await database.Attachments.SingleAsync(f => f.Id == file.Id);

@@ -1,3 +1,4 @@
+using Alycia.Contracts.Retrieval;
 using Alycia.Modules.Chat.Domain;
 
 namespace Alycia.Modules.Chat.Application;
