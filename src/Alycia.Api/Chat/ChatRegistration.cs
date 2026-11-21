@@ -1,3 +1,4 @@
+using Alycia.Contracts.Context;
 using Alycia.Modules.Chat.Application.Conversations;
 using Alycia.Contracts.Workspaces;
 using Alycia.Platform.Persistence;
@@ -97,7 +98,7 @@ internal static class ChatRegistration
     private static void AddAlyciaTools(IServiceCollection services)
     {
         services.AddScoped<ITurnTools, TurnTools>();
-        services.AddScoped<IConversationHistoryReader>(sp => sp.GetRequiredService<IChatRepository>());
+        services.AddScoped<IToolHistoryReader>(sp => sp.GetRequiredService<IChatRepository>());
         services.AddScoped<IToolConversationPolicy, ToolConversationPolicyReader>();
         services.AddScoped<ISourceCommands, Alycia.Modules.Tools.SourceCommands>();
         services.AddScoped<ProjectToolService>();

@@ -1,6 +1,7 @@
+using Alycia.Contracts.Documents;
+using Alycia.Contracts.Context;
 using System.Text.RegularExpressions;
 using System.Text.Json;
-using Alycia.Modules.Chat.Domain;
 
 namespace Alycia.Modules.Chat.Application;
 
@@ -51,7 +52,7 @@ public static class QueryPlanning
         catch (Exception error) when (error is ChatModelException or HttpRequestException or OperationCanceledException or JsonException) { return brief; }
     }
 
-    public static SearchQueryPlan Build(string question, IReadOnlyList<ChatMessage> history, IReadOnlyList<Attachment> sources, int maximum, bool facets = false)
+    public static SearchQueryPlan Build(string question, IReadOnlyList<HistoryMessage> history, IReadOnlyList<TurnFile> sources, int maximum, bool facets = false)
     {
         var known = sources.Where(f => f.ContextMode != "excluded").Select(f => f.Name).ToArray();
         string[] Mentions(string text) => Literals.Matches(text).Select(m => m.Groups.Cast<Group>().Skip(1)

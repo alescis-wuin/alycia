@@ -44,7 +44,7 @@ public sealed class ConversationContextPreparationTests
         using var next = await service.BeginAsync(id, revision, "Question", default);
     }
 
-    private sealed class Fixture : IChatRepository, IChatModel, ITemporalMemory, IProjectRetrieval
+    private sealed class Fixture : ITestConversationRepository, IChatModel, ITemporalMemory, IProjectRetrieval
     {
         public Conversation Owner { get; } = Conversation.Create("Conversation", "demo", "");
         public int OptionReads { get; private set; }

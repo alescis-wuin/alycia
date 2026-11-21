@@ -1,6 +1,6 @@
+using Alycia.Contracts.Documents;
 using System.Text;
 using System.Text.RegularExpressions;
-using Alycia.Modules.Chat.Domain;
 
 namespace Alycia.Modules.Chat.Application;
 
@@ -9,17 +9,17 @@ public sealed record ProjectExcerpts(string Text, IReadOnlyList<SourceExcerpt> S
 public static class ProjectContext
 {
     public static bool IsCode(string path) => SourceFileType.IsCode(path);
-    public static bool Eligible(Attachment file, int first, int last) => file.Text.Length > 0
+    public static bool Eligible(TurnFile file, int first, int last) => file.Text.Length > 0
         && file.ContextMode != "excluded" && file.AnchorSequence <= last
         && (file.ContextMode is "pinned" or "project" || file.AnchorSequence >= first);
 
-    public static ProjectExcerpts Select(IEnumerable<Attachment> input, string question, int budget, ChatOptions? options = null)
+    public static ProjectExcerpts Select(IEnumerable<TurnFile> input, string question, int budget, ChatOptions? options = null)
     {
         var files = input.Where(f => f.ContextMode != "excluded" && f.Text.Length > 0).ToArray();
         if (options?.SourceCandidates is { } candidates) return ProjectRetrieval.Pack(candidates, files, budget, options);
         var words = Regex.Matches(question, @"[\p{L}\p{N}_./-]{4,}").Select(m => m.Value)
             .Distinct(StringComparer.OrdinalIgnoreCase).Take(16).ToArray();
-        int Score(Attachment file) => (file.ContextMode == "pinned" ? 1000 : 0) + (IsCode(file.Name) ? 20 : 0)
+        int Score(TurnFile file) => (file.ContextMode == "pinned" ? 1000 : 0) + (IsCode(file.Name) ? 20 : 0)
             + words.Sum(w => file.Name.Contains(w, StringComparison.OrdinalIgnoreCase) ? 80
                 : file.Text.Contains(w, StringComparison.OrdinalIgnoreCase) ? 5 : 0);
         var ranked = files.OrderByDescending(Score).ThenBy(f => f.Name, StringComparer.Ordinal).ThenBy(f => f.Id).ToArray();

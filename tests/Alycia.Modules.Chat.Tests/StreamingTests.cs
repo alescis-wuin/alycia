@@ -162,7 +162,7 @@ public sealed class StreamingTests
         }
     }
 
-    private sealed class MemoryRepository : IChatRepository
+    private sealed class MemoryRepository : ITestConversationRepository
     {
         public Conversation Conversation { get; } = Conversation.Create("test", "demo", "");
         public List<ChatMessage> Messages { get; } = [];

@@ -1,3 +1,4 @@
+using Alycia.Contracts.Context;
 using Alycia.Contracts.Workspaces;
 using Alycia.Modules.Chat.Application;
 using Alycia.Modules.Chat.Domain;
@@ -181,6 +182,6 @@ public sealed class BackgroundEmbeddingIndex(IIndexSourceDocuments documents, IL
         _queries.SearchMemoryAsync(owner, question, settings, through, before, ct);
 
     public Task<SemanticSearch> SearchHistoryAsync(Guid conversation, string query, ChatOptions settings,
-        IReadOnlyList<ChatMessage> messages, CancellationToken ct) =>
+        IReadOnlyList<HistoryMessage> messages, CancellationToken ct) =>
         _queries.SearchHistoryAsync(conversation, query, settings, messages, ct);
 }

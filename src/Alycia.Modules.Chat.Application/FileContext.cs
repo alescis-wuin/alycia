@@ -1,12 +1,13 @@
+using Alycia.Contracts.Documents;
+using Alycia.Contracts.Context;
 using System.Text;
-using Alycia.Modules.Chat.Domain;
 
 namespace Alycia.Modules.Chat.Application;
 
 public static class FileContext
 {
-    public static ContextWindow Build(Alycia.Contracts.Context.ISlidingHistory policy, string system, IReadOnlyList<ChatMessage> history, string question,
-        ChatOptions options, IReadOnlyList<Attachment> files, int currentSequence)
+    public static ContextWindow Build(Alycia.Contracts.Context.ISlidingHistory policy, string system, IReadOnlyList<HistoryMessage> history, string question,
+        ChatOptions options, IReadOnlyList<TurnFile> files, int currentSequence)
     {
         var original = SlidingContext.Build(policy, system, history, question, options);
         var originalStart = original.HistoryMessagesIncluded == 0 ? currentSequence

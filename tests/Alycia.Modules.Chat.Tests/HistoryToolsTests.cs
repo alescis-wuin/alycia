@@ -39,7 +39,7 @@ public sealed class HistoryToolsTests
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => tools.CallAsync(repository.Conversation.Id, "history_search", JsonSerializer.SerializeToElement(new { query = "orion" }), 2048, cancellation.Token));
     }
 
-    private sealed class Repository : IChatRepository
+    private sealed class Repository : ITestConversationRepository
     {
         public Conversation Conversation { get; } = Conversation.Create("history", "demo", "");
         public List<ChatMessage> Messages { get; } = [];

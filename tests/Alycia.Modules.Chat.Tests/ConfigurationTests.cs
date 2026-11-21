@@ -61,7 +61,7 @@ public sealed class ConfigurationTests
             new Attachment { Name = "expired.txt", Text = "EXPIRED", AnchorSequence = 1 }
         };
         var options = new ChatOptions { MaxHistoryTurns = 0 };
-        var window = FileContext.Build(new Alycia.Modules.Context.SlidingHistory(), "system", [], "question", options, files, 9);
+        var window = FileContext.Build(new Alycia.Modules.Context.SlidingHistory(), "system", [], "question", options, files.Select(f => f.ToTurnFile()).ToArray(), 9);
         Assert.Contains("PINNED", window.Messages.Last().Content);
         Assert.DoesNotContain("EXCLUDED", window.Messages.Last().Content);
         Assert.DoesNotContain("EXPIRED", window.Messages.Last().Content);
@@ -73,5 +73,5 @@ public sealed class ConfigurationTests
     [Fact]
     public void RejectsIncompleteHistoryBeforeConstructingPrompt() =>
         Assert.Throws<InvalidOperationException>(() => SlidingContext.Build(new Alycia.Modules.Context.SlidingHistory(), "", [
-            new ChatMessage(Guid.NewGuid(), 1, Guid.NewGuid(), "user", "orphan")], "question", new()));
+            new ChatMessage(Guid.NewGuid(), 1, Guid.NewGuid(), "user", "orphan").ToHistory()], "question", new()));
 }

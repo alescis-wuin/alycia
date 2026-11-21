@@ -1,3 +1,4 @@
+using Alycia.Contracts.Context;
 using Alycia.Contracts.Tools;
 using Alycia.Modules.Chat.Domain;
 
@@ -10,7 +11,7 @@ public sealed record ContextPreparationResult(ContextWindow Context, ChatOptions
 public sealed class ConversationContextPreparation(IChatRepository repository, IChatModel model, ITurnTools tools, ITurnContext turnContext,
     IConversationMemory memoryWriter, IProjectRetrieval retrieval, ITemporalMemory memory, ChatOptions defaults, GenerationGate gate)
 {
-    private sealed record Inputs(Conversation Conversation, string Text, ChatOptions Options, MeteredChatModel Measured, TurnContextBudget Budget);
+    private sealed record Inputs(Conversation Conversation, ContextConversation ContextOwner, string Text, ChatOptions Options, MeteredChatModel Measured, TurnContextBudget Budget);
 
     public async Task<ContextPreparationResult> PreviewAsync(Guid id, string? content, CancellationToken ct)
     {
@@ -43,16 +44,17 @@ public sealed class ConversationContextPreparation(IChatRepository repository, I
     private async Task<Inputs> RouteAsync(Conversation conversation, string text, ChatOptions options, CancellationToken ct)
     {
         var measured = new MeteredChatModel(model);
-        await QueryRouting.PrepareAsync(repository, conversation, text, options, retrieval, measured, ct, memory);
+        await QueryRouting.PrepareAsync(repository, conversation.Id, conversation.MessageCount, text, options, retrieval, measured, ct, memory);
         var useTools = await tools.AvailableForContextAsync(new ToolTurnScope(conversation.Id, conversation.WorkspaceId, conversation.Model),
             options.UseProjectTools, model, ct);
-        var budget = await turnContext.AllocateAsync(conversation, text, options, useTools, ct);
-        return new(conversation, text, options, measured, budget);
+        var contextOwner = conversation.ForContext(options);
+        var budget = await turnContext.AllocateAsync(contextOwner, text, options, useTools, ct);
+        return new(conversation, contextOwner, text, options, measured, budget);
     }
 
     private async Task<ContextPreparationResult> BuildAsync(Inputs inputs, TurnContextMode mode, Func<string, Task>? progress, CancellationToken ct)
     {
-        var result = await turnContext.BuildAsync(inputs.Conversation, inputs.Text, inputs.Budget, model, inputs.Measured, mode, progress, ct);
+        var result = await turnContext.BuildAsync(inputs.ContextOwner, inputs.Text, inputs.Budget, model, inputs.Measured, mode, progress, ct);
         if (mode == TurnContextMode.PrepareMemory && memoryWriter.Apply(inputs.Conversation, result.Prepared?.MemoryChange()))
             await repository.SaveAsync(ct);
         return new(result.Window, inputs.Options, inputs.Measured.Snapshot(inputs.Options), inputs.Conversation.Revision,

@@ -1,3 +1,4 @@
+using Alycia.Contracts.Tools;
 using static Alycia.Contracts.Tools.ToolArguments;
 using Alycia.Contracts.Documents;
 using System.Text;
@@ -5,7 +6,7 @@ using System.Text.Json;
 
 namespace Alycia.Modules.Chat.Application;
 
-public sealed partial class ProjectToolService(IAuthorizedToolSources sources, ISourceCommands commands, IToolConversationPolicy policy, IConversationHistoryReader history, ChatOptions defaults, IProjectIndex index, IIndexedEmbeddings? semantic = null) : ISnapshotProjectTools
+public sealed partial class ProjectToolService(IAuthorizedToolSources sources, ISourceCommands commands, IToolConversationPolicy policy, IToolHistoryReader history, ChatOptions defaults, IProjectIndex index, IIndexedEmbeddings? semantic = null) : ISnapshotProjectTools
 {
     public async Task<bool> HasSourcesAsync(Guid id, CancellationToken ct) =>
         await sources.HasFilesAsync(id, ct) || await policy.HasHistoryAsync(id, ct);

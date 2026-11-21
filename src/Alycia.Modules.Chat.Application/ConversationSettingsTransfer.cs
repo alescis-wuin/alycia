@@ -1,3 +1,4 @@
+using Alycia.Modules.Chat.Application.Context;
 using Alycia.Modules.Chat.Domain;
 
 namespace Alycia.Modules.Chat.Application;
@@ -13,7 +14,7 @@ public static class ConversationSettingsTransfer
             if (sample.Model != file.Model || sample.SystemPrompt != file.SystemPrompt || sample.ContextNotes != file.ContextNotes)
                 throw new ArgumentException("Les textes de configuration contiennent des espaces de bord non canoniques.");
             SlidingContext.ValidatePrompt(ConversationConfiguration.System(sample), "Bonjour", file.Options);
-            if (file.Options.UseProjectTools) ProjectAgent.ContextOptions(file.Options);
+            if (file.Options.UseProjectTools) TurnContextBudget.WithToolReserve(file.Options);
         });
 
     public static ConversationSettingsFile<ChatOptions> Parse(ReadOnlyMemory<byte> bytes) =>

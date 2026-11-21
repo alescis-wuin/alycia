@@ -88,8 +88,8 @@ public sealed class PersistentEmbeddingTests
             Assert.Equal(snapshot.Chunks.Count, searched.Hits);
             Assert.Single(searched.Calls); // Only the query is embedded when sending a message.
             var history = await database.Messages.Where(m => m.ConversationId == chat.Id).OrderBy(m => m.Sequence).ToArrayAsync();
-            Assert.Equal(2, (await resumed.SearchHistoryAsync(chat.Id, "couleur", options, history, default)).Hits);
-            await Assert.ThrowsAsync<ArgumentException>(() => resumed.SearchHistoryAsync(other.Id, "couleur", options, history, default));
+            Assert.Equal(2, (await resumed.SearchHistoryAsync(chat.Id, "couleur", options, history.Select(m => m.ToHistory()).ToArray(), default)).Hits);
+            await Assert.ThrowsAsync<ArgumentException>(() => resumed.SearchHistoryAsync(other.Id, "couleur", options, history.Select(m => m.ToHistory()).ToArray(), default));
             Assert.Empty((await index.BuildAsync(other.Id, default)).Chunks);
 
             // Model identity changes select a separate vector space; old vectors are never mixed in.

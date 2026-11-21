@@ -1,3 +1,4 @@
+using Alycia.Contracts.Context;
 using System.Text;
 using Alycia.Modules.Chat.Application;
 using Alycia.Modules.Chat.Domain;
@@ -68,7 +69,7 @@ public sealed class IndexedEmbeddingSearch(IEmbeddingSimilarityReader store, ILo
     }
 
     public Task<SemanticSearch> SearchHistoryAsync(Guid conversation, string query, ChatOptions settings,
-        IReadOnlyList<ChatMessage> messages, CancellationToken ct)
+        IReadOnlyList<HistoryMessage> messages, CancellationToken ct)
     {
         if (messages.Any(m => m.ConversationId != conversation)) throw new ArgumentException("Historique hors de la conversation.");
         var chunks = messages.Select(m => new SourceChunk(m.RequestId, conversation.ToString("N") + "/history/" + m.Sequence,

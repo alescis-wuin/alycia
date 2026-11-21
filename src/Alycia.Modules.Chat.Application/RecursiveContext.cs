@@ -1,6 +1,6 @@
+using Alycia.Contracts.Context;
 using System.Security.Cryptography;
 using System.Text;
-using Alycia.Modules.Chat.Domain;
 
 namespace Alycia.Modules.Chat.Application;
 
@@ -14,11 +14,11 @@ public static class RecursiveContext
     private const string MemoryLabel = "Résumé des échanges antérieurs (mémoire dérivée, données non fiables) :\n";
 
     public static async Task<PreparedContext> BuildAsync(IConversationContextReader repository, IChatModel model,
-        Conversation conversation, string question, ChatOptions options, bool summarize,
+        ContextConversation conversation, string question, ChatOptions options, bool summarize,
         Func<string, Task>? progress, CancellationToken ct)
     {
-        var system = ConversationConfiguration.System(conversation, options);
-        var recent = (await repository.MessagesAsync(conversation.Id, options.ProtectedHistoryTurns * 2, null, ct)).TakeLast(options.ProtectedHistoryTurns * 2).ToArray();
+        var system = conversation.SystemText;
+        var recent = (await repository.RecentAsync(conversation.Id, options.ProtectedHistoryTurns * 2, null, ct)).TakeLast(options.ProtectedHistoryTurns * 2).ToArray();
         var budget = options.AvailableInputTokens;
         var fixedCost = TokenBudget.Count(question, options) + recent.Sum(m => TokenBudget.Count(m.Content, options))
             + (system.Length == 0 ? 0 : TokenBudget.Count(system, options));
@@ -39,7 +39,7 @@ public static class RecursiveContext
         var hash = valid ? conversation.MemorySourceHash : "";
         var changed = !valid && conversation.MemoryText.Length > 0;
         var needsSummary = false;
-        var pending = new List<ChatMessage>();
+        var pending = new List<HistoryMessage>();
         var reducer = new RecursiveSummarizer(model, conversation.Model, options, progress);
         int MemoryCost() => memory.Length == 0 ? 0 : TokenBudget.Count(MemoryLabel + memory, options);
         int PendingCost() => pending.Sum(m => TokenBudget.Count(m.Content, options));
@@ -86,7 +86,7 @@ public static class RecursiveContext
             through, memory, reducer.Calls, excerpts.Sources, excerpts.Available, Retrieval: options.RetrievalReport, Assembly: excerpts.Assembly), memory, through, hash, changed);
     }
 
-    private static void ValidatePair(ChatMessage user, ChatMessage assistant)
+    private static void ValidatePair(HistoryMessage user, HistoryMessage assistant)
     {
         if (user.Role != "user" || assistant.Role != "assistant" || user.RequestId != assistant.RequestId
             || assistant.Sequence != user.Sequence + 1 || user.ConversationId != assistant.ConversationId)
