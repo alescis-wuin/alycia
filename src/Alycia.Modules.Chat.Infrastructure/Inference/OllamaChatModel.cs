@@ -99,13 +99,10 @@ public sealed partial class OllamaChatModel(HttpClient http, ChatOptions options
     public async Task<GenerationReply> GenerateReplyAsync(string model, IReadOnlyList<PromptMessage> messages, ChatOptions settings, CancellationToken cancellationToken)
     {
         settings.Validate();
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         try
         {
-            // Queue time belongs to the caller, not to the inference deadline.
-            using var inference = await OllamaInferenceGate.EnterAsync(cancellationToken);
-            timeout.CancelAfter(TimeSpan.FromSeconds(settings.TimeoutSeconds));
-            await ValidateChatModelAsync(model, timeout.Token);
+            using var inference = await OllamaInferenceLease.AcquireAsync(TimeSpan.FromSeconds(settings.TimeoutSeconds), cancellationToken);
+            await ValidateChatModelAsync(model, inference.Token);
 
             var request = new Dictionary<string, object>
             {
@@ -118,13 +115,13 @@ public sealed partial class OllamaChatModel(HttpClient http, ChatOptions options
             // This does not change the reasoning setting of conversational/tool turns.
             if (settings.CallPurpose is "summary" or "memory" or "annotation") request["think"] = false;
             if (settings.ResponseSchema is { } schema) request["format"] = schema;
-            using var response = await http.PostAsJsonAsync("api/chat", request, timeout.Token);
+            using var response = await http.PostAsJsonAsync("api/chat", request, inference.Token);
             if (!response.IsSuccessStatusCode)
             {
                 throw new ChatModelException($"Ollama a refusé la génération avec « {model} » (HTTP {(int)response.StatusCode}). Vérifiez les réglages de cette conversation et le journal Ollama.");
             }
 
-            var payload = await response.Content.ReadFromJsonAsync<ChatReply>(timeout.Token);
+            var payload = await response.Content.ReadFromJsonAsync<ChatReply>(inference.Token);
             var stage = settings.CallPurpose switch { "summary" => "le résumé interne", "memory" => "l’extraction de mémoire", _ => "la génération" };
             if (payload is not { Done: true, Message.Role: "assistant" })
             {
