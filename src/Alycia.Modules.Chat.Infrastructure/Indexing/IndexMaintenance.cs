@@ -2,7 +2,7 @@ using Alycia.Modules.Chat.Application;
 
 namespace Alycia.Modules.Chat.Infrastructure;
 
-public sealed class IndexMaintenance(TemporalMemoryStore memory, BackgroundEmbeddingIndex index, PostgresEmbeddingStore store)
+public sealed class IndexMaintenance(ITemporalMemoryIndex memory, BackgroundEmbeddingIndex index, PostgresEmbeddingStore store)
     : IIndexMaintenance
 {
     public async Task RunCycleAsync(CancellationToken ct)

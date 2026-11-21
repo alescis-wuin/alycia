@@ -1,3 +1,4 @@
+using Alycia.Modules.Chat.Application.Context;
 using Alycia.Modules.Chat.Application;
 using Alycia.Modules.Chat.Infrastructure;
 using Microsoft.AspNetCore.Http.Features;
@@ -27,11 +28,18 @@ internal static class ChatRegistration
         builder.Services.AddDbContext<ChatDbContext>(db => db.UseNpgsql(connection,
             provider => provider.MigrationsHistoryTable("__EFMigrationsHistory", "chat")));
         builder.Services.AddScoped<IChatRepository, EfChatRepository>();
-        builder.Services.AddScoped<ChatService>();
+        builder.Services.AddScoped<ITurnContext, TurnContext>();
+        builder.Services.AddScoped<IConversationMemory, ConversationMemory>();
+        builder.Services.AddScoped<ITurnTools, TurnTools>();
+        builder.Services.AddScoped(sp => new ChatService(
+            sp.GetRequiredService<IChatRepository>(), sp.GetRequiredService<IChatModel>(), sp.GetRequiredService<ChatOptions>(),
+            sp.GetRequiredService<ITurnContext>(), sp.GetRequiredService<IConversationMemory>(), sp.GetRequiredService<ITurnTools>(),
+            sp.GetRequiredService<IProjectRetrieval>(), sp.GetRequiredService<ITemporalMemory>()));
         RegisterDocuments(builder);
         RegisterIndexing(builder.Services);
         RegisterRetrieval(builder.Services);
         builder.Services.AddScoped<TemporalMemoryStore>();
+        builder.Services.AddScoped<ITemporalMemoryIndex>(sp => sp.GetRequiredService<TemporalMemoryStore>());
         builder.Services.AddScoped<ITemporalMemory>(sp => sp.GetRequiredService<TemporalMemoryStore>());
         builder.Services.AddScoped<ProjectToolService>();
         builder.Services.AddScoped<ISnapshotProjectTools>(sp => sp.GetRequiredService<ProjectToolService>());

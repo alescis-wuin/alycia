@@ -1,3 +1,4 @@
+using Alycia.Modules.Chat.Application.Context;
 using System.Text;
 using System.Text.Json;
 using Alycia.Modules.Chat.Domain;
@@ -8,21 +9,12 @@ public static class ProjectAgent
 {
     private static int SchemaCost(ChatOptions settings) => TokenBudget.Count(JsonSerializer.Serialize(ProjectToolCatalog.OllamaTools(), ProjectToolCatalog.Json), settings);
     public static async Task<ChatOptions> ContextOptionsAsync(IChatRepository repository, Conversation owner, string question,
-        ChatOptions settings, bool useTools, CancellationToken ct)
-    {
-        if (!useTools) return settings;
-        var protectedTokens = TokenBudget.Count(question, settings) + TokenBudget.Count(ConversationConfiguration.System(owner, settings), settings);
-        if (settings.AutoSummarize)
-            protectedTokens += (await repository.MessagesAsync(owner.Id, settings.ProtectedHistoryTurns * 2, null, ct))
-                .Sum(m => TokenBudget.Count(m.Content, settings));
-        return ContextOptions(settings, protectedTokens);
-    }
-    public static ChatOptions ContextOptions(ChatOptions settings, int protectedTokens = 0)
-    {
-        var copy = settings.Copy();
-        copy.SafetyTokens = ToolWindowBudget.SafetyTokens(settings, text => TokenBudget.Count(text, settings), protectedTokens);
-        return copy;
-    }
+        ChatOptions settings, bool useTools, CancellationToken ct) =>
+        (await new TurnContext(repository).AllocateAsync(owner, question, settings, useTools, ct)).Options;
+
+    public static ChatOptions ContextOptions(ChatOptions settings, int protectedTokens = 0) =>
+        TurnContextBudget.WithToolReserve(settings, protectedTokens);
+
     public static async Task<GenerationReply> RunAsync(IChatModel model, IProjectTools tools, Guid conversation,
         string modelName, ContextWindow context, ChatOptions settings, Func<ModelDelta, Task>? progress, CancellationToken ct)
     {

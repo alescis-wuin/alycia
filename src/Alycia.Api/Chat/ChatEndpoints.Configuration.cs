@@ -1,3 +1,4 @@
+using Alycia.Modules.Chat.Application.Context;
 using Alycia.Modules.Chat.Application;
 using Alycia.Modules.Chat.Domain;
 using Alycia.Modules.Chat.Infrastructure;
@@ -38,28 +39,20 @@ internal static partial class ChatEndpoints
         });
 
         routes.MapPost("/conversations/{id:guid}/context", async (Guid id, PreviewContext request,
-            IChatRepository repository, IChatModel model, IProjectTools tools, IProjectRetrieval retrieval, ITemporalMemory memory, ChatOptions defaults, CancellationToken ct) =>
+            IChatRepository repository, IChatModel model, ITurnTools tools, ITurnContext turnContext, IProjectRetrieval retrieval, ITemporalMemory memory, ChatOptions defaults, CancellationToken ct) =>
         {
             var conversation = await repository.FindAsync(id, ct) ?? throw new ConversationNotFoundException();
             var options = await model.PrepareOptionsAsync(conversation.Model, ConversationConfiguration.Options(conversation, defaults), ct);
             var text = Conversation.RequiredText(request.Content, 32000, "Le message");
             var measurements = new MeteredChatModel(model);
             await QueryRouting.PrepareAsync(repository, conversation, text, options, retrieval, measurements, ct, memory);
-            var useTools = options.UseProjectTools && await tools.HasSourcesAsync(id, ct) && await model.SupportsToolsAsync(conversation.Model, ct);
-            var contextOptions = await ProjectAgent.ContextOptionsAsync(repository, conversation, text, options, useTools, ct);
-            ContextWindow context;
-            if (options.AutoSummarize || options.Recall is not null)
-                context = (await ConversationContext.BuildAsync(repository, model, conversation, text, contextOptions, false, null, ct)).Context;
-            else
-            {
-                var history = await repository.MessagesAsync(id, options.MaxHistoryTurns * 2, null, ct);
-                var files = await repository.ContextFilesAsync(id, Math.Max(1, conversation.MessageCount - options.MaxHistoryTurns * 2 + 1), ct);
-                context = FileContext.Build(ConversationConfiguration.System(conversation, options), history, text, contextOptions, files, conversation.MessageCount + 1);
-            }
-            context = await ContextGuides.AddAsync(context, contextOptions, measurements, false, ct);
+            var useTools = await tools.AvailableForContextAsync(conversation, options, model, ct);
+            var budget = await turnContext.AllocateAsync(conversation, text, options, useTools, ct);
+            var preview = await turnContext.BuildAsync(conversation, text, budget, model, measurements, TurnContextMode.Preview, null, ct);
+            var context = preview.Window;
             return Results.Ok(new
             {
-                context = context with { Route = options.Route, ToolReserve = contextOptions.SafetyTokens - options.SafetyTokens },
+                context,
                 options,
                 conversation.Revision,
                 omittedMessages = conversation.MessageCount - context.HistoryMessagesIncluded,

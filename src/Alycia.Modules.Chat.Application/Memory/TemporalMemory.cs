@@ -34,6 +34,20 @@ public static class TemporalMemory
             return Fact(at, Math.Min(1024, length), StructuredMemory.CanonicalKey(p.Groups[1].Value), kind == "correction", kind);
         }).ToArray();
     }
+
+    public static TemporalFact[] IndexFacts(ChatMessage message, IEnumerable<MemoryEntry> entries)
+    {
+        var extracted = Extract(message);
+        var hash = extracted[0].Sha256;
+        var validated = entries.Where(e => e.Sequence == message.Sequence && e.Role == message.Role && e.SourceHash == hash && !e.Fallback)
+            .Select(e => (Entry: e, Offset: message.Content.IndexOf(e.Quote, StringComparison.Ordinal)))
+            .Where(x => x.Offset >= 0)
+            .Select(x => new TemporalFact(StructuredMemory.CanonicalKey(x.Entry.Key), x.Entry.Quote, message.Role, message.Sequence,
+                message.CreatedAtUtc, hash, x.Offset, message.Content.Length, x.Entry.Correction && message.Role == "user",
+                message.Role == "assistant" ? "proposition" : x.Entry.Kind));
+        return extracted.Concat(validated).DistinctBy(f => (f.Key, f.Quote)).ToArray();
+    }
+
     public static DateTimeOffset? AsOf(string question)
     {
         var match = Regex.Match(question, @"\b(?:au|avant le|as of|before)\s+(\d{4}-\d{2}-\d{2})\b", RegexOptions.IgnoreCase);
