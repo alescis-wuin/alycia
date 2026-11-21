@@ -1,0 +1,497 @@
+[
+  {
+    "id": "Q01",
+    "split": "development",
+    "question": "Comment SlidingContext estime-t-il les tokens ?",
+    "expectedSources": [
+      "src/Alycia.Modules.Chat.Application/SlidingContext.cs"
+    ],
+    "factPatterns": [
+      "UTF.?8",
+      "16"
+    ],
+    "forbiddenPatterns": [],
+    "manualRubric": "Vérifier les faits dans les sources, les omissions, les contradictions et les références. Les motifs lexicaux ne valent pas jugement de vérité."
+  },
+  {
+    "id": "Q02",
+    "split": "development",
+    "question": "Quels paramètres sont soustraits à ContextTokens pour le budget d’entrée ?",
+    "expectedSources": [
+      "src/Alycia.Modules.Chat.Application/SlidingContext.cs"
+    ],
+    "factPatterns": [
+      "MaxOutputTokens",
+      "SafetyTokens"
+    ],
+    "forbiddenPatterns": [],
+    "manualRubric": "Vérifier les faits dans les sources, les omissions, les contradictions et les références. Les motifs lexicaux ne valent pas jugement de vérité."
+  },
+  {
+    "id": "Q03",
+    "split": "holdout",
+    "question": "Peut-on garder un seul message d’un échange dans SlidingContext ?",
+    "expectedSources": [
+      "src/Alycia.Modules.Chat.Application/SlidingContext.cs"
+    ],
+    "factPatterns": [
+      "(paire|complet|deux|2)"
+    ],
+    "forbiddenPatterns": [],
+    "manualRubric": "Vérifier les faits dans les sources, les omissions, les contradictions et les références. Les motifs lexicaux ne valent pas jugement de vérité."
+  },
+  {
+    "id": "Q04",
+    "split": "development",
+    "question": "Pourquoi un historique de longueur impaire est-il refusé ?",
+    "expectedSources": [
+      "src/Alycia.Modules.Chat.Application/SlidingContext.cs"
+    ],
+    "factPatterns": [
+      "incomplet"
+    ],
+    "forbiddenPatterns": [],
+    "manualRubric": "Vérifier les faits dans les sources, les omissions, les contradictions et les références. Les motifs lexicaux ne valent pas jugement de vérité."
+  },
+  {
+    "id": "Q05",
+    "split": "development",
+    "question": "Quels sont les trois outils demandés au modèle par ProjectAgent ?",
+    "expectedSources": [
+      "src/Alycia.Modules.Chat.Application/ProjectAgent.cs"
+    ],
+    "factPatterns": [
+      "project_list",
+      "project_search",
+      "project_read"
+    ],
+    "forbiddenPatterns": [],
+    "manualRubric": "Vérifier les faits dans les sources, les omissions, les contradictions et les références. Les motifs lexicaux ne valent pas jugement de vérité."
+  },
+  {
+    "id": "Q06",
+    "split": "holdout",
+    "question": "Comment la réserve des outils varie-t-elle avec la fenêtre ?",
+    "expectedSources": [
+      "src/Alycia.Modules.Chat.Application/ProjectAgent.cs"
+    ],
+    "factPatterns": [
+      "2048",
+      "8192"
+    ],
+    "forbiddenPatterns": [],
+    "manualRubric": "Vérifier les faits dans les sources, les omissions, les contradictions et les références. Les motifs lexicaux ne valent pas jugement de vérité."
+  },
+  {
+    "id": "Q07",
+    "split": "development",
+    "question": "Quelle limite s’applique au texte cumulé de la réponse dans ProjectAgent ?",
+    "expectedSources": [
+      "src/Alycia.Modules.Chat.Application/ProjectAgent.cs"
+    ],
+    "factPatterns": [
+      "1[ .,_]?000[ .,_]?000"
+    ],
+    "forbiddenPatterns": [],
+    "manualRubric": "Vérifier les faits dans les sources, les omissions, les contradictions et les références. Les motifs lexicaux ne valent pas jugement de vérité."
+  },
+  {
+    "id": "Q08",
+    "split": "development",
+    "question": "À quelle taille sont réduits les anciens tours d’outils dans cette version ?",
+    "expectedSources": [
+      "src/Alycia.Modules.Chat.Application/ProjectAgent.cs"
+    ],
+    "factPatterns": [
+      "512"
+    ],
+    "forbiddenPatterns": [],
+    "manualRubric": "Vérifier les faits dans les sources, les omissions, les contradictions et les références. Les motifs lexicaux ne valent pas jugement de vérité."
+  },
+  {
+    "id": "Q09",
+    "split": "holdout",
+    "question": "Quels messages sont protégés lors de la préparation récursive ?",
+    "expectedSources": [
+      "src/Alycia.Modules.Chat.Application/RecursiveContext.cs"
+    ],
+    "factPatterns": [
+      "(quatre|4|deux.*échange|2.*échange)",
+      "(système|system)",
+      "(demande|question)"
+    ],
+    "forbiddenPatterns": [],
+    "manualRubric": "Vérifier les faits dans les sources, les omissions, les contradictions et les références. Les motifs lexicaux ne valent pas jugement de vérité."
+  },
+  {
+    "id": "Q10",
+    "split": "development",
+    "question": "Quand la mémoire existante est-elle considérée valide ?",
+    "expectedSources": [
+      "src/Alycia.Modules.Chat.Application/RecursiveContext.cs"
+    ],
+    "factPatterns": [
+      "(modèle|model)",
+      "(séquence|sequence|through)"
+    ],
+    "forbiddenPatterns": [],
+    "manualRubric": "Vérifier les faits dans les sources, les omissions, les contradictions et les références. Les motifs lexicaux ne valent pas jugement de vérité."
+  },
+  {
+    "id": "Q11",
+    "split": "development",
+    "question": "Quelle taille de page utilise la lecture des messages anciens ?",
+    "expectedSources": [
+      "src/Alycia.Modules.Chat.Application/RecursiveContext.cs"
+    ],
+    "factPatterns": [
+      "50"
+    ],
+    "forbiddenPatterns": [],
+    "manualRubric": "Vérifier les faits dans les sources, les omissions, les contradictions et les références. Les motifs lexicaux ne valent pas jugement de vérité."
+  },
+  {
+    "id": "Q12",
+    "split": "holdout",
+    "question": "Que se passe-t-il si les seuls messages protégés dépassent le budget ?",
+    "expectedSources": [
+      "src/Alycia.Modules.Chat.Application/RecursiveContext.cs"
+    ],
+    "factPatterns": [
+      "(refus|erreur|exception)",
+      "(tronqu|tronca)"
+    ],
+    "forbiddenPatterns": [],
+    "manualRubric": "Vérifier les faits dans les sources, les omissions, les contradictions et les références. Les motifs lexicaux ne valent pas jugement de vérité."
+  },
+  {
+    "id": "Q13",
+    "split": "development",
+    "question": "Quel est le nombre maximal de niveaux de réduction récursive ?",
+    "expectedSources": [
+      "src/Alycia.Modules.Chat.Application/RecursiveSummarizer.cs"
+    ],
+    "factPatterns": [
+      "12"
+    ],
+    "forbiddenPatterns": [],
+    "manualRubric": "Vérifier les faits dans les sources, les omissions, les contradictions et les références. Les motifs lexicaux ne valent pas jugement de vérité."
+  },
+  {
+    "id": "Q14",
+    "split": "development",
+    "question": "Quel est le nombre maximal de tentatives de réduction d’un nœud ?",
+    "expectedSources": [
+      "src/Alycia.Modules.Chat.Application/RecursiveSummarizer.cs"
+    ],
+    "factPatterns": [
+      "(trois|3)"
+    ],
+    "forbiddenPatterns": [],
+    "manualRubric": "Vérifier les faits dans les sources, les omissions, les contradictions et les références. Les motifs lexicaux ne valent pas jugement de vérité."
+  },
+  {
+    "id": "Q15",
+    "split": "holdout",
+    "question": "Quelle taille minimale faut-il pour un budget de résumé ?",
+    "expectedSources": [
+      "src/Alycia.Modules.Chat.Application/RecursiveSummarizer.cs"
+    ],
+    "factPatterns": [
+      "128"
+    ],
+    "forbiddenPatterns": [],
+    "manualRubric": "Vérifier les faits dans les sources, les omissions, les contradictions et les références. Les motifs lexicaux ne valent pas jugement de vérité."
+  },
+  {
+    "id": "Q16",
+    "split": "development",
+    "question": "Comment le découpage évite-t-il de couper un caractère Unicode ?",
+    "expectedSources": [
+      "src/Alycia.Modules.Chat.Application/RecursiveSummarizer.cs"
+    ],
+    "factPatterns": [
+      "(rune|EnumerateRunes)",
+      "UTF.?8"
+    ],
+    "forbiddenPatterns": [],
+    "manualRubric": "Vérifier les faits dans les sources, les omissions, les contradictions et les références. Les motifs lexicaux ne valent pas jugement de vérité."
+  },
+  {
+    "id": "Q17",
+    "split": "development",
+    "question": "Quelles sont la limite par défaut et la plage autorisée des appels d’outils ?",
+    "expectedSources": [
+      "src/Alycia.Modules.Chat.Application/ChatContracts.cs"
+    ],
+    "factPatterns": [
+      "24",
+      "128",
+      "1"
+    ],
+    "forbiddenPatterns": [],
+    "manualRubric": "Vérifier les faits dans les sources, les omissions, les contradictions et les références. Les motifs lexicaux ne valent pas jugement de vérité."
+  },
+  {
+    "id": "Q18",
+    "split": "holdout",
+    "question": "Quel contexte et quelle réserve de sortie sont utilisés par défaut ?",
+    "expectedSources": [
+      "src/Alycia.Modules.Chat.Application/ChatContracts.cs"
+    ],
+    "factPatterns": [
+      "8192",
+      "1024"
+    ],
+    "forbiddenPatterns": [],
+    "manualRubric": "Vérifier les faits dans les sources, les omissions, les contradictions et les références. Les motifs lexicaux ne valent pas jugement de vérité."
+  },
+  {
+    "id": "Q19",
+    "split": "development",
+    "question": "Quelle valeur de température utilise la configuration par défaut ?",
+    "expectedSources": [
+      "src/Alycia.Modules.Chat.Application/ChatContracts.cs"
+    ],
+    "factPatterns": [
+      "0[.,]7"
+    ],
+    "forbiddenPatterns": [],
+    "manualRubric": "Vérifier les faits dans les sources, les omissions, les contradictions et les références. Les motifs lexicaux ne valent pas jugement de vérité."
+  },
+  {
+    "id": "Q20",
+    "split": "development",
+    "question": "Quelle est la plage autorisée du délai de génération ?",
+    "expectedSources": [
+      "src/Alycia.Modules.Chat.Application/ChatContracts.cs"
+    ],
+    "factPatterns": [
+      "600",
+      "1"
+    ],
+    "forbiddenPatterns": [],
+    "manualRubric": "Vérifier les faits dans les sources, les omissions, les contradictions et les références. Les motifs lexicaux ne valent pas jugement de vérité."
+  },
+  {
+    "id": "Q21",
+    "split": "holdout",
+    "question": "Comment project_read empêche-t-il la lecture d’un fichier d’une autre conversation ?",
+    "expectedSources": [
+      "src/Alycia.Modules.Chat.Infrastructure/ProjectToolService.cs"
+    ],
+    "factPatterns": [
+      "(ConversationId|conversation)",
+      "(identifiant|fileId|Id)"
+    ],
+    "forbiddenPatterns": [],
+    "manualRubric": "Vérifier les faits dans les sources, les omissions, les contradictions et les références. Les motifs lexicaux ne valent pas jugement de vérité."
+  },
+  {
+    "id": "Q22",
+    "split": "development",
+    "question": "La recherche retourne-t-elle toutes les occurrences d’un terme dans chaque fichier ?",
+    "expectedSources": [
+      "src/Alycia.Modules.Chat.Infrastructure/ProjectToolService.cs"
+    ],
+    "factPatterns": [
+      "(premi|firstMatch|une seule)"
+    ],
+    "forbiddenPatterns": [],
+    "manualRubric": "Vérifier les faits dans les sources, les omissions, les contradictions et les références. Les motifs lexicaux ne valent pas jugement de vérité."
+  },
+  {
+    "id": "Q23",
+    "split": "development",
+    "question": "Que doit faire le client avec nextOffset pour parcourir les résultats ?",
+    "expectedSources": [
+      "src/Alycia.Modules.Chat.Infrastructure/ProjectToolService.cs"
+    ],
+    "factPatterns": [
+      "nextOffset",
+      "(null|fin)"
+    ],
+    "forbiddenPatterns": [],
+    "manualRubric": "Vérifier les faits dans les sources, les omissions, les contradictions et les références. Les motifs lexicaux ne valent pas jugement de vérité."
+  },
+  {
+    "id": "Q24",
+    "split": "holdout",
+    "question": "Quelles tailles de page sont acceptées par maxBytes dans project_read ?",
+    "expectedSources": [
+      "src/Alycia.Modules.Chat.Infrastructure/ProjectToolService.cs"
+    ],
+    "factPatterns": [
+      "128",
+      "8192"
+    ],
+    "forbiddenPatterns": [],
+    "manualRubric": "Vérifier les faits dans les sources, les omissions, les contradictions et les références. Les motifs lexicaux ne valent pas jugement de vérité."
+  },
+  {
+    "id": "Q25",
+    "split": "development",
+    "question": "Quels encodages textuels ProjectSourceReader sait-il décoder ?",
+    "expectedSources": [
+      "src/Alycia.Modules.Chat.Infrastructure/ProjectSourceReader.cs"
+    ],
+    "factPatterns": [
+      "UTF.?8",
+      "UTF.?16",
+      "BOM"
+    ],
+    "forbiddenPatterns": [],
+    "manualRubric": "Vérifier les faits dans les sources, les omissions, les contradictions et les références. Les motifs lexicaux ne valent pas jugement de vérité."
+  },
+  {
+    "id": "Q26",
+    "split": "development",
+    "question": "Quels formats utilisent l’extraction documentaire existante ?",
+    "expectedSources": [
+      "src/Alycia.Modules.Chat.Infrastructure/ProjectSourceReader.cs"
+    ],
+    "factPatterns": [
+      "pdf",
+      "docx",
+      "odt",
+      "pptx",
+      "xlsx"
+    ],
+    "forbiddenPatterns": [],
+    "manualRubric": "Vérifier les faits dans les sources, les omissions, les contradictions et les références. Les motifs lexicaux ne valent pas jugement de vérité."
+  },
+  {
+    "id": "Q27",
+    "split": "holdout",
+    "question": "Que fait le lecteur si le fichier est exclu ?",
+    "expectedSources": [
+      "src/Alycia.Modules.Chat.Infrastructure/ProjectSourceReader.cs"
+    ],
+    "factPatterns": [
+      "(refus|erreur|exception|interdi)"
+    ],
+    "forbiddenPatterns": [],
+    "manualRubric": "Vérifier les faits dans les sources, les omissions, les contradictions et les références. Les motifs lexicaux ne valent pas jugement de vérité."
+  },
+  {
+    "id": "Q28",
+    "split": "development",
+    "question": "Comment un original indisponible est-il signalé ?",
+    "expectedSources": [
+      "src/Alycia.Modules.Chat.Infrastructure/ProjectSourceReader.cs"
+    ],
+    "factPatterns": [
+      "(réimport|reimport)"
+    ],
+    "forbiddenPatterns": [],
+    "manualRubric": "Vérifier les faits dans les sources, les omissions, les contradictions et les références. Les motifs lexicaux ne valent pas jugement de vérité."
+  },
+  {
+    "id": "Q29",
+    "split": "development",
+    "question": "Que devient la mémoire lorsque le modèle de la conversation change ?",
+    "expectedSources": [
+      "src/Alycia.Modules.Chat.Domain/Conversation.cs"
+    ],
+    "factPatterns": [
+      "(effac|réinitialis|vide|reset)"
+    ],
+    "forbiddenPatterns": [],
+    "manualRubric": "Vérifier les faits dans les sources, les omissions, les contradictions et les références. Les motifs lexicaux ne valent pas jugement de vérité."
+  },
+  {
+    "id": "Q30",
+    "split": "holdout",
+    "question": "De combien MessageCount augmente-t-il lorsqu’un échange est terminé ?",
+    "expectedSources": [
+      "src/Alycia.Modules.Chat.Domain/Conversation.cs"
+    ],
+    "factPatterns": [
+      "(deux|2)"
+    ],
+    "forbiddenPatterns": [],
+    "manualRubric": "Vérifier les faits dans les sources, les omissions, les contradictions et les références. Les motifs lexicaux ne valent pas jugement de vérité."
+  },
+  {
+    "id": "Q31",
+    "split": "development",
+    "question": "Quelle contrainte porte sur through dans SetMemory ?",
+    "expectedSources": [
+      "src/Alycia.Modules.Chat.Domain/Conversation.cs"
+    ],
+    "factPatterns": [
+      "(pair|multiple de 2)",
+      "(MessageCount|messages)"
+    ],
+    "forbiddenPatterns": [],
+    "manualRubric": "Vérifier les faits dans les sources, les omissions, les contradictions et les références. Les motifs lexicaux ne valent pas jugement de vérité."
+  },
+  {
+    "id": "Q32",
+    "split": "development",
+    "question": "Quelle taille maximale est autorisée pour MemoryText par SetMemory ?",
+    "expectedSources": [
+      "src/Alycia.Modules.Chat.Domain/Conversation.cs"
+    ],
+    "factPatterns": [
+      "131072"
+    ],
+    "forbiddenPatterns": [],
+    "manualRubric": "Vérifier les faits dans les sources, les omissions, les contradictions et les références. Les motifs lexicaux ne valent pas jugement de vérité."
+  },
+  {
+    "id": "Q33",
+    "split": "holdout",
+    "question": "Quelle commande système permet project_read d’exécuter ?",
+    "expectedSources": [
+      "src/Alycia.Modules.Chat.Infrastructure/ProjectToolService.cs"
+    ],
+    "factPatterns": [
+      "(aucun|pas de|ne.*pas)"
+    ],
+    "forbiddenPatterns": [
+      "(exécute|lance) /bin/(ba)?sh"
+    ],
+    "manualRubric": "Vérifier les faits dans les sources, les omissions, les contradictions et les références. Les motifs lexicaux ne valent pas jugement de vérité."
+  },
+  {
+    "id": "Q34",
+    "split": "development",
+    "question": "Peut-on déduire le débit en tokens par seconde sur ma RTX 4070 de ces fichiers ?",
+    "expectedSources": [
+      "src/Alycia.Modules.Chat.Application/ChatContracts.cs"
+    ],
+    "factPatterns": [
+      "(impossible|pas.*déduire|mesur|inconnu|non.*fourni)"
+    ],
+    "forbiddenPatterns": [],
+    "manualRubric": "Vérifier les faits dans les sources, les omissions, les contradictions et les références. Les motifs lexicaux ne valent pas jugement de vérité."
+  },
+  {
+    "id": "Q35",
+    "split": "development",
+    "question": "Quelle stratégie OCR est implémentée dans ProjectSourceReader ?",
+    "expectedSources": [
+      "src/Alycia.Modules.Chat.Infrastructure/ProjectSourceReader.cs"
+    ],
+    "factPatterns": [
+      "(aucun|pas.*OCR|OCR.*pas|non.*implément)"
+    ],
+    "forbiddenPatterns": [],
+    "manualRubric": "Vérifier les faits dans les sources, les omissions, les contradictions et les références. Les motifs lexicaux ne valent pas jugement de vérité."
+  },
+  {
+    "id": "Q36",
+    "split": "holdout",
+    "question": "La présence d’une trace de lecture prouve-t-elle que tout le projet a été analysé ?",
+    "expectedSources": [
+      "src/Alycia.Modules.Chat.Application/ProjectAgent.cs"
+    ],
+    "factPatterns": [
+      "(non|ne.*pas)",
+      "(partiel|sélect|couverture)"
+    ],
+    "forbiddenPatterns": [],
+    "manualRubric": "Vérifier les faits dans les sources, les omissions, les contradictions et les références. Les motifs lexicaux ne valent pas jugement de vérité."
+  }
+]

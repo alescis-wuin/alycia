@@ -1,0 +1,803 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-17",
+  "branch": "feature/local-client-v1-20261116",
+  "baseCommit": "33ba908eea560e65cb7f3864eeec39a0876d14b7",
+  "reconstructed": true,
+  "environment": {
+    "os": "Linux x64",
+    "sdk": "10.0.404",
+    "runtime": "10.0.15",
+    "postgresql": "16.2",
+    "ollama": "simulated",
+    "desktop": "Avalonia headless/Skia"
+  },
+  "dotnet": {
+    "total": 141,
+    "passed": 141,
+    "failed": 0,
+    "skipped": 0,
+    "runs": [
+      {
+        "source": "client.trx",
+        "sha256": "09dade01dfc691c5f8c2c25688b6dbff147998ce96605b5ba15f2e5157563470",
+        "counters": {
+          "total": 43,
+          "executed": 43,
+          "passed": 43,
+          "failed": 0,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        },
+        "tests": [
+          {
+            "name": "Alycia.Client.Avalonia.Tests.ClientFeaturesTests.ExcludesGeneratedAndKnownSensitivePaths(path: \".env.production\")",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Client.Avalonia.Tests.MarkdownLinkTests.OnlyExplicitWebNavigationIsEnabled(url: \"file:///etc/passwd\", allowed: False)",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Client.Avalonia.Tests.WorkspaceApiClientTests.GetAsync_RejectsInvalidOrInsecureConfiguration(url: \"http://example.com\")",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Client.Avalonia.Tests.WorkspaceApiClientTests.CreateAsync_RejectsEmptyNameWithoutHttp(name: null)",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Client.Avalonia.Tests.WorkspaceApiClientTests.CreateAsync_MapsApiFailures(status: ServiceUnavailable, code: \"DEPENDENCY_UNAVAILABLE\", expected: Unavailable)",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Client.Avalonia.Tests.BackendHealthProbeTests.CheckAsync_ReportsTimeout",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Client.Avalonia.Tests.BackendHealthProbeTests.CheckAsync_RejectsInvalidConfiguration(baseUrl: \"invalid-url\", expectedMessage: \"Invalid API base URL.\")",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Client.Avalonia.Tests.MarkdownLinkTests.OnlyExplicitWebNavigationIsEnabled(url: \"javascript:alert(1)\", allowed: False)",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Client.Avalonia.Tests.WorkspaceApiClientTests.CreateAsync_RejectsLongNameWithoutHttp",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Client.Avalonia.Tests.ChatTests.ChatWindowCreatesRenamesSendsRetainsFailedDraftAndDeletes",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Client.Avalonia.Tests.WorkspaceApiClientTests.GetAsync_RejectsInvalidIdWithoutHttp(id: \"invalid\")",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Client.Avalonia.Tests.WorkspaceApiClientTests.CreateAsync_MapsApiFailures(status: Conflict, code: \"WORKSPACE_NAME_CONFLICT\", expected: Conflict)",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Client.Avalonia.Tests.BackendHealthProbeTests.CheckAsync_RejectsInvalidConfiguration(baseUrl: \"http://example.com\", expectedMessage: \"HTTPS is required for non-local connections.\")",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Client.Avalonia.Tests.ClientFeaturesTests.ClientRequiresDoneAfterDeltasAndPreservesRevision",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Client.Avalonia.Tests.WorkspaceApiClientTests.GetAsync_RetrievesWorkspace",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Client.Avalonia.Tests.BackendHealthProbeTests.CheckAsync_ClassifiesHttpResponses(status: OK, body: \"Unexpected\", expectedAvailability: False, expectedMessage: \"Unexpected backend health response.\")",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Client.Avalonia.Tests.MarkdownLinkTests.OnlyExplicitWebNavigationIsEnabled(url: \"http://localhost:8080\", allowed: True)",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Client.Avalonia.Tests.MarkdownLinkTests.OnlyExplicitWebNavigationIsEnabled(url: \"https://name:password@example.com\", allowed: False)",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Client.Avalonia.Tests.WorkspaceApiClientTests.GetAsync_ReportsTimeout",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Client.Avalonia.Tests.ClientFeaturesTests.DraftsRemainSeparateAndKeepRequestIdAcrossRestart",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Client.Avalonia.Tests.MarkdownLinkTests.OnlyExplicitWebNavigationIsEnabled(url: \"data:text/html,test\", allowed: False)",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Client.Avalonia.Tests.MarkdownLinkTests.OnlyExplicitWebNavigationIsEnabled(url: \"https://example.com\", allowed: True)",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Client.Avalonia.Tests.WorkspaceApiClientTests.GetAsync_RejectsInvalidIdWithoutHttp(id: \"00000000-0000-0000-0000-000000000000\")",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Client.Avalonia.Tests.WorkspaceApiClientTests.CreateAsync_MapsApiFailures(status: Forbidden, code: \"ACCESS_DENIED\", expected: Denied)",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Client.Avalonia.Tests.ChatTests.UploadsRelativePathsAsMultipartAndDownloadsOriginalBytes(withMetadata: False)",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Client.Avalonia.Tests.ChatTests.UploadsRelativePathsAsMultipartAndDownloadsOriginalBytes(withMetadata: True)",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Client.Avalonia.Tests.ClientFeaturesTests.CodeCopyHandlesLongFencesAndPreservesIndentation",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Client.Avalonia.Tests.MarkdownLinkTests.OnlyExplicitWebNavigationIsEnabled(url: \"relative/path\", allowed: False)",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Client.Avalonia.Tests.WorkspaceApiClientTests.CreateAsync_RejectsEmptyNameWithoutHttp(name: \"    \")",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Client.Avalonia.Tests.WorkspaceApiClientTests.GetAsync_SeparatesMissingWorkspaceFromDisabledApi",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Client.Avalonia.Tests.WorkspaceApiClientTests.GetAsync_ReportsNetworkFailure",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Client.Avalonia.Tests.ClientFeaturesTests.ExcludesGeneratedAndKnownSensitivePaths(path: \"server.key\")",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Client.Avalonia.Tests.BackendHealthProbeTests.CheckAsync_ReportsNetworkFailure",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Client.Avalonia.Tests.WorkspaceApiClientTests.CreateAsync_TrimsNameAndReadsCreatedWorkspace",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Client.Avalonia.Tests.BackendHealthProbeTests.CheckAsync_ClassifiesHttpResponses(status: ServiceUnavailable, body: \"Unhealthy\", expectedAvailability: False, expectedMessage: \"Backend returned HTTP 503.\")",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Client.Avalonia.Tests.WorkspaceApiClientTests.GetAsync_RejectsInvalidOrInsecureConfiguration(url: \"invalid-url\")",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Client.Avalonia.Tests.ChatTests.RejectsNonlocalBackendBeforeSendingAnyMessage",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Client.Avalonia.Tests.ChatTests.PreservesRequestIdAndReportsBackendErrors",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Client.Avalonia.Tests.BackendHealthProbeTests.CheckAsync_ClassifiesHttpResponses(status: OK, body: \"Healthy\", expectedAvailability: True, expectedMessage: \"Backend available.\")",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Client.Avalonia.Tests.WorkspaceApiClientTests.CreateAsync_RejectsEmptyNameWithoutHttp(name: \"\")",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Client.Avalonia.Tests.ClientFeaturesTests.ExcludesGeneratedAndKnownSensitivePaths(path: \"src/node_modules/lib.js\")",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Client.Avalonia.Tests.ChatTests.SendsContainerTokenToValidatedLocalBackend",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Client.Avalonia.Tests.ClientFeaturesTests.ExcludesGeneratedAndKnownSensitivePaths(path: \"project/.git/config\")",
+            "outcome": "Passed"
+          }
+        ]
+      },
+      {
+        "source": "compatibility.trx",
+        "sha256": "3acfd550100228284e575cec66c387502ed58eaf361a5679017428b33a1fe1cf",
+        "counters": {
+          "total": 20,
+          "executed": 20,
+          "passed": 20,
+          "failed": 0,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        },
+        "tests": [
+          {
+            "name": "Alycia.Modules.Chat.Tests.SlidingContextTests.PreservesSystemAndCurrentMessageAndLatestCompleteTurns",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.LocalChatAccessTests.RemoteOrAmbiguousProviderOriginsAreRejected(url: \"https://example.com/\")",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.SlidingContextTests.RejectsOversizedCurrentInputInsteadOfSilentlyTruncating",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.LocalChatAccessTests.RejectsUnexpectedHostEvenFromLoopback(host: \"127.0.0.1.attacker.example\")",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.SlidingContextTests.DoesNotSkipAnOversizedRecentTurnToIncludeOlderTurns",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.SlidingContextTests.ZeroWindowKeepsOnlySystemAndCurrentInput",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.LocalChatAccessTests.RemoteOrAmbiguousProviderOriginsAreRejected(url: \"http://user:password@ollama:11434/\")",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.ProjectInventoryTests.TreeIsDeterministicAndDoesNotInventMissingDates",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.LocalChatAccessTests.DefaultModeStillRequiresActualLoopbackPeer",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.LocalChatAccessTests.RejectsUnexpectedHostEvenFromLoopback(host: \"192.168.1.10\")",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.ProjectInventoryTests.FingerprintChangesWhenContentOrExclusionChanges",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.SlidingContextTests.BudgetEvictsWholeOldTurns",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.LocalChatAccessTests.ContainerModeFailsClosedWithoutConfiguredSecret(token: null)",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.LocalChatAccessTests.ComposeServiceOriginRequiresAuthenticatedContainerMode",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.LocalChatAccessTests.ContainerModeFailsClosedWithoutConfiguredSecret(token: \"short\")",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.LocalChatAccessTests.RemoteOrAmbiguousProviderOriginsAreRejected(url: \"http://ollama.example.com:11434/\")",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.LocalChatAccessTests.ContainerModeRequiresTokenEvenFromLoopbackAndRejectsBrowserOrigin",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.LocalChatAccessTests.ContainerModeFailsClosedWithoutConfiguredSecret(token: \"\")",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.LocalChatAccessTests.RejectsUnexpectedHostEvenFromLoopback(host: \"attacker.example\")",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.LocalChatAccessTests.RemoteOrAmbiguousProviderOriginsAreRejected(url: \"http://ollama:11434/path\")",
+            "outcome": "Passed"
+          }
+        ]
+      },
+      {
+        "source": "core.trx",
+        "sha256": "9e9138c4d2ac926d9c2bf5673451c91aa3cf81be26090798a4ec7f41d146fda5",
+        "counters": {
+          "total": 50,
+          "executed": 50,
+          "passed": 50,
+          "failed": 0,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        },
+        "tests": [
+          {
+            "name": "Alycia.Modules.Chat.Tests.RecursiveContextTests.CancellingReductionDoesNotReplaceTheOriginalHistoryOrMemory",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.StreamingTests.RejectsMissingCompletionAndInvalidStreams(payload: \"{\\\"message\\\":{\\\"content\\\":\\\"partial\\\"},\\\"done\\\":fa\"···)",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.StreamingTests.CancellationAfterDeltaDoesNotPersistAndReleasesGate",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.ConfigurationTests.RejectsInvalidTemperature(temperature: NaN)",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.OllamaChatModelTests.RejectsMalformedOrIncompleteReply(body: \"not json\")",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.OllamaChatModelTests.ListsOnlyLocalCompletionModelsUsingCapabilitiesNotNames",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.StreamingTests.ContinuousModeDoesNotTreatATruncatedOrUnknownEndAsSuccess(reason: \"unknown\")",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.ProjectContextTests.FindsRelevantCodeAfterLongHeader",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.OllamaChatModelTests.RejectsMalformedOrIncompleteReply(body: \"{\\\"done\\\":false,\\\"message\\\":{\\\"role\\\":\\\"assistant\\\"···)",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.ToolCallingTests.NativeToolOnlyTurnPreservesThinkingAndStructuredArguments",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.StreamingTests.StreamsThinkingSeparatelyAndReportsFinalStatistics",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.ConfigurationTests.RejectsInvalidTemperature(temperature: -0.10000000000000001)",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.StreamingTests.ParserBoundsAnUnterminatedLine",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.RecursiveContextTests.RejectsAnImpossibleProtectedBudgetBeforeAnyInference",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.StreamingTests.PartialFailureNeverCommitsAndRetryRemainsIdempotent",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.OllamaChatModelTests.CancellationReachesOllama",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.ConfigurationTests.RejectsInvalidTemperature(temperature: 2.1000000000000001)",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.RecursiveContextTests.RecursivelyReducesOldHistoryProtectsRecentTurnsAndReusesMemory",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.OllamaChatModelTests.ExistingEmbeddingConversationIsRejectedBeforeAnyChatRequest(streaming: True)",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.ToolCallingTests.AgentCompactsOldToolRoundsAndPreservesConversation",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.RecursiveContextTests.PreviewNeverInvokesTheModelAndSignalsIncompletePreparation",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.OllamaChatModelTests.RejectedGenerationIdentifiesTheActualModel(streaming: False)",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.OllamaChatModelTests.RejectsMalformedOrIncompleteReply(body: \"{\\\"done\\\":true,\\\"message\\\":{\\\"role\\\":\\\"assistant\\\"\"···)",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.ArchiveTests.RejectsUnsupportedVersionOrIncompleteOrInvalidTurns",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.ConfigurationTests.RejectsInvalidTemperature(temperature: Infinity)",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.OllamaChatModelTests.SendsHistoryAndExplicitGenerationBudget",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.OllamaChatModelTests.RejectedGenerationIdentifiesTheActualModel(streaming: True)",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.ConfigurationTests.RejectsIncompleteHistoryBeforeConstructingPrompt",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.StreamingTests.RejectsMissingCompletionAndInvalidStreams(payload: \"{\\\"error\\\":\\\"private provider detail\\\"}\\n\")",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.OllamaChatModelTests.MissingCapabilityMetadataIsNotAssumedToSupportGeneration",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.ConfigurationTests.PinnedFilesSurviveWindowAndExcludedFilesNeverEnterPrompt",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.OllamaChatModelTests.ExistingEmbeddingConversationIsRejectedBeforeAnyChatRequest(streaming: False)",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.StreamingTests.RejectsMissingCompletionAndInvalidStreams(payload: \"{\\\"done\\\":true,\\\"message\\\":{\\\"content\\\":\\\"\\\"}}\\n\")",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.ToolCallingTests.ToolLimitAndCancellationStopFurtherExecution",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.ArchiveTests.ExportImportPreservesContentsAndTimesWithFreshConversationAndRequestIds",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.RecursiveContextTests.AModelThatDoesNotCompressFailsWithoutReplacingMemory",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.StreamingTests.ContinuousModeDoesNotTreatATruncatedOrUnknownEndAsSuccess(reason: null)",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.ToolCallingTests.IncompleteOrMalformedCallsNeverBecomeExecutable(response: \"{\\\"message\\\":{\\\"tool_calls\\\":[{\\\"function\\\":{\\\"nam\"···)",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.StreamingTests.RejectsMissingCompletionAndInvalidStreams(payload: \"not json\\n\")",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.ArchiveTests.ToolEvidenceSurvivesRestoreAndCannotBeAttachedToUserMessages",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.OllamaChatModelTests.RevalidatesCapabilitiesWhenAnAliasChangesAfterListing",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.RecursiveContextTests.UnicodeChunkingKeepsEveryCharacterAndItsByteBound",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.ProjectContextTests.ProjectSourcesRemainEligibleAndExclusionsAlwaysWin",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.OllamaChatModelTests.ExcludesCloudAliasesFromLocalModels",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.StreamingTests.ContinuousModeDoesNotTreatATruncatedOrUnknownEndAsSuccess(reason: \"length\")",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.ConfigurationTests.ConfigurationRoundtripPreservesBudgetsAndRejectsStaleRevision",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.StreamingTests.ActiveStreamOutlivesTheConfiguredInactivityTimeout",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.ToolCallingTests.UnsupportedModelCannotReceiveToolPayload",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.ProjectContextTests.LargeDocumentationDoesNotHideSourceCodeAndBudgetIsRespected",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.ToolCallingTests.IncompleteOrMalformedCallsNeverBecomeExecutable(response: \"{\\\"message\\\":{\\\"tool_calls\\\":[{\\\"function\\\":{\\\"nam\"···)",
+            "outcome": "Passed"
+          }
+        ]
+      },
+      {
+        "source": "storage-mcp.trx",
+        "sha256": "f1928e52e42dc70dd6f020f14c5b0ad61680123d72918c2f0d4cb684ebbe07b4",
+        "counters": {
+          "total": 28,
+          "executed": 28,
+          "passed": 28,
+          "failed": 0,
+          "error": 0,
+          "timeout": 0,
+          "aborted": 0,
+          "inconclusive": 0,
+          "passedButRunAborted": 0,
+          "notRunnable": 0,
+          "notExecuted": 0,
+          "disconnected": 0,
+          "warning": 0,
+          "completed": 0,
+          "inProgress": 0,
+          "pending": 0
+        },
+        "tests": [
+          {
+            "name": "Alycia.Modules.Chat.Tests.FileTests.RejectsUnsafePaths(path: \"a\\0b\")",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.FileTests.ImportsArchivesPersistsAcrossContextsAndRejectsUnsafeBatchAtomically",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.FileTests.RejectsUnsafePaths(path: \"C:relative.txt\")",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.FileTests.RejectsUnsafePaths(path: \"safe/./../secret\")",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.ProjectMcpClientTests.NegotiatesOnceUsesLocalAddressAndPreservesEvidenceAndRevocation(address: \"http://localhost:5020\", host: \"localhost\", container: False)",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.FileTests.MultipartFileNamesSurviveDotnetSerializationAndAspnetParsing(name: \"projet/src/data.json\")",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.ProjectMcpClientTests.NegotiatesOnceUsesLocalAddressAndPreservesEvidenceAndRevocation(address: \"http://[::]:5020\", host: \"[::1]\", container: False)",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.ProjectToolStorageTests.MigrationOriginalReadsIsolationExclusionsCoverageAndRevocation",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.FileTests.RejectsUnsafePaths(path: \"C:\\\\private\")",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.DocumentAnalysisTests.NestedArchivesProduceTraceableSummariesAndChangedSourcesInvalidateContext",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.FileTests.CanonicalizesBenignRelativePathsAndPreservesUnicode(source: \"projet//src/data.json\", expected: \"projet/src/data.json\")",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.FileTests.CanonicalizesBenignRelativePathsAndPreservesUnicode(source: \"./projet/src/./data.json\", expected: \"projet/src/data.json\")",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.FileTests.RejectsUnsafePaths(path: \"a/../../secret\")",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.FileTests.CanonicalizesBenignRelativePathsAndPreservesUnicode(source: \".\\\\projet\\\\src\\\\data.json\", expected: \"projet/src/data.json\")",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.FileTests.CanonicalizesBenignRelativePathsAndPreservesUnicode(source: \"projet/rapport:2026-11-16.json\", expected: \"projet/rapport:2026-11-16.json\")",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.FileTests.MultipartFileNamesSurviveDotnetSerializationAndAspnetParsing(name: \"Projet test/src/paramètres.json\")",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.FileTests.MultipartFileNamesSurviveDotnetSerializationAndAspnetParsing(name: \"archive (1).zip\")",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.PostgresChatTests.MigrationsPersistenceIdempotencyFailureConcurrencyPaginationAndCascade",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.FileTests.ReadsUtf8AndDocumentsButNeverImages",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.FileTests.FilesFollowSlidingWindowAndRespectBudgetAndRoles",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.ProjectMcpClientTests.NegotiatesOnceUsesLocalAddressAndPreservesEvidenceAndRevocation(address: \"http://[::1]:5020\", host: \"[::1]\", container: False)",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.FileTests.RejectsUnsafePaths(path: \"file:///etc/passwd\")",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.FileTests.CanonicalizesBenignRelativePathsAndPreservesUnicode(source: \"projet/été \\ud83e\\udd8a.json\", expected: \"projet/été \\ud83e\\udd8a.json\")",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.ProjectMcpClientTests.WrongRpcIdPreventsExecution",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.ProjectMcpClientTests.NegotiatesOnceUsesLocalAddressAndPreservesEvidenceAndRevocation(address: \"http://0.0.0.0:5020\", host: \"127.0.0.1\", container: True)",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.FileTests.RejectsUnsafePaths(path: \"../secret\")",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.FileTests.RejectsUnsafePaths(path: \"\\\\\\\\server\\\\share\\\\file.txt\")",
+            "outcome": "Passed"
+          },
+          {
+            "name": "Alycia.Modules.Chat.Tests.FileTests.RejectsUnsafePaths(path: \"/etc/passwd\")",
+            "outcome": "Passed"
+          }
+        ]
+      }
+    ]
+  },
+  "http": {
+    "passed": 13,
+    "checks": [
+      "model_capabilities_and_existing_conversation_repair",
+      "local_access_and_models",
+      "settings_revision_and_prompt_library",
+      "stream_commit_replay_and_conflict",
+      "file_upload_download_and_context_selection",
+      "archive_roundtrip_search_and_fork",
+      "recursive_archives_inventory_analysis_staleness_and_delete",
+      "recursive_memory_budget_protected_messages_and_cache",
+      "memory_turn_persistence_and_nondestructive_reset",
+      "mcp_handshake_catalog_pagination_and_access_controls",
+      "original_read_beyond_import_excerpt",
+      "native_tool_loop_trace_persistence_export_and_replay",
+      "tool_access_revocation"
+    ],
+    "provider": "mock",
+    "database": "isolated PostgreSQL",
+    "test_data_cleaned": true,
+    "continuous_chat_calls": 3,
+    "tool_rounds": 4,
+    "bounded_summary_calls": 53
+  },
+  "checks": {
+    "build": {
+      "passed": true,
+      "warnings": 0,
+      "errors": 0
+    },
+    "formatAndLint": {
+      "passed": true,
+      "formattedCSharpFiles": 41
+    },
+    "efPendingModelChanges": false,
+    "pythonCompile": {
+      "passed": true,
+      "files": [
+        "scripts/verify-local.py",
+        "scripts/tests/http-integration.py"
+      ]
+    },
+    "visualInspection": {
+      "sizes": [
+        [
+          1240,
+          880
+        ],
+        [
+          960,
+          700
+        ]
+      ],
+      "markdownAndEmojiVisible": true
+    }
+  },
+  "logHashes": {
+    "build": "7064fd90423ef52dd51de1f8fd482ffcd72f7a7c3b9324dafa9165cba78e3214",
+    "lint": "3ec24c9af94308fc4774bdb0d6c307a547710d47a3567fbcad7248fac3219d70",
+    "migration_model": "815c5cd494b61a9d8737ba7653cd05fb05926e7b40a924683fa4eef4ca87566c"
+  },
+  "sourceHashes": {
+    "scripts/tests/http-integration.py": "5a09f5dbe9223f5861c6cc8e68bf5cf8aa6f6845540451533bb3677095c01f06",
+    "scripts/verify-local.py": "6134d37d616bc47b8bb41ac722e0ed84f9e1cb0d4a6ecea387846aaa8b110759",
+    "src/Alycia.Api/Chat/ChatEndpoints.Configuration.cs": "94cf85d15b2a06c434079bcbecbdae6211c414bdcecf59f105620f62fa7b6c34",
+    "src/Alycia.Api/Chat/ChatEndpoints.History.cs": "cdd81aa471ee170225e25839ff865804bd2ddfa2b79dee3e4ebe496a2987b223",
+    "src/Alycia.Api/Chat/ChatEndpoints.Mcp.cs": "d70f656412d211356125907b1946da36d508c74130df1b0411c9c8f01af76df7",
+    "src/Alycia.Api/Chat/ChatEndpoints.Memory.cs": "dad3594a4e272e72f3367a7aa49b75b82ab610dec4b8996729474c540d1eef3b",
+    "src/Alycia.Api/Chat/ChatEndpoints.Streaming.cs": "444e71b56a72009bcd918031ce0571f7241b441c1a7e1c075760782518357722",
+    "src/Alycia.Api/Chat/ChatEndpoints.cs": "a749f6510c453b4004a02657cf401c04c95b1c092ec99d4ed0ac17f4596eb844",
+    "src/Alycia.Api/Chat/ProjectMcpClient.cs": "9389a476f91bc63d70b05a12df7ee75d6125f22e3bbd8dacdcc288e4d8d14d68",
+    "src/Alycia.Client.Avalonia/ChatApiClient.cs": "960dcdd7759f76348133c5411fb1bdae1ddb1b0fa309b39b6fb6d11c42eef4ec",
+    "src/Alycia.Client.Avalonia/ChatWindow.Analysis.cs": "57eb67df096ba05c25ad5ce1af64d91f0cf8cd081da572372317f43ef3a26865",
+    "src/Alycia.Client.Avalonia/ChatWindow.Features.cs": "c24302e5e310a36ca3cc9cc962aebec4e654c0e309864a9da7abdbcc234e1f01",
+    "src/Alycia.Client.Avalonia/ChatWindow.Files.cs": "165f9aeff38988d8425d6829e466e4d1306f8443ace4b8c4de1b954b06f80f49",
+    "src/Alycia.Client.Avalonia/ChatWindow.Tools.cs": "3696a7086cbf1765cc48ae90f68f8ceeff3c39e676322422f0c576bb97d29a66",
+    "src/Alycia.Client.Avalonia/ChatWindow.axaml": "7841855b671c015dd9d71b83e27cafbd24254f0a07715723cb7cc9719fe5e71b",
+    "src/Alycia.Client.Avalonia/ChatWindow.axaml.cs": "0476e79a258c1c41a1e5bf133196fb719aa61c87e48b08d4f355695e72766ea2",
+    "src/Alycia.Modules.Chat.Application/ChatContracts.cs": "21ef73887f07c13905ebce3c8358a8c50bfd3f4183aa6f6468e1fa1817af9d7f",
+    "src/Alycia.Modules.Chat.Application/ChatService.cs": "c470ff4ee1b3537d3397d04a1230185403a546b144a31a7e6d96fefa8441853e",
+    "src/Alycia.Modules.Chat.Application/ConversationArchive.cs": "8bc70e3b663faf650d52110ba5012297be05305ee03508b3a68bf57494c33d88",
+    "src/Alycia.Modules.Chat.Application/FileContext.cs": "a7c532e9873641733ba4a4733075d62cb99f2b26260d9a1d7d812d943b3ac9a2",
+    "src/Alycia.Modules.Chat.Application/ProjectAgent.cs": "e0398b4d1b716a09a1fbd50df1a415cbdf4ee7fb5e51c82bdfdfca4de4ed9876",
+    "src/Alycia.Modules.Chat.Application/ProjectContext.cs": "fbfad2289f12012b4b6f6abf63ed2f1d3fb47314a9682097ddf7313f732a89a2",
+    "src/Alycia.Modules.Chat.Application/ProjectTools.cs": "985e399a76f58e1e58fc21837f27d91d88e69abda9f098f878ab0d7a33b351de",
+    "src/Alycia.Modules.Chat.Application/RecursiveContext.cs": "f1386059dedebda63342aa401e42d59b569021960dca16457cb1cc69016723f0",
+    "src/Alycia.Modules.Chat.Domain/ChatMessage.cs": "ac800eb06cb6f8dd298412ed8fe010c0393e17a37c4b130d920f90a331b89cd7",
+    "src/Alycia.Modules.Chat.Infrastructure/ChatDbContext.cs": "3e70702d99705a6fcbbe4768ac28397bacf5e4f9a9705080f79386d5bfc8bb36",
+    "src/Alycia.Modules.Chat.Infrastructure/DocumentAnalysisService.cs": "6094a387cdad77fc70c829ab0b75d8c8f5537ec01f80fa065fda1909322b6e87",
+    "src/Alycia.Modules.Chat.Infrastructure/EfChatRepository.cs": "0eeb4c7d05575a1689a40694f194aa833b540e62bb9e28981dc8c8eca63e4f01",
+    "src/Alycia.Modules.Chat.Infrastructure/FileImport.cs": "4539ba04562ff2ec5f547d94198998d6318089d971dd3de94817f685072631aa",
+    "src/Alycia.Modules.Chat.Infrastructure/Migrations/20261117071032_ProjectToolsAndPersistentSources.Designer.cs": "5802cf1fac57d9b7f7b14e1f58d1097bf88e8a0277806484850db1db313f0cd6",
+    "src/Alycia.Modules.Chat.Infrastructure/Migrations/20261117071032_ProjectToolsAndPersistentSources.cs": "57a1ca27f6ad53c24fb074b7cc38895a6903c19921b55e2e9b48bcf00da69b38",
+    "src/Alycia.Modules.Chat.Infrastructure/Migrations/ChatDbContextModelSnapshot.cs": "e7364e8b76b214abf2ece5b40d01d5673b4c6c4f041b0a798af4e43bdf3d9bd4",
+    "src/Alycia.Modules.Chat.Infrastructure/OllamaChatModel.Streaming.cs": "9fc32b2f1425843f0671713615868e138f5a72c147f56f9c55fe8cba78aa5d8a",
+    "src/Alycia.Modules.Chat.Infrastructure/OllamaChatModel.cs": "598477aaa8276ec9c6de23699aceaf800cded1f098626f941df688688963b169",
+    "src/Alycia.Modules.Chat.Infrastructure/ProjectSourceReader.cs": "337a464036c39d94ee7f1439a2a8344914dd3428f650ac6cc0233ffc68e9fe96",
+    "src/Alycia.Modules.Chat.Infrastructure/ProjectToolService.cs": "21a2a8f4105e4f0f71cd5caee351ce89cd46b1b162489406f667059bd3965344",
+    "tests/Alycia.Client.Avalonia.Tests/ChatTests.cs": "b8018114e0faf70c2c419e714a60785d5f96320b0a2afb3331ce9bc405be7035",
+    "tests/Alycia.Modules.Chat.Tests/ArchiveTests.cs": "f250a2403c1d0c4e0ce6fb71abc34bcf2f1e2d888d0bd339a9b503c7dc739525",
+    "tests/Alycia.Modules.Chat.Tests/DocumentAnalysisTests.cs": "78b5b55675e6ed34dbef0d6c720d689bc25ed8695f9fdd704dbf0ab06e409da6",
+    "tests/Alycia.Modules.Chat.Tests/PostgresChatTests.cs": "466c24d4e36a0d39d71540c862f37c1ff718d37491c2dd89238b89120bd9b1db",
+    "tests/Alycia.Modules.Chat.Tests/ProjectContextTests.cs": "017deefb9359a34a6b301c02de8a40d44d7762bc8e28abba4a89b3a9ef4d07eb",
+    "tests/Alycia.Modules.Chat.Tests/ProjectMcpClientTests.cs": "74fdbd1a15d915b9fa8356c5370e84d4097f6077a3c52f8faad298417dfc19ca",
+    "tests/Alycia.Modules.Chat.Tests/ProjectToolStorageTests.cs": "bc6b86100c9f9ab4f2b18f357d20148a99b61e310ece62561d6f137f0858ff2e",
+    "tests/Alycia.Modules.Chat.Tests/ToolCallingTests.cs": "b01632b45796b93051d3a6767e366ad2b651a589eb37582461e504b6864b1206"
+  },
+  "notExecuted": [
+    "real Ollama and GPU",
+    "Docker Compose / PostgreSQL 17",
+    "native KDE desktop",
+    "Windows",
+    "third-party MCP clients"
+  ],
+  "notes": [
+    "All validation was executed anew for the reconstruction.",
+    "Four disjoint .NET selections; no skipped database tests in the reported selections.",
+    "Only formatting, documentation and help text changed after the relevant successful functional tests; the final solution build passed.",
+    "VSTEST_ARTIFACTS_DIRECTORY diagnostic remains non-blocking."
+  ]
+}

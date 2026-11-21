@@ -1,0 +1,17 @@
+{
+  "routingMode": "auto",
+  "queryRewriteEnabled": true,
+  "evidenceSelectionEnabled": true,
+  "hierarchicalIndexEnabled": true,
+  "facetPlanningEnabled": true,
+  "classificationEnabled": true,
+  "temporalMemoryEnabled": true,
+  "adaptiveInferenceEnabled": true,
+  "querySummaryTokens": 512,
+  "enrichment": {
+    "enabled": true,
+    "model": "",
+    "jobCalls": 64,
+    "workers": 2
+  }
+}

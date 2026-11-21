@@ -1,7 +1,69 @@
 
 # Alycia
 
-Alycia is a multi-backend generative AI client with a document knowledge hub and retrieval-augmented generation (RAG).
+Alycia is a local generative AI client for Ollama. It combines an Avalonia desktop interface, an ASP.NET Core API, PostgreSQL-backed conversations and retrieval from local documents and source code.
+
+## Modular architecture
+
+[Product projects, domain owners and dependency diagram](docs/architecture/modularisation/architecture.md) · [Parallel contribution guide](docs/architecture/modularisation/CONTRIBUTING-AGENTS.md) · [Execution and verification report](docs/architecture/modularisation/rapport-execution.md).
+
+Check project dependencies locally with `python3 scripts/check-modules.py`. The standard `bash scripts/check.sh` runs the same guard, builds and tests the solution, and checks both EF models against their existing migrations. For database tests use `bash scripts/check.sh --integration` with a dedicated test PostgreSQL connection.
+
+## Client Avalonia Boréale
+
+[Guide de démarrage et d’utilisation sur CachyOS](docs/boreale/guide-cachyos.md) · [Compte rendu et statut des vérifications](docs/boreale/compte-rendu.md) · [Phases et étapes](docs/boreale/plan.md)
+
+## Contextualisation locale
+
+[Routage, reclassement ONNX, mémoire temporelle et vérification des preuves — réglages, commandes, mesures et limites](docs/Contextualisation-locale.md)
+
+[Indexation indépendante, budgets, facettes et provenance — guide et recette complète](docs/indexation-independante-v2.md)
+
+## Local client V4 — this branch
+
+`feature/local-client-v4-context-quality-20261117` adds a frozen evaluation corpus,
+model-aware token budgeting with an explicit fallback, cumulative call metrics,
+C# source indexing, BM25 and optional local semantic retrieval, attributed conversation
+memory, symbol reads, tool-loop controls, and source-reference diagnostics.
+V3 conversation, Markdown, emoji, folder/ZIP, MCP, backup and export features remain available.
+
+- [V4 update, usage and test guide (FR)](docs/Local-Client-V4-Guide.md)
+- [V4 phases and implementation steps (FR)](docs/Local-Client-V4-Plan.md)
+- [V4 delivered changes, checks and limits (FR)](docs/Local-Client-V4-Report.md)
+- [V3 imports, project analysis and MCP guide (FR)](docs/Local-Client-V3-Guide.md)
+- [V2 conversation and interface guide (FR)](docs/Local-Client-V2-Guide.md)
+- [Initial branch comparison and V1 audit (FR)](docs/Local-Client-V1-Plan.md)
+
+With .NET 10, Docker Compose, Python 3.11+ and a running local Ollama model:
+run `bash scripts/check.sh`, then `make demo-api` and `make demo-client` in separate
+terminals. Back up the existing installation before its first V4 migration.
+This is a local single-user client. Model quality improvements require local A/B
+measurements and are not inferred from software test results.
+
+The sections below document the inherited prototypes and earlier sprints.
+
+## Inherited local Ollama prototype
+
+**Windows:** [one-command setup, PowerShell launchers and Docker Desktop](docs/Windows-Prototype.md).
+The Windows launcher installs/checks dependencies, initializes persistent services
+and opens the native Avalonia client; it does not require Bash, Python or Make.
+
+The base branch, `prototype/conversation-files`, adds file/folder/archive
+imports, attachment actions, a persistent Docker file volume and bounded file
+context. **Start here: [conversation files setup and limits](docs/Conversation-Files-Prototype.md).**
+`make demo-api` now runs the chat API in Docker with Linux host networking.
+
+This branch adds a working chat flow through **Avalonia → ASP.NET Core → local
+Ollama**, with conversations and messages stored in PostgreSQL. It starts from
+`develop` and is separate from the Sprint 7 authentication work.
+
+After installing a local model and starting Ollama, run `make demo-api` and then
+`make demo-client` in separate terminals. The launcher requires .NET 10, Docker
+Compose, Python 3 and Bash; it preserves existing database volumes and `.env`.
+
+Original chat architecture: [setup, demo checklist and verification limits](docs/Local-Ollama-Prototype.md).
+The remaining sprint sections describe the earlier foundation. On this branch,
+chat is the startup window; backend/Workspace diagnostics remain available from it.
 
 ## Current scope
 
@@ -94,7 +156,11 @@ Run the focused xUnit test suite:
 
     make test
 
-The xUnit suite covers the Avalonia health probe, the Workspace HTTP client, and Workspace Domain/Application behavior without starting the graphical client or Docker. Database and UI integration require separate targeted checks.
+The xUnit suite covers the health probe, Workspace services, chat context and
+Ollama contracts, HTTP client behavior, and the Avalonia chat flow on the headless
+platform. PostgreSQL integration is enabled by `ALYCIA_CHAT_TEST_CONNECTION`;
+without that variable the database test is explicitly skipped. See the prototype
+guide for setup and remaining real-model/native-desktop checks.
 
 ### Combined checks
 
@@ -420,3 +486,7 @@ Do not use `docker compose down --volumes` when persistent data must be retained
 - API access through Docker Compose is restricted to the host loopback interface.
 - Full backup and restore procedures are not implemented.
 - No CI/CD pipeline is configured.
+
+## Programme contexte et preuves — novembre 2026
+
+[Compte rendu des cinq phases](docs/roadmap/program-report.md) · [Installation et utilisation CachyOS/fish](docs/roadmap/local-execution-guide.md) · [Résultats vérifiés et limites](docs/validation/phase-05-results.json).

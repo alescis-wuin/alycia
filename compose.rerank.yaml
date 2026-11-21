@@ -1,0 +1,11 @@
+services:
+  chat-api:
+    environment:
+      ALYCIA_RERANK_DIRECTORY: /app/local-reranker
+    volumes:
+      - type: bind
+        source: ${ALYCIA_RERANK_MODEL_PATH:?Set the local model directory}
+        target: /app/local-reranker
+        read_only: true
+        bind:
+          create_host_path: false

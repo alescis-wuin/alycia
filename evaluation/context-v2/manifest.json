@@ -1,0 +1,356 @@
+{
+  "schemaVersion": 2,
+  "synthetic": true,
+  "files": [
+    {
+      "path": "docs/formulas.xlsx",
+      "bytes": 4871,
+      "sha256": "e007570b3b83d23f5aeb38b090673031a64ae39c2f6c7e35a2de6f85e8cf5c52"
+    },
+    {
+      "path": "docs/pages.pdf",
+      "bytes": 1822,
+      "sha256": "f9a5b59e9e09132848cd3613991bd418a34b28fc94b224cb7566efe5d22d1f8f"
+    },
+    {
+      "path": "docs/slides.pptx",
+      "bytes": 29137,
+      "sha256": "1f2660ef9d0f4f1472002a69066daa9c80ef5e2f3ce22fc30fa3b55663ff5c7f"
+    },
+    {
+      "path": "docs/structured.docx",
+      "bytes": 36805,
+      "sha256": "ff9c9844fc61357155d04afa1eca5c64107df5641c18ef2abb692ac348604f65"
+    },
+    {
+      "path": "docs/table.csv",
+      "bytes": 44,
+      "sha256": "db8cec83d698d7572b8e4844ca1d83bfb71d1aa39f0aec82b9f8f89836a80346"
+    },
+    {
+      "path": "hard/contradiction.txt",
+      "bytes": 62,
+      "sha256": "290a1c90d2889eab591eba45d92731d62710bf114a13befca9986af404a1e688"
+    },
+    {
+      "path": "hard/duplicate-a.txt",
+      "bytes": 46,
+      "sha256": "8a7f8731b5070597d7cab421c9dc3b20c0f7af036ca8932401782032dba9c18a"
+    },
+    {
+      "path": "hard/duplicate-b.txt",
+      "bytes": 46,
+      "sha256": "8a7f8731b5070597d7cab421c9dc3b20c0f7af036ca8932401782032dba9c18a"
+    },
+    {
+      "path": "project/000/Store.cs",
+      "bytes": 82,
+      "sha256": "d36b0976636a3969046179a35e2c9e599864376c2f78d7e8b4ade5afc4206e3d"
+    },
+    {
+      "path": "project/001/Store.cs",
+      "bytes": 82,
+      "sha256": "fa2186bf445e5ca4dcb8e9edc2203ecd7bfb2d14f1cfaac1cfad9769e79de7c2"
+    },
+    {
+      "path": "project/002/Store.cs",
+      "bytes": 82,
+      "sha256": "4e9238919ca853f3380ee4f07a02ca50dbefaf86c45d26ad49895f1c8292771e"
+    },
+    {
+      "path": "project/003/Store.cs",
+      "bytes": 82,
+      "sha256": "cd7efb54e2697584eff65a05e72436b43b1cf3513692a0bbbf7b49beb8abd123"
+    },
+    {
+      "path": "project/004/Store.cs",
+      "bytes": 82,
+      "sha256": "ebf47083dfbeb878029892d2b315c5727de4f53beafe1da914adec3f72ae17df"
+    },
+    {
+      "path": "project/005/Store.cs",
+      "bytes": 82,
+      "sha256": "1edd30910cf8c987016b43082009459399f14be566ac7ed3f70e0ae90ce76f0a"
+    },
+    {
+      "path": "project/006/Store.cs",
+      "bytes": 82,
+      "sha256": "1d4336c4b0952e5ad159ef6e600cae9bd55bc2a23746babc520d931cf50d5000"
+    },
+    {
+      "path": "project/007/Store.cs",
+      "bytes": 82,
+      "sha256": "1933a650dcc6219d39b4c0bc660b8a81bac8cd4fb3cc3cdb9922b861614bc34e"
+    },
+    {
+      "path": "project/008/Store.cs",
+      "bytes": 82,
+      "sha256": "fa685e215b78d7a2da50aa4bd4810b20be0cf1f11d77ecb627f026d80a9dd011"
+    },
+    {
+      "path": "project/009/Store.cs",
+      "bytes": 82,
+      "sha256": "34c2c37aa2f3d8eb5db498303388e2584b10735394010073712b68d0af9b832b"
+    },
+    {
+      "path": "project/010/Store.cs",
+      "bytes": 82,
+      "sha256": "45b7d6d22029372963db12bb601bd2c9bf4c9c6d89e906c7a7fdbbc8c117d28b"
+    },
+    {
+      "path": "project/011/Store.cs",
+      "bytes": 82,
+      "sha256": "5901cb27357569cd880a55f3671867d4ef3b50d992d65136c3d89662341acdcc"
+    },
+    {
+      "path": "project/012/Store.cs",
+      "bytes": 82,
+      "sha256": "cf50778ae6c890879c51da1090da1c904392dbcda2f0946a1ec9f5ed01edc321"
+    },
+    {
+      "path": "project/013/Store.cs",
+      "bytes": 82,
+      "sha256": "96c39eba6bdba247cf372c4b994817060dbda1ebb64ad6825878b9bd199ecf91"
+    },
+    {
+      "path": "project/014/Store.cs",
+      "bytes": 82,
+      "sha256": "09169155c8e1411d6463293889073339c797b9b58e3b344e823075020e7dcddf"
+    },
+    {
+      "path": "project/015/Store.cs",
+      "bytes": 82,
+      "sha256": "7306d32d757c96b6c7f4e76744ad078d5773ece15acf65704b38aa7d3af31ca1"
+    },
+    {
+      "path": "project/016/Store.cs",
+      "bytes": 82,
+      "sha256": "6c9198a434e3273266c7269c1242d0c83efb71831b4969443ca1351022f9ef6a"
+    },
+    {
+      "path": "project/017/Store.cs",
+      "bytes": 82,
+      "sha256": "5ac960afbcb562d7ad02b14133de8f5373ab49059d42966aba446dbbd6622416"
+    },
+    {
+      "path": "project/018/Store.cs",
+      "bytes": 82,
+      "sha256": "e0b4b15457bd4ad788229de4358c42af9e9b343de934786769c203a0469260e0"
+    },
+    {
+      "path": "project/019/Store.cs",
+      "bytes": 82,
+      "sha256": "a477fc0f3f0ccc5e81ddd03d89429f9815fa919b2cf384104d74fdc6bb4d4cf9"
+    },
+    {
+      "path": "project/020/Store.cs",
+      "bytes": 82,
+      "sha256": "120fccf1a42de188c94c9d14304dedd7eb2a2e9bf90c723e9a286c6c54c5706f"
+    },
+    {
+      "path": "project/021/Store.cs",
+      "bytes": 82,
+      "sha256": "504017592e23a70b997aeb5822c2c70e88ed2eed7339e17facab3096bd5206f2"
+    },
+    {
+      "path": "project/022/Store.cs",
+      "bytes": 82,
+      "sha256": "07a37a360d9478d082759b65897bb6f6923afedcbb66a7e78fc357a3703ad446"
+    },
+    {
+      "path": "project/023/Store.cs",
+      "bytes": 82,
+      "sha256": "94c575e4b950352eb8aa9894162dfa204f89157ad3cb8ade5b6d64670c99c527"
+    },
+    {
+      "path": "project/024/Store.cs",
+      "bytes": 82,
+      "sha256": "95573bbd6868c3ffc78728bd00b38ce6c5ef6f41d237528c18b555ea9d1f97a3"
+    },
+    {
+      "path": "project/025/Store.cs",
+      "bytes": 82,
+      "sha256": "2b521ccd35467e8c4c663401578d3d399c56131109978d655ce0b4ea80d60351"
+    },
+    {
+      "path": "project/026/Store.cs",
+      "bytes": 82,
+      "sha256": "5915966a517fea9e917076c83c5e4437cf2cf55ea0558649024a2f13ba3b1c41"
+    },
+    {
+      "path": "project/027/Store.cs",
+      "bytes": 82,
+      "sha256": "7706f4bf5ce9f40674121c5c4843723b68a913d1031f0a0b683e776244950cea"
+    },
+    {
+      "path": "project/028/Store.cs",
+      "bytes": 82,
+      "sha256": "7a4cf296f04f06d1cdaabb519b9b0cf5cb73e6347ca97a81c834d13b5393eb78"
+    },
+    {
+      "path": "project/029/Store.cs",
+      "bytes": 82,
+      "sha256": "72e0274faeab947b553fed9cf1acd1576cca56f8f307404c17ee75a056d2a4ad"
+    },
+    {
+      "path": "project/030/Store.cs",
+      "bytes": 82,
+      "sha256": "a7d6756e3e12c2b7c172e4ee47d58fbd68469c9a3acd0e7de3ca825b163b49e2"
+    },
+    {
+      "path": "project/031/Store.cs",
+      "bytes": 82,
+      "sha256": "5593b053d6f7e091c6ba2d07b3d9150031d334f39f80641cb4394d0ca3d94d08"
+    },
+    {
+      "path": "project/032/Store.cs",
+      "bytes": 82,
+      "sha256": "a4e3c7b2da062fe36d5a15979d51c8350d84aa8627460074d3aba2064847785c"
+    },
+    {
+      "path": "project/033/Store.cs",
+      "bytes": 82,
+      "sha256": "26111efc86cfe35b827bc51689d39a2c7228f1830b11df43d2f576ae969328a8"
+    },
+    {
+      "path": "project/034/Store.cs",
+      "bytes": 82,
+      "sha256": "a5d232e0331945b46aea82466847cf7e0b666e4d1e28eb83fbcaffa03f32459b"
+    },
+    {
+      "path": "project/035/Store.cs",
+      "bytes": 82,
+      "sha256": "b93b823a397fe13c84226463e14923fca38b63c761f45e6c91e63376954f6d3b"
+    },
+    {
+      "path": "project/036/Store.cs",
+      "bytes": 82,
+      "sha256": "77267d528c80de89aeca4eb10f55d828f7d2847b3229d7a248a7ce647dd99c98"
+    },
+    {
+      "path": "project/037/Store.cs",
+      "bytes": 82,
+      "sha256": "4c92432d40052d143e97d672d42d54f9f483d0d7237e21b262a445dc4033264f"
+    },
+    {
+      "path": "project/038/Store.cs",
+      "bytes": 82,
+      "sha256": "7daf97821506cb3a22435469a826f4e0a3ae16659c997e1c3ba65413783219dd"
+    },
+    {
+      "path": "project/039/Store.cs",
+      "bytes": 82,
+      "sha256": "097590e3d9c3e56609940f9114ac6f6e270a8edee703f9894d751c3fdf832d85"
+    },
+    {
+      "path": "project/040/Store.cs",
+      "bytes": 82,
+      "sha256": "b2a5568ac81d0c416c3cd9554dec7cfa73c453b8cfd3134923287c3eb79623ba"
+    },
+    {
+      "path": "project/041/Store.cs",
+      "bytes": 82,
+      "sha256": "c019e183b10b3f0e61ef3db6297e843d6a323c7712e36152553843ef611bd72c"
+    },
+    {
+      "path": "project/042/Store.cs",
+      "bytes": 82,
+      "sha256": "186333d2fa543d186cd3febda807de7b1274787107850a4cc6d350ed8473d3e5"
+    },
+    {
+      "path": "project/043/Store.cs",
+      "bytes": 82,
+      "sha256": "b819ee0aad244116c51e6f7c701e783f040f317d753aefc1355bb4fb8990d988"
+    },
+    {
+      "path": "project/044/Store.cs",
+      "bytes": 82,
+      "sha256": "373630597b3e16ec8f8679db1b5560e7fcf49f89c5cb3495db5e6fdee24a28a0"
+    },
+    {
+      "path": "project/045/Store.cs",
+      "bytes": 82,
+      "sha256": "ac61d8d0d9b9bcdcb4a36905504c6b8495d800e14893971093c38082972e7667"
+    },
+    {
+      "path": "project/046/Store.cs",
+      "bytes": 82,
+      "sha256": "2d64ae1da544bdef3aaea2744ae6797c10910414c5c65e2a634d5b1d3aaac91f"
+    },
+    {
+      "path": "project/047/Store.cs",
+      "bytes": 82,
+      "sha256": "f470304044ceb8aed5e582bbca6ad3f028706d97373efe45bd7d0bba9fbb13a7"
+    },
+    {
+      "path": "project/048/Store.cs",
+      "bytes": 82,
+      "sha256": "5a47802004d3a4cbe69e962e5b5eb443c4f02527400e3e338a3519d7cb9d0852"
+    },
+    {
+      "path": "project/049/Store.cs",
+      "bytes": 82,
+      "sha256": "9453e607f62f7db274a2fc04d79e0d8b46738aa877763ee66edbf961cb936c23"
+    },
+    {
+      "path": "project/050/Store.cs",
+      "bytes": 82,
+      "sha256": "21e1e200b30e0bcc09fb0ce167f47944ad1b5b572bf0db7d3f7fe84eac372ce6"
+    },
+    {
+      "path": "project/051/Store.cs",
+      "bytes": 82,
+      "sha256": "63efe3ea2cc02e731de6187aa974708d1dd213c2f7e76d2ceb239bedd575714e"
+    },
+    {
+      "path": "project/052/Store.cs",
+      "bytes": 82,
+      "sha256": "d571ea946872af5436c982640b6577da57129b9912e486170c5588c6d8fc2b16"
+    },
+    {
+      "path": "project/053/Store.cs",
+      "bytes": 82,
+      "sha256": "5441f610072725b9569345be678684f6307abbce56dbb528505303d6e71cc333"
+    },
+    {
+      "path": "project/054/Store.cs",
+      "bytes": 82,
+      "sha256": "7e4d44bdb8dfa3af49d08cf02756449db07da5b164c384fb5017b226e91b947a"
+    },
+    {
+      "path": "project/055/Store.cs",
+      "bytes": 82,
+      "sha256": "455339c954fd155a75aa900093deb73e39e0b06cc72914dd277373e0fd08ea7c"
+    },
+    {
+      "path": "project/056/Store.cs",
+      "bytes": 82,
+      "sha256": "6d828d44a94ce82f8a54e5e6e05de7274b324ff76a8de00f198718971a49149b"
+    },
+    {
+      "path": "project/057/Store.cs",
+      "bytes": 82,
+      "sha256": "83c1e2533f513da46ea94b0f2c6ef63c2aa10cfa66b9239cc435c88d2a309a0d"
+    },
+    {
+      "path": "project/058/Store.cs",
+      "bytes": 82,
+      "sha256": "28c4bb4dcae3dccc915e2adede430ab0f9c09ff2913d7acb829f989eaaa73407"
+    },
+    {
+      "path": "project/059/Store.cs",
+      "bytes": 82,
+      "sha256": "cfb2f7a530024aec23338aa2fe6bdda950cbd1d4dc4e6e37b4b4a1ff839223ef"
+    },
+    {
+      "path": "project/tests/RemoteStoreTests.cs",
+      "bytes": 57,
+      "sha256": "3465b10051dd8cba0f85963f688ac5058ee8158b5855dfb2dd91caf92f26fa50"
+    },
+    {
+      "path": "security/injection.txt",
+      "bytes": 102,
+      "sha256": "a32862807586c14e48c65359dca5bb80aea2dd097f5be9f2f39763474dc555bb"
+    }
+  ]
+}

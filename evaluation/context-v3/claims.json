@@ -1,0 +1,114 @@
+[
+  {
+    "id": "citation-fr",
+    "source": "La rétention Orion est de 37 jours.",
+    "claim": "La rétention Orion est de 37 jours. {ref}",
+    "status": "supported",
+    "role": null
+  },
+  {
+    "id": "paraphrase-fr",
+    "source": "La conservation Orion est de 37 jours.",
+    "claim": "La rétention Orion est de 37 jours. {ref}",
+    "status": "supported",
+    "role": null
+  },
+  {
+    "id": "nombre",
+    "source": "La conservation Orion est de 37 jours.",
+    "claim": "La conservation Orion est de 7 jours. {ref}",
+    "status": "contradicted",
+    "role": null
+  },
+  {
+    "id": "négation",
+    "source": "Le mode Atlas est activé.",
+    "claim": "Le mode Atlas est désactivé. {ref}",
+    "status": "contradicted",
+    "role": null
+  },
+  {
+    "id": "inconnu",
+    "source": "Le mode Atlas est activé.",
+    "claim": "Le mode Atlas est activé. [S111111111111]",
+    "status": "insufficient",
+    "role": null
+  },
+  {
+    "id": "sans-preuve",
+    "source": "",
+    "claim": "La dose est de 17 unités.",
+    "status": "insufficient",
+    "role": null
+  },
+  {
+    "id": "question",
+    "source": "",
+    "claim": "Souhaitez-vous continuer ?",
+    "status": "not_verifiable",
+    "role": null
+  },
+  {
+    "id": "suggestion",
+    "source": "",
+    "claim": "Imaginons une ville sous les étoiles.",
+    "status": "not_verifiable",
+    "role": null
+  },
+  {
+    "id": "decision-ia",
+    "source": "Vous avez choisi la région Nord.",
+    "claim": "Vous avez choisi la région Nord. {ref}",
+    "status": "insufficient",
+    "role": "assistant"
+  },
+  {
+    "id": "decision-user",
+    "source": "Vous avez choisi la région Nord.",
+    "claim": "Vous avez choisi la région Nord. {ref}",
+    "status": "supported",
+    "role": "user"
+  },
+  {
+    "id": "citation-code",
+    "source": "MaxRetries = 4",
+    "claim": "MaxRetries = 4 {ref}",
+    "status": "supported",
+    "role": null
+  },
+  {
+    "id": "nom-different",
+    "source": "La tâche Atlas attend 12 jours.",
+    "claim": "La tâche Boréale attend 12 jours. {ref}",
+    "status": "insufficient",
+    "role": null
+  },
+  {
+    "id": "reversion",
+    "source": "Alice approuve Bruno.",
+    "claim": "Bruno approuve Alice. {ref}",
+    "status": "insufficient",
+    "role": null
+  },
+  {
+    "id": "sans-citation",
+    "source": "La durée est de 37 jours.",
+    "claim": "La durée est de 37 jours.",
+    "status": "insufficient",
+    "role": null
+  },
+  {
+    "id": "version",
+    "source": "Le module Orion requiert 2.14.8.",
+    "claim": "Le module Orion requiert 2.14.9. {ref}",
+    "status": "contradicted",
+    "role": null
+  },
+  {
+    "id": "date",
+    "source": "Le contrat Orion expire le 2026-06-04.",
+    "claim": "Le contrat Orion expire le 2026-06-09. {ref}",
+    "status": "contradicted",
+    "role": null
+  }
+]

@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "measured_at_utc": "2026-11-17T11:13:06.2897617+00:00",
+  "runtime": ".NET 10.0.0",
+  "os": "Debian GNU/Linux 13 (trixie)",
+  "processors": 9,
+  "baseline_bm25_commit": "0b31f13",
+  "baseline_ranking_commit": "cdb5fee",
+  "scope": "Synthetic CPU microbenchmark; full fingerprint lookup included; no disk I/O, Ollama, GPU, end-to-end latency or quality measurement.",
+  "cases": [
+    {
+      "chunks": 64,
+      "files": 16,
+      "characters": 52168,
+      "cold_index_ms": 53.4317,
+      "repeats": 24,
+      "scores_identical": true,
+      "ordering_identical": true,
+      "baseline_bm25": {
+        "p50_ms": 16.2238,
+        "p95_ms": 18.4501
+      },
+      "cached_bm25": {
+        "p50_ms": 0.2138,
+        "p95_ms": 0.3454
+      },
+      "baseline_ranking": {
+        "p50_ms": 17.596,
+        "p95_ms": 20.7429
+      },
+      "cached_ranking": {
+        "p50_ms": 0.4204,
+        "p95_ms": 0.6692
+      },
+      "baseline_bm25_allocated_bytes_per_call": 3508825,
+      "cached_bm25_allocated_bytes_per_call": 169108
+    },
+    {
+      "chunks": 512,
+      "files": 128,
+      "characters": 423128,
+      "cold_index_ms": 153.3117,
+      "repeats": 24,
+      "scores_identical": true,
+      "ordering_identical": true,
+      "baseline_bm25": {
+        "p50_ms": 66.8886,
+        "p95_ms": 77.5365
+      },
+      "cached_bm25": {
+        "p50_ms": 1.3575,
+        "p95_ms": 3.1289
+      },
+      "baseline_ranking": {
+        "p50_ms": 72.9501,
+        "p95_ms": 85.3932
+      },
+      "cached_ranking": {
+        "p50_ms": 2.3312,
+        "p95_ms": 6.4313
+      },
+      "baseline_bm25_allocated_bytes_per_call": 28158931,
+      "cached_bm25_allocated_bytes_per_call": 1346529
+    },
+    {
+      "chunks": 2048,
+      "files": 512,
+      "characters": 1709048,
+      "cold_index_ms": 276.2263,
+      "repeats": 24,
+      "scores_identical": true,
+      "ordering_identical": true,
+      "baseline_bm25": {
+        "p50_ms": 275.5104,
+        "p95_ms": 303.2841
+      },
+      "cached_bm25": {
+        "p50_ms": 6.0169,
+        "p95_ms": 10.3452
+      },
+      "baseline_ranking": {
+        "p50_ms": 376.6061,
+        "p95_ms": 444.0896
+      },
+      "cached_ranking": {
+        "p50_ms": 10.1863,
+        "p95_ms": 20.2126
+      },
+      "baseline_bm25_allocated_bytes_per_call": 112811032,
+      "cached_bm25_allocated_bytes_per_call": 5406788
+    }
+  ]
+}

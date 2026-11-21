@@ -1,0 +1,90 @@
+using Alycia.Client.Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.Documents;
+using Avalonia.LogicalTree;
+using Avalonia.Media;
+
+namespace Alycia.Client.Avalonia.Tests;
+
+// Run within the existing headless UI test, on the Avalonia dispatcher thread.
+internal static class MarkdownChecks
+{
+    public static void Verify()
+    {
+        var view = new MarkdownView { Text = "# Titre\n\nUn **texte fort** et `code`.\n\n```python\nprint('bonjour')" };
+        view.RenderNow();
+        Assert.IsType<SelectableTextBlock>(view.Children[0]);
+        Assert.Equal(FontWeight.Bold, ((SelectableTextBlock)view.Children[0]).FontWeight);
+        Assert.Contains(view.GetLogicalDescendants().OfType<SelectableTextBlock>(), t => TextValue(t).Contains("print('bonjour')"));
+        view.Text += "\n```\n\n| Nom | Valeur |\n|---|---|\n| alpha | 42 |\n\n[site](https://example.com) ![image](https://example.com/image.png)\n\n<script>alert(1)</script>";
+        view.RenderNow();
+        Assert.Contains(view.GetLogicalDescendants().OfType<Grid>(), g => g.ColumnDefinitions.Count == 2 && g.RowDefinitions.Count == 2);
+        Assert.Single(view.GetLogicalDescendants().OfType<HyperlinkButton>());
+        Assert.Empty(view.GetLogicalDescendants().OfType<Image>());
+        view.Text = "## :rocket: Développement\n\nA &amp; B &#x1F98A; 👩🏽‍💻 🇫🇷 ❤️ 1️⃣\n\n```text\n:rocket: &amp;\n```";
+        view.RenderNow();
+        var runs = view.GetLogicalDescendants().OfType<TextBlock>().Where(text => text.Inlines is not null)
+            .SelectMany(text => Runs(text.Inlines!)).ToArray();
+        var rendered = string.Concat(runs.Select(run => run.Text));
+        Assert.Contains("🚀", rendered);
+        Assert.Contains("A & B 🦊", rendered);
+        foreach (var grapheme in new[] { "👩🏽‍💻", "🇫🇷", "❤️", "1️⃣" })
+            Assert.Contains(runs, run => run.Text?.Contains(grapheme) == true && run.FontFamily.Name.Contains("Emoji"));
+        Assert.Contains(view.GetLogicalDescendants().OfType<SelectableTextBlock>(), text => text.Text?.Contains(":rocket: &amp;") == true);
+        view.Text = "En cours :roc"; view.RenderNow();
+        view.Text += "ket:"; view.RenderNow();
+        Assert.Contains(view.GetLogicalDescendants().OfType<TextBlock>().Where(text => text.Inlines is not null)
+            .SelectMany(text => Runs(text.Inlines!)), run => run.Text?.Contains("🚀") == true);
+        view.Text = "Texte[^a] et prix $12 puis $20.\n\n[^a]: Une note lisible.";
+        view.RenderNow();
+        Assert.Contains(view.GetLogicalDescendants().OfType<SelectableTextBlock>(), t => TextValue(t).Contains("$12 puis $20"));
+        Assert.Contains(view.GetLogicalDescendants().OfType<StackPanel>(), panel => panel.Tag?.ToString()?.StartsWith("footnote:") == true);
+        view.Text = "$$\n\\frac{1}{2}";
+        view.RenderNow();
+        Assert.Contains(view.GetLogicalDescendants().OfType<SelectableTextBlock>(), t => TextValue(t).Contains("\\frac"));
+        view.Text += "\n$$";
+        view.RenderNow();
+        Assert.Contains(view.GetLogicalDescendants().OfType<Image>(), image => image.Source is not null);
+        Assert.Contains(view.GetLogicalDescendants().OfType<Button>(), b => Equals(b.Content, "Copier le LaTeX"));
+        var fallback = FormulaView.Create(@"\commandeInconnue{", 18, Brushes.Black);
+        Assert.Contains("commandeInconnue", Assert.IsType<SelectableTextBlock>(fallback).Text);
+        foreach (var (language, code) in new (string, string)[] { ("cs", "public class A {}"), ("axaml", "<Button Name=\"x\"/>"),
+            ("python", "def action(x):\r\n\treturn 'é'"), ("json", "{\"x\":10}"), ("yaml", "nom: 1"), ("sql", "SELECT 1"),
+            ("bash", "if true"), ("fish", "function test"), ("powershell", "param($p)"), ("diff", "-abc\n+def") })
+        {
+            var tokens = CodeHighlight.Scan(language, code);
+            Assert.Equal(code, string.Concat(tokens.Select(token => token.Text)));
+            Assert.Contains(tokens, token => token.Color is not null);
+        }
+        Assert.Null(Assert.Single(CodeHighlight.Scan("inconnu", "3 < 4")).Color);
+        view.IsMarkdown = false; view.RenderNow();
+        Assert.Equal(view.Text, Assert.IsType<SelectableTextBlock>(Assert.Single(view.Children)).Text);
+    }
+
+    private static string TextValue(TextBlock block) => block.Inlines is { Count: > 0 } inlines
+        ? string.Concat(Runs(inlines).Select(run => run.Text)) : block.Text ?? "";
+
+    private static IEnumerable<Run> Runs(InlineCollection inlines)
+    {
+        foreach (var inline in inlines)
+        {
+            if (inline is Run run) yield return run;
+            else if (inline is Span span)
+                foreach (var child in Runs(span.Inlines)) yield return child;
+        }
+    }
+}
+
+public sealed class MarkdownLinkTests
+{
+    [Theory]
+    [InlineData("https://example.com", true)]
+    [InlineData("http://localhost:8080", true)]
+    [InlineData("javascript:alert(1)", false)]
+    [InlineData("file:///etc/passwd", false)]
+    [InlineData("data:text/html,test", false)]
+    [InlineData("https://name:password@example.com", false)]
+    [InlineData("relative/path", false)]
+    public void OnlyExplicitWebNavigationIsEnabled(string url, bool allowed) =>
+        Assert.Equal(allowed, MarkdownView.SafeLink(url) is not null);
+}

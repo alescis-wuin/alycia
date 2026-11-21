@@ -1,0 +1,98 @@
+{
+  "date": "2026-11-16",
+  "baseCommit": "ec56cc29af111def6de76b2df2da9f30b45292ba",
+  "branch": "feature/local-client-v1-20261116",
+  "environment": {
+    "os": "Linux x64",
+    "dotnetSdk": "10.0.404",
+    "dotnetRuntime": "10.0.15",
+    "postgresTestServer": "16.2",
+    "postgresComposeTarget": "17"
+  },
+  "build": {
+    "passed": true,
+    "warnings": 0,
+    "errors": 0
+  },
+  "dotnetSuites": [
+    {
+      "assembly": "Alycia.Client.Avalonia.Tests.dll",
+      "total": 43,
+      "passed": 43,
+      "failed": 0,
+      "notExecuted": 0,
+      "report": "q5-client.trx",
+      "reportSha256": "a5f5a617d54b067d935ad29e4b0ca86fbdab90fcff0094947e7c2ad8e41e93bf"
+    },
+    {
+      "assembly": "Alycia.Modules.Chat.Tests.dll",
+      "total": 63,
+      "passed": 63,
+      "failed": 0,
+      "notExecuted": 0,
+      "report": "_b4522c0a1897_2026-11-16_22_26_10_net10.0.trx",
+      "reportSha256": "287beef3a88b13ec8ebc6cb2d71074f4a108f1ff21bbb048eba75fbc7d69309d"
+    },
+    {
+      "assembly": "Alycia.Modules.Workspaces.Tests.dll",
+      "total": 11,
+      "passed": 11,
+      "failed": 0,
+      "notExecuted": 0,
+      "report": "_b4522c0a1897_2026-11-16_22_26_13_net10.0.trx",
+      "reportSha256": "59b2e22fcac582dd8334a489f10503a604c7ee1eb365b8c4af3a5f62ebaf753e"
+    }
+  ],
+  "executionNote": "Full solution: 116 passing tests. After final client changes: affected client suite 43 passing tests (replaces 42). Two multipart cases rechecked after analyzer cleanup; unchanged backend suites were not repeated.",
+  "migrations": {
+    "pendingModelChanges": false,
+    "appliedToIsolatedPostgres": true,
+    "chatMigrations": 5
+  },
+  "httpRecipe": {
+    "passed": 8,
+    "checks": [
+      "local_access_and_models",
+      "settings_revision_and_prompt_library",
+      "stream_commit_replay_and_conflict",
+      "file_upload_download_and_context_selection",
+      "archive_roundtrip_search_and_fork",
+      "recursive_archives_inventory_analysis_staleness_and_delete",
+      "recursive_memory_budget_protected_messages_and_cache",
+      "memory_turn_persistence_and_nondestructive_reset"
+    ],
+    "provider": "mock",
+    "database": "isolated PostgreSQL",
+    "test_data_cleaned": true,
+    "continuous_chat_calls": 2,
+    "bounded_summary_calls": 46
+  },
+  "backupUnitTests": {
+    "passed": 4,
+    "docker": "mocked"
+  },
+  "quality": {
+    "lint": "passed",
+    "pythonCompile": "passed"
+  },
+  "visualInspection": {
+    "renderer": "Avalonia/Skia headless",
+    "sizes": [
+      "1240x880",
+      "960x700"
+    ],
+    "nativeDesktop": false
+  },
+  "notExecuted": [
+    "real Ollama model and summary fidelity",
+    "NVIDIA GPU benchmark",
+    "native KDE/Wayland pickers and clipboard",
+    "Windows and PowerShell",
+    "Docker image build",
+    "PostgreSQL 17 via Docker",
+    "Docker backup/restore end to end"
+  ],
+  "nonBlockingDiagnostics": [
+    "VSTEST_ARTIFACTS_DIRECTORY fallback warning from test runner"
+  ]
+}

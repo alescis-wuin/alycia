@@ -6,3 +6,9 @@
 .vs/
 .idea/
 .vscode/
+**/data/
+backups/
+artifacts/
+TestResults/
+**/__pycache__/
+*.pyc

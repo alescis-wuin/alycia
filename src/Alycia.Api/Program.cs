@@ -1,4 +1,5 @@
 using Alycia.Api.Workspaces;
+using Alycia.Api.Chat;
 using Alycia.Modules.Workspaces.Application;
 using Alycia.Modules.Workspaces.Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -113,6 +114,14 @@ if (enableLocalWorkspaces)
     builder.Services.AddScoped<GetWorkspaceService>();
 }
 
+// Independent, explicit opt-in for the isolated demo branch; never in Production.
+var enableLocalChat = builder.Environment.IsDevelopment()
+    && builder.Configuration.GetValue<bool>("ALYCIA_ENABLE_LOCAL_CHAT");
+if (enableLocalChat)
+{
+    builder.AddLocalChat();
+}
+
 var app = builder.Build();
 
 app.UseSerilogRequestLogging(options =>
@@ -151,6 +160,11 @@ if (enableLocalWorkspaces)
     });
 
     app.MapWorkspaceEndpoints();
+}
+
+if (enableLocalChat)
+{
+    app.MapLocalChat();
 }
 
 app.MapHealthChecks("/healthz");
