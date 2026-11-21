@@ -29,6 +29,16 @@ public sealed class ConversationSettingsTransferTests
     });
 
     [Fact]
+    public void ReadsAndReproducesTheFileExportedByTheFunctionalBaseline()
+    {
+        var path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "conversation-settings-v1.json");
+        var original = File.ReadAllText(path).TrimEnd('\n');
+        var file = ConversationSettingsTransfer.Parse(Encoding.UTF8.GetBytes(original));
+        Assert.Equal(original, Encoding.UTF8.GetString(ConversationSettingsTransfer.Export(
+            file.Model, file.SystemPrompt, file.ContextNotes, file.Options)));
+    }
+
+    [Fact]
     public void RoundTripKeepsEveryPersistedOptionWithoutRoundingOrRuntimeData()
     {
         var bytes = Export();

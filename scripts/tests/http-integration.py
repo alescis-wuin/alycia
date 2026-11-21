@@ -434,6 +434,10 @@ def verify_empty_tool_summary(call, checks):
 
 def verify_boreale(call, checks):
     project = call("POST", "/projects", {"name": "Recette boréale"})
+    rejected = call("POST", "/projects", {"name": "Recette boréale"}, expected=400)
+    assert rejected["code"] == "INVALID_REQUEST"
+    assert [p["id"] for p in call("GET", "/projects") if p["name"] == "Recette boréale"] == [project["id"]]
+    checks.append("duplicate_project_rejected_without_second_identity")
     other = call("POST", "/projects", {"name": "Autre projet"})
     base = "/projects/" + project["id"]
     profile = call("GET", base)

@@ -18,3 +18,7 @@ Les TRX et sorties complètes des mesures initiales ont été conservés dans l�
 ## P1 — Contrats de propriété
 
 [ownership.md](ownership.md) fixe l’entrée, la sortie et la transaction de chaque domaine, les six décisions de conception et les fichiers réservés à l’intégrateur. Revue du graphe actuel et des consommateurs du client. Une seule nouvelle assembly de transport est prévue. Aucun changement exécutable pendant cette phase.
+
+## P2 — Caractérisation
+
+Export original v1 enregistré avant refonte dans `Fixtures/conversation-settings-v1.json`, test de restitution à l’octet, et scénario HTTP de collision de noms ajoutés. [Matrice des contrôles](verification.md). Sur PostgreSQL 17.12 jetable, le filtre Chat couvrant ConversationSettingsTransfer, PostgresChat, PersistentEmbedding, KnowledgePipeline, Streaming et LocalChatAccess a donné 44 réussis, 0 échec, 0 ignoré (38 s). La recette `python3 scripts/tests/http-integration.py --case boreale` est passée de 3 à 4 contrôles réussis. Le premier essai d’infrastructure n’a pu joindre le serveur d’un autre processus isolé. Les validations ci-dessus démarrent PostgreSQL dans le même environnement réseau que les tests.
