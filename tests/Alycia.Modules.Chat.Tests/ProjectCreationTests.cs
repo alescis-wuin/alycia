@@ -181,7 +181,7 @@ public sealed class ProjectCreationTests
                 try { await Catalog(db).UpdateAsync(project.Id, 1, instructions, "local", false, default); return true; }
                 catch (ChatConflictException) { return false; }
             }
-            Assert.Single((await Task.WhenAll(Write(a, "A"), Write(b, "B"))).Where(success => success));
+            Assert.Single(await Task.WhenAll(Write(a, "A"), Write(b, "B")), success => success);
             var saved = await Catalog(b).GetAsync(project.Id, false, default);
             Assert.Equal(2, saved.Revision);
             Assert.Equal("décision", Assert.Single(saved.Notes).Text);

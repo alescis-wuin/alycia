@@ -130,7 +130,7 @@ public sealed class FileTests
                 db.Conversations.Add(conversation);
                 await db.SaveChangesAsync();
                 conversationId = conversation.Id;
-                var importer = new FileImport(db, storage, ChatFixture.Profiles(db));
+                var importer = new FileImport(db, storage, ChatFixture.Profiles(db), new ConversationFileChanges(db));
                 var batch = Guid.NewGuid();
                 var data = Zip("./folder/./note.txt", "persistent source", windowsDirectory: true);
                 var added = await importer.ImportAsync(conversationId, batch, [new("bundle.zip", new MemoryStream(data))], default);

@@ -32,7 +32,7 @@ public sealed class ProjectToolStorageTests
             var other = Conversation.Create("Autre", "demo", "");
             db.Conversations.AddRange(conversation, other); await db.SaveChangesAsync();
             var original = "🙂\n" + new string('x', 200100) + "\nclass HiddenAtEnd { int Value => 42; int ValueOf() => Value; }\n";
-            var added = await new FileImport(db, storage, ChatFixture.Profiles(db)).ImportAsync(conversation.Id, Guid.NewGuid(),
+            var added = await new FileImport(db, storage, ChatFixture.Profiles(db), new ConversationFileChanges(db)).ImportAsync(conversation.Id, Guid.NewGuid(),
                 [new("src/A.cs", new MemoryStream(Encoding.UTF8.GetBytes(original))), new(".env", new MemoryStream("SECRET_NEVER_READ"u8.ToArray()))], default);
             // Seed through the current importer, then exercise the upgrade from the old schema.
             // No current EF conversation mapping is used while the new column is absent.
@@ -75,7 +75,7 @@ public sealed class ProjectToolStorageTests
             Assert.Equal(0, (await index.BuildAsync(conversation.Id, default)).ReusedFiles);
             var history = new EfChatRepository(db, ChatFixture.Profiles(db));
             var policy = new ToolConversationPolicyReader(db);
-            var tools = new ProjectToolService(new AuthorizedToolSources(db, reader, policy, new()), policy, history, new(), new ProjectIndexService(db, storage, reader, new()));
+            var tools = new ProjectToolService(new AuthorizedToolSources(db, reader, policy, new(), ChatFixture.LiveFiles(db)), policy, history, new(), new ProjectIndexService(db, storage, reader, new()));
             Task<ProjectToolResult> Call(string tool, object args, Guid? scope = null, int budget = 2048) =>
                 tools.CallAsync(scope ?? conversation.Id, tool, JsonSerializer.SerializeToElement(args), budget, default);
             var found = await Call("project_search", new { query = "hiddenatend" });
@@ -127,6 +127,15 @@ public sealed class ProjectToolStorageTests
             Assert.Equal(original.Length, manifest.RootElement.GetProperty("fileSummaries").EnumerateArray()
                 .Single(f => f.GetProperty("path").GetString() == "src/A.cs").GetProperty("charactersRead").GetInt32());
             Assert.False((await Call("project_read", new { fileId = file.Id, offset })).IsError);
+            await using (var snapshot = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.RepeatableRead))
+            {
+                Assert.False((await Call("project_read", new { fileId = file.Id, offset })).IsError);
+                await using var fresh = new ChatDbContext(options);
+                await fresh.Attachments.Where(f => f.Id == file.Id).ExecuteUpdateAsync(set => set.SetProperty(f => f.ContextMode, "excluded"));
+                Assert.True((await Call("project_read", new { fileId = file.Id, offset })).IsError);
+                await snapshot.RollbackAsync();
+                await fresh.Attachments.Where(f => f.Id == file.Id).ExecuteUpdateAsync(set => set.SetProperty(f => f.ContextMode, "project"));
+            }
             conversation.Configure("demo", "system", "", ConversationConfiguration.Serialize(new() { UseProjectTools = false }));
             await db.SaveChangesAsync();
             Assert.True((await Call("project_read", new { fileId = file.Id })).IsError);

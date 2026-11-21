@@ -36,7 +36,7 @@ public sealed class KnowledgePipelineTests
             var other = Conversation.Create("Autre", "principal", "");
             owner.Configure(owner.Model, "", "", ConversationConfiguration.Serialize(options));
             db.Conversations.AddRange(owner, other); await db.SaveChangesAsync();
-            var importer = new FileImport(db, storage, ChatFixture.Profiles(db));
+            var importer = new FileImport(db, storage, ChatFixture.Profiles(db), new ConversationFileChanges(db));
             var files = await importer.ImportAsync(owner.Id, Guid.NewGuid(),
                 [Source("alpha.md", "La période alpha couvre 37 jours."), Source("beta.txt", "Le delta couvre 15 jours."),
                  Source("ferme.txt", "NE_PAS_TRANSMETTRE")], default);

@@ -22,9 +22,10 @@ internal static class ChatFixture
         return new(session, new WorkspaceIdentityDirectory(session));
     }
 
-    public static KnowledgeStore Knowledge(ChatDbContext database) => new(database,
-        new LiveIndexFileAccess((DbContextOptions<ChatDbContext>)database.GetService<IDbContextOptions>(),
-            session => new WorkspaceProfileStore(session, new WorkspaceIdentityDirectory(session))));
+    public static LiveIndexFileAccess LiveFiles(ChatDbContext database) => new((DbContextOptions<ChatDbContext>)database.GetService<IDbContextOptions>(),
+            session => new WorkspaceProfileStore(session, new WorkspaceIdentityDirectory(session)));
+
+    public static KnowledgeStore Knowledge(ChatDbContext database) => new(database, LiveFiles(database));
 
     public static ChatGenerationAdapter Ollama(HttpClient http, ChatOptions options) =>
         new(new OllamaTextGeneration(http, Scheduler, Tokenizers), options);

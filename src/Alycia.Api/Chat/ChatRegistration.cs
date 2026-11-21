@@ -46,6 +46,9 @@ internal static class ChatRegistration
         services.AddSingleton<GenerationGate>();
         services.AddScoped<IChatRepository, EfChatRepository>();
         services.AddScoped<IConversationContextReader>(sp => sp.GetRequiredService<IChatRepository>());
+        services.AddScoped<IConversationFileChanges, ConversationFileChanges>();
+        services.AddScoped<IConversationOriginals, ConversationOriginals>();
+        services.AddScoped<IArchiveDocuments, ArchiveDocuments>();
         services.AddScoped<ConversationHistory>();
         services.AddScoped<ConversationSettingsService>();
         services.AddScoped<PromptCatalog>();

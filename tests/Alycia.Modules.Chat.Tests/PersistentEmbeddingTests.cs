@@ -34,7 +34,7 @@ public sealed class PersistentEmbeddingTests
             database.Conversations.AddRange(chat, other); await database.SaveChangesAsync();
             var storage = new FileStorage(root); var reader = new ProjectSourceReader(storage);
             var text = string.Join('\n', Enumerable.Range(0, 3000).Select(i => $"Passage {i:D6} : " + new string('x', 120)));
-            var file = Assert.Single(await new FileImport(database, storage, ChatFixture.Profiles(database)).ImportAsync(chat.Id, Guid.NewGuid(),
+            var file = Assert.Single(await new FileImport(database, storage, ChatFixture.Profiles(database), new ConversationFileChanges(database)).ImportAsync(chat.Id, Guid.NewGuid(),
                 [new("notes.txt", new MemoryStream(Encoding.UTF8.GetBytes(text)))], default));
             var request = Guid.NewGuid();
             database.Messages.AddRange(new ChatMessage(chat.Id, 1, request, "user", "La couleur retenue est turquoise."),
@@ -114,7 +114,7 @@ public sealed class PersistentEmbeddingTests
 
             // No former eight-million-character quota for the lexical/source index.
             var large = new string('z', 8_100_000);
-            await new FileImport(database, storage, ChatFixture.Profiles(database)).ImportAsync(chat.Id, Guid.NewGuid(), [new("large.txt", new MemoryStream(Encoding.UTF8.GetBytes(large)))], default);
+            await new FileImport(database, storage, ChatFixture.Profiles(database), new ConversationFileChanges(database)).ImportAsync(chat.Id, Guid.NewGuid(), [new("large.txt", new MemoryStream(Encoding.UTF8.GetBytes(large)))], default);
             var largeIndex = await index.BuildAsync(chat.Id, default);
             Assert.Equal(1, largeIndex.IndexedFiles);
             Assert.Empty(largeIndex.Omissions);
@@ -123,7 +123,7 @@ public sealed class PersistentEmbeddingTests
             var restrictive = new ImportLimits(FileMiB: 1, BatchMiB: 2, BatchEntries: 1, StoredFiles: 1, StoredMiB: 2);
             await importSettings.SaveAsync(restrictive, default);
             Assert.Equal(restrictive, await new ImportSettingsStore(database).LoadAsync(default));
-            var importer = new FileImport(database, storage, ChatFixture.Profiles(database), importSettings);
+            var importer = new FileImport(database, storage, ChatFixture.Profiles(database), new ConversationFileChanges(database), importSettings);
             await Assert.ThrowsAsync<ArgumentException>(() => importer.ImportAsync(chat.Id, Guid.NewGuid(),
                 [new("over.txt", new MemoryStream(new byte[1024 * 1024 + 1]))], default));
             await Assert.ThrowsAsync<ArgumentException>(() => importer.ImportAsync(chat.Id, Guid.NewGuid(),

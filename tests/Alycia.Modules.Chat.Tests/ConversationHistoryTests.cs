@@ -25,8 +25,8 @@ public sealed class ConversationHistoryTests
                 pg => pg.MigrationsHistoryTable("__EFMigrationsHistory", "chat")).Options;
             await using var db = new ChatDbContext(options);
             await db.Database.MigrateAsync();
-            var history = new ConversationHistory(db, new(), storage);
-            var importer = new FileImport(db, storage, ChatFixture.Profiles(db));
+            var history = new ConversationHistory(db, new(), new ArchiveDocuments(db, storage));
+            var importer = new FileImport(db, storage, ChatFixture.Profiles(db), new ConversationFileChanges(db));
             var project = new WorkspaceProfile { Id = Guid.NewGuid() };
             db.WorkspaceProfiles.Add(project);
             var date = new DateTimeOffset(2026, 1, 2, 12, 0, 0, TimeSpan.Zero);

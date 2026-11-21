@@ -7,17 +7,20 @@ namespace Alycia.Modules.Chat.Infrastructure;
 
 public sealed record SourcePreview(string Name, string Sha256, string Text, int Start, int End, bool Partial);
 
-public sealed class ProjectFiles(ChatDbContext db, FileImport importer, ProjectSourceReader reader, IWorkspaceProfiles profiles)
+public sealed class ProjectFiles(ChatDbContext db, FileImport importer, ProjectSourceReader reader, IWorkspaceProfiles profiles, IConversationFileChanges conversations)
 {
     public async Task<IReadOnlyList<FileSummary>> ShareAsync(Guid conversation, Guid file, CancellationToken ct)
     {
-        var chat = await db.Conversations.AsNoTracking().SingleOrDefaultAsync(c => c.Id == conversation, ct)
-            ?? throw new ConversationNotFoundException();
+        var chat = await conversations.RequireAsync(conversation, ct);
         var project = chat.WorkspaceId ?? throw new ArgumentException("Rattachez la conversation à un projet.");
         var attachment = await db.Attachments.AsNoTracking().SingleOrDefaultAsync(f => f.ConversationId == conversation && f.Id == file, ct)
             ?? throw new ArgumentException("Pièce jointe introuvable.");
         if (attachment.ContextMode == "excluded") throw new ArgumentException("Une source exclue ne peut pas être promue.");
-        await using var original = reader.OpenOriginal(attachment);
+        await using var original = await reader.OpenVerifiedAsync(attachment, ct);
+        var current = await conversations.RequireAsync(conversation, ct);
+        if (current.WorkspaceId != project || current.Revision != chat.Revision) throw new ChatConflictException();
+        if (!await db.Attachments.AsNoTracking().AnyAsync(f => f.Id == attachment.Id && f.ConversationId == conversation &&
+            f.Sha256 == attachment.Sha256 && f.ContextMode != "excluded", ct)) throw new ArgumentException("Cette source est indisponible.");
         return await importer.ImportAsync(project, attachment.Id, [new(attachment.Name, original, attachment.SourceCreatedAt,
             attachment.SourceModifiedAt, attachment.MetadataSource)], ct, workspace: true);
     }
@@ -70,12 +73,12 @@ public sealed class ProjectFiles(ChatDbContext db, FileImport importer, ProjectS
 
     public async Task ClearOverrideAsync(Guid conversation, Guid file, int revision, CancellationToken ct)
     {
-        var chat = await db.Conversations.SingleOrDefaultAsync(c => c.Id == conversation, ct) ?? throw new ConversationNotFoundException();
-        ConversationConfiguration.CheckRevision(chat, revision);
+        var chat = await conversations.RequireAsync(conversation, ct);
+        if (chat.Revision != revision) throw new ChatConflictException();
         var rule = await db.WorkspaceFileOverrides.FindAsync([conversation, file], ct);
         if (rule is null) return;
         db.Remove(rule);
-        chat.AttachFiles();
+        await conversations.StageAdvanceAsync(conversation, revision, ct);
         await db.SaveVersionedAsync(ct);
     }
 

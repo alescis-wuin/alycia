@@ -10,7 +10,7 @@ public sealed record SourceFileMetadata(string Name, DateTimeOffset? CreatedAt, 
 public sealed record FileSummary(Guid Id, string Name, long Size, string Status, int AnchorSequence,
     DateTimeOffset CreatedAtUtc, Guid? ArchiveId, string Sha256, string ContextMode = "window", Guid BatchId = default, string SourceCreatedAt = "", string SourceModifiedAt = "", string MetadataSource = "unknown", Guid? WorkspaceId = null);
 
-public sealed class FileImport(ChatDbContext database, FileStorage storage, IWorkspaceProfiles profiles, ImportSettingsStore? settings = null)
+public sealed class FileImport(ChatDbContext database, FileStorage storage, IWorkspaceProfiles profiles, IConversationFileChanges conversations, ImportSettingsStore? settings = null)
 {
     public const int MaxFileBytes = 25 * 1024 * 1024;
     public const int MaxBatchBytes = 100 * 1024 * 1024;
@@ -27,8 +27,7 @@ public sealed class FileImport(ChatDbContext database, FileStorage storage, IWor
     {
         var limits = await LimitsAsync(ct);
         var batch = new DocumentImportBatch(batchId, incoming, limits);
-        var conversation = workspace ? null : await database.Conversations.SingleOrDefaultAsync(c => c.Id == conversationId, ct)
-            ?? throw new ConversationNotFoundException();
+        var conversation = workspace ? null : await conversations.RequireAsync(conversationId, ct);
         var profile = workspace ? await profiles.FindAsync(conversationId, ct) : null;
         if (workspace && profile is not { Archived: false }) throw new ArgumentException("Projet indisponible.");
         var owned = workspace ? database.Attachments.Where(f => f.WorkspaceId == conversationId)
@@ -61,7 +60,7 @@ public sealed class FileImport(ChatDbContext database, FileStorage storage, IWor
                 await File.WriteAllBytesAsync(path, bytes, ct);
             }
             database.Attachments.AddRange(files);
-            conversation?.AttachFiles();
+            if (conversation is not null) await conversations.StageAdvanceAsync(conversationId, conversation.Revision, ct);
             if (profile is null)
             {
                 committing = true;
