@@ -107,6 +107,36 @@ public sealed class OllamaChatModelTests
     }
 
     [Fact]
+    public async Task CancellingAnActiveEmbeddingReleasesTheSlotForQueuedChat()
+    {
+        var embeddingStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var http = Client(async (request, ct) =>
+        {
+            switch (request.RequestUri!.AbsolutePath)
+            {
+                case "/api/embed":
+                    embeddingStarted.SetResult();
+                    await Task.Delay(Timeout.Infinite, ct);
+                    throw new InvalidOperationException("The embedding should have been cancelled.");
+                case "/api/tags":
+                    return Json("""{"models":[{"name":"demo"}]}""");
+                case "/api/show":
+                    return Json("""{"capabilities":["completion"]}""");
+                default:
+                    return Json("""{"done":true,"done_reason":"stop","message":{"role":"assistant","content":"ok"}}""");
+            }
+        });
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        using var cancel = CancellationTokenSource.CreateLinkedTokenSource(deadline.Token);
+        var embedding = new OllamaEmbeddings(http).EmbedAsync("embed", ["source"], cancel.Token);
+        await embeddingStarted.Task.WaitAsync(deadline.Token);
+        var queued = new OllamaChatModel(http, new()).GenerateAsync("demo", [], deadline.Token);
+        await cancel.CancelAsync();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => embedding);
+        Assert.Equal("ok", await queued);
+    }
+
+    [Fact]
     public async Task GenerationsAndEmbeddingsShareTheLocalInferenceLimit()
     {
         var active = 0; var maximum = 0;

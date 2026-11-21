@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using System.Net.Http.Json;
-using System.Security.Cryptography;
 using System.Text.Json;
 using Alycia.Modules.Chat.Application;
 
@@ -52,8 +51,9 @@ public sealed partial class OllamaChatModel
             using var request = new HttpRequestMessage(HttpMethod.Post, "api/show") { Content = JsonContent.Create(new { model, verbose = settings.TokenCounting == "auto" }) };
             using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token);
             response.EnsureSuccessStatusCode();
+            await response.Content.LoadIntoBufferAsync(32 * 1024 * 1024, timeout.Token);
             await using var stream = await response.Content.ReadAsStreamAsync(timeout.Token);
-            using var json = JsonDocument.Parse(await FileImport.ReadBoundedAsync(stream, 32 * 1024 * 1024, timeout.Token));
+            using var json = await JsonDocument.ParseAsync(stream, cancellationToken: timeout.Token);
             var hasMetadata = json.RootElement.TryGetProperty("model_info", out var info);
             var counter = hasMetadata && settings.TokenCounting == "auto" ? QwenTokenCounter.FromMetadata(info) : null;
             int? contextLimit = null;

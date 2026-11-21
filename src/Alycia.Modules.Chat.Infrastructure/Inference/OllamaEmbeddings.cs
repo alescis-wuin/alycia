@@ -29,13 +29,12 @@ public sealed class OllamaEmbeddings(HttpClient http) : ILocalEmbeddings
     }
     public async Task<EmbeddingBatch> EmbedAsync(string model, IReadOnlyList<string> input, CancellationToken ct)
     {
-        using var inference = await OllamaInferenceGate.EnterAsync(ct);
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct); timeout.CancelAfter(TimeSpan.FromSeconds(180));
+        using var inference = await OllamaInferenceLease.AcquireAsync(TimeSpan.FromSeconds(180), ct);
         try
         {
-            using var response = await http.PostAsJsonAsync("api/embed", new { model, input, truncate = false }, timeout.Token);
+            using var response = await http.PostAsJsonAsync("api/embed", new { model, input, truncate = false }, inference.Token);
             if (!response.IsSuccessStatusCode) throw new ChatModelException("Embeddings refusés : vérifiez le modèle local, sa fenêtre ou choisissez la recherche lexicale.");
-            using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(timeout.Token));
+            using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(inference.Token));
             var root = document.RootElement;
             var vectors = root.GetProperty("embeddings").Deserialize<float[][]>()!;
             if (vectors is null || vectors.Length != input.Count || vectors.Any(v => v is null || v.Length is < 1 or > 8192

@@ -10,62 +10,6 @@ namespace Alycia.Api.Chat;
 
 internal static partial class ChatEndpoints
 {
-    public static void AddLocalChat(this WebApplicationBuilder builder)
-    {
-        var connection = builder.Configuration["ALYCIA_CHAT_CONNECTION"];
-        if (string.IsNullOrWhiteSpace(connection))
-        {
-            throw new InvalidOperationException("ALYCIA_CHAT_CONNECTION is required for the local chat prototype.");
-        }
-
-        var ollamaUrl = builder.Configuration["ALYCIA_OLLAMA_BASE_URL"] ?? "http://127.0.0.1:11434/";
-        var access = new LocalChatAccess(builder.Configuration);
-        var uri = access.ValidateOllamaUrl(ollamaUrl);
-        builder.Services.AddSingleton(access);
-
-        var options = new ChatOptions();
-        builder.Configuration.GetSection("Chat").Bind(options);
-        options.Validate();
-        builder.Services.AddSingleton(options);
-        builder.Services.AddDbContext<ChatDbContext>(db => db.UseNpgsql(connection,
-            provider => provider.MigrationsHistoryTable("__EFMigrationsHistory", "chat")));
-        builder.Services.AddScoped<IChatRepository, EfChatRepository>();
-        builder.Services.AddScoped<ChatService>();
-        builder.Services.AddSingleton(new FileStorage(builder.Configuration["ALYCIA_FILES_DIRECTORY"]
-            ?? Path.Combine(builder.Environment.ContentRootPath, "data", "files")));
-        builder.Services.AddScoped<ImportSettingsStore>();
-        builder.Services.AddScoped<FileImport>();
-        builder.Services.AddScoped<DocumentAnalysisService>();
-        builder.Services.AddScoped<ProjectSourceReader>();
-        builder.Services.AddScoped<IProjectIndex, ProjectIndexService>();
-        builder.Services.AddSingleton<LexicalIndexCache>();
-        builder.Services.AddScoped<KnowledgeStore>();
-        builder.Services.AddScoped<KnowledgeBuilder>();
-        builder.Services.AddScoped<PostgresEmbeddingStore>();
-        builder.Services.AddScoped<TemporalMemoryStore>();
-        builder.Services.AddScoped<ITemporalMemory>(sp => sp.GetRequiredService<TemporalMemoryStore>());
-        builder.Services.AddScoped<BackgroundEmbeddingIndex>();
-        builder.Services.AddScoped<IIndexedEmbeddings>(sp => sp.GetRequiredService<BackgroundEmbeddingIndex>());
-        builder.Services.AddHostedService<EmbeddingWorker>();
-        builder.Services.AddSingleton<IPassageReranker>(_ => new OnnxPassageReranker(Environment.GetEnvironmentVariable("ALYCIA_RERANK_DIRECTORY")));
-        builder.Services.AddScoped<IProjectRetrieval, ProjectRetrievalService>();
-        builder.Services.AddHttpClient<ILocalEmbeddings, OllamaEmbeddings>(http =>
-        { http.BaseAddress = uri; http.Timeout = Timeout.InfiniteTimeSpan; http.MaxResponseContentBufferSize = 8 * 1024 * 1024; })
-            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false, UseProxy = false });
-        builder.Services.AddScoped<ProjectToolService>();
-        builder.Services.AddScoped<ISnapshotProjectTools>(sp => sp.GetRequiredService<ProjectToolService>());
-        builder.Services.AddHttpClient<IProjectTools, ProjectMcpClient>(http => http.Timeout = Timeout.InfiniteTimeSpan)
-            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false, UseProxy = false });
-        builder.Services.Configure<FormOptions>(form => form.MultipartBodyLengthLimit = ImportLimits.HardBatchBytes);
-        builder.WebHost.ConfigureKestrel(server => server.Limits.MaxRequestBodySize = ImportLimits.HardBatchBytes + 32 * 1024 * 1024);
-        builder.Services.AddHttpClient<IChatModel, OllamaChatModel>(http =>
-        {
-            http.BaseAddress = uri;
-            http.Timeout = Timeout.InfiniteTimeSpan;
-            http.MaxResponseContentBufferSize = 4 * 1024 * 1024;
-        }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false, UseProxy = false });
-    }
-
     public static void MapLocalChat(this WebApplication app)
     {
         var access = app.Services.GetRequiredService<LocalChatAccess>();

@@ -19,30 +19,27 @@ public sealed partial class OllamaChatModel
         ChatOptions settings, Func<ModelDelta, Task> onDelta, bool useTools, CancellationToken cancellationToken)
     {
         settings.Validate();
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         try
         {
-            // Queue time belongs to the caller, not to the inference deadline.
-            using var inference = await OllamaInferenceGate.EnterAsync(cancellationToken);
-            timeout.CancelAfter(TimeSpan.FromSeconds(settings.TimeoutSeconds));
-            var details = await ValidateChatModelAsync(model, timeout.Token);
+            using var inference = await OllamaInferenceLease.AcquireAsync(TimeSpan.FromSeconds(settings.TimeoutSeconds), cancellationToken);
+            var details = await ValidateChatModelAsync(model, inference.Token);
             if (useTools && !details.Capabilities!.Contains("tools", StringComparer.Ordinal))
                 throw new ChatModelException("Ce modèle n’annonce pas la capacité tools. Choisissez un modèle compatible ou désactivez les outils.");
             var payload = new Dictionary<string, object>
             { ["model"] = model, ["messages"] = messages, ["stream"] = true, ["options"] = GenerationOptions(settings) };
             if (useTools) payload["tools"] = ProjectToolCatalog.OllamaTools();
             using var request = new HttpRequestMessage(HttpMethod.Post, "api/chat") { Content = JsonContent.Create(payload) };
-            using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token);
+            using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, inference.Token);
             if (!response.IsSuccessStatusCode)
                 throw new ChatModelException($"Ollama a refusé la génération avec « {model} » (HTTP {(int)response.StatusCode}). Vérifiez les réglages de cette conversation et le journal Ollama.");
-            await using var stream = await response.Content.ReadAsStreamAsync(timeout.Token);
+            await using var stream = await response.Content.ReadAsStreamAsync(inference.Token);
             var content = new StringBuilder();
             var thoughts = new StringBuilder();
             var calls = new List<ModelToolCall>();
             var characters = 0;
-            await foreach (var line in BoundedLines.ReadAsync(stream, timeout.Token))
+            await foreach (var line in BoundedLines.ReadAsync(stream, inference.Token))
             {
-                timeout.CancelAfter(TimeSpan.FromSeconds(settings.TimeoutSeconds));
+                inference.RenewDeadline();
                 if (string.IsNullOrWhiteSpace(line)) continue;
                 using var json = JsonDocument.Parse(line);
                 var root = json.RootElement;
