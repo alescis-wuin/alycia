@@ -16,6 +16,9 @@ internal static class ChatFixture
 
     private static readonly ModelTokenizationCache Tokenizers = new();
 
+    public static ProjectRetrievalService Retrieval(IProjectIndex index, IIndexedEmbeddings? semantic = null, LexicalIndexCache? lexicalCache = null, IPassageReranker? reranker = null) =>
+        new(new RetrievalPipeline(index, lexicalCache ?? new(), reranker), semantic);
+
     public static WorkspaceProfileStore Profiles(ChatDbContext database)
     {
         var session = new RelationalSession(database.Database);

@@ -6,6 +6,7 @@
     <Project Path="src/Alycia.Modules.Indexing/Alycia.Modules.Indexing.csproj" />
     <Project Path="src/Alycia.Modules.Memory/Alycia.Modules.Memory.csproj" />
     <Project Path="src/Alycia.Modules.Context/Alycia.Modules.Context.csproj" />
+    <Project Path="src/Alycia.Modules.Tools/Alycia.Modules.Tools.csproj" />
     <Project Path="src/Alycia.Modules.Inference/Alycia.Modules.Inference.csproj" />
     <Project Path="src/Alycia.Modules.Documents/Alycia.Modules.Documents.csproj" />
     <Project Path="src/Alycia.Platform.Persistence/Alycia.Platform.Persistence.csproj" />

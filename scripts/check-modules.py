@@ -22,6 +22,7 @@ ISOLATED = {
     "Alycia.Modules.Documents": {"Alycia.Contracts"},
     "Alycia.Modules.Inference": {"Alycia.Contracts"},
     "Alycia.Modules.Indexing": {"Alycia.Contracts"},
+    "Alycia.Modules.Tools": {"Alycia.Contracts"},
     "Alycia.Modules.Context": {"Alycia.Contracts"},
     "Alycia.Modules.Memory": {"Alycia.Contracts"},
     "Alycia.Modules.Retrieval": {"Alycia.Contracts"},

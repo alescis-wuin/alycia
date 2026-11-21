@@ -96,6 +96,7 @@ internal static class ChatRegistration
         services.AddScoped<IConversationHistoryReader>(sp => sp.GetRequiredService<IChatRepository>());
         services.AddScoped<IToolConversationPolicy, ToolConversationPolicyReader>();
         services.AddScoped<IAuthorizedToolSources, AuthorizedToolSources>();
+        services.AddScoped<ISourceCommands, Alycia.Modules.Tools.SourceCommands>();
         services.AddScoped<ProjectToolService>();
         services.AddScoped<ISnapshotProjectTools>(sp => sp.GetRequiredService<ProjectToolService>());
         services.AddHttpClient<IProjectTools, ProjectMcpClient>(http => http.Timeout = Timeout.InfiniteTimeSpan)
@@ -130,6 +131,7 @@ internal static class ChatRegistration
     {
         services.AddSingleton<LexicalIndexCache>();
         services.AddSingleton<IPassageReranker>(_ => new OnnxPassageReranker(Environment.GetEnvironmentVariable("ALYCIA_RERANK_DIRECTORY")));
+        services.AddScoped<IRetrievalPipeline, Alycia.Modules.Retrieval.RetrievalPipeline>();
         services.AddScoped<IProjectRetrieval, ProjectRetrievalService>();
     }
 

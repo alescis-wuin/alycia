@@ -17,6 +17,7 @@
     <Using Include="Alycia.Modules.Inference" />
     <ProjectReference Include="../Alycia.Modules.Memory/Alycia.Modules.Memory.csproj" />
     <ProjectReference Include="../Alycia.Modules.Context/Alycia.Modules.Context.csproj" />
+    <ProjectReference Include="../Alycia.Modules.Tools/Alycia.Modules.Tools.csproj" />
     <ProjectReference Include="../Alycia.Modules.Inference/Alycia.Modules.Inference.csproj" />
     <Using Include="Alycia.Contracts.Indexing" />
     <Using Include="Alycia.Modules.Indexing" />
@@ -34,6 +35,7 @@
   </ItemGroup>
   <ItemGroup>
     <Using Include="Alycia.Contracts.Chat" />
+    <Using Include="Alycia.Contracts.Tools" />
     <Using Include="Alycia.Contracts.Inference" />
   </ItemGroup>
 </Project>

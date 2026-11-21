@@ -10,6 +10,7 @@ COPY src/Alycia.Modules.Inference/Alycia.Modules.Inference.csproj src/Alycia.Mod
 COPY src/Alycia.Modules.Indexing/Alycia.Modules.Indexing.csproj src/Alycia.Modules.Indexing/
 COPY src/Alycia.Modules.Memory/Alycia.Modules.Memory.csproj src/Alycia.Modules.Memory/
 COPY src/Alycia.Modules.Context/Alycia.Modules.Context.csproj src/Alycia.Modules.Context/
+COPY src/Alycia.Modules.Tools/Alycia.Modules.Tools.csproj src/Alycia.Modules.Tools/
 COPY src/Alycia.Modules.Retrieval/Alycia.Modules.Retrieval.csproj src/Alycia.Modules.Retrieval/
 COPY src/Alycia.Modules.Retrieval.Onnx/Alycia.Modules.Retrieval.Onnx.csproj src/Alycia.Modules.Retrieval.Onnx/
 COPY src/Alycia.Modules.Testing/Alycia.Modules.Testing.csproj src/Alycia.Modules.Testing/
@@ -29,6 +30,7 @@ COPY src/Alycia.Modules.Inference/ src/Alycia.Modules.Inference/
 COPY src/Alycia.Modules.Indexing/ src/Alycia.Modules.Indexing/
 COPY src/Alycia.Modules.Memory/ src/Alycia.Modules.Memory/
 COPY src/Alycia.Modules.Context/ src/Alycia.Modules.Context/
+COPY src/Alycia.Modules.Tools/ src/Alycia.Modules.Tools/
 COPY src/Alycia.Modules.Retrieval/ src/Alycia.Modules.Retrieval/
 COPY src/Alycia.Modules.Retrieval.Onnx/ src/Alycia.Modules.Retrieval.Onnx/
 COPY src/Alycia.Modules.Testing/ src/Alycia.Modules.Testing/

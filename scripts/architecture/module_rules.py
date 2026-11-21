@@ -84,10 +84,11 @@ NARROW_EDGES = {
 CONTRACT_AREAS = {
     "Alycia.Modules.Documents": {"Chat", "Documents"},
     "Alycia.Modules.Indexing": {"Chat", "Indexing", "Inference", "Workspaces"},
+    "Alycia.Modules.Tools": {"Chat", "Documents", "Indexing", "Tools"},
     "Alycia.Modules.Context": {"Context"},
     "Alycia.Modules.Memory": {"Indexing", "Chat", "Memory"},
     "Alycia.Modules.Inference": {"Chat", "Inference"},
-    "Alycia.Modules.Retrieval": {"Indexing", "Retrieval"},
+    "Alycia.Modules.Retrieval": {"Indexing", "Retrieval", "Chat", "Documents"},
     "Alycia.Modules.Retrieval.Onnx": {"Indexing", "Retrieval"},
     "Alycia.Modules.Testing": {"Chat", "Indexing", "Inference"},
     "Alycia.Modules.Workspaces.Infrastructure": {"Workspaces", "Chat", "Indexing"},

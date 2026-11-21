@@ -3,8 +3,6 @@ using System.Text.RegularExpressions;
 
 namespace Alycia.Modules.Chat.Application;
 
-public sealed record EvidenceText(string Reference, string Text, string? Role = null);
-
 public static class ClaimAudit
 {
     private static readonly Regex Markers = new(@"\[(S[0-9a-f]{12}|H[0-9]+:[0-9a-f]{12})\]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));

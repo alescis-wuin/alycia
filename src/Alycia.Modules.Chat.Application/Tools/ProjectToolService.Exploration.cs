@@ -1,3 +1,4 @@
+using static Alycia.Contracts.Tools.ToolArguments;
 using System.Text.Json;
 
 namespace Alycia.Modules.Chat.Application;
