@@ -30,3 +30,9 @@ Copy the table into the task or pull request before starting.
 The integrator registers dependencies in the API, reviews the diff against the frozen public contract, verifies the graph, and reruns the consumer checks. Run the final campaign from [the execution report](rapport-execution.md). Open a review PR into the agreed base.
 
 Integrations with several independent chantiers have the preceding phase as first parent. To inspect a phase, run `git diff <phase>^1 <phase>`. To try an earlier phase without touching an existing checkout, use `git worktree add --detach ../alycia-checkpoint <sha>`. For a reviewed rollback on a separate recovery branch, revert a normal commit with `git revert <sha>`, or a phase merge with `git revert -m 1 <sha>`, newest dependent phase first. Verify the same compatibility checks before review. The refactor uses the existing storage schema.
+
+## Contributions sur la consolidation
+
+Démarrer par `python3 scripts/check-modules.py --matrix` avec le SDK .NET 10 et repérer les ports réellement consommés. Les fichiers créés dans une fonctionnalité héritent du propriétaire de leur dossier. Proposer à l’intégrateur l’attribution d’un fichier racine ou une modification de `module_rules.py` si une nouvelle dépendance est nécessaire. La proposition indique le type visé, le besoin de l’appelant, le détenteur de l’état et l’effet sur les autres contributeurs. Un port existant peut suffire.
+
+Dans un worktree de fonctionnalité, lancer les tests du comportement modifié. Pour les règles elles-mêmes, lancer `python3 -m unittest discover -s scripts/tests -p 'module_boundaries_tests.py'`. Les fixtures compilées par le lecteur de symboles couvrent les types non qualifiés, les alias, un port autorisé, les fichiers générés, le graphe du client et un cycle de projets. L’intégrateur vérifie le diff des surfaces publiques et exécute la recette sur les modifications réunies.
