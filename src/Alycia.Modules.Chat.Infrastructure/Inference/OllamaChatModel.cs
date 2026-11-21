@@ -101,7 +101,8 @@ public sealed partial class OllamaChatModel(HttpClient http, ChatOptions options
         settings.Validate();
         try
         {
-            using var inference = await OllamaInferenceLease.AcquireAsync(TimeSpan.FromSeconds(settings.TimeoutSeconds), cancellationToken);
+            using var inference = await OllamaInferenceLease.AcquireAsync(TimeSpan.FromSeconds(settings.TimeoutSeconds),
+                cancellationToken, annotation: settings.CallPurpose == "annotation");
             await ValidateChatModelAsync(model, inference.Token);
 
             var request = new Dictionary<string, object>

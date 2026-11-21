@@ -21,7 +21,8 @@ public sealed partial class OllamaChatModel
         settings.Validate();
         try
         {
-            using var inference = await OllamaInferenceLease.AcquireAsync(TimeSpan.FromSeconds(settings.TimeoutSeconds), cancellationToken);
+            using var inference = await OllamaInferenceLease.AcquireAsync(TimeSpan.FromSeconds(settings.TimeoutSeconds),
+                cancellationToken, annotation: settings.CallPurpose == "annotation");
             var details = await ValidateChatModelAsync(model, inference.Token);
             if (useTools && !details.Capabilities!.Contains("tools", StringComparer.Ordinal))
                 throw new ChatModelException("Ce modèle n’annonce pas la capacité tools. Choisissez un modèle compatible ou désactivez les outils.");
