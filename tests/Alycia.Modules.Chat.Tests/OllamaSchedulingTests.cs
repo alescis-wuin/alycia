@@ -33,7 +33,7 @@ public sealed class OllamaSchedulingTests(ITestOutputHelper output)
                 await embedding.InferenceStarted.Task.WaitAsync(ct);
                 // Each adapter call reaches its first incomplete await while the only model slot is occupied.
                 var queued = annotations.Select(a => a.RunAsync(ct)).ToArray();
-                using (GenerationGate.Shared.PreferForeground())
+                using (ChatFixture.Foreground.PreferForeground())
                 {
                     var interactive = chat.RunAsync(ct);
                     release.SetResult();

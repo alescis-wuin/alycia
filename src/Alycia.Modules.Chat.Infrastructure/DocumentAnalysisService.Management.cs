@@ -7,7 +7,7 @@ namespace Alycia.Modules.Chat.Infrastructure;
 public sealed partial class DocumentAnalysisService
 {
     // The response writer holds this lease until the final progress or error message is delivered.
-    public IDisposable AcquireAnalysisLease(Guid id) => GenerationGate.Shared.Enter(id);
+    public IDisposable AcquireAnalysisLease(Guid id) => conversationGate.Enter(id);
 
     public async Task<string> InventoryAsync(Guid id, Guid? batch, CancellationToken ct)
     {

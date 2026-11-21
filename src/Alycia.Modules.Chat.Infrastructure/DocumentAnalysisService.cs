@@ -8,7 +8,7 @@ namespace Alycia.Modules.Chat.Infrastructure;
 public sealed record AnalysisItem(Guid Id, string Title, DateTimeOffset CreatedAtUtc, string Model,
     int FileCount, int SummaryCalls, bool UseInContext, bool IsStale, Guid? ScopeBatchId);
 
-public sealed partial class DocumentAnalysisService(ChatDbContext database, IChatModel model, ChatOptions defaults, ProjectSourceReader reader)
+public sealed partial class DocumentAnalysisService(ChatDbContext database, IChatModel model, ChatOptions defaults, ProjectSourceReader reader, GenerationGate conversationGate)
 {
     public async Task<DocumentAnalysis> AnalyzeAsync(Guid id, int revision, Guid? batch, int budget,
         Func<string, Task>? progress, CancellationToken ct, Guid? resumeRunId = null)

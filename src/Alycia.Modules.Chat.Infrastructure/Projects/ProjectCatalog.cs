@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Alycia.Modules.Chat.Infrastructure;
 
-public sealed class ProjectCatalog(ChatDbContext db, RelationalSession session, IWorkspaceIdentityDirectory identities) : IProjectCatalog
+public sealed class ProjectCatalog(ChatDbContext db, RelationalSession session, IWorkspaceIdentityDirectory identities, GenerationGate conversationGate) : IProjectCatalog
 {
     public async Task<IReadOnlyList<ProjectEntry>> ListAsync(CancellationToken ct)
     {
@@ -50,7 +50,7 @@ public sealed class ProjectCatalog(ChatDbContext db, RelationalSession session, 
 
     public async Task<Conversation> SetMembershipAsync(Guid id, int revision, Guid? workspaceId, CancellationToken ct)
     {
-        using var gate = GenerationGate.Shared.Enter(id);
+        using var gate = conversationGate.Enter(id);
         await using var tx = await db.Database.BeginTransactionAsync(ct);
         var conversation = await db.Conversations.SingleOrDefaultAsync(c => c.Id == id, ct) ?? throw new ConversationNotFoundException();
         ConversationConfiguration.CheckRevision(conversation, revision);

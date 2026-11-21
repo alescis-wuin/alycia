@@ -66,7 +66,7 @@ public class TemporalMemoryIntegrationTests
                 await embeddings.WriteAsync("fixture:digest", chunk, [1, 0], scope, fact.Sequence, default);
             }
             var semanticOptions = options.Copy(); semanticOptions.RetrievalMode = "hybrid"; semanticOptions.EmbeddingModel = "fixture";
-            var engine = new BackgroundEmbeddingIndex(db, embeddings, new ProjectSourceReader(new FileStorage(Path.GetTempPath())), new QueryEncoder(), options, new ConversationIndexOwners(db), new ProjectIndexOwners(db));
+            var engine = new BackgroundEmbeddingIndex(db, embeddings, new ProjectSourceReader(new FileStorage(Path.GetTempPath())), new QueryEncoder(), options, new ConversationIndexOwners(db), new ProjectIndexOwners(db), ChatFixture.Foreground);
             var semanticStore = new TemporalMemoryStore(db, engine, options);
             var paraphrase = await semanticStore.RecallAsync(owner.Id, "Territoire géographique ?", semanticOptions, 4, default);
             Assert.Single(paraphrase.Calls);

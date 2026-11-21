@@ -92,7 +92,7 @@ public sealed class PostgresChatTests
                 await firstRepo.SaveAsync(default);
                 // A generation completed against the old revision must roll back both inserts.
                 var staleRequest = Guid.NewGuid();
-                var memory = new ConversationMemory(secondRepo);
+                var memory = new ConversationMemory(secondRepo, ChatFixture.Gate);
                 memory.Apply(b, new("", 0, "", StructuredMemory.Serialize(new(1, 4, "ancienne", []))));
                 b.CompleteTurn();
                 await Assert.ThrowsAsync<ChatConflictException>(() => secondRepo.AppendTurnAsync(b,

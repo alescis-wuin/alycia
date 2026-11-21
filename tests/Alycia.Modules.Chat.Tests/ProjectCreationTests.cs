@@ -12,7 +12,7 @@ public sealed class ProjectCreationTests
     private static ProjectCatalog Catalog(ChatDbContext database)
     {
         var session = new RelationalSession(database.Database);
-        return new(database, session, new WorkspaceIdentityDirectory(session));
+        return new(database, session, new WorkspaceIdentityDirectory(session), ChatFixture.Gate);
     }
 
     [PostgresFact]

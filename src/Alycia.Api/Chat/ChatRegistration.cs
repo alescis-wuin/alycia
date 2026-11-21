@@ -43,6 +43,7 @@ internal static class ChatRegistration
 
     private static void RegisterConversations(IServiceCollection services)
     {
+        services.AddSingleton<GenerationGate>();
         services.AddScoped<IChatRepository, EfChatRepository>();
         services.AddScoped<IConversationContextReader>(sp => sp.GetRequiredService<IChatRepository>());
         services.AddScoped<ConversationHistory>();
@@ -55,7 +56,8 @@ internal static class ChatRegistration
         services.AddScoped(sp => new ChatService(
             sp.GetRequiredService<IChatRepository>(), sp.GetRequiredService<IChatModel>(), sp.GetRequiredService<ChatOptions>(),
             sp.GetRequiredService<ITurnContext>(), sp.GetRequiredService<IConversationMemory>(), sp.GetRequiredService<ITurnTools>(),
-            sp.GetRequiredService<ITurnRouting>(), sp.GetRequiredService<ITurnResponseAudit>()));
+            sp.GetRequiredService<ITurnRouting>(), sp.GetRequiredService<ITurnResponseAudit>(),
+            sp.GetRequiredService<GenerationGate>(), sp.GetRequiredService<IForegroundActivity>()));
     }
 
     private static void RegisterProjects(IServiceCollection services)
@@ -63,6 +65,8 @@ internal static class ChatRegistration
         services.AddScoped(sp => new RelationalSession(sp.GetRequiredService<ChatDbContext>().Database));
         services.AddScoped<IWorkspaceIdentityDirectory, WorkspaceIdentityDirectory>();
         services.AddScoped<IProjectCatalog, ProjectCatalog>();
+        services.AddScoped<IProjectModelDefaults>(sp => sp.GetRequiredService<IProjectCatalog>());
+        services.AddScoped<ConversationCreation>();
         services.AddScoped<ProjectFiles>();
     }
 
@@ -128,6 +132,7 @@ internal static class ChatRegistration
     private static void RegisterInference(IServiceCollection services, Uri uri, bool mockInference)
     {
         services.AddSingleton<InferenceScheduler>();
+        services.AddSingleton<IForegroundActivity, ForegroundActivity>();
         services.AddScoped<IChatModel, ChatGenerationAdapter>();
         if (mockInference)
         {

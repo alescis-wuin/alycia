@@ -10,7 +10,7 @@ public interface IConversationMemory
     Task<Conversation> ResetAsync(Guid id, int revision, CancellationToken ct);
 }
 
-public sealed class ConversationMemory(IChatRepository repository) : IConversationMemory
+public sealed class ConversationMemory(IChatRepository repository, GenerationGate gate) : IConversationMemory
 {
     // The caller persists a prepared change together with its turn or context preparation.
     public bool Apply(Conversation conversation, PreparedMemoryChange? prepared)
@@ -25,7 +25,7 @@ public sealed class ConversationMemory(IChatRepository repository) : IConversati
 
     public async Task<Conversation> ResetAsync(Guid id, int revision, CancellationToken ct)
     {
-        using var lease = GenerationGate.Shared.Enter(id);
+        using var lease = gate.Enter(id);
         var conversation = await repository.FindAsync(id, ct) ?? throw new ConversationNotFoundException();
         ConversationConfiguration.CheckRevision(conversation, revision);
         conversation.SetMemory("", 0, "", "");

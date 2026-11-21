@@ -11,7 +11,7 @@ public sealed class StructuredMemoryTests
     {
         var repo = new Repository(1);
         var conversation = repo.Conversation;
-        var memory = new ConversationMemory(repo);
+        var memory = new ConversationMemory(repo, ChatFixture.Gate);
         var prepared = new PreparedContext(new([], 0, 0), "Résumé du premier tour", 2, "source", true);
         var revision = conversation.Revision;
         Assert.False(memory.Apply(conversation, null));
@@ -38,8 +38,8 @@ public sealed class StructuredMemoryTests
         var ledger = StructuredMemory.Serialize(new(1, 2, "chain", []));
         conversation.SetMemoryLedger(ledger);
         var revision = conversation.Revision;
-        var memory = new ConversationMemory(repo);
-        using (GenerationGate.Shared.Enter(conversation.Id))
+        var memory = new ConversationMemory(repo, ChatFixture.Gate);
+        using (ChatFixture.Gate.Enter(conversation.Id))
             await Assert.ThrowsAsync<ChatConflictException>(() => memory.ResetAsync(conversation.Id, revision, default));
         await Assert.ThrowsAsync<ChatConflictException>(() => memory.ResetAsync(conversation.Id, revision - 1, default));
         Assert.Equal((revision, "résumé", ledger, 0), (conversation.Revision, conversation.MemoryText, conversation.MemoryLedgerJson, repo.Saves));

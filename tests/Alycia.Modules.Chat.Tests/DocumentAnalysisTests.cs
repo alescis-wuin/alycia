@@ -42,7 +42,7 @@ public sealed class DocumentAnalysisTests
             Assert.Equal("", code.SourceCreatedAt);
             Assert.Contains("fuseau non fourni", code.MetadataSource);
             var model = new Model();
-            var service = new DocumentAnalysisService(database, model, new(), new ProjectSourceReader(storage));
+            var service = new DocumentAnalysisService(database, model, new(), new ProjectSourceReader(storage), ChatFixture.Gate);
             var report = await service.AnalyzeAsync(conversation.Id, conversation.Revision, null, 1024, null, default);
             Assert.Equal(4, report.FileCount);
             Assert.Contains("Source : tree.txt intégral", string.Join("\n", model.Inputs));

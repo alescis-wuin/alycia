@@ -51,7 +51,7 @@ public sealed class KnowledgePipelineTests
             var jobs = new PostgresEmbeddingStore(db.Database.GetConnectionString()!);
             var model = new AnnotationModel();
             var reader = new ProjectSourceReader(storage);
-            var worker = new BackgroundEmbeddingIndex(db, jobs, reader, new NoVectors(), new(), new ConversationIndexOwners(db), new ProjectIndexOwners(db), new(notes, model));
+            var worker = new BackgroundEmbeddingIndex(db, jobs, reader, new NoVectors(), new(), new ConversationIndexOwners(db), new ProjectIndexOwners(db), ChatFixture.Foreground, new(notes, model, ChatFixture.Foreground));
             var index = new ProjectIndexService(db, storage, reader, options, notes);
             await worker.DiscoverAsync(default);
             async Task<EmbeddingJob> Job() => Assert.Single(await jobs.JobsAsync(default));
@@ -69,7 +69,7 @@ public sealed class KnowledgePipelineTests
                 }
                 throw new InvalidOperationException("Le travail ne progresse plus.");
             }
-            using (GenerationGate.Shared.PreferForeground())
+            using (ChatFixture.Foreground.PreferForeground())
             {
                 await worker.ProcessAsync(await Job(), default);
                 Assert.Equal("queued", (await Job()).Progress.State);
@@ -169,7 +169,7 @@ public sealed class KnowledgePipelineTests
             options.RetrievalMode = "hybrid"; options.EmbeddingModel = "vectors-test"; options.HierarchicalIndexEnabled = true;
             owner.Configure(owner.Model, "", "", ConversationConfiguration.Serialize(options)); await db.SaveChangesAsync();
             var encoder = new TinyVectors();
-            var hybrid = new BackgroundEmbeddingIndex(db, jobs, reader, encoder, new(), new ConversationIndexOwners(db), new ProjectIndexOwners(db), new(notes, model));
+            var hybrid = new BackgroundEmbeddingIndex(db, jobs, reader, encoder, new(), new ConversationIndexOwners(db), new ProjectIndexOwners(db), ChatFixture.Foreground, new(notes, model, ChatFixture.Foreground));
             await hybrid.DiscoverAsync(default);
             for (int iteration = 0; iteration < 40; iteration++)
             {

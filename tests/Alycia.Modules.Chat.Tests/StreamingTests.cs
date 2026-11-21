@@ -143,8 +143,8 @@ public sealed class StreamingTests
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.StreamAsync(repository.Conversation.Id,
             Guid.NewGuid(), "hello", 0, _ => { cancel.Cancel(); return Task.CompletedTask; }, cancel.Token));
         Assert.Empty(repository.Messages);
-        using var lease = GenerationGate.Shared.Enter(repository.Conversation.Id);
-        Assert.Throws<ChatConflictException>(() => GenerationGate.Shared.Enter(repository.Conversation.Id));
+        using var lease = ChatFixture.Gate.Enter(repository.Conversation.Id);
+        Assert.Throws<ChatConflictException>(() => ChatFixture.Gate.Enter(repository.Conversation.Id));
     }
 
     private sealed class StreamingModel : IChatModel

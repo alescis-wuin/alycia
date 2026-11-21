@@ -4,7 +4,7 @@ using Alycia.Modules.Chat.Domain;
 namespace Alycia.Modules.Chat.Application;
 
 public sealed class ChatService(IChatRepository repository, IChatModel model, ChatOptions options,
-    ITurnContext turnContext, IConversationMemory memory, ITurnTools tools, ITurnRouting routing, ITurnResponseAudit audit)
+    ITurnContext turnContext, IConversationMemory memory, ITurnTools tools, ITurnRouting routing, ITurnResponseAudit audit, GenerationGate gate, IForegroundActivity foreground)
 {
     public async Task<Conversation> CreateAsync(string? title, string? modelName, string? systemPrompt,
         CancellationToken cancellationToken, Guid? workspaceId = null)
@@ -33,7 +33,7 @@ public sealed class ChatService(IChatRepository repository, IChatModel model, Ch
     private async Task<SendMessageResult> SendCoreAsync(Guid id, Guid requestId, string? content,
         int? revision, Func<ModelDelta, Task>? onDelta, CancellationToken cancellationToken)
     {
-        using var lease = GenerationGate.Shared.Enter(id);
+        using var lease = gate.Enter(id);
         if (requestId == Guid.Empty)
         {
             throw new ArgumentException("Un identifiant de requête est requis.");
@@ -56,7 +56,7 @@ public sealed class ChatService(IChatRepository repository, IChatModel model, Ch
 
         if (revision.HasValue) ConversationConfiguration.CheckRevision(conversation, revision.Value);
         var settings = await model.PrepareOptionsAsync(conversation.Model, ConversationConfiguration.Options(conversation, options), cancellationToken);
-        using var priority = GenerationGate.Shared.PreferForeground();
+        using var priority = foreground.PreferForeground();
         var measured = new MeteredChatModel(model);
         await routing.PrepareAsync(conversation, text, settings, measured, onDelta, cancellationToken);
         var activeTools = await tools.SelectAsync(conversation, settings, model, cancellationToken);

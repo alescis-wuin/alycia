@@ -82,11 +82,9 @@ internal static partial class ChatEndpoints
         routes.MapGet("/conversations", async (IChatRepository repository, CancellationToken ct) =>
             Results.Ok((await repository.ListAsync(ct)).Select(c => c.ToResponse())));
 
-        routes.MapPost("/conversations", async (CreateConversation request, ChatService service, IProjectCatalog projects, CancellationToken ct) =>
+        routes.MapPost("/conversations", async (CreateConversation request, ConversationCreation creation, CancellationToken ct) =>
         {
-            var defaultModel = request.WorkspaceId is Guid projectId ? await projects.ActiveDefaultModelAsync(projectId, ct) : null;
-            var model = string.IsNullOrWhiteSpace(request.Model) ? defaultModel : request.Model;
-            var conversation = await service.CreateAsync(request.Title, model, request.SystemPrompt, ct, request.WorkspaceId);
+            var conversation = await creation.CreateAsync(request.Title, request.Model, request.SystemPrompt, request.WorkspaceId, ct);
             return Results.Created($"/api/chat/conversations/{conversation.Id}", conversation.ToResponse());
         });
 

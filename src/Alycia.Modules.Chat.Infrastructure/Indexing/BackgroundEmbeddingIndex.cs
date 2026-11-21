@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Alycia.Modules.Chat.Infrastructure;
 
 public sealed class BackgroundEmbeddingIndex(ChatDbContext database, PostgresEmbeddingStore store,
-    ProjectSourceReader reader, ILocalEmbeddings embeddings, ChatOptions defaults, IConversationIndexOwners conversations, IProjectIndexOwners projects, KnowledgeBuilder? knowledge = null) : IIndexedEmbeddings
+    ProjectSourceReader reader, ILocalEmbeddings embeddings, ChatOptions defaults, IConversationIndexOwners conversations, IProjectIndexOwners projects, IForegroundActivity foreground, KnowledgeBuilder? knowledge = null) : IIndexedEmbeddings
 {
     private readonly EmbeddingJobDiscovery _discovery = new(conversations, projects, store, defaults, knowledge);
     private readonly IndexedEmbeddingSearch _queries = new(store, embeddings);
@@ -60,7 +60,7 @@ public sealed class BackgroundEmbeddingIndex(ChatDbContext database, PostgresEmb
             if (job.Progress.State == "completed" && fingerprint == job.Fingerprint)
             { await store.ProgressAsync(job, "completed", total, total, job.Progress.Detail, fingerprint, ct); return; }
             if (!await store.ProgressAsync(job, "running", 0, total, "Préparation des passages", fingerprint, ct, 0)) return;
-            if (GenerationGate.Shared.ForegroundRequested)
+            if (foreground.ForegroundRequested)
             {
                 await store.ProgressAsync(job, "queued", completed, total, "Indexation différée pendant une génération", fingerprint, ct, 0);
                 return;
@@ -134,7 +134,7 @@ public sealed class BackgroundEmbeddingIndex(ChatDbContext database, PostgresEmb
                 var passages = 0;
                 foreach (var batch in chunks.DistinctBy(EmbeddingChunks.Key).Chunk(job.Settings.BatchSize))
                 {
-                    if (GenerationGate.Shared.ForegroundRequested)
+                    if (foreground.ForegroundRequested)
                     {
                         await store.ProgressAsync(job, "queued", completed, total, "Indexation différée pendant une génération", fingerprint, ct);
                         return false;

@@ -7,7 +7,7 @@ namespace Alycia.Modules.Chat.Application.Conversations;
 public sealed record ContextPreparationResult(ContextWindow Context, ChatOptions Options, GenerationUsage Usage, int Revision, int OmittedMessages, string Estimator);
 
 public sealed class ConversationContextPreparation(IChatRepository repository, IChatModel model, ITurnTools tools, ITurnContext turnContext,
-    IConversationMemory memoryWriter, IProjectRetrieval retrieval, ITemporalMemory memory, ChatOptions defaults)
+    IConversationMemory memoryWriter, IProjectRetrieval retrieval, ITemporalMemory memory, ChatOptions defaults, GenerationGate gate)
 {
     private sealed record Inputs(Conversation Conversation, string Text, ChatOptions Options, MeteredChatModel Measured, TurnContextBudget Budget);
 
@@ -22,7 +22,7 @@ public sealed class ConversationContextPreparation(IChatRepository repository, I
 
     public async Task<PendingPreparation> BeginAsync(Guid id, int revision, string? content, CancellationToken ct)
     {
-        var lease = GenerationGate.Shared.Enter(id);
+        var lease = gate.Enter(id);
         try
         {
             var conversation = await repository.FindAsync(id, ct) ?? throw new ConversationNotFoundException();

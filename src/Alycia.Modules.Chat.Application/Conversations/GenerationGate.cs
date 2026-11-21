@@ -6,14 +6,6 @@ namespace Alycia.Modules.Chat.Application;
 // revision remains the authoritative cross-process protection at commit time.
 public sealed class GenerationGate
 {
-    public static GenerationGate Shared { get; } = new();
-    private int _priority;
-    public bool ForegroundRequested => Volatile.Read(ref _priority) > 0;
-    public IDisposable PreferForeground()
-    {
-        Interlocked.Increment(ref _priority);
-        return new Lease(() => Interlocked.Decrement(ref _priority));
-    }
     private readonly ConcurrentDictionary<Guid, byte> _active = new();
 
     public IDisposable Enter(Guid id)
