@@ -2,7 +2,6 @@ using System.Text;
 using System.Text.Json;
 using Alycia.Modules.Chat.Application;
 using Alycia.Modules.Chat.Infrastructure;
-using Microsoft.EntityFrameworkCore;
 
 namespace Alycia.Api.Chat;
 
@@ -11,29 +10,22 @@ internal static partial class ChatEndpoints
     private static void MapAnalysis(RouteGroupBuilder routes)
     {
         routes.MapGet("/conversations/{id:guid}/inventory", async (Guid id, Guid? batchId,
-            ChatDbContext database, CancellationToken ct) =>
-        {
-            if (!await database.Conversations.AnyAsync(c => c.Id == id, ct)) throw new ConversationNotFoundException();
-            var files = await DocumentAnalysisService.MetadataAsync(database, id, ct);
-            return Results.File(Encoding.UTF8.GetBytes(ProjectInventory.Tree(files.Where(f => !batchId.HasValue || f.BatchId == batchId))),
-                "text/plain; charset=utf-8", "tree.txt");
-        });
+            DocumentAnalysisService service, CancellationToken ct) =>
+            Results.File(Encoding.UTF8.GetBytes(await service.InventoryAsync(id, batchId, ct)), "text/plain; charset=utf-8", "tree.txt"));
         routes.MapGet("/conversations/{id:guid}/analyses", async (Guid id, DocumentAnalysisService service, CancellationToken ct) =>
             Results.Ok(await service.ListAsync(id, ct)));
         routes.MapGet("/conversations/{id:guid}/analysis-runs", async (Guid id, DocumentAnalysisService service, CancellationToken ct) =>
             Results.Ok(await service.RunsAsync(id, ct)));
         routes.MapDelete("/conversations/{id:guid}/analysis-runs/{runId:guid}", async (Guid id, Guid runId,
-            IChatRepository repository, FileStorage storage, CancellationToken ct) =>
+            DocumentAnalysisService service, CancellationToken ct) =>
         {
-            using var lease = GenerationGate.Shared.Enter(id);
-            if (await repository.FindAsync(id, ct) is null) throw new ConversationNotFoundException();
-            new AnalysisCheckpoints(storage).DeleteRun(id, runId);
+            await service.DeleteRunAsync(id, runId, ct);
             return Results.NoContent();
         });
         routes.MapGet("/conversations/{id:guid}/analyses/{analysisId:guid}", async (Guid id, Guid analysisId,
-            string? format, ChatDbContext database, HttpContext http, CancellationToken ct) =>
+            string? format, DocumentAnalysisService service, HttpContext http, CancellationToken ct) =>
         {
-            var analysis = await database.DocumentAnalyses.AsNoTracking().SingleOrDefaultAsync(a => a.Id == analysisId && a.ConversationId == id, ct);
+            var analysis = await service.GetAsync(id, analysisId, ct);
             if (analysis is null) return Results.NotFound();
             http.Response.Headers.CacheControl = "no-store";
             return format switch
@@ -48,7 +40,7 @@ internal static partial class ChatEndpoints
         routes.MapPost("/conversations/{id:guid}/analyses", async (Guid id, AnalyzeRequest request,
             DocumentAnalysisService service, HttpContext http, CancellationToken ct) =>
         {
-            using var lease = GenerationGate.Shared.Enter(id);
+            using var lease = service.AcquireAnalysisLease(id);
             http.Response.ContentType = "application/x-ndjson; charset=utf-8";
             http.Response.Headers.CacheControl = "no-store";
             async Task WriteAsync(object item)
@@ -75,41 +67,14 @@ internal static partial class ChatEndpoints
             return Results.Empty;
         });
         routes.MapPatch("/conversations/{id:guid}/analyses/{analysisId:guid}", async (Guid id, Guid analysisId,
-            SelectAnalysis request, ChatDbContext database, CancellationToken ct) =>
+            SelectAnalysis request, DocumentAnalysisService service, CancellationToken ct) =>
         {
-            using var lease = GenerationGate.Shared.Enter(id);
-            var conversation = await database.Conversations.SingleOrDefaultAsync(c => c.Id == id, ct)
-                ?? throw new ConversationNotFoundException();
-            ConversationConfiguration.CheckRevision(conversation, request.Revision);
-            var analysis = await database.DocumentAnalyses.SingleOrDefaultAsync(a => a.Id == analysisId && a.ConversationId == id, ct);
-            if (analysis is null) return Results.NotFound();
-            if (request.UseInContext)
-            {
-                var files = await DocumentAnalysisService.MetadataAsync(database, id, ct);
-                if (ProjectInventory.Fingerprint(files.Where(f => !analysis.ScopeBatchId.HasValue || f.BatchId == analysis.ScopeBatchId)) != analysis.SourceFingerprint)
-                    throw new ArgumentException("Cette analyse est périmée : les sources ou exclusions ont changé. Relancez l’analyse.");
-                foreach (var other in await database.DocumentAnalyses.Where(a => a.ConversationId == id && a.UseInContext).ToListAsync(ct))
-                    other.UseInContext = false;
-            }
-            analysis.UseInContext = request.UseInContext;
-            conversation.AttachFiles();
-            await new EfChatRepository(database).SaveAsync(ct);
-            return Results.Ok(conversation);
+            var conversation = await service.SelectAsync(id, analysisId, request.Revision, request.UseInContext, ct);
+            return conversation is null ? Results.NotFound() : Results.Ok(conversation);
         });
         routes.MapDelete("/conversations/{id:guid}/analyses/{analysisId:guid}", async (Guid id, Guid analysisId,
-            int revision, ChatDbContext database, CancellationToken ct) =>
-        {
-            using var lease = GenerationGate.Shared.Enter(id);
-            var conversation = await database.Conversations.SingleOrDefaultAsync(c => c.Id == id, ct)
-                ?? throw new ConversationNotFoundException();
-            ConversationConfiguration.CheckRevision(conversation, revision);
-            var report = await database.DocumentAnalyses.SingleOrDefaultAsync(a => a.Id == analysisId && a.ConversationId == id, ct);
-            if (report is null) return Results.NotFound();
-            database.DocumentAnalyses.Remove(report);
-            conversation.AttachFiles();
-            await new EfChatRepository(database).SaveAsync(ct);
-            return Results.NoContent();
-        });
+            int revision, DocumentAnalysisService service, CancellationToken ct) =>
+            await service.DeleteAsync(id, analysisId, revision, ct) ? Results.NoContent() : Results.NotFound());
     }
 
     private sealed record AnalyzeRequest(int Revision, Guid? BatchId, int Budget = 2048, Guid? ResumeRunId = null);
