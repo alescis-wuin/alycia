@@ -241,6 +241,19 @@ def check_records(rows, root):
             elif target_project == "Alycia.Modules.Chat.Infrastructure" and not (
                     right == "Persistence" and target_type == "ChatDbContext"):
                 problems.add(f"{location}: cross-owner adapter: {left} -> {right}.{target_type}")
+    # Project references form a DAG independently. Logical owners inside an assembly must do so as well.
+    from graphlib import CycleError, TopologicalSorter
+    dependencies = TopologicalSorter()
+    for source, target in sorted(matrix):
+        dependencies.add(source, target)
+    try:
+        dependencies.prepare()
+    except CycleError as error:
+        # graphlib reports successive dependants. Display the direction of the actual source references.
+        nodes = list(reversed(error.args[1][:-1]))
+        first = nodes.index(min(nodes))
+        cycle = nodes[first:] + nodes[:first] + [nodes[first]]
+        problems.add("logical owner cycle: " + " -> ".join(cycle))
     return sorted(problems), matrix
 
 

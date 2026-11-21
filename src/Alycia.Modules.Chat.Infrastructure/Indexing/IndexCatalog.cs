@@ -7,12 +7,12 @@ namespace Alycia.Modules.Chat.Infrastructure;
 public sealed record QueueIndex(Guid Owner, bool Project, string? Model, int? BatchSize = null, int? ChunkCharacters = null,
     bool? Hierarchical = null, string? DocumentPrefix = null, string? QueryPrefix = null, EnrichmentOptions? Enrichment = null);
 
-public sealed class IndexCatalog(IConversationIndexOwners conversations, IIndexSourceDocuments documents, PostgresEmbeddingStore store, KnowledgeStore knowledge, ChatOptions defaults, IWorkspaceProfiles profiles)
+public sealed class IndexCatalog(IConversationIndexOwners conversations, IIndexSourceDocuments documents, PostgresEmbeddingStore store, KnowledgeStore knowledge, IndexParameters defaults, IWorkspaceProfiles profiles)
 {
     private async Task RequireOwnerAsync(Guid owner, bool project, CancellationToken ct)
     {
         if (project) await profiles.RequireAsync(owner, false, ct);
-        else if (await conversations.FindAsync(owner, ct) is null) throw new ConversationNotFoundException();
+        else if (!await conversations.ExistsAsync(owner, ct)) throw new ConversationNotFoundException();
     }
 
     public async Task<EmbeddingProgress[]> ProgressAsync(Guid owner, bool project, CancellationToken ct)
@@ -36,7 +36,7 @@ public sealed class IndexCatalog(IConversationIndexOwners conversations, IIndexS
         {
             var conversation = await conversations.FindAsync(owner, ct);
             if (conversation is null) return null;
-            var settings = ConversationConfiguration.Options(conversation.SettingsJson, defaults);
+            var settings = conversation.Override ?? defaults;
             options = settings.Enrichment; hierarchical = settings.HierarchicalIndexEnabled;
         }
         var source = await documents.FindAsync(owner, project, file, ct);
@@ -50,7 +50,7 @@ public sealed class IndexCatalog(IConversationIndexOwners conversations, IIndexS
     {
         var owner = await conversations.FindAsync(id, ct);
         if (owner is null) return null;
-        var settings = ConversationConfiguration.Options(owner.SettingsJson, defaults);
+        var settings = owner.Override ?? defaults;
         if (!settings.Enrichment.Enabled || !settings.EmbedHistory) return [];
         return group is null ? await knowledge.HistoryPageAsync(id, settings.Enrichment.Profile, before ?? int.MaxValue, ct)
             : await knowledge.HistoryChildrenAsync(id, settings.Enrichment.Profile, group, ct);
@@ -58,26 +58,28 @@ public sealed class IndexCatalog(IConversationIndexOwners conversations, IIndexS
 
     public async Task QueueAsync(QueueIndex request, CancellationToken ct)
     {
-        ChatOptions options;
+        IndexParameters options;
         if (request.Project)
         {
             var profile = await profiles.RequireAsync(request.Owner, false, ct);
             if (profile.Archived) throw new ArgumentException("Le projet est archivé.");
-            options = defaults.Copy();
-            options.EmbeddingModel = request.Model?.Trim() ?? options.EmbeddingModel;
-            if (request.Enrichment is not null) options.Enrichment = request.Enrichment;
-            if (options.EmbeddingModel.Length > 0) options.RetrievalMode = "hybrid";
-            options.HierarchicalIndexEnabled = request.Hierarchical ?? options.HierarchicalIndexEnabled;
-            options.EmbeddingDocumentPrefix = request.DocumentPrefix ?? options.EmbeddingDocumentPrefix;
-            options.EmbeddingQueryPrefix = request.QueryPrefix ?? options.EmbeddingQueryPrefix;
-            if (request.BatchSize.HasValue) options.EmbeddingBatchSize = request.BatchSize.Value;
-            if (request.ChunkCharacters.HasValue) options.EmbeddingChunkCharacters = request.ChunkCharacters.Value;
+            var model = request.Model?.Trim() ?? defaults.EmbeddingModel;
+            options = defaults with
+            {
+                EmbeddingModel = model, Enrichment = request.Enrichment ?? defaults.Enrichment,
+                RetrievalMode = model.Length > 0 ? "hybrid" : defaults.RetrievalMode,
+                HierarchicalIndexEnabled = request.Hierarchical ?? defaults.HierarchicalIndexEnabled,
+                EmbeddingDocumentPrefix = request.DocumentPrefix ?? defaults.EmbeddingDocumentPrefix,
+                EmbeddingQueryPrefix = request.QueryPrefix ?? defaults.EmbeddingQueryPrefix,
+                EmbeddingBatchSize = request.BatchSize ?? defaults.EmbeddingBatchSize,
+                EmbeddingChunkCharacters = request.ChunkCharacters ?? defaults.EmbeddingChunkCharacters
+            };
         }
         else
         {
             var conversation = await conversations.FindAsync(request.Owner, ct)
                 ?? throw new ConversationNotFoundException();
-            options = ConversationConfiguration.Options(conversation.SettingsJson, defaults);
+            options = conversation.Override ?? defaults;
             if (!options.Enrichment.Enabled && options.RetrievalMode != "hybrid") throw new ArgumentException("Activez la recherche hybride dans les réglages de la conversation.");
         }
         if (!options.Enrichment.Enabled && string.IsNullOrWhiteSpace(options.EmbeddingModel)) throw new ArgumentException("Choisissez un modèle local d’embeddings.");

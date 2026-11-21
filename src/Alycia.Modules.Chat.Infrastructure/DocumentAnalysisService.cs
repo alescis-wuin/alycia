@@ -8,7 +8,7 @@ namespace Alycia.Modules.Chat.Infrastructure;
 public sealed record AnalysisItem(Guid Id, string Title, DateTimeOffset CreatedAtUtc, string Model,
     int FileCount, int SummaryCalls, bool UseInContext, bool IsStale, Guid? ScopeBatchId);
 
-public sealed partial class DocumentAnalysisService(ChatDbContext database, IChatModel model, ChatOptions defaults, ProjectSourceReader reader, GenerationGate conversationGate, IAnalysisConversation conversations, DocumentScope scope, IModelMeterFactory meters)
+public sealed partial class DocumentAnalysisService(ChatDbContext database, IChatModel model, ProjectSourceReader reader, GenerationGate conversationGate, IAnalysisConversation conversations, DocumentScope scope, IModelMeterFactory meters)
 {
     public async Task<DocumentAnalysis> AnalyzeAsync(Guid id, int revision, Guid? batch, int budget,
         Func<string, Task>? progress, CancellationToken ct, Guid? resumeRunId = null)
@@ -29,10 +29,11 @@ public sealed partial class DocumentAnalysisService(ChatDbContext database, ICha
             throw new ArgumentException("Limite de 50 analyses : supprimez une ancienne analyse avant de continuer.");
         var files = await scope.ReadAsync(database, id, false, true, q => q.Where(f => (!batch.HasValue || f.BatchId == batch)).OrderBy(f => f.Name).ThenBy(f => f.Id).ToArrayAsync(ct), ct);
         if (files.Length == 0) throw new ArgumentException("Aucun fichier dans ce périmètre. Importez un dossier ou une archive.");
-        var options = await model.PrepareOptionsAsync(conversation.Model, ConversationConfiguration.Options(conversation.SettingsJson, defaults), ct);
+        var preferences = await conversations.PreferencesAsync(id, revision, ct);
+        var options = preferences.Summary;
         var measured = meters.Create(model);
         var eligible = files.Where(f => f.Text.Length > 0 && f.ContextMode != "excluded").ToArray();
-        var inventory = ProjectInventory.Describe(files);
+        var inventory = DocumentInventory.Describe(files);
         var tree = ProjectInventory.Tree(inventory);
         var fingerprint = ProjectInventory.Fingerprint(inventory);
         var checkpoints = new AnalysisCheckpoints(reader.Storage);
@@ -41,7 +42,7 @@ public sealed partial class DocumentAnalysisService(ChatDbContext database, ICha
         var savedNodes = 0;
         try
         {
-            var shared = new ModelCallBudget(options.SummaryMaxCalls);
+            var shared = new ModelCallBudget(options.MaxCalls);
             using var serial = new SemaphoreSlim(1);
             async Task Report(string status)
             {
@@ -49,7 +50,7 @@ public sealed partial class DocumentAnalysisService(ChatDbContext database, ICha
                 await serial.WaitAsync(ct);
                 try { await progress(status); } finally { serial.Release(); }
             }
-            RecursiveSummarizer Reducer() => new(measured, conversation.Model, options.Summary(), Report, shared,
+            RecursiveSummarizer Reducer() => new(measured, conversation.Model, options, Report, shared,
                 async (key, token) => options.ModelIdentity is null ? null : (await checkpoints.ReadUnitAsync(id, key, token))?.Summary,
                 async (key, text, token) =>
                 {
@@ -60,7 +61,7 @@ public sealed partial class DocumentAnalysisService(ChatDbContext database, ICha
             var reducer = Reducer();
             var leaves = new List<SummarySource>();
             if (progress is not null) await progress("Lecture de tree.txt par fragments · " + files.Length + " fichiers inventoriés");
-            var overviewKey = AnalysisCheckpoints.UnitKey(Guid.Empty, fingerprint, "tree.txt", "inventory", identity, budget, options);
+            var overviewKey = AnalysisCheckpoints.UnitKey(Guid.Empty, fingerprint, "tree.txt", "inventory", identity, budget, preferences.Cache);
             var overviewCache = options.ModelIdentity is null ? null : await checkpoints.ReadUnitAsync(id, overviewKey, ct);
             var authorizedTree = ProjectInventory.Tree(inventory.Where(f => f.ContextMode != "excluded").ToArray());
             var overview = overviewCache?.Summary ?? await reducer.ReduceAsync([new("tree.txt intégral (périmètre autorisé)", authorizedTree)], Math.Min(2048, budget), ct);
@@ -73,7 +74,7 @@ public sealed partial class DocumentAnalysisService(ChatDbContext database, ICha
             var metadataById = inventory.ToDictionary(i => i.Id);
             await Parallel.ForEachAsync(Enumerable.Range(0, files.Length), new ParallelOptions
             {
-                MaxDegreeOfParallelism = options.Enrichment.Enabled ? options.Enrichment.Workers : 1,
+                MaxDegreeOfParallelism = preferences.Workers,
                 CancellationToken = ct
             }, async (index, token) =>
             {
@@ -95,7 +96,7 @@ public sealed partial class DocumentAnalysisService(ChatDbContext database, ICha
                 await Report("Résumé du fichier · " + file.Name);
                 var source = await reader.ReadAsync(file, token);
                 var isCode = SourceFileType.IsCode(file.Name);
-                var key = AnalysisCheckpoints.UnitKey(file.Id, file.Sha256, file.Name, file.Status, identity, budget, options);
+                var key = AnalysisCheckpoints.UnitKey(file.Id, file.Sha256, file.Name, file.Status, identity, budget, preferences.Cache);
                 // An unknown digest cannot establish cache compatibility across model calls.
                 var cached = options.ModelIdentity is null ? null : await checkpoints.ReadUnitAsync(id, key, token);
                 string summary;
@@ -199,7 +200,7 @@ public sealed partial class DocumentAnalysisService(ChatDbContext database, ICha
                 files = inventory,
                 fileSummaries,
                 inventorySummary = overview
-            }, ConversationTransfer.Json);
+            }, ChatJson.Archive);
             // One SaveChanges includes the revision, new analysis and context selection.
             foreach (var previous in await database.DocumentAnalyses.Where(a => a.ConversationId == id && a.UseInContext).ToListAsync(ct))
                 previous.UseInContext = false;

@@ -43,8 +43,8 @@ public sealed class PersistentEmbeddingTests
             chat.CompleteTurn(); await database.SaveChangesAsync();
             var encoder = new Encoder { FailAt = 2 };
             var store = ChatFixture.Embeddings(database);
-            var worker = new BackgroundEmbeddingIndex(ChatFixture.IndexFiles(database, reader), ChatFixture.LiveFiles(database), store, encoder, new(), new ConversationIndexOwners(new(database.Database)), ChatFixture.Profiles(database), ChatFixture.Profiles(database), ChatFixture.Foreground);
-            await store.QueueAsync(chat.Id, false, options, default);
+            var worker = new BackgroundEmbeddingIndex(ChatFixture.IndexFiles(database, reader), ChatFixture.LiveFiles(database), store, encoder, IndexParameters.Default, new ConversationIndexOwners(new(database.Database)), ChatFixture.Profiles(database), ChatFixture.Profiles(database), ChatFixture.Foreground);
+            await store.QueueAsync(chat.Id, false, IndexParameters.Capture(options), default);
             await worker.ProcessAsync(Assert.Single(await store.JobsAsync(default)), default);
             var failed = Assert.Single(await store.JobsAsync(default));
             Assert.Equal("failed", failed.Progress.State);
@@ -52,8 +52,8 @@ public sealed class PersistentEmbeddingTests
 
             // Resume from durable rows with a fresh service instance, without repeating the first batch.
             encoder.FailAt = 0;
-            await store.QueueAsync(chat.Id, false, options, default, retry: true);
-            var resumed = new BackgroundEmbeddingIndex(ChatFixture.IndexFiles(database, reader), ChatFixture.LiveFiles(database), ChatFixture.Embeddings(database), encoder, new(), new ConversationIndexOwners(new(database.Database)), ChatFixture.Profiles(database), ChatFixture.Profiles(database), ChatFixture.Foreground);
+            await store.QueueAsync(chat.Id, false, IndexParameters.Capture(options), default, retry: true);
+            var resumed = new BackgroundEmbeddingIndex(ChatFixture.IndexFiles(database, reader), ChatFixture.LiveFiles(database), ChatFixture.Embeddings(database), encoder, IndexParameters.Default, new ConversationIndexOwners(new(database.Database)), ChatFixture.Profiles(database), ChatFixture.Profiles(database), ChatFixture.Foreground);
             using (var interrupted = new CancellationTokenSource())
             {
                 encoder.CancelAt = 4; encoder.Cancel = interrupted.Cancel;
@@ -83,7 +83,7 @@ public sealed class PersistentEmbeddingTests
                 Assert.Equal(stored, encoder.Texts);
             }
             finally { await count.Connection.DisposeAsync(); }
-            var index = new ProjectIndexService(new ConversationIndexOwners(new(database.Database)), storage, ChatFixture.IndexFiles(database, reader), ChatFixture.LiveFiles(database), options);
+            var index = new ProjectIndexService(new ConversationIndexOwners(new(database.Database)), storage, ChatFixture.IndexFiles(database, reader), ChatFixture.LiveFiles(database), IndexParameters.Capture(options));
             var snapshot = await index.BuildAsync(chat.Id, default);
             var searched = await resumed.SearchAsync(chat.Id, "Passage", EmbeddingQuery.Capture(options), snapshot.Chunks, default);
             Assert.Equal(snapshot.Chunks.Count, searched.Hits);
@@ -103,7 +103,7 @@ public sealed class PersistentEmbeddingTests
             await database.SaveChangesAsync();
             var hierarchical = await index.BuildAsync(chat.Id, default);
             Assert.Equal(0, (await resumed.SearchAsync(chat.Id, "Passage", EmbeddingQuery.Capture(enriched), hierarchical.Chunks, default)).Hits);
-            await store.QueueAsync(chat.Id, false, enriched, default, retry: true);
+            await store.QueueAsync(chat.Id, false, IndexParameters.Capture(enriched), default, retry: true);
             await resumed.ProcessAsync(Assert.Single(await store.JobsAsync(default)), default);
             Assert.Equal(hierarchical.Chunks.Count, (await resumed.SearchAsync(chat.Id, "Passage", EmbeddingQuery.Capture(enriched), hierarchical.Chunks, default)).Hits);
             Assert.Equal(snapshot.Chunks.Count, (await resumed.SearchAsync(chat.Id, "Passage", EmbeddingQuery.Capture(options), snapshot.Chunks, default)).Hits);

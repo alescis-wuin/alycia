@@ -94,7 +94,7 @@ public class TemporalMemoryIntegrationTests
                 await embeddings.WriteAsync("fixture:digest", chunk, [1, 0], scope, fact.Sequence, default);
             }
             var semanticOptions = options.Copy(); semanticOptions.RetrievalMode = "hybrid"; semanticOptions.EmbeddingModel = "fixture";
-            var engine = new BackgroundEmbeddingIndex(ChatFixture.IndexFiles(db, new(new FileStorage(Path.GetTempPath()))), ChatFixture.LiveFiles(db), embeddings, new QueryEncoder(), options, new ConversationIndexOwners(new(db.Database)), ChatFixture.Profiles(db), ChatFixture.Profiles(db), ChatFixture.Foreground);
+            var engine = new BackgroundEmbeddingIndex(ChatFixture.IndexFiles(db, new(new FileStorage(Path.GetTempPath()))), ChatFixture.LiveFiles(db), embeddings, new QueryEncoder(), IndexParameters.Capture(options), new ConversationIndexOwners(new(db.Database)), ChatFixture.Profiles(db), ChatFixture.Profiles(db), ChatFixture.Foreground);
             var semanticStore = new TemporalMemoryStore(new Alycia.Modules.Memory.TemporalFactStorage(db.Database), new TemporalHistorySources(db, options), engine);
             var paraphrase = await semanticStore.RecallAsync(owner.Id, "Territoire géographique ?", TemporalRecallSettings.Capture(semanticOptions), 4, default);
             Assert.Single(paraphrase.Calls);

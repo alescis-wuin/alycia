@@ -1,4 +1,5 @@
-using Alycia.Modules.Chat.Application;
+using Alycia.Modules.Documents;
+using Alycia.Modules.Chat.Infrastructure;
 using Alycia.Modules.Chat.Domain;
 
 namespace Alycia.Modules.Chat.Tests;
@@ -18,8 +19,8 @@ public sealed class ProjectInventoryTests
             SourceModifiedAt = "2025-02-03T12:00:00",
             MetadataSource = "ZIP: heure locale, fuseau non fourni"
         };
-        var tree = ProjectInventory.Tree(ProjectInventory.Describe([second, first]));
-        Assert.Equal(tree, ProjectInventory.Tree(ProjectInventory.Describe([first, second])));
+        var tree = ProjectInventory.Tree(DocumentInventory.Describe([second, first]));
+        Assert.Equal(tree, ProjectInventory.Tree(DocumentInventory.Describe([first, second])));
         Assert.Contains("├── bundle.zip!/", tree);
         Assert.Contains("extension=.cs", tree);
         Assert.Contains("SHA-256=ABC", tree);
@@ -33,10 +34,10 @@ public sealed class ProjectInventoryTests
     public void FingerprintChangesWhenContentOrExclusionChanges()
     {
         var file = new Attachment { Id = Guid.NewGuid(), Name = "note.txt", Sha256 = "A" };
-        var first = ProjectInventory.Fingerprint(ProjectInventory.Describe([file]));
+        var first = ProjectInventory.Fingerprint(DocumentInventory.Describe([file]));
         file.Sha256 = "B";
-        Assert.NotEqual(first, ProjectInventory.Fingerprint(ProjectInventory.Describe([file])));
+        Assert.NotEqual(first, ProjectInventory.Fingerprint(DocumentInventory.Describe([file])));
         file.Sha256 = "A"; file.ContextMode = "excluded";
-        Assert.NotEqual(first, ProjectInventory.Fingerprint(ProjectInventory.Describe([file])));
+        Assert.NotEqual(first, ProjectInventory.Fingerprint(DocumentInventory.Describe([file])));
     }
 }

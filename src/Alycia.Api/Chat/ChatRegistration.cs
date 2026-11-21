@@ -34,6 +34,7 @@ internal static class ChatRegistration
         builder.Configuration.GetSection("Chat").Bind(options);
         options.Validate();
         builder.Services.AddTransient(_ => options.Copy());
+        builder.Services.AddSingleton(IndexParameters.Capture(options));
         builder.Services.AddDbContext<ChatDbContext>(db => db.UseNpgsql(connection,
             provider => provider.MigrationsHistoryTable("__EFMigrationsHistory", "chat")));
         AddAlyciaContext(builder.Services);

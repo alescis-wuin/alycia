@@ -70,11 +70,37 @@ public sealed class ConversationContextPreparationTests
         Assert.Equal(1.91, (await Start()).Options.Temperature);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SettingsReadAndUpdateCaptureTheRequestBeforeStorage(bool write)
+    {
+        var fixture = new Fixture { Lookup = new(TaskCreationOptions.RunContinuationsAsynchronously), AllowSettingsWrite = write };
+        var supplied = write ? new ChatOptions() : fixture.Defaults;
+        supplied.Temperature = .31;
+        var service = new ConversationSettingsService(fixture, fixture, fixture.Defaults);
+        async Task<double> Begin()
+        {
+            if (!write) return (await service.GetAsync(fixture.Owner.Id, default)).Options.Temperature;
+            var result = await service.UpdateAsync(fixture.Owner.Id, fixture.Owner.Revision,
+                fixture.Owner.Model, "", "", supplied, default);
+            return ConversationConfiguration.Options(result.SettingsJson, new()).Temperature;
+        }
+        var operation = Begin();
+        supplied.Temperature = 1.67;
+        fixture.Lookup.SetResult();
+        Assert.Equal(.31, await operation);
+        Assert.Equal(1.67, await Begin());
+        Assert.Equal(write ? 2 : 0, fixture.Writes);
+    }
+
     private sealed class Fixture : ITestConversationRepository, IChatModel, ITemporalMemory, IProjectRetrieval
     {
         public Conversation Owner { get; } = Conversation.Create("Conversation", "demo", "");
         public ChatOptions Defaults { get; } = new() { RetrievalMode = "legacy", StructuredMemory = false, UseProjectTools = false };
         public TaskCompletionSource? Lookup { get; init; }
+        public bool AllowSettingsWrite { get; init; }
+        public int Writes { get; private set; }
         public int OptionReads { get; private set; }
         public ConversationContextPreparation Service() => new(this, this, new TurnTools(), new TurnContext(this, new Alycia.Modules.Context.SlidingHistory()),
             new ConversationMemory(this, ChatFixture.Gate), new TurnRouting(new QueryPlanner(this), this, this), Defaults, ChatFixture.Gate, new ModelMeterFactory());
@@ -93,7 +119,13 @@ public sealed class ConversationContextPreparationTests
         public Task<IReadOnlyList<ChatMessage>> MessagesAsync(Guid id, int limit, int? before, CancellationToken ct) => Task.FromResult<IReadOnlyList<ChatMessage>>([]);
         public Task<IReadOnlyList<Conversation>> ListAsync(CancellationToken ct) => throw new NotSupportedException();
         public Task AddAsync(Conversation conversation, CancellationToken ct) => throw new NotSupportedException();
-        public Task SaveAsync(CancellationToken ct) => throw new NotSupportedException();
+        public Task SaveAsync(CancellationToken ct)
+        {
+            ct.ThrowIfCancellationRequested();
+            if (!AllowSettingsWrite) throw new NotSupportedException();
+            Writes++;
+            return Task.CompletedTask;
+        }
         public Task DeleteAsync(Conversation conversation, CancellationToken ct) => throw new NotSupportedException();
         public Task<IReadOnlyList<ChatMessage>> FindTurnAsync(Guid id, Guid requestId, CancellationToken ct) => throw new NotSupportedException();
         public Task AppendTurnAsync(Conversation conversation, ChatMessage user, ChatMessage assistant, CancellationToken ct) => throw new NotSupportedException();

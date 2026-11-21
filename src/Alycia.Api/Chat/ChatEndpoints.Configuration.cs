@@ -19,10 +19,10 @@ internal static partial class ChatEndpoints
         routes.MapGet("/conversations/{id:guid}/settings", async (Guid id, ConversationSettingsService settings, CancellationToken ct) =>
         {
             var result = await settings.GetAsync(id, ct);
-            return Results.Ok(new { conversation = result.Conversation.ToResponse(), result.Options });
+            return Results.Ok(new { conversation = result.Conversation, result.Options });
         });
         routes.MapPut("/conversations/{id:guid}/settings", async (Guid id, ConfigureConversation request, ConversationSettingsService settings, CancellationToken ct) =>
-            Results.Ok((await settings.UpdateAsync(id, request.Revision, request.Model, request.SystemPrompt, request.ContextNotes, request.Options, ct)).ToResponse()));
+            Results.Ok(await settings.UpdateAsync(id, request.Revision, request.Model, request.SystemPrompt, request.ContextNotes, request.Options, ct)));
 
         routes.MapPost("/conversations/{id:guid}/context", async (Guid id, PreviewContext request, ConversationContextPreparation preparation, CancellationToken ct) =>
         {

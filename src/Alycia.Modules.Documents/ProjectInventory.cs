@@ -1,22 +1,12 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using Alycia.Modules.Chat.Domain;
+using Alycia.Contracts.Documents;
 
-namespace Alycia.Modules.Chat.Application;
-
-public sealed record InventoryFile(Guid Id, Guid BatchId, Guid? ArchiveId, string Path, long Bytes,
-    string Sha256, string Extension, string SourceCreatedAt, string SourceModifiedAt, string MetadataSource,
-    DateTimeOffset ImportedAtUtc, string ExtractionStatus, string ContextMode);
+namespace Alycia.Modules.Documents;
 
 public static class ProjectInventory
 {
-    public static InventoryFile[] Describe(IEnumerable<Attachment> files) => files
-        .OrderBy(f => f.Name, StringComparer.Ordinal).ThenBy(f => f.Id)
-        .Select(f => new InventoryFile(f.Id, f.BatchId, f.ArchiveId, f.Name, f.Size, f.Sha256,
-            Path.GetExtension(f.Name), f.SourceCreatedAt, f.SourceModifiedAt, f.MetadataSource,
-            f.CreatedAtUtc, f.Status, f.ContextMode)).ToArray();
-
     public static string Fingerprint(IEnumerable<InventoryFile> files) => Convert.ToHexString(SHA256.HashData(
         JsonSerializer.SerializeToUtf8Bytes(files.OrderBy(f => f.Path, StringComparer.Ordinal).ThenBy(f => f.Id))));
 

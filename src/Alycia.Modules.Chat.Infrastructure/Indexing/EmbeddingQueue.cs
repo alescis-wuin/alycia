@@ -4,7 +4,7 @@ namespace Alycia.Modules.Chat.Infrastructure;
 
 public static class EmbeddingQueue
 {
-    public static Task QueueAsync(this PostgresEmbeddingStore store, Guid owner, bool project, ChatOptions options,
+    public static Task QueueAsync(this PostgresEmbeddingStore store, Guid owner, bool project, IndexParameters options,
         CancellationToken ct, bool retry = false, string sourceRevision = "")
     {
         options.Validate();

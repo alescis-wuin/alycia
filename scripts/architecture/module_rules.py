@@ -35,8 +35,6 @@ def owner(path, symbol=""):
     basename = parts[-1].split(".")[0]
     if (basename, symbol) in TYPE_OWNERS:
         return TYPE_OWNERS[basename, symbol]
-    if basename == "ConversationSettingsService" and parts[2] == "Context":
-        return "Configuration"
     if len(parts) > 3:
         return parts[2] if parts[2] in DIRECTORIES else None
     return next((area for area, names in ROOT_FILES.items() if basename in names), None)
@@ -71,7 +69,7 @@ NARROW_EDGES = {
 }
 
 # These consumers use request snapshots. Stored settings and tracked chat rows belong at the owning adapter.
-SNAPSHOT_CONSUMERS = {"Context", "Inference", "Memory", "Retrieval", "Tools"}
+SNAPSHOT_CONSUMERS = {"Context", "Documents", "Indexing", "Inference", "Memory", "Retrieval", "Tools"}
 OWNER_INPUT_TYPES = {
     "T:Alycia.Contracts.Chat.ChatSettings",
     "T:Alycia.Modules.Chat.Application.ChatOptions",
