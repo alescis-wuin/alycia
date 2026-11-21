@@ -1,3 +1,4 @@
+using static Alycia.Client.Avalonia.DialogFields;
 using Alycia.Contracts.Chat;
 using System;
 using System.Linq;

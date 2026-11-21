@@ -1,3 +1,4 @@
+using static Alycia.Client.Avalonia.DialogFields;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -9,12 +10,6 @@ namespace Alycia.Client.Avalonia;
 
 public partial class ChatWindow
 {
-    private static Button ActionButtonInline(string label, Action action)
-    {
-        var button = new Button { Content = label };
-        button.Click += (_, _) => action();
-        return button;
-    }
 
     private async Task ShowDocumentsAsync(bool project)
     {
