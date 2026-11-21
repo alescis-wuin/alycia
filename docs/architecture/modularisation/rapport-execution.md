@@ -98,3 +98,7 @@ Pour reproduire la partie base de données, fournir `ALYCIA_CHAT_TEST_CONNECTION
 | AC12 | Historique de phase lisible via le premier parent, commits de chantier accessibles comme parents supplémentaires, branche dédiée à la revue. |
 
 Les identifiants exacts des phases se récupèrent avec `git log --first-parent --reverse --format='%H %s' 309d610..HEAD`. Pour obtenir la liste de fichiers et les volumes par phase, utiliser `git diff --stat <phase>^1 <phase>` et `git diff --name-status -M 309d610 HEAD`. Les sorties de test sont produites localement dans `artifacts/tests/` au format TRX. Les montées de version des paquets, une revue visuelle complète sur KDE/Wayland, une mesure de débit GPU avec un vrai modèle et l’orchestration Docker restent hors de cette recette.
+
+## Consolidation postérieure à P0–P10
+
+Le [rapport de livraison C0–C7](consolidation/C7.md) retrace les correctifs, les décisions, les commits et la campagne indépendante sur PostgreSQL/pgvector. La [matrice de composition](consolidation/C6.md) décrit les dépendances directes et transitives après intégration.

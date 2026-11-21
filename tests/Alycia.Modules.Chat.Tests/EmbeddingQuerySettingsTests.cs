@@ -14,8 +14,11 @@ public sealed class EmbeddingQuerySettingsTests
         var search = new IndexedEmbeddingSearch(fixture, fixture);
         var settings = new ChatOptions
         {
-            EmbeddingModel = "first", EmbeddingBatchSize = 2, EmbeddingChunkCharacters = 128,
-            EmbeddingQueryPrefix = "q:", Enrichment = new(true)
+            EmbeddingModel = "first",
+            EmbeddingBatchSize = 2,
+            EmbeddingChunkCharacters = 128,
+            EmbeddingQueryPrefix = "q:",
+            Enrichment = new(true)
         };
         var expectedSpace = EmbeddingSettings.From(settings).VectorSpace("first:digest", 2);
         var first = new string('a', 128);
