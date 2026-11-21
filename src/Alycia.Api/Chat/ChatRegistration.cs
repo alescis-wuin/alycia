@@ -108,7 +108,12 @@ internal static class ChatRegistration
         services.AddScoped<KnowledgeStore>();
         services.AddScoped<IHistoryKnowledge>(sp => sp.GetRequiredService<KnowledgeStore>());
         services.AddScoped<KnowledgeBuilder>();
-        services.AddScoped(_ => new PostgresEmbeddingStore(connection));
+        services.AddScoped<IIndexSourceDocuments, IndexSourceDocumentsAdapter>();
+        services.AddScoped(_ => new PostgresEmbeddingStore(connection, new Alycia.Modules.Memory.MemoryVectorEligibility(connection), transaction =>
+        {
+            var session = new RelationalSession(transaction);
+            return new IndexJobSource(new ConversationIndexOwners(session), new WorkspaceProfileStore(session, new WorkspaceIdentityDirectory(session)));
+        }));
         services.AddScoped<IConversationIndexOwners, ConversationIndexOwners>();
         services.AddScoped<IProjectIndexOwners>(sp => sp.GetRequiredService<WorkspaceProfileStore>());
         services.AddScoped<BackgroundEmbeddingIndex>();

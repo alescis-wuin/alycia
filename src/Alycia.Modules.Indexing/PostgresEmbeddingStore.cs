@@ -1,3 +1,4 @@
+using System.Data.Common;
 using System.Text.Json;
 using Npgsql;
 using NpgsqlTypes;
@@ -29,7 +30,7 @@ public sealed record EmbeddingJob(EmbeddingProgress Progress, EmbeddingSettings 
 }
 
 // A separate short-lived connection avoids writing indexing state into a chat's repeatable-read snapshot.
-public sealed class PostgresEmbeddingStore(string connectionString) : IEmbeddingSimilarityReader
+public sealed class PostgresEmbeddingStore(string connectionString, IMemoryVectorEligibility memory, Func<DbTransaction, IndexJobSource> sourceFor) : IEmbeddingSimilarityReader
 {
     private async Task<NpgsqlConnection> OpenAsync(CancellationToken ct)
     {
@@ -86,16 +87,16 @@ public sealed class PostgresEmbeddingStore(string connectionString) : IEmbedding
     public async Task<bool> ActiveAsync(EmbeddingJob job, CancellationToken ct)
     {
         await using var connection = await OpenAsync(ct);
+        await using var snapshot = await connection.BeginTransactionAsync(System.Data.IsolationLevel.RepeatableRead, ct);
         await using var query = new NpgsqlCommand("""
-            SELECT EXISTS(SELECT 1 FROM chat.embedding_jobs WHERE owner_id=$1 AND is_project=$2 AND revision=$3 AND state<>'paused'
-                AND ($4='' OR $4 = CASE WHEN is_project THEN
-                    (SELECT p."Revision"::text FROM chat.workspace_profiles p WHERE p."Id"=$1 AND NOT p."Archived")
-                ELSE (SELECT c."Revision"::text || ':' || coalesce(p."Revision",0)::text FROM chat.conversations c
-                      LEFT JOIN chat.workspace_profiles p ON c."WorkspaceId"=p."Id" AND NOT p."Archived" WHERE c."Id"=$1) END))
-            """, connection);
-        query.Parameters.AddWithValue(job.Progress.OwnerId); query.Parameters.AddWithValue(job.Progress.IsProject); query.Parameters.AddWithValue(job.Revision);
-        query.Parameters.AddWithValue(job.Settings.SourceRevision);
-        return await query.ExecuteScalarAsync(ct) is true;
+            SELECT EXISTS(SELECT 1 FROM chat.embedding_jobs WHERE owner_id=$1 AND is_project=$2 AND revision=$3 AND state<>'paused')
+            """, connection, snapshot);
+        query.Parameters.AddWithValue(job.Progress.OwnerId);
+        query.Parameters.AddWithValue(job.Progress.IsProject);
+        query.Parameters.AddWithValue(job.Revision);
+        if (await query.ExecuteScalarAsync(ct) is not true) return false;
+        return job.Settings.SourceRevision.Length == 0 ||
+            await sourceFor(snapshot).RevisionAsync(job.Progress.OwnerId, job.Progress.IsProject, ct) == job.Settings.SourceRevision;
     }
 
     public async Task SetDimensionsAsync(EmbeddingJob job, string digest, int dimensions, CancellationToken ct)
@@ -191,24 +192,33 @@ public sealed class PostgresEmbeddingStore(string connectionString) : IEmbedding
         await using var connection = await OpenAsync(ct);
         await using var ext = new NpgsqlCommand("SELECT EXISTS(SELECT 1 FROM pg_extension WHERE extname='vector')", connection);
         var pgvector = await ext.ExecuteScalarAsync(ct) is true;
-        // Both variants compute exact cosine over the eligible history. Transfer at most 32 ranks.
-        var distance = pgvector ? "1 - (v.embedding::vector <=> $5::real[]::vector)" : """
-            (SELECT sum(x::float8 * y) / nullif(sqrt(sum(x::float8*x) * sum(y::float8*y)),0)
-             FROM unnest(v.embedding,$5::real[]) AS pairs(x,y))
+        // A page contributes at most 32 finalists. Sequence descending breaks ties across pages as in PostgreSQL.
+        const string fromEligible = """
+             FROM chat.embedding_vectors v JOIN unnest($3::int[], $4::text[]) AS source(seq, hash)
+             ON v.sequence=source.seq AND v.content_hash=source.hash
+             WHERE v.conversation_id=$1 AND v.identity=$2 AND cardinality(v.embedding)=cardinality($5::real[])
+             GROUP BY v.sequence ORDER BY similarity DESC NULLS LAST, v.sequence DESC LIMIT 32
             """;
-        await using var cmd = new NpgsqlCommand($"""
-            SELECT v.sequence, max({distance}) AS similarity
-            FROM chat.embedding_vectors v JOIN chat.temporal_memory t ON t.owner=v.conversation_id AND t.sequence=v.sequence
-            WHERE v.conversation_id=$1 AND v.identity=$2 AND v.sequence<=$3 AND t.observed<$4
-                AND cardinality(v.embedding)=cardinality($5::real[]) AND v.content_hash=t.facts->0->>'sha256'
-            GROUP BY v.sequence ORDER BY similarity DESC NULLS LAST, v.sequence DESC LIMIT 32
-            """, connection);
-        cmd.Parameters.AddWithValue(owner); cmd.Parameters.AddWithValue(identity); cmd.Parameters.AddWithValue(through);
-        cmd.Parameters.AddWithValue(before); cmd.Parameters.AddWithValue(query);
-        await using var reader = await cmd.ExecuteReaderAsync(ct);
-        var scores = new Dictionary<int, double>();
-        while (await reader.ReadAsync(ct)) if (!reader.IsDBNull(1)) scores[reader.GetInt32(0)] = reader.GetDouble(1);
-        return scores;
+        const string vectorSql = "SELECT v.sequence, max(1 - (v.embedding::vector <=> $5::real[]::vector)) AS similarity " + fromEligible;
+        const string arraySql = """
+            SELECT v.sequence, max((SELECT sum(x::float8 * y) / nullif(sqrt(sum(x::float8*x) * sum(y::float8*y)),0)
+                FROM unnest(v.embedding,$5::real[]) AS pairs(x,y))) AS similarity
+            """ + " " + fromEligible;
+        var best = new List<(int Sequence, double Score)>();
+        await foreach (var page in memory.PagesAsync(owner, through, before, ct))
+        {
+            await using var cmd = pgvector ? new NpgsqlCommand(vectorSql, connection) : new NpgsqlCommand(arraySql, connection);
+            cmd.Parameters.AddWithValue(owner);
+            cmd.Parameters.AddWithValue(identity);
+            cmd.Parameters.AddWithValue(page.Select(p => p.Sequence).ToArray());
+            cmd.Parameters.AddWithValue(page.Select(p => p.Sha256).ToArray());
+            cmd.Parameters.AddWithValue(query);
+            await using var reader = await cmd.ExecuteReaderAsync(ct);
+            while (await reader.ReadAsync(ct))
+                if (!reader.IsDBNull(1)) best.Add((reader.GetInt32(0), reader.GetDouble(1)));
+            best = best.OrderByDescending(r => r.Score).ThenByDescending(r => r.Sequence).Take(32).ToList();
+        }
+        return best.ToDictionary(r => r.Sequence, r => r.Score);
     }
 
     public async Task<Dictionary<string, double>> SimilaritiesAsync(string identity, string[] keys, float[] query, CancellationToken ct)

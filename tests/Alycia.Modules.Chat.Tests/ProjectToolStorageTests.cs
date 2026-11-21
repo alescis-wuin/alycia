@@ -51,7 +51,7 @@ public sealed class ProjectToolStorageTests
             Assert.DoesNotContain("HiddenAtEnd", file.Text);
             Assert.Single(await new EfChatRepository(db, ChatFixture.Profiles(db)).ContextFilesAsync(conversation.Id, 99, default));
             var reader = new ProjectSourceReader(storage);
-            var index = new ProjectIndexService(db, storage, reader);
+            var index = new ProjectIndexService(new ConversationIndexOwners(new(db.Database)), storage, ChatFixture.IndexFiles(db, reader), ChatFixture.LiveFiles(db));
             var indexed = await index.BuildAsync(conversation.Id, default);
             Assert.Equal(1, indexed.IndexedFiles);
             Assert.Contains(indexed.Chunks, c => c.Symbol.Contains("HiddenAtEnd"));
@@ -75,7 +75,7 @@ public sealed class ProjectToolStorageTests
             Assert.Equal(0, (await index.BuildAsync(conversation.Id, default)).ReusedFiles);
             var history = new EfChatRepository(db, ChatFixture.Profiles(db));
             var policy = new ToolConversationPolicyReader(db);
-            var tools = new ProjectToolService(new AuthorizedToolSources(db, reader, policy, new(), ChatFixture.LiveFiles(db)), policy, history, new(), new ProjectIndexService(db, storage, reader, new()));
+            var tools = new ProjectToolService(new AuthorizedToolSources(db, reader, policy, new(), ChatFixture.LiveFiles(db)), policy, history, new(), new ProjectIndexService(new ConversationIndexOwners(new(db.Database)), storage, ChatFixture.IndexFiles(db, reader), ChatFixture.LiveFiles(db), new()));
             Task<ProjectToolResult> Call(string tool, object args, Guid? scope = null, int budget = 2048) =>
                 tools.CallAsync(scope ?? conversation.Id, tool, JsonSerializer.SerializeToElement(args), budget, default);
             var found = await Call("project_search", new { query = "hiddenatend" });

@@ -7,13 +7,25 @@ using NpgsqlTypes;
 namespace Alycia.Modules.Chat.Infrastructure;
 
 // Independent writes checkpoint one immutable unit. Reads for chat use the caller's database snapshot.
-public sealed class KnowledgeStore(ChatDbContext database, ILiveIndexFileAccess fileAccess) : IHistoryKnowledge
+public sealed class KnowledgeStore(ChatDbContext database, ILiveIndexFileAccess fileAccess, IIndexSourceDocuments documents) : IHistoryKnowledge
 {
     private readonly string _connection = database.Database.GetConnectionString()!;
-    public Task PurgeExcludedAsync(CancellationToken ct) => database.Database.ExecuteSqlRawAsync("""
-        DELETE FROM chat.knowledge_units k USING chat.attachments f
-        WHERE k.file_id=f."Id" AND f."ContextMode"='excluded'
-        """, ct);
+    public async Task PurgeExcludedAsync(CancellationToken ct)
+    {
+        await using var transaction = database.Database.CurrentTransaction is null
+            ? await database.Database.BeginTransactionAsync(System.Data.IsolationLevel.RepeatableRead, ct) : null;
+        Guid? after = null;
+        const int size = 128;
+        while (true)
+        {
+            var ids = await documents.ExcludedPageAsync(after, size, ct);
+            if (ids.Length > 0)
+                await database.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM chat.knowledge_units WHERE file_id=ANY({ids})", ct);
+            if (ids.Length < size) break;
+            after = ids[^1];
+        }
+        if (transaction is not null) await transaction.CommitAsync(ct);
+    }
 
     public Task<bool> AllowedAsync(Guid owner, bool project, Guid file, CancellationToken ct) =>
         fileAccess.IsAllowedAsync(owner, project, file, ct);

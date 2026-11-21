@@ -47,12 +47,12 @@ public sealed class KnowledgePipelineTests
                 new ChatMessage(owner.Id, 2, request, "assistant", "Je propose une couleur indigo."));
             owner.CompleteTurn(); await db.SaveChangesAsync();
 
-            var notes = ChatFixture.Knowledge(db);
-            var jobs = new PostgresEmbeddingStore(db.Database.GetConnectionString()!);
-            var model = new AnnotationModel();
             var reader = new ProjectSourceReader(storage);
-            var worker = new BackgroundEmbeddingIndex(db, jobs, reader, new NoVectors(), new(), new ConversationIndexOwners(db), ChatFixture.Profiles(db), ChatFixture.Profiles(db), ChatFixture.Foreground, new(notes, model, ChatFixture.Foreground));
-            var index = new ProjectIndexService(db, storage, reader, options, notes);
+            var notes = ChatFixture.Knowledge(db, reader);
+            var jobs = ChatFixture.Embeddings(db);
+            var model = new AnnotationModel();
+            var worker = new BackgroundEmbeddingIndex(ChatFixture.IndexFiles(db, reader), ChatFixture.LiveFiles(db), jobs, new NoVectors(), new(), new ConversationIndexOwners(new(db.Database)), ChatFixture.Profiles(db), ChatFixture.Profiles(db), ChatFixture.Foreground, new(notes, model, ChatFixture.Foreground));
+            var index = new ProjectIndexService(new ConversationIndexOwners(new(db.Database)), storage, ChatFixture.IndexFiles(db, reader), ChatFixture.LiveFiles(db), options, notes);
             await worker.DiscoverAsync(default);
             async Task<EmbeddingJob> Job() => Assert.Single(await jobs.JobsAsync(default));
             async Task<EmbeddingJob> Complete()
@@ -169,7 +169,7 @@ public sealed class KnowledgePipelineTests
             options.RetrievalMode = "hybrid"; options.EmbeddingModel = "vectors-test"; options.HierarchicalIndexEnabled = true;
             owner.Configure(owner.Model, "", "", ConversationConfiguration.Serialize(options)); await db.SaveChangesAsync();
             var encoder = new TinyVectors();
-            var hybrid = new BackgroundEmbeddingIndex(db, jobs, reader, encoder, new(), new ConversationIndexOwners(db), ChatFixture.Profiles(db), ChatFixture.Profiles(db), ChatFixture.Foreground, new(notes, model, ChatFixture.Foreground));
+            var hybrid = new BackgroundEmbeddingIndex(ChatFixture.IndexFiles(db, reader), ChatFixture.LiveFiles(db), jobs, encoder, new(), new ConversationIndexOwners(new(db.Database)), ChatFixture.Profiles(db), ChatFixture.Profiles(db), ChatFixture.Foreground, new(notes, model, ChatFixture.Foreground));
             await hybrid.DiscoverAsync(default);
             for (int iteration = 0; iteration < 40; iteration++)
             {

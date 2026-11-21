@@ -41,8 +41,8 @@ public sealed class PersistentEmbeddingTests
                 new ChatMessage(chat.Id, 2, request, "assistant", "Je propose une variante indigo."));
             chat.CompleteTurn(); await database.SaveChangesAsync();
             var encoder = new Encoder { FailAt = 2 };
-            var store = new PostgresEmbeddingStore(database.Database.GetConnectionString()!);
-            var worker = new BackgroundEmbeddingIndex(database, store, reader, encoder, new(), new ConversationIndexOwners(database), ChatFixture.Profiles(database), ChatFixture.Profiles(database), ChatFixture.Foreground);
+            var store = ChatFixture.Embeddings(database);
+            var worker = new BackgroundEmbeddingIndex(ChatFixture.IndexFiles(database, reader), ChatFixture.LiveFiles(database), store, encoder, new(), new ConversationIndexOwners(new(database.Database)), ChatFixture.Profiles(database), ChatFixture.Profiles(database), ChatFixture.Foreground);
             await store.QueueAsync(chat.Id, false, options, default);
             await worker.ProcessAsync(Assert.Single(await store.JobsAsync(default)), default);
             var failed = Assert.Single(await store.JobsAsync(default));
@@ -52,7 +52,7 @@ public sealed class PersistentEmbeddingTests
             // Resume from durable rows with a fresh service instance, without repeating the first batch.
             encoder.FailAt = 0;
             await store.QueueAsync(chat.Id, false, options, default, retry: true);
-            var resumed = new BackgroundEmbeddingIndex(database, new PostgresEmbeddingStore(database.Database.GetConnectionString()!), reader, encoder, new(), new ConversationIndexOwners(database), ChatFixture.Profiles(database), ChatFixture.Profiles(database), ChatFixture.Foreground);
+            var resumed = new BackgroundEmbeddingIndex(ChatFixture.IndexFiles(database, reader), ChatFixture.LiveFiles(database), ChatFixture.Embeddings(database), encoder, new(), new ConversationIndexOwners(new(database.Database)), ChatFixture.Profiles(database), ChatFixture.Profiles(database), ChatFixture.Foreground);
             using (var interrupted = new CancellationTokenSource())
             {
                 encoder.CancelAt = 4; encoder.Cancel = interrupted.Cancel;
@@ -82,7 +82,7 @@ public sealed class PersistentEmbeddingTests
                 Assert.Equal(stored, encoder.Texts);
             }
             finally { await count.Connection.DisposeAsync(); }
-            var index = new ProjectIndexService(database, storage, reader, options);
+            var index = new ProjectIndexService(new ConversationIndexOwners(new(database.Database)), storage, ChatFixture.IndexFiles(database, reader), ChatFixture.LiveFiles(database), options);
             var snapshot = await index.BuildAsync(chat.Id, default);
             var searched = await resumed.SearchAsync(chat.Id, "Passage", options, snapshot.Chunks, default);
             Assert.Equal(snapshot.Chunks.Count, searched.Hits);

@@ -120,7 +120,7 @@ public sealed class ProjectCreationTests
                 Alycia.Modules.Chat.Domain.Conversation.Create("C" + n, "local", "")).ToArray();
             db.Conversations.AddRange(owners);
             await db.SaveChangesAsync();
-            var read = new ConversationIndexOwners(db);
+            var read = new ConversationIndexOwners(new(db.Database));
             var first = await read.PageAsync(null, 128, default);
             Assert.Equal(128, first.Length);
             var last = Assert.Single(await read.PageAsync(first[^1].Id, 128, default));
@@ -187,7 +187,7 @@ public sealed class ProjectCreationTests
             Assert.Equal("décision", Assert.Single(saved.Notes).Text);
         });
 
-    private static async Task WithDatabaseAsync(Func<DbContextOptions<ChatDbContext>, WorkspacesDbContext, Task> run)
+    internal static async Task WithDatabaseAsync(Func<DbContextOptions<ChatDbContext>, WorkspacesDbContext, Task> run)
     {
         var connection = Environment.GetEnvironmentVariable("ALYCIA_CHAT_TEST_CONNECTION")!;
         var name = "alycia_projects_test_" + Guid.NewGuid().ToString("N");

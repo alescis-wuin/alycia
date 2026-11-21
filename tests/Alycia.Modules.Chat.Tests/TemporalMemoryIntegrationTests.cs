@@ -56,7 +56,7 @@ public class TemporalMemoryIntegrationTests
             Assert.DoesNotContain(past.MemoryTexts!, t => t.Text.Contains("Bretagne"));
             if (Environment.GetEnvironmentVariable("ALYCIA_TEST_PGVECTOR") == "1")
                 await db.Database.ExecuteSqlRawAsync("CREATE EXTENSION vector");
-            var embeddings = new PostgresEmbeddingStore(db.Database.GetConnectionString()!);
+            var embeddings = ChatFixture.Embeddings(db);
             foreach (var fact in data.Concat(await store.ExportAsync(other.Id, 0, 10, default)))
             {
                 var scope = fact.Quote.Contains("INTERDIT") ? other.Id : owner.Id;
@@ -66,7 +66,7 @@ public class TemporalMemoryIntegrationTests
                 await embeddings.WriteAsync("fixture:digest", chunk, [1, 0], scope, fact.Sequence, default);
             }
             var semanticOptions = options.Copy(); semanticOptions.RetrievalMode = "hybrid"; semanticOptions.EmbeddingModel = "fixture";
-            var engine = new BackgroundEmbeddingIndex(db, embeddings, new ProjectSourceReader(new FileStorage(Path.GetTempPath())), new QueryEncoder(), options, new ConversationIndexOwners(db), ChatFixture.Profiles(db), ChatFixture.Profiles(db), ChatFixture.Foreground);
+            var engine = new BackgroundEmbeddingIndex(ChatFixture.IndexFiles(db, new(new FileStorage(Path.GetTempPath()))), ChatFixture.LiveFiles(db), embeddings, new QueryEncoder(), options, new ConversationIndexOwners(new(db.Database)), ChatFixture.Profiles(db), ChatFixture.Profiles(db), ChatFixture.Foreground);
             var semanticStore = new TemporalMemoryStore(db, engine, options);
             var paraphrase = await semanticStore.RecallAsync(owner.Id, "Territoire géographique ?", semanticOptions, 4, default);
             Assert.Single(paraphrase.Calls);

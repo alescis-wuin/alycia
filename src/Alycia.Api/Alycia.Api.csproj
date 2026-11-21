@@ -15,6 +15,7 @@
     <Using Include="Alycia.Modules.Documents" />
     <Using Include="Alycia.Contracts.Documents" />
     <Using Include="Alycia.Modules.Inference" />
+    <ProjectReference Include="../Alycia.Modules.Memory/Alycia.Modules.Memory.csproj" />
     <ProjectReference Include="../Alycia.Modules.Inference/Alycia.Modules.Inference.csproj" />
     <Using Include="Alycia.Contracts.Indexing" />
     <Using Include="Alycia.Modules.Indexing" />

@@ -21,7 +21,7 @@ public sealed class WorkspaceProfileStore(RelationalSession session, IWorkspaceI
                 SELECT "Instructions", "DefaultModel", "Archived", "Revision", "NotesJson"
                 FROM chat.workspace_profiles WHERE "Id" = @id
                 """;
-            WorkspaceIdentityDirectory.AddParameter(command, "id", id);
+            RelationalSession.AddParameter(command, "id", id);
             await using var reader = await command.ExecuteReaderAsync(token);
             if (!await reader.ReadAsync(token)) return (ProjectProfile?)null;
             var notes = JsonSerializer.Deserialize<ProjectNote[]>(reader.GetString(4)) ?? [];
@@ -51,7 +51,7 @@ public sealed class WorkspaceProfileStore(RelationalSession session, IWorkspaceI
             await using var command = connection.CreateCommand();
             command.Transaction = transaction;
             command.CommandText = """SELECT NOT "Archived" FROM chat.workspace_profiles WHERE "Id"=@id FOR SHARE""";
-            WorkspaceIdentityDirectory.AddParameter(command, "id", id);
+            RelationalSession.AddParameter(command, "id", id);
             if (await command.ExecuteScalarAsync(token) is not true)
                 throw new ArgumentException("Restaurez d’abord ce projet archivé.");
             return true;
@@ -67,7 +67,7 @@ public sealed class WorkspaceProfileStore(RelationalSession session, IWorkspaceI
                 INSERT INTO chat.workspace_profiles ("Id", "Instructions", "DefaultModel", "NotesJson", "Archived", "Revision")
                 VALUES (@id, '', '', '[]', FALSE, 0) ON CONFLICT ("Id") DO NOTHING
                 """;
-            WorkspaceIdentityDirectory.AddParameter(command, "id", id);
+            RelationalSession.AddParameter(command, "id", id);
             try { return await command.ExecuteNonQueryAsync(token); }
             catch (DbException failure) { throw new DbUpdateException("Échec de création du profil.", failure); }
         }, ct);
@@ -95,8 +95,8 @@ public sealed class WorkspaceProfileStore(RelationalSession session, IWorkspaceI
                 SELECT "Id", "Revision" FROM chat.workspace_profiles
                 WHERE NOT "Archived" AND (@after::uuid IS NULL OR "Id" > @after) ORDER BY "Id" LIMIT @count
                 """;
-            WorkspaceIdentityDirectory.AddParameter(command, "after", (object?)after ?? DBNull.Value);
-            WorkspaceIdentityDirectory.AddParameter(command, "count", count);
+            RelationalSession.AddParameter(command, "after", (object?)after ?? DBNull.Value);
+            RelationalSession.AddParameter(command, "count", count);
             await using var reader = await command.ExecuteReaderAsync(token);
             var page = new List<ProjectIndexOwner>();
             while (await reader.ReadAsync(token)) page.Add(new(reader.GetGuid(0), reader.GetInt32(1)));
@@ -114,12 +114,12 @@ public sealed class WorkspaceProfileStore(RelationalSession session, IWorkspaceI
                     "NotesJson"=@notes, "Archived"=@archived, "Revision"="Revision"+1
                 WHERE "Id"=@id AND "Revision"=@revision
                 """;
-            WorkspaceIdentityDirectory.AddParameter(command, "instructions", next.Instructions);
-            WorkspaceIdentityDirectory.AddParameter(command, "model", next.DefaultModel);
-            WorkspaceIdentityDirectory.AddParameter(command, "notes", JsonSerializer.Serialize(next.Notes));
-            WorkspaceIdentityDirectory.AddParameter(command, "archived", next.Archived);
-            WorkspaceIdentityDirectory.AddParameter(command, "revision", next.Revision);
-            WorkspaceIdentityDirectory.AddParameter(command, "id", next.Id);
+            RelationalSession.AddParameter(command, "instructions", next.Instructions);
+            RelationalSession.AddParameter(command, "model", next.DefaultModel);
+            RelationalSession.AddParameter(command, "notes", JsonSerializer.Serialize(next.Notes));
+            RelationalSession.AddParameter(command, "archived", next.Archived);
+            RelationalSession.AddParameter(command, "revision", next.Revision);
+            RelationalSession.AddParameter(command, "id", next.Id);
             if (await command.ExecuteNonQueryAsync(token) != 1) throw new ChatConflictException();
             return next with { Revision = next.Revision + 1 };
         }, ct);
@@ -133,8 +133,8 @@ public sealed class WorkspaceProfileStore(RelationalSession session, IWorkspaceI
                 UPDATE chat.workspace_profiles SET "Revision"="Revision"+1
                 WHERE "Id"=@id AND "Revision"=@revision AND NOT "Archived"
                 """;
-            WorkspaceIdentityDirectory.AddParameter(command, "id", id);
-            WorkspaceIdentityDirectory.AddParameter(command, "revision", expectedRevision);
+            RelationalSession.AddParameter(command, "id", id);
+            RelationalSession.AddParameter(command, "revision", expectedRevision);
             if (await command.ExecuteNonQueryAsync(token) != 1) throw new ChatConflictException();
             return true;
         }, ct);

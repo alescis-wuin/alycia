@@ -1,10 +1,13 @@
 namespace Alycia.Contracts.Indexing;
 
-public sealed record ConversationIndexOwner(Guid Id, Guid? WorkspaceId, int Revision, string SettingsJson);
+public sealed record ConversationIndexOwner(Guid Id, Guid? WorkspaceId, int Revision, string SettingsJson, int MessageCount = 0);
+public sealed record IndexHistoryMessage(Guid ConversationId, Guid RequestId, int Sequence, string Role, string Content, DateTimeOffset CreatedAtUtc);
 public sealed record ProjectIndexOwner(Guid Id, int Revision);
 
 public interface IConversationIndexOwners
 {
+    Task<ConversationIndexOwner?> FindAsync(Guid id, CancellationToken ct);
+    Task<IndexHistoryMessage[]> HistoryPageAsync(Guid owner, int after, int through, int count, CancellationToken ct);
     Task<ConversationIndexOwner[]> PageAsync(Guid? after, int count, CancellationToken ct);
 }
 

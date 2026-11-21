@@ -5,8 +5,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Alycia.Modules.Chat.Infrastructure;
 
-public sealed class BackgroundEmbeddingIndex(ChatDbContext database, PostgresEmbeddingStore store,
-    ProjectSourceReader reader, ILocalEmbeddings embeddings, ChatOptions defaults, IConversationIndexOwners conversations, IProjectIndexOwners projects, IWorkspaceProfiles profiles, IForegroundActivity foreground, KnowledgeBuilder? knowledge = null) : IIndexedEmbeddings
+public sealed class BackgroundEmbeddingIndex(IIndexSourceDocuments documents, ILiveIndexFileAccess live, PostgresEmbeddingStore store,
+     ILocalEmbeddings embeddings, ChatOptions defaults, IConversationIndexOwners conversations, IProjectIndexOwners projects, IWorkspaceProfiles profiles, IForegroundActivity foreground, KnowledgeBuilder? knowledge = null) : IIndexedEmbeddings
 {
     private readonly EmbeddingJobDiscovery _discovery = new(conversations, projects, store, defaults, knowledge);
     private readonly IndexedEmbeddingSearch _queries = new(store, embeddings);
@@ -17,12 +17,12 @@ public sealed class BackgroundEmbeddingIndex(ChatDbContext database, PostgresEmb
     {
         var owner = job.Progress.OwnerId;
         var project = job.Progress.IsProject;
-        var conversation = project ? null : await database.Conversations.AsNoTracking().SingleOrDefaultAsync(c => c.Id == owner, ct);
+        var conversation = project ? null : await conversations.FindAsync(owner, ct);
         if (project ? await profiles.FindAsync(owner, ct) is null : conversation is null)
         { await store.DeleteJobAsync(job, ct); return; }
         if (conversation is not null)
         {
-            var options = ConversationConfiguration.Options(conversation, defaults);
+            var options = ConversationConfiguration.Options(conversation.SettingsJson, defaults);
             if (!EmbeddingSettings.RequiresJob(options))
             { await store.DeleteJobAsync(job, ct); return; }
         }
@@ -34,15 +34,13 @@ public sealed class BackgroundEmbeddingIndex(ChatDbContext database, PostgresEmb
         void Reserve() { if (budget?.TryReserve() == false) throw new IndexSliceEnded("Budget de ce cycle atteint. Reprise automatique."); }
         try
         {
-            var sources = project ? database.Attachments.AsNoTracking().Where(f => f.WorkspaceId == owner)
-                : database.ModelSources(owner);
-            var files = await sources.Where(f => f.ContextMode != "excluded" && f.Text != "").OrderBy(f => f.Id).ToArrayAsync(ct);
+            var files = await IndexFiles.SnapshotAsync(documents, owner, project, null, false, ct);
             var messages = !project && job.Settings.History ? conversation!.MessageCount : 0;
             total = files.Length + messages;
             var vectorEnabled = !string.IsNullOrWhiteSpace(job.Settings.Model);
             var pass = job.Settings.Enrichment is { Enabled: true } config && knowledge is not null
                 ? await knowledge.StartAsync(config, async (fileId, token) => await store.ActiveAsync(job, token)
-                    && (!fileId.HasValue || await knowledge.AllowedAsync(owner, project, fileId.Value, token)), ct, job.RetryAt, budget) : null;
+                    && (!fileId.HasValue || await live.IsAllowedAsync(owner, project, fileId.Value, token)), ct, job.RetryAt, budget) : null;
             var digest = ""; string? vectorWarning = null;
             if (vectorEnabled)
             {
@@ -91,7 +89,7 @@ public sealed class BackgroundEmbeddingIndex(ChatDbContext database, PostgresEmb
                         try
                         {
                             await store.ProgressAsync(job, "running", Volatile.Read(ref readyFiles), total, "Synthèse · " + file.Name, fingerprint, token, budget?.Used);
-                            var root = await pass.FileAsync(file, reader, job.Settings.Hierarchical, token);
+                            var root = await pass.FileAsync(owner, project, file, documents, job.Settings.Hierarchical, token);
                             if (!root.Complete || root.HasFallback) Interlocked.Increment(ref omissions);
                             Interlocked.Increment(ref readyFiles);
                         }
@@ -103,7 +101,7 @@ public sealed class BackgroundEmbeddingIndex(ChatDbContext database, PostgresEmb
             foreach (var file in vectorEnabled ? files : [])
             {
                 ct.ThrowIfCancellationRequested();
-                var source = await reader.ReadAsync(file, ct);
+                var source = await documents.ReadAsync(owner, project, file.Id, file.Sha256, ct);
                 if (!source.Complete) omissions++;
                 var chunks = CodeStructure.Split(file.Id, file.Name, file.Sha256, source.Text, ct, job.Settings.Hierarchical)
                     .SelectMany(c => EmbeddingChunks.Split(c with { CompleteSource = source.Complete }, job.Settings.ChunkCharacters));
@@ -113,8 +111,7 @@ public sealed class BackgroundEmbeddingIndex(ChatDbContext database, PostgresEmb
             // Page immutable history; never load a conversation's complete history into memory.
             for (var after = 0; after < messages;)
             {
-                var page = await database.Messages.AsNoTracking().Where(m => m.ConversationId == owner && m.Sequence > after && m.Sequence <= messages)
-                    .OrderBy(m => m.Sequence).Take(32).ToArrayAsync(ct);
+                var page = await conversations.HistoryPageAsync(owner, after, messages, 32, ct);
                 if (page.Length == 0) break;
                 if (pass is not null) await pass.HistoryAsync(owner, page, ct);
                 foreach (var message in page)
@@ -145,13 +142,16 @@ public sealed class BackgroundEmbeddingIndex(ChatDbContext database, PostgresEmb
                     var missing = batch.Where(c => !cached.ContainsKey(EmbeddingChunks.Key(c))).ToArray();
                     if (missing.Length > 0)
                     {
-                        if (!await store.ActiveAsync(job, ct) || (historyOwner is null && knowledge is not null && !await knowledge.AllowedAsync(owner, project, missing[0].FileId, ct))) return false;
+                        async Task<bool> CanPublishAsync() => await store.ActiveAsync(job, ct)
+                            && (historyOwner.HasValue || await live.IsAllowedAsync(owner, project, missing[0].FileId, ct));
+                        if (!await CanPublishAsync()) return false;
                         Reserve();
                         var result = await embeddings.EmbedAsync(job.Settings.Model, missing.Select(c => job.Settings.DocumentPrefix + EmbeddingChunks.Text(c)).ToArray(), ct);
                         if (result.Vectors.Length != missing.Length) throw new ChatModelException("Nombre de vecteurs inattendu.");
                         if (job.Settings.Versioned && (result.Vectors.Any(v => v.Length != dimensions)
                             || await embeddings.IdentityAsync(job.Settings.Model, ct) != digest))
                             throw new ChatModelException("Identité ou dimension du modèle modifiée pendant l’indexation.");
+                        if (!await CanPublishAsync()) return false;
                         for (var i = 0; i < missing.Length; i++) await store.WriteAsync(identity, missing[i], result.Vectors[i], historyOwner, sequence, ct);
                     }
                     passages += batch.Length;
