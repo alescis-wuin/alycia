@@ -1,3 +1,5 @@
+using System.Data;
+using System.Data.Common;
 using Alycia.Modules.Chat.Application;
 using Alycia.Modules.Chat.Domain;
 using Microsoft.EntityFrameworkCore;
@@ -46,43 +48,82 @@ public sealed class ConversationHistory(ChatDbContext database, ChatOptions defa
         restored.Conversation.AssignWorkspace(original.WorkspaceId);
         var files = await database.Attachments.AsNoTracking().Where(f => f.ConversationId == id
             && f.AnchorSequence <= through + 1).ToListAsync(ct);
-        var committing = false;
+        var copyId = restored.Conversation.Id;
+        var copyDirectory = storage.DirectoryFor(copyId);
+        if (files.Count > 0)
+        {
+            if (Directory.Exists(copyDirectory)) throw new IOException("Le répertoire de la copie existe déjà.");
+            Directory.CreateDirectory(copyDirectory);
+        }
+        var written = new List<string>();
+        var forkEntities = new List<object>(restored.Messages) { restored.Conversation };
+        var commitStarted = false;
         try
         {
-            var copies = await CopyAttachmentsAsync(files, id, restored.Conversation.Id, ct);
+            var copies = await CopyAttachmentsAsync(files, id, copyId, written, ct);
             // Detect changes while the file copies were being prepared.
             if (!await database.Conversations.AnyAsync(c => c.Id == id && c.Revision == revision, ct))
                 throw new ChatConflictException();
-            database.Conversations.Add(restored.Conversation);
             if (original.WorkspaceId.HasValue)
             {
                 var localModes = await database.WorkspaceFileOverrides.AsNoTracking().Where(o => o.ConversationId == id).ToArrayAsync(ct);
-                database.WorkspaceFileOverrides.AddRange(localModes.Select(o => new WorkspaceFileOverride
-                { ConversationId = restored.Conversation.Id, FileId = o.FileId, Mode = o.Mode }));
+                forkEntities.AddRange(localModes.Select(o => new WorkspaceFileOverride
+                { ConversationId = copyId, FileId = o.FileId, Mode = o.Mode }));
             }
-            database.Messages.AddRange(restored.Messages);
-            database.Attachments.AddRange(copies);
-            committing = true;
-            await database.SaveChangesAsync(ct);
+            forkEntities.AddRange(copies);
+            await using var transaction = await database.Database.BeginTransactionAsync(ct);
+            database.AddRange(forkEntities);
+            await database.SaveChangesAsync(acceptAllChangesOnSuccess: false, cancellationToken: ct);
+            ct.ThrowIfCancellationRequested();
+            commitStarted = true;
+            await transaction.CommitAsync(ct);
+            database.ChangeTracker.AcceptAllChanges();
             return restored.Conversation;
         }
         catch
         {
-            if (!committing) storage.DeleteConversation(restored.Conversation.Id);
+            // A retry in this scope must not insert the abandoned fork.
+            foreach (var entity in forkEntities) database.Entry(entity).State = EntityState.Detached;
+            // Before COMMIT, disposing the transaction rolls back even if SaveChanges ran.
+            if (files.Count > 0 && (!commitStarted || await CanDiscardFailedCommitAsync(copyId)))
+            {
+                foreach (var path in written) File.Delete(path);
+                if (!Directory.EnumerateFileSystemEntries(copyDirectory).Any()) Directory.Delete(copyDirectory);
+            }
             throw;
         }
     }
 
-    private async Task<List<Attachment>> CopyAttachmentsAsync(IReadOnlyList<Attachment> files, Guid sourceId, Guid copyId, CancellationToken ct)
+    private async Task<bool> CanDiscardFailedCommitAsync(Guid copyId)
+    {
+        // The fork's INSERT holds ROW EXCLUSIVE until PostgreSQL resolves COMMIT.
+        // A negative read without this barrier could miss a still-running fork.
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        try
+        {
+            await using var probe = await database.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted, timeout.Token);
+            await database.Database.ExecuteSqlRawAsync("LOCK TABLE chat.conversations IN SHARE MODE NOWAIT", timeout.Token);
+            return !await database.Conversations.AsNoTracking().AnyAsync(c => c.Id == copyId, timeout.Token);
+        }
+        catch (Exception ex) when (ex is DbException or IOException or TimeoutException or OperationCanceledException or InvalidOperationException)
+        {
+            // An unavailable connection, lock or verdict cannot justify deleting originals.
+            return false;
+        }
+    }
+
+    private async Task<List<Attachment>> CopyAttachmentsAsync(IReadOnlyList<Attachment> files, Guid sourceId, Guid copyId,
+        List<string> written, CancellationToken ct)
     {
         var ids = files.ToDictionary(f => f.Id, _ => Guid.NewGuid());
         var copies = new List<Attachment>();
-        if (files.Count > 0) Directory.CreateDirectory(storage.DirectoryFor(copyId));
         foreach (var file in files)
         {
             var newId = ids[file.Id];
             await using var source = File.OpenRead(storage.PathFor(sourceId, file.Id));
-            await using var target = File.Create(storage.PathFor(copyId, newId));
+            var path = storage.PathFor(copyId, newId);
+            await using var target = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+            written.Add(path);
             await source.CopyToAsync(target, ct);
             copies.Add(new Attachment
             {
