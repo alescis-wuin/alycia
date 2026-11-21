@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Alycia.Modules.Inference/Alycia.Modules.Inference.csproj" />
     <Project Path="src/Alycia.Modules.Documents/Alycia.Modules.Documents.csproj" />
     <Project Path="src/Alycia.Platform.Persistence/Alycia.Platform.Persistence.csproj" />
     <Project Path="src/Alycia.Api/Alycia.Api.csproj" />

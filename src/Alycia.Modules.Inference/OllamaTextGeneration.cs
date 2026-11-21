@@ -3,11 +3,10 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Alycia.Modules.Chat.Application;
 
-namespace Alycia.Modules.Chat.Infrastructure;
+namespace Alycia.Modules.Inference;
 
-public sealed partial class OllamaChatModel(HttpClient http, ChatOptions options) : IChatModel
+public sealed partial class OllamaTextGeneration(HttpClient http, InferenceScheduler scheduler) : ITextGeneration
 {
     public async Task<IReadOnlyList<string>> ListModelsAsync(CancellationToken cancellationToken)
     {
@@ -89,19 +88,12 @@ public sealed partial class OllamaChatModel(HttpClient http, ChatOptions options
         catch (JsonException) { throw new ChatModelException("Capacités Ollama invalides."); }
     }
 
-    public Task<string> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages, CancellationToken cancellationToken)
-        => GenerateAsync(model, messages, options, cancellationToken);
-
-    public async Task<string> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages, ChatOptions settings,
-        CancellationToken cancellationToken)
-        => (await GenerateReplyAsync(model, messages, settings, cancellationToken)).Content;
-
-    public async Task<GenerationReply> GenerateReplyAsync(string model, IReadOnlyList<PromptMessage> messages, ChatOptions settings, CancellationToken cancellationToken)
+    public async Task<ModelReply> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages,
+        GenerationParameters parameters, CancellationToken cancellationToken)
     {
-        var parameters = settings.GenerationParameters();
         try
         {
-            using var inference = await OllamaInferenceLease.AcquireAsync(TimeSpan.FromSeconds(parameters.TimeoutSeconds),
+            using var inference = await scheduler.AcquireAsync(TimeSpan.FromSeconds(parameters.TimeoutSeconds),
                 cancellationToken, annotation: parameters.CallPurpose == "annotation");
             await ValidateChatModelAsync(model, inference.Token);
 

@@ -15,7 +15,7 @@ public sealed class ToolSummaryRecoveryTests
     {
         var handler = new Provider(reason);
         using var http = Client(handler);
-        var model = new MeteredChatModel(new OllamaChatModel(http, new()));
+        var model = new MeteredChatModel(ChatFixture.Ollama(http, new()));
         var sources = new Sources();
         var original = Context();
         var events = new List<ModelDelta>();
@@ -58,7 +58,7 @@ public sealed class ToolSummaryRecoveryTests
         using var http = Client(handler);
         var sources = new Sources();
         var events = new List<ModelDelta>();
-        Task Run() => ProjectAgent.RunAsync(new OllamaChatModel(http, new()), sources, Guid.NewGuid(), "demo", Context(), new(),
+        Task Run() => ProjectAgent.RunAsync(ChatFixture.Ollama(http, new()), sources, Guid.NewGuid(), "demo", Context(), new(),
             delta => { events.Add(delta); return Task.CompletedTask; }, cancel.Token);
         if (failure == "cancel") await Assert.ThrowsAnyAsync<OperationCanceledException>(Run);
         else

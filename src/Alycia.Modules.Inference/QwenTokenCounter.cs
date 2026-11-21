@@ -1,9 +1,8 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using Alycia.Modules.Chat.Application;
 
-namespace Alycia.Modules.Chat.Infrastructure;
+namespace Alycia.Modules.Inference;
 
 // Qwen2 pre-tokenizer + byte BPE, read from the installed model's GGUF metadata.
 // Unsupported metadata/astral pre-tokenization falls back to UTF-8 rather than guessing.

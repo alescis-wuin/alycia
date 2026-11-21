@@ -122,11 +122,11 @@ public sealed class OllamaSchedulingTests(ITestOutputHelper output)
         public async Task RunAsync(CancellationToken ct)
         {
             using var http = new HttpClient(this) { BaseAddress = new Uri("http://127.0.0.1:11434/") };
-            var model = new OllamaChatModel(http, new());
+            var model = ChatFixture.Ollama(http, new());
             var settings = new ChatOptions { CallPurpose = name == "chat" ? "chat" : "annotation", TimeoutSeconds = 5 };
             Submission = Stopwatch.GetTimestamp();
             if (name == "embedding")
-                Assert.Equal(2, (await new OllamaEmbeddings(http).EmbedAsync("vectors", ["a", "b"], ct)).Vectors.Length);
+                Assert.Equal(2, (await new OllamaEmbeddings(http, ChatFixture.Scheduler).EmbedAsync("vectors", ["a", "b"], ct)).Vectors.Length);
             else if (name == "chat")
                 Assert.Equal("ok", (await model.StreamAsync("local", [], settings, delta =>
                 {

@@ -1,10 +1,9 @@
 using System.Net.Http.Json;
 using System.Text.Json;
-using Alycia.Modules.Chat.Application;
 
-namespace Alycia.Modules.Chat.Infrastructure;
+namespace Alycia.Modules.Inference;
 
-public sealed class OllamaEmbeddings(HttpClient http) : ILocalEmbeddings
+public sealed class OllamaEmbeddings(HttpClient http, InferenceScheduler scheduler) : ILocalEmbeddings
 {
     public async Task<string> IdentityAsync(string model, CancellationToken ct)
     {
@@ -29,7 +28,7 @@ public sealed class OllamaEmbeddings(HttpClient http) : ILocalEmbeddings
     }
     public async Task<EmbeddingBatch> EmbedAsync(string model, IReadOnlyList<string> input, CancellationToken ct)
     {
-        using var inference = await OllamaInferenceLease.AcquireAsync(TimeSpan.FromSeconds(180), ct);
+        using var inference = await scheduler.AcquireAsync(TimeSpan.FromSeconds(180), ct);
         try
         {
             using var response = await http.PostAsJsonAsync("api/embed", new { model, input, truncate = false }, inference.Token);

@@ -29,7 +29,7 @@ public sealed class StreamingTests
         }))
         { BaseAddress = new Uri("http://127.0.0.1:11434/") };
         var deltas = new List<ModelDelta>();
-        var reply = await new OllamaChatModel(http, new()).StreamAsync("demo", [new("user", "hi")],
+        var reply = await ChatFixture.Ollama(http, new()).StreamAsync("demo", [new("user", "hi")],
             new() { Temperature = 0.1 }, delta => { deltas.Add(delta); return Task.CompletedTask; }, default);
         Assert.Equal("Bonjour 🙂", reply.Content);
         Assert.Equal("réflexion", deltas[0].Thinking);
@@ -48,7 +48,7 @@ public sealed class StreamingTests
             request.RequestUri!.AbsolutePath == "/api/tags" ? "{\"models\":[{\"name\":\"demo\"}]}"
                 : request.RequestUri.AbsolutePath == "/api/show" ? "{\"capabilities\":[\"completion\"]}" : payload))))
         { BaseAddress = new Uri("http://127.0.0.1:11434/") };
-        await Assert.ThrowsAsync<ChatModelException>(() => new OllamaChatModel(http, new())
+        await Assert.ThrowsAsync<ChatModelException>(() => ChatFixture.Ollama(http, new())
             .StreamAsync("demo", [], new(), _ => Task.CompletedTask, default));
     }
 
@@ -63,10 +63,10 @@ public sealed class StreamingTests
             request.RequestUri!.AbsolutePath == "/api/tags" ? "{\"models\":[{\"name\":\"demo\"}]}"
                 : request.RequestUri.AbsolutePath == "/api/show" ? "{\"capabilities\":[\"completion\"]}" : payload))))
         { BaseAddress = new Uri("http://127.0.0.1:11434/") };
-        await Assert.ThrowsAsync<ChatModelException>(() => new OllamaChatModel(http, new())
+        await Assert.ThrowsAsync<ChatModelException>(() => ChatFixture.Ollama(http, new())
             .StreamAsync("demo", [], new(), _ => Task.CompletedTask, default));
         // Explicit bounded mode remains available, including for summarization.
-        var bounded = await new OllamaChatModel(http, new()).StreamAsync("demo", [],
+        var bounded = await ChatFixture.Ollama(http, new()).StreamAsync("demo", [],
             new() { GenerateUntilStop = false }, _ => Task.CompletedTask, default);
         Assert.Equal("partial", bounded.Content);
     }
@@ -79,7 +79,7 @@ public sealed class StreamingTests
                 : request.RequestUri.AbsolutePath == "/api/show" ? Response("{\"capabilities\":[\"completion\"]}")
                 : new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(new PacedStream()) })))
         { BaseAddress = new Uri("http://127.0.0.1:11434/") };
-        var reply = await new OllamaChatModel(http, new()).StreamAsync("demo", [],
+        var reply = await ChatFixture.Ollama(http, new()).StreamAsync("demo", [],
             new() { TimeoutSeconds = 1 }, _ => Task.CompletedTask, default);
         Assert.Equal("continued", reply.Content);
     }

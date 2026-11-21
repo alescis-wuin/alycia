@@ -12,7 +12,7 @@ public sealed class TokenBudgetTests
     {
         var handler = new Metadata();
         using var http = new HttpClient(handler) { BaseAddress = new("http://127.0.0.1:11434/") };
-        var model = new OllamaChatModel(http, new());
+        var model = ChatFixture.Ollama(http, new());
         var options = new ChatOptions { ContextTokens = 32768, TokenCounting = "conservative" };
         Assert.Equal(4096, (await model.PrepareOptionsAsync(handler.Name, options, default)).ContextTokens);
         Assert.Equal(32768, options.ContextTokens);

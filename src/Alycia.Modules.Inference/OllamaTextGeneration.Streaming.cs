@@ -1,27 +1,19 @@
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
-using Alycia.Modules.Chat.Application;
 
-namespace Alycia.Modules.Chat.Infrastructure;
+namespace Alycia.Modules.Inference;
 
-public sealed partial class OllamaChatModel
+public sealed partial class OllamaTextGeneration
 {
     public const int MaxResponseCharacters = 1_000_000;
 
-    public Task<GenerationReply> StreamAsync(string model, IReadOnlyList<PromptMessage> messages,
-        ChatOptions settings, Func<ModelDelta, Task> onDelta, CancellationToken ct) => StreamCoreAsync(model, messages, settings, onDelta, false, ct);
-
-    public Task<GenerationReply> StreamWithToolsAsync(string model, IReadOnlyList<PromptMessage> messages,
-        ChatOptions settings, Func<ModelDelta, Task> onDelta, CancellationToken ct) => StreamCoreAsync(model, messages, settings, onDelta, true, ct);
-
-    private async Task<GenerationReply> StreamCoreAsync(string model, IReadOnlyList<PromptMessage> messages,
-        ChatOptions settings, Func<ModelDelta, Task> onDelta, bool useTools, CancellationToken cancellationToken)
+    public async Task<ModelReply> StreamAsync(string model, IReadOnlyList<PromptMessage> messages,
+        GenerationParameters parameters, Func<ModelDelta, Task> onDelta, bool useTools, CancellationToken cancellationToken)
     {
-        var parameters = settings.GenerationParameters();
         try
         {
-            using var inference = await OllamaInferenceLease.AcquireAsync(TimeSpan.FromSeconds(parameters.TimeoutSeconds),
+            using var inference = await scheduler.AcquireAsync(TimeSpan.FromSeconds(parameters.TimeoutSeconds),
                 cancellationToken, annotation: parameters.CallPurpose == "annotation");
             var details = await ValidateChatModelAsync(model, inference.Token);
             if (useTools && !details.Capabilities!.Contains("tools", StringComparer.Ordinal))

@@ -23,7 +23,7 @@ public sealed class ToolCallingTests
             {"message":{"role":"assistant","thinking":"Lire le code","content":""},"done":false}
             {"message":{"role":"assistant","content":"","tool_calls":[{"function":{"name":"project_list","arguments":{"codeOnly":true}}}]},"done":true,"done_reason":"stop"}
             """);
-        var model = new OllamaChatModel(http, new());
+        var model = ChatFixture.Ollama(http, new());
         Assert.True(await model.SupportsToolsAsync("demo", default));
         var reply = await model.StreamWithToolsAsync("demo", [new("user", "Analyse")], new(), _ => Task.CompletedTask, default);
         Assert.Equal("", reply.Content);
@@ -37,14 +37,14 @@ public sealed class ToolCallingTests
     public async Task IncompleteOrMalformedCallsNeverBecomeExecutable(string response)
     {
         using var http = Http(response);
-        await Assert.ThrowsAsync<ChatModelException>(() => new OllamaChatModel(http, new()).StreamWithToolsAsync("demo", [], new(), _ => Task.CompletedTask, default));
+        await Assert.ThrowsAsync<ChatModelException>(() => ChatFixture.Ollama(http, new()).StreamWithToolsAsync("demo", [], new(), _ => Task.CompletedTask, default));
     }
 
     [Fact]
     public async Task UnsupportedModelCannotReceiveToolPayload()
     {
         using var http = Http("unused", supports: false);
-        await Assert.ThrowsAsync<ChatModelException>(() => new OllamaChatModel(http, new()).StreamWithToolsAsync("demo", [], new(), _ => Task.CompletedTask, default));
+        await Assert.ThrowsAsync<ChatModelException>(() => ChatFixture.Ollama(http, new()).StreamWithToolsAsync("demo", [], new(), _ => Task.CompletedTask, default));
     }
 
     [Fact]

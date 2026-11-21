@@ -6,6 +6,7 @@ COPY src/Alycia.Modules.Workspaces.Application/Alycia.Modules.Workspaces.Applica
 COPY src/Alycia.Modules.Workspaces.Infrastructure/Alycia.Modules.Workspaces.Infrastructure.csproj src/Alycia.Modules.Workspaces.Infrastructure/
 COPY src/Alycia.Platform.Persistence/Alycia.Platform.Persistence.csproj src/Alycia.Platform.Persistence/
 COPY src/Alycia.Modules.Documents/Alycia.Modules.Documents.csproj src/Alycia.Modules.Documents/
+COPY src/Alycia.Modules.Inference/Alycia.Modules.Inference.csproj src/Alycia.Modules.Inference/
 COPY src/Alycia.Contracts/Alycia.Contracts.csproj src/Alycia.Contracts/
 COPY src/Alycia.Modules.Chat.Domain/Alycia.Modules.Chat.Domain.csproj src/Alycia.Modules.Chat.Domain/
 COPY src/Alycia.Modules.Chat.Application/Alycia.Modules.Chat.Application.csproj src/Alycia.Modules.Chat.Application/
@@ -18,6 +19,7 @@ COPY src/Alycia.Modules.Workspaces.Application/ src/Alycia.Modules.Workspaces.Ap
 COPY src/Alycia.Modules.Workspaces.Infrastructure/ src/Alycia.Modules.Workspaces.Infrastructure/
 COPY src/Alycia.Platform.Persistence/ src/Alycia.Platform.Persistence/
 COPY src/Alycia.Modules.Documents/ src/Alycia.Modules.Documents/
+COPY src/Alycia.Modules.Inference/ src/Alycia.Modules.Inference/
 COPY src/Alycia.Contracts/ src/Alycia.Contracts/
 COPY src/Alycia.Modules.Chat.Domain/ src/Alycia.Modules.Chat.Domain/
 COPY src/Alycia.Modules.Chat.Application/ src/Alycia.Modules.Chat.Application/

@@ -119,10 +119,12 @@ internal static class ChatRegistration
 
     private static void RegisterInference(IServiceCollection services, Uri uri)
     {
+        services.AddSingleton<InferenceScheduler>();
+        services.AddScoped<IChatModel, ChatGenerationAdapter>();
         services.AddHttpClient<ILocalEmbeddings, OllamaEmbeddings>(http =>
         { http.BaseAddress = uri; http.Timeout = Timeout.InfiniteTimeSpan; http.MaxResponseContentBufferSize = 8 * 1024 * 1024; })
             .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false, UseProxy = false });
-        services.AddHttpClient<IChatModel, OllamaChatModel>(http =>
+        services.AddHttpClient<ITextGeneration, OllamaTextGeneration>(http =>
         {
             http.BaseAddress = uri;
             http.Timeout = Timeout.InfiniteTimeSpan;
