@@ -1,8 +1,8 @@
+using Alycia.Contracts.Context;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using Alycia.Modules.Chat.Domain;
 
 namespace Alycia.Modules.Chat.Application;
 
@@ -27,7 +27,7 @@ public static class StructuredMemory
             if (match.Value.Length <= 480)
                 yield return new(match.Groups[1].Value.ToLowerInvariant(), "decision", match.Value.TrimEnd('\r'), sequence, role, Hash(content), true);
     }
-    public static MemoryEntry[] Validate(string reply, IReadOnlyList<(ChatMessage Message, string Text)> fragments)
+    public static MemoryEntry[] Validate(string reply, IReadOnlyList<(HistoryMessage Message, string Text)> fragments)
     {
         try
         {
@@ -52,7 +52,7 @@ public static class StructuredMemory
         }
         catch (Exception e) when (e is JsonException or InvalidOperationException or KeyNotFoundException or FormatException) { return []; }
     }
-    public static MemoryLedger Append(MemoryLedger ledger, IEnumerable<MemoryEntry> next, IReadOnlyList<ChatMessage> messages, int fallbackSegments)
+    public static MemoryLedger Append(MemoryLedger ledger, IEnumerable<MemoryEntry> next, IReadOnlyList<HistoryMessage> messages, int fallbackSegments)
     {
         var entries = ledger.Entries.Concat(next).Concat(messages.SelectMany(m => Corrections(m.Sequence, m.Role, m.Content)))
             .OrderByDescending(e => e.Correction).DistinctBy(e => (e.Sequence, e.Quote)).ToList();
@@ -65,7 +65,7 @@ public static class StructuredMemory
         return new(1, messages[^1].Sequence, Hash(ledger.ChainHash + "\n" + string.Join("\n", messages.Select(m => $"{m.Sequence}:{m.Role}:{Hash(m.Content)}"))),
             entries.OrderBy(e => e.Sequence).ToArray(), omitted, ledger.FallbackSegments + fallbackSegments, ledger.ModelIdentity, ledger.PromptVersion);
     }
-    public static MemorySelection Select(MemoryLedger ledger, string question, IReadOnlyList<ChatMessage> recent, int budget, ChatOptions options)
+    public static MemorySelection Select(MemoryLedger ledger, string question, IReadOnlyList<HistoryMessage> recent, int budget, ChatOptions options)
     {
         var terms = ProjectRetrieval.Tokens(question).ToHashSet(StringComparer.Ordinal);
         var currentCorrections = recent.SelectMany(m => Corrections(m.Sequence, m.Role, m.Content))

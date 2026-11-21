@@ -1,5 +1,5 @@
+using Alycia.Contracts.Context;
 using System.Text.Json;
-using Alycia.Modules.Chat.Domain;
 
 namespace Alycia.Modules.Chat.Application;
 
@@ -37,14 +37,14 @@ public static class ConversationContext
         }
     });
 
-    public static async Task<PreparedContext> BuildAsync(IConversationContextReader repository, IChatModel model, Conversation conversation,
+    public static async Task<PreparedContext> BuildAsync(IConversationContextReader repository, IChatModel model, ContextConversation conversation,
         string question, ChatOptions options, bool prepare, Func<string, Task>? progress, CancellationToken ct)
     {
         if (options.Recall is not null)
-            return await TemporalMemory.BuildAsync(repository, conversation, question, options, ct);
+            return await TemporalContext.BuildAsync(repository, conversation, question, options, ct);
         if (!options.StructuredMemory) return await RecursiveContext.BuildAsync(repository, model, conversation, question, options, prepare, progress, ct);
-        var system = ConversationConfiguration.System(conversation, options);
-        var recent = (await repository.MessagesAsync(conversation.Id, options.ProtectedHistoryTurns * 2, null, ct)).ToArray();
+        var system = conversation.SystemText;
+        var recent = (await repository.RecentAsync(conversation.Id, options.ProtectedHistoryTurns * 2, null, ct)).ToArray();
         if (recent.Length != Math.Min(options.ProtectedHistoryTurns * 2, conversation.MessageCount) || recent.Length % 2 != 0) throw new ChatConflictException();
         for (var i = 0; i < recent.Length; i += 2)
             if (recent[i].Role != "user" || recent[i + 1].Role != "assistant" || recent[i].RequestId != recent[i + 1].RequestId
@@ -63,7 +63,7 @@ public static class ConversationContext
         var invalidated = ledger.Through > 0 && (ledger.Through > through || ledger.ModelIdentity != memoryIdentity || ledger.PromptVersion != StructuredMemory.PromptVersion);
         if (ledger.Through > through || ledger.ModelIdentity != memoryIdentity || ledger.PromptVersion != StructuredMemory.PromptVersion)
             ledger = StructuredMemory.Empty with { ModelIdentity = memoryIdentity, PromptVersion = StructuredMemory.PromptVersion };
-        var pending = new List<ChatMessage>();
+        var pending = new List<HistoryMessage>();
         var cost = 0; var pressure = ledger.Through > 0;
         // Retain original history while it fits; extraction starts only under pressure.
         if (!pressure)
@@ -99,7 +99,7 @@ public static class ConversationContext
                 for (var index = 0; index < fragments.Length;)
                 {
                     var keys = ledger.Entries.Concat(next).Select(e => e.Key).Distinct().TakeLast(32).ToArray();
-                    var batch = new List<(ChatMessage Message, string Text)>();
+                    var batch = new List<(HistoryMessage Message, string Text)>();
                     PromptMessage[] Input() => [new("system", Instruction), new("user", JsonSerializer.Serialize(new {
                         knownKeys = keys, messages = batch.Select(f => new { sequence = f.Message.Sequence, role = f.Message.Role, content = f.Text }) }, ProjectToolCatalog.Json))];
                     while (index < fragments.Length && batch.Count < 8)

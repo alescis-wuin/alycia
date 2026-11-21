@@ -1,3 +1,5 @@
+using Alycia.Contracts.Tools;
+using Alycia.Contracts.Context;
 using Alycia.Modules.Chat.Domain;
 
 namespace Alycia.Modules.Chat.Application;
@@ -7,15 +9,11 @@ public interface IChatTurnScope : IAsyncDisposable
     Task CommitAsync(CancellationToken ct);
 }
 
-public interface IChatRepository : IConversationContextReader, IConversationHistoryReader
+public interface IChatRepository : IConversationContextReader, IToolHistoryReader
 {
     Task<IChatTurnScope?> BeginTurnAsync(Guid id, CancellationToken ct) => Task.FromResult<IChatTurnScope?>(null);
-    Task<IReadOnlyList<Attachment>> FilesAsync(Guid id, CancellationToken cancellationToken);
-    async Task<IReadOnlyList<Attachment>> IConversationContextReader.ContextFilesAsync(Guid id, int first, CancellationToken ct) =>
-        (await FilesAsync(id, ct)).Where(f => f.ContextMode != "excluded"
-            && ((f.ContextMode == "pinned" || f.ContextMode == "project") || f.AnchorSequence >= first)).ToArray();
-    async Task<IReadOnlyList<ChatMessage>> IConversationMessagesReader.SummaryRangeAsync(Guid id, int after, int through, CancellationToken ct) =>
-        (await MessagesAsync(id, through - after, through + 1, ct)).Where(m => m.Sequence > after && m.Sequence <= through).ToArray();
+    Task<Conversation?> FindAsync(Guid id, CancellationToken ct);
+    Task<IReadOnlyList<ChatMessage>> MessagesAsync(Guid id, int limit, int? before, CancellationToken ct);
     Task<IReadOnlyList<Conversation>> ListAsync(CancellationToken cancellationToken);
     Task AddAsync(Conversation conversation, CancellationToken cancellationToken);
     Task SaveAsync(CancellationToken cancellationToken);

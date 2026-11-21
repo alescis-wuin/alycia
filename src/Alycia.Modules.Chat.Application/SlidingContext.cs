@@ -1,6 +1,5 @@
 using System.Collections.Immutable;
 using Alycia.Contracts.Context;
-using Alycia.Modules.Chat.Domain;
 
 namespace Alycia.Modules.Chat.Application;
 
@@ -20,7 +19,7 @@ public static class SlidingContext
     private static int PromptCost(string system, string user, ChatOptions options) =>
         TokenBudget.Count(user, options) + (system.Length == 0 ? 0 : TokenBudget.Count(system, options));
 
-    public static ContextWindow Build(ISlidingHistory policy, string systemPrompt, IReadOnlyList<ChatMessage> history,
+    public static ContextWindow Build(ISlidingHistory policy, string systemPrompt, IReadOnlyList<HistoryMessage> history,
         string userMessage, ChatOptions options)
     {
         options.Validate();

@@ -1,5 +1,5 @@
+using Alycia.Contracts.Documents;
 using System.Text;
-using Alycia.Modules.Chat.Domain;
 
 namespace Alycia.Modules.Chat.Application;
 
@@ -14,7 +14,7 @@ public static class EvidenceComposer
         return options.Route?.Mode switch { "explore" => available * 2 / 3, "retrieval" => available / 2, "memory" => available / 5, _ => available / defaultDivisor };
     }
 
-    public static ProjectExcerpts Pack(IReadOnlyList<SourceChunk> ranked, IReadOnlyList<Attachment> files, int budget, ChatOptions options)
+    public static ProjectExcerpts Pack(IReadOnlyList<SourceChunk> ranked, IReadOnlyList<TurnFile> files, int budget, ChatOptions options)
     {
         var allowed = files.Where(f => f.ContextMode != "excluded").ToDictionary(f => f.Id);
         var eligible = ranked.Where(c => allowed.TryGetValue(c.FileId, out var file) && file.Sha256 == c.Sha256).ToArray();

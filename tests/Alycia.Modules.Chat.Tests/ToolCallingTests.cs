@@ -1,3 +1,4 @@
+using Alycia.Modules.Chat.Application.Context;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -11,7 +12,7 @@ public sealed class ToolCallingTests
     [Fact]
     public void DefaultWindowReservesAllNineToolsAndStillFitsTheProtectedQuestion()
     {
-        var options = ProjectAgent.ContextOptions(new());
+        var options = TurnContextBudget.WithToolReserve(new());
         var context = SlidingContext.Build(new Alycia.Modules.Context.SlidingHistory(), "Réponds brièvement en français.", [], "Cherche le symbole ReadAsync puis lis son implémentation.", options);
         Assert.True(context.EstimatedInputTokens + options.MaxOutputTokens + options.SafetyTokens <= options.ContextTokens);
     }

@@ -1,3 +1,4 @@
+using Alycia.Contracts.Context;
 using Alycia.Contracts.Workspaces;
 using Alycia.Modules.Chat.Application;
 using Alycia.Modules.Chat.Domain;
@@ -46,23 +47,27 @@ public sealed class EfChatRepository(ChatDbContext database, IWorkspaceProfiles 
             entry.State = EntityState.Detached;
     }
 
-    private static Attachment Detach(TurnFile f) => new()
+    public Task<IReadOnlyList<TurnFile>> ContextFilesAsync(Guid id, int first, CancellationToken ct) =>
+        documents.ContextFilesAsync(id, first, ct);
+
+    public async Task<int?> MessageCountAsync(Guid id, CancellationToken ct) =>
+        (await FindAsync(id, ct))?.MessageCount;
+
+    private static readonly System.Linq.Expressions.Expression<Func<ChatMessage, HistoryMessage>> HistoryProjection =
+        m => new HistoryMessage(m.ConversationId, m.Sequence, m.RequestId, m.Role, m.Content, m.CreatedAtUtc);
+
+    public async Task<IReadOnlyList<HistoryMessage>> RecentAsync(Guid id, int limit, int? before, CancellationToken ct)
     {
-        Id = f.Id, WorkspaceId = f.WorkspaceId, ConversationId = f.ConversationId, BatchId = f.BatchId,
-        ArchiveId = f.ArchiveId, Name = f.Name, Size = f.Size, Sha256 = f.Sha256,
-        Status = f.Status, Text = f.Text, AnchorSequence = f.AnchorSequence, CreatedAtUtc = f.CreatedAtUtc,
-        SourceCreatedAt = f.SourceCreatedAt, SourceModifiedAt = f.SourceModifiedAt, MetadataSource = f.MetadataSource, ContextMode = f.ContextMode
-    };
+        var messages = await database.Messages.AsNoTracking()
+            .Where(m => m.ConversationId == id && (before == null || m.Sequence < before))
+            .OrderByDescending(m => m.Sequence).Take(limit).Select(HistoryProjection).ToListAsync(ct);
+        messages.Reverse();
+        return messages;
+    }
 
-    public async Task<IReadOnlyList<Attachment>> FilesAsync(Guid id, CancellationToken ct) =>
-        (await documents.FilesAsync(id, ct)).Select(Detach).ToArray();
-
-    public async Task<IReadOnlyList<Attachment>> ContextFilesAsync(Guid id, int first, CancellationToken ct) =>
-        (await documents.ContextFilesAsync(id, first, ct)).Select(Detach).ToArray();
-
-    public async Task<IReadOnlyList<ChatMessage>> SummaryRangeAsync(Guid id, int after, int through, CancellationToken ct) =>
+    public async Task<IReadOnlyList<HistoryMessage>> SummaryRangeAsync(Guid id, int after, int through, CancellationToken ct) =>
         await database.Messages.AsNoTracking().Where(m => m.ConversationId == id && m.Sequence > after && m.Sequence <= through)
-            .OrderBy(m => m.Sequence).ToListAsync(ct);
+            .OrderBy(m => m.Sequence).Select(HistoryProjection).ToListAsync(ct);
 
     public async Task<IReadOnlyList<Conversation>> ListAsync(CancellationToken cancellationToken) =>
         await database.Conversations.AsNoTracking().OrderByDescending(item => item.UpdatedAtUtc)

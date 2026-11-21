@@ -1,6 +1,6 @@
+using Alycia.Contracts.Documents;
 using System.Security.Cryptography;
 using System.Text;
-using Alycia.Modules.Chat.Domain;
 
 namespace Alycia.Modules.Chat.Application;
 
@@ -17,7 +17,7 @@ public static class ProjectRetrieval
     public static IReadOnlyList<SourceChunk> Rank(IReadOnlyList<SourceChunk> chunks, string query, double[]? similarities = null, double[]? lexicalScores = null) =>
         PassageSearch.Rank(chunks, query, similarities, lexicalScores);
 
-    public static ProjectExcerpts Pack(IReadOnlyList<SourceChunk> ranked, IReadOnlyList<Attachment> files, int budget, ChatOptions options)
+    public static ProjectExcerpts Pack(IReadOnlyList<SourceChunk> ranked, IReadOnlyList<TurnFile> files, int budget, ChatOptions options)
     {
         if (options.EvidenceSelectionEnabled || options.ClassificationEnabled) return EvidenceComposer.Pack(ranked, files, budget, options);
         var allowed = files.Where(f => f.ContextMode != "excluded").ToDictionary(f => f.Id);

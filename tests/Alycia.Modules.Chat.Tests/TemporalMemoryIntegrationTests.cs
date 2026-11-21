@@ -71,7 +71,7 @@ public class TemporalMemoryIntegrationTests
             {
                 var copy = options.Copy();
                 copy.Recall = await store.RecallAsync(owner.Id, question, copy, owner.MessageCount, default);
-                return (await TemporalMemory.BuildAsync(new EfChatRepository(db, ChatFixture.Profiles(db), new TurnDocuments(db, ChatFixture.DocumentScope)), owner, question, copy, default)).Context;
+                return (await TemporalContext.BuildAsync(new EfChatRepository(db, ChatFixture.Profiles(db), new TurnDocuments(db, ChatFixture.DocumentScope)), owner.ForContext(copy), question, copy, default)).Context;
             }
             var current = await Recall("Quelle région ?");
             Assert.Contains(current.MemoryTexts!, t => t.Text.Contains("Bretagne"));

@@ -52,15 +52,15 @@ public sealed class SlidingContextTests
         Assert.True(SlidingContext.EstimateTokens("é🙂") > "é🙂".Length + 16);
     }
 
-    private static List<ChatMessage> Turns(params string[] texts)
+    private static List<Alycia.Contracts.Context.HistoryMessage> Turns(params string[] texts)
     {
         var id = Guid.NewGuid();
-        var result = new List<ChatMessage>();
+        var result = new List<Alycia.Contracts.Context.HistoryMessage>();
         for (var i = 0; i < texts.Length; i += 2)
         {
             var request = Guid.NewGuid();
-            result.Add(new(id, i + 1, request, "user", texts[i]));
-            result.Add(new(id, i + 2, request, "assistant", texts[i + 1]));
+            result.Add(new(id, i + 1, request, "user", texts[i], DateTimeOffset.UnixEpoch));
+            result.Add(new(id, i + 2, request, "assistant", texts[i + 1], DateTimeOffset.UnixEpoch));
         }
 
         return result;

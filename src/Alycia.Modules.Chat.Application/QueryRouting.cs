@@ -1,5 +1,6 @@
+using Alycia.Contracts.Documents;
+using Alycia.Contracts.Context;
 using System.Text.RegularExpressions;
-using Alycia.Modules.Chat.Domain;
 
 namespace Alycia.Modules.Chat.Application;
 
@@ -7,7 +8,7 @@ public static class QueryRouting
 {
     private static bool Match(string text, string pattern) => Regex.IsMatch(text, pattern,
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(150));
-    public static QueryRoute Decide(string question, ChatOptions options, IReadOnlyList<Attachment> files)
+    public static QueryRoute Decide(string question, ChatOptions options, IReadOnlyList<TurnFile> files)
     {
         var mode = options.RoutingMode;
         var usable = files.Where(f => f.ContextMode != "excluded").ToArray();
@@ -35,22 +36,22 @@ public static class QueryRouting
         return new(mode, reason, mode is "explore" or "retrieval", options.UseProjectTools && mode is "explore" or "retrieval" or "memory");
     }
 
-    public static async Task PrepareAsync(IConversationContextReader repository, Conversation conversation, string question,
+    public static async Task PrepareAsync(IConversationContextReader repository, Guid owner, int messageCount, string question,
         ChatOptions options, IProjectRetrieval? retrieval, MeteredChatModel measured, CancellationToken ct, ITemporalMemory? memory = null)
     {
         ct.ThrowIfCancellationRequested();
         if (retrieval is null && options.RoutingMode == "off" && !options.QueryRewriteEnabled && !options.AgentPlanningEnabled &&
             !options.TemporalMemoryEnabled && !options.EvidenceSelectionEnabled && !options.VerificationSearchEnabled && !options.FacetPlanningEnabled && !options.ClassificationEnabled && !options.QueryBriefModelEnabled) return;
-        var first = Math.Max(1, conversation.MessageCount - (options.AutoSummarize ? options.ProtectedHistoryTurns : options.MaxHistoryTurns) * 2 + 1);
-        var files = await repository.ContextFilesAsync(conversation.Id, first, ct);
-        options.EligibleSourceIds = files.Where(f => ProjectContext.Eligible(f, first, conversation.MessageCount + 1)).Select(f => f.Id).ToHashSet();
+        var first = Math.Max(1, messageCount - (options.AutoSummarize ? options.ProtectedHistoryTurns : options.MaxHistoryTurns) * 2 + 1);
+        var files = await repository.ContextFilesAsync(owner, first, ct);
+        options.EligibleSourceIds = files.Where(f => ProjectContext.Eligible(f, first, messageCount + 1)).Select(f => f.Id).ToHashSet();
         options.PinnedSourceIds = files.Where(f => f.ContextMode == "pinned" && options.EligibleSourceIds.Contains(f.Id)).Select(f => f.Id).ToHashSet();
         try
         {
             if (options.QueryRewriteEnabled || options.AgentPlanningEnabled || options.FacetPlanningEnabled || options.ClassificationEnabled || options.QueryBriefModelEnabled)
             {
-                var previous = await repository.MessagesAsync(conversation.Id, 12, null, ct);
-                options.SearchPlan = QueryPlanning.Build(question, previous.Where(m => m.ConversationId == conversation.Id).ToArray(),
+                var previous = await repository.RecentAsync(owner, 12, null, ct);
+                options.SearchPlan = QueryPlanning.Build(question, previous.Where(m => m.ConversationId == owner).ToArray(),
                     files.Where(f => options.EligibleSourceIds.Contains(f.Id)).ToArray(), options.MaxSearchQueries, options.FacetPlanningEnabled || options.QueryBriefModelEnabled);
                 if (options.SearchPlan is { Brief: { } brief } plan)
                 {
@@ -87,12 +88,12 @@ public static class QueryRouting
         }
         if (options.TemporalMemoryEnabled && memory is not null && options.Route?.Mode is not ("direct" or "unavailable"))
         {
-            options.Recall = await memory.RecallAsync(conversation.Id, question, options, conversation.MessageCount, ct);
+            options.Recall = await memory.RecallAsync(owner, question, options, messageCount, ct);
             measured.AddCalls(options.Recall.Calls);
         }
         if (options.Route?.Search == false) { options.SourceCandidates = []; return; }
         if (retrieval is null || options.RetrievalMode == "legacy") return;
-        var sources = await retrieval.PrepareAsync(conversation.Id, question, options, ct);
+        var sources = await retrieval.PrepareAsync(owner, question, options, ct);
         options.SourceCandidates = sources.Chunks;
         options.RetrievalReport = sources.Report;
         measured.AddCalls(sources.Calls);
