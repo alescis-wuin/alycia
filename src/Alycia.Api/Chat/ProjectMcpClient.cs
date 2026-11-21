@@ -2,14 +2,13 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Alycia.Modules.Chat.Application;
-using Alycia.Modules.Chat.Infrastructure;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 
 namespace Alycia.Api.Chat;
 
 // Destination derived from Kestrel, never from the model or a request Host header.
-public sealed class ProjectMcpClient(HttpClient http, IServer server, IConfiguration configuration, ProjectToolService sources) : IProjectTools
+public sealed class ProjectMcpClient(HttpClient http, IServer server, IConfiguration configuration, ISnapshotProjectTools sources) : IProjectTools
 {
     private Guid? _initialized;
     private int _sequence;
@@ -71,7 +70,7 @@ public sealed class ProjectMcpClient(HttpClient http, IServer server, IConfigura
         if (!response.IsSuccessStatusCode) throw new ChatModelException($"Le MCP local a refusé la requête (HTTP {(int)response.StatusCode}).");
         if (notification) return default;
         await using var stream = await response.Content.ReadAsStreamAsync(ct);
-        using var document = JsonDocument.Parse(await FileImport.ReadBoundedAsync(stream, 1024 * 1024, ct));
+        using var document = JsonDocument.Parse(await DocumentContent.ReadBoundedAsync(stream, 1024 * 1024, ct));
         var root = document.RootElement;
         if (root.GetProperty("jsonrpc").GetString() != "2.0" || root.GetProperty("id").GetInt32() != id) throw new ChatModelException("Identifiant MCP invalide.");
         if (root.TryGetProperty("error", out _)) throw new ChatModelException("Le MCP local a signalé une erreur de protocole.");

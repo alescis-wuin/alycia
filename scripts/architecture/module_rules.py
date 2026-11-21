@@ -67,14 +67,13 @@ ADAPTERS = {
     "Indexing": {"CodeStructure", "FileStorage", "ProjectSource", "ProjectSourceReader", "StructuredDocuments",
                  "ProjectProfiles", "WorkspaceSources"},
     "Projects": {"EfChatRepository", "FileImport", "FileStorage", "FileSummary", "ProjectSourceReader"},
-    "Tools": {"EfChatRepository", "CodeStructure", "ProjectSourceReader", "ProjectIndexService", "WorkspaceSources"},
 }
 
 # These consumers intentionally see a specific port or value and no implementation.
 NARROW_EDGES = {
     ("Context", "Tools"): {"ITurnTools"},
     ("Configuration", "Inference"): {"IChatModel", "ITextTokenCounter"},
-    ("Retrieval", "Conversations"): {"IChatRepository", "IConversationContextReader"},
+    ("Retrieval", "Conversations"): {"IChatRepository", "IConversationContextReader", "IConversationMessagesReader"},
     ("Retrieval", "Tools"): {"ProjectToolResult"},
     ("Inference", "Conversations"): {"ChatConflictException"},
     ("Inference", "Retrieval"): {"EvidenceText"},

@@ -5,7 +5,7 @@ using Alycia.Modules.Chat.Domain;
 namespace Alycia.Modules.Chat.Application;
 
 // Builds a bounded local lexical index from immutable messages. No cross-conversation lookup.
-public sealed class HistoryTools(IChatRepository repository, IIndexedEmbeddings? semantic = null, ChatOptions? settings = null)
+public sealed class HistoryTools(IConversationHistoryReader repository, IIndexedEmbeddings? semantic = null, ChatOptions? settings = null)
 {
     public const int MaxScanCharacters = 4_000_000;
     public const int MaxScanMessages = 4096;

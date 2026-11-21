@@ -78,6 +78,9 @@ internal static class ChatRegistration
     private static void RegisterTools(IServiceCollection services)
     {
         services.AddScoped<ITurnTools, TurnTools>();
+        services.AddScoped<IConversationHistoryReader>(sp => sp.GetRequiredService<IChatRepository>());
+        services.AddScoped<IToolConversationPolicy, ToolConversationPolicyReader>();
+        services.AddScoped<IAuthorizedToolSources, AuthorizedToolSources>();
         services.AddScoped<ProjectToolService>();
         services.AddScoped<ISnapshotProjectTools>(sp => sp.GetRequiredService<ProjectToolService>());
         services.AddHttpClient<IProjectTools, ProjectMcpClient>(http => http.Timeout = Timeout.InfiniteTimeSpan)

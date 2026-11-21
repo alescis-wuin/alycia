@@ -43,9 +43,6 @@ src/Alycia.Modules.Chat.Infrastructure/Projects/ProjectFiles.cs	E	chat.conversat
 src/Alycia.Modules.Chat.Infrastructure/Projects/ProjectFiles.cs	E	chat.workspace_file_overrides	2026-11-21	D07
 src/Alycia.Modules.Chat.Infrastructure/Projects/ProjectFiles.cs	R	Documents.IncomingFile	2026-11-21	D07
 src/Alycia.Modules.Chat.Infrastructure/Projects/ProjectFiles.cs	R	Documents.ProjectSource	2026-11-21	D07
-src/Alycia.Modules.Chat.Infrastructure/Tools/ProjectToolService.cs	E	chat.conversations	2026-11-21	D15
-src/Alycia.Modules.Chat.Infrastructure/Tools/ProjectToolService.cs	E	chat.messages	2026-11-21	D15
-src/Alycia.Modules.Chat.Infrastructure/Tools/ProjectToolService.cs	R	Documents.ProjectSource	2026-11-21	D15
 src/Alycia.Modules.Chat.Infrastructure/WorkspaceSources.cs	E	chat.attachments	2026-11-21	D17
 src/Alycia.Modules.Chat.Infrastructure/WorkspaceSources.cs	E	chat.conversations	2026-11-21	D17
 src/Alycia.Modules.Chat.Infrastructure/WorkspaceSources.cs	E	chat.workspace_file_overrides	2026-11-21	D17

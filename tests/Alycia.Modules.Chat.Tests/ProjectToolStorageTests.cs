@@ -73,7 +73,9 @@ public sealed class ProjectToolStorageTests
             Assert.Empty((await index.BuildAsync(conversation.Id, default)).Chunks);
             file.ContextMode = "project"; await db.SaveChangesAsync();
             Assert.Equal(0, (await index.BuildAsync(conversation.Id, default)).ReusedFiles);
-            var tools = new ProjectToolService(db, reader, new());
+            var history = new EfChatRepository(db);
+            var policy = new ToolConversationPolicyReader(db);
+            var tools = new ProjectToolService(new AuthorizedToolSources(db, reader, policy, new()), policy, history, new(), new ProjectIndexService(db, storage, reader, new()));
             Task<ProjectToolResult> Call(string tool, object args, Guid? scope = null, int budget = 2048) =>
                 tools.CallAsync(scope ?? conversation.Id, tool, JsonSerializer.SerializeToElement(args), budget, default);
             var found = await Call("project_search", new { query = "hiddenatend" });
