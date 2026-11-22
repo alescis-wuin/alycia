@@ -11,7 +11,11 @@ public interface IChatTurnScope : IAsyncDisposable
 
 public interface IChatRepository : IConversationContextReader, IToolHistoryReader, IQuerySources
 {
-    Task<IChatTurnScope?> BeginTurnAsync(Guid id, CancellationToken ct) => Task.FromResult<IChatTurnScope?>(null);
+    Task<IChatTurnScope?> BeginTurnAsync(Guid id, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        return Task.FromResult<IChatTurnScope?>(null);
+    }
     Task<Conversation?> FindAsync(Guid id, CancellationToken ct);
     Task<IReadOnlyList<ChatMessage>> MessagesAsync(Guid id, int limit, int? before, CancellationToken ct);
     Task<IReadOnlyList<Conversation>> ListAsync(CancellationToken cancellationToken);
