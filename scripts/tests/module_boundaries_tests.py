@@ -78,6 +78,14 @@ class ModuleBoundariesTests(unittest.TestCase):
         self.source(app, "Memory/MemoryValue.cs", "public class MemoryValue { public ContextValue Read() => null; }")
         self.assertIn("logical owner cycle: Context -> Memory -> Context", self.guard(False))
 
+    def test_owner_cycle_across_a_physical_module_and_a_logical_owner_is_denied(self):
+        context = self.project("Alycia.Modules.Context")
+        self.source(context, "Policy.cs", "namespace Isolated; public class Policy {}")
+        app = self.project(APP, ["Alycia.Modules.Context"])
+        self.source(app, "Context/ContextBuilder.cs", "public class ContextBuilder { public MemoryValue Read() => null; }")
+        self.source(app, "Memory/MemoryValue.cs", "public class MemoryValue { public Isolated.Policy Read() => null; }")
+        self.assertIn("logical owner cycle: Context -> Memory -> Context", self.guard(False))
+
     def test_independent_module_cannot_reference_a_sibling_implementation(self):
         core = "Alycia.Modules.Retrieval"
         sibling = "Alycia.Modules.Indexing"

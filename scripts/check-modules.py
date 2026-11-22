@@ -9,7 +9,7 @@ import sys
 import tempfile
 import xml.etree.ElementTree as ET
 
-from architecture.module_rules import ALLOWED, CHAT_PROJECTS, CONTRACT_AREAS, NARROW_EDGES, OWNER_INPUT_TYPES, SNAPSHOT_CONSUMERS, owner
+from architecture.module_rules import ALLOWED, CHAT_PROJECTS, CONTRACT_AREAS, NARROW_EDGES, OWNER_INPUT_TYPES, SNAPSHOT_CONSUMERS, module_owner, owner
 
 ROOT = Path(__file__).resolve().parents[1]
 CAPTURE = ROOT / "scripts/architecture/capture"
@@ -229,10 +229,14 @@ def check_records(rows, root):
             target_project = Path(target).parts[1]
             if forbidden(project, target_project):
                 problems.add(f"{location}: project layer: {project} -> {target_project}")
+            if "/Migrations/" not in path and "/Migrations/" not in target:
+                source_owner = module_owner(path, source_type)
+                target_owner = module_owner(target, target_type)
+                if source_owner and target_owner and source_owner != target_owner:
+                    matrix[source_owner, target_owner].add(target_type)
             left, right = owner(path, source_type), owner(target, target_type)
             if not left or not right or left == right:
                 continue
-            matrix[left, right].add(target_type)
             narrow = NARROW_EDGES.get((left, right))
             if right not in ALLOWED[left] and narrow is None:
                 problems.add(f"{location}: logical boundary: {left} -> {right} ({target_type})")
@@ -245,7 +249,10 @@ def check_records(rows, root):
     from graphlib import CycleError, TopologicalSorter
     dependencies = TopologicalSorter()
     for source, target in sorted(matrix):
-        dependencies.add(source, target)
+        # EF's shared mapping registers the owners' entities. Keep those inspected edges in the
+        # inventory; the technical context itself does not coordinate any business workflow.
+        if "Persistence" not in (source, target):
+            dependencies.add(source, target)
     try:
         dependencies.prepare()
     except CycleError as error:

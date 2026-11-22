@@ -40,7 +40,7 @@ def export(directory, destination):
             for reference in sorted((directory / (project + ".refs")).read_text(encoding="utf-8-sig").splitlines()):
                 write.writerow(["référence MSBuild", project, Path(reference).stem, "ProjectReference évaluée"])
         for pair, types in sorted(logical.items()):
-            write.writerow(["relation logique Chat", *pair, ", ".join(sorted(types))])
+            write.writerow(["relation entre propriétaires", *pair, ", ".join(sorted(types))])
 
     interfaces = {r[2]: r[1] for r in rows if r[0] == "I" and r[1].startswith("src/") and "/obj/" not in r[1]}
     implementations = defaultdict(lambda: defaultdict(set))

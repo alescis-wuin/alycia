@@ -13,8 +13,8 @@ public sealed class PromptCatalog(ChatDbContext database)
         var profile = new PromptProfile
         {
             Id = Guid.NewGuid(),
-            Name = Conversation.RequiredText(name, 100, "Le nom"),
-            SystemPrompt = Conversation.RequiredText(systemPrompt, 4000, "Le prompt")
+            Name = SettingsInput.RequiredText(name, 100, "Le nom"),
+            SystemPrompt = SettingsInput.RequiredText(systemPrompt, 4000, "Le prompt")
         };
         if (await database.PromptProfiles.CountAsync(ct) >= 200) throw new ArgumentException("Bibliothèque limitée à 200 profils.");
         database.PromptProfiles.Add(profile);
@@ -26,8 +26,8 @@ public sealed class PromptCatalog(ChatDbContext database)
     {
         var profile = await database.PromptProfiles.FindAsync([id], ct);
         if (profile is null) return null;
-        profile.Name = Conversation.RequiredText(name, 100, "Le nom");
-        profile.SystemPrompt = Conversation.RequiredText(systemPrompt, 4000, "Le prompt");
+        profile.Name = SettingsInput.RequiredText(name, 100, "Le nom");
+        profile.SystemPrompt = SettingsInput.RequiredText(systemPrompt, 4000, "Le prompt");
         await database.SaveChangesAsync(ct);
         return profile;
     }
