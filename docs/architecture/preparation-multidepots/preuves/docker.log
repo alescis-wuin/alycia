@@ -1,0 +1,63 @@
+Recette sur machine virtuelle QEMU x86-64 jetable sous Alpine Linux 3.22.8.
+Docker Engine 28.3.3. SDK Microsoft 10.0.404 avec le certificat racine du proxy de recette. Image runtime Microsoft ASP.NET 10.0. Image PostgreSQL du fichier Compose.
+Commande du dépôt : python3 scripts/architecture/check-docker.py
+Projet Compose : alycia-accept-1595d64ae5d5456a8f333ec0aa32eb0f
+Sortie de la dernière exécution (progression et duplications de terminal retirées).
+
+Construction initiale du même Dockerfile. Le premier démarrage a signalé une boucle locale non configurée dans la VM.
+Après activation de lo, Compose a réutilisé les couches déjà construites.
+#6 [api stage-1 1/4] FROM mcr.microsoft.com/dotnet/aspnet:10.0@sha256:12b1135f5f8b3c0a214f2a680ff2033dff4f684f445d6c697d9524ceeb303586
+#8 [api build 1/7] FROM mcr.microsoft.com/dotnet/sdk:10.0.404
+#14 80.17   Successfully created package '/src/artifacts/local-feed/Alycia.Contracts.0.1.0.nupkg'.
+#14 151.9   Successfully created package '/src/artifacts/local-feed/Alycia.Platform.Persistence.0.1.0.nupkg'.
+#14 152.3 artifacts/local-feed/Alycia.Contracts.0.1.0.nupkg: OK
+#14 152.3 artifacts/local-feed/Alycia.Platform.Persistence.0.1.0.nupkg: OK
+#14 261.2   Restored /src/src/Alycia.Api/Alycia.Api.csproj (in 34.18 sec).
+#14 397.6   Alycia.Api -> /src/src/Alycia.Api/bin/Release/net10.0/Alycia.Api.dll
+#14 401.3   Alycia.Api -> /out/
+#17 writing image sha256:1c463a5a1091fa47922603474405b184704edcf74e098223efca5c22ff98a427 done
+Recette finale :
+28.3.3
+#1 [api internal] load build definition from Dockerfile
+#2 [api internal] load metadata for mcr.microsoft.com/dotnet/aspnet:10.0
+#3 [api internal] load metadata for mcr.microsoft.com/dotnet/sdk:10.0.404
+#5 [api build 1/7] FROM mcr.microsoft.com/dotnet/sdk:10.0.404
+#17 [api] exporting to image
+#17 writing image sha256:1c2ec63a23797ca0b7c795209011ece8773ae47d0487d660db66508c2544b8da done
+#17 naming to docker.io/library/alycia-accept-1595d64ae5d5456a8f333ec0aa32eb0f-api 0.0s done
+api  Built
+Network alycia-accept-1595d64ae5d5456a8f333ec0aa32eb0f_default  Creating
+Network alycia-accept-1595d64ae5d5456a8f333ec0aa32eb0f_default  Created
+Volume "alycia-accept-1595d64ae5d5456a8f333ec0aa32eb0f_postgres_data"  Creating
+Volume "alycia-accept-1595d64ae5d5456a8f333ec0aa32eb0f_postgres_data"  Created
+Volume "alycia-accept-1595d64ae5d5456a8f333ec0aa32eb0f_api_logs"  Creating
+Volume "alycia-accept-1595d64ae5d5456a8f333ec0aa32eb0f_api_logs"  Created
+Container alycia-accept-1595d64ae5d5456a8f333ec0aa32eb0f-postgres-1  Creating
+Container alycia-accept-1595d64ae5d5456a8f333ec0aa32eb0f-postgres-1  Created
+Container alycia-accept-1595d64ae5d5456a8f333ec0aa32eb0f-api-1  Creating
+Container alycia-accept-1595d64ae5d5456a8f333ec0aa32eb0f-api-1  Created
+Container alycia-accept-1595d64ae5d5456a8f333ec0aa32eb0f-postgres-1  Starting
+Container alycia-accept-1595d64ae5d5456a8f333ec0aa32eb0f-postgres-1  Started
+Container alycia-accept-1595d64ae5d5456a8f333ec0aa32eb0f-postgres-1  Waiting
+Container alycia-accept-1595d64ae5d5456a8f333ec0aa32eb0f-postgres-1  Healthy
+Container alycia-accept-1595d64ae5d5456a8f333ec0aa32eb0f-api-1  Starting
+Container alycia-accept-1595d64ae5d5456a8f333ec0aa32eb0f-api-1  Started
+Container alycia-accept-1595d64ae5d5456a8f333ec0aa32eb0f-api-1  Waiting
+Container alycia-accept-1595d64ae5d5456a8f333ec0aa32eb0f-api-1  Healthy
+PASS Docker build, PostgreSQL dependency, API /healthz HTTP 200
+Container alycia-accept-1595d64ae5d5456a8f333ec0aa32eb0f-api-1  Stopping
+Container alycia-accept-1595d64ae5d5456a8f333ec0aa32eb0f-api-1  Stopped
+Container alycia-accept-1595d64ae5d5456a8f333ec0aa32eb0f-api-1  Removing
+Container alycia-accept-1595d64ae5d5456a8f333ec0aa32eb0f-api-1  Removed
+Container alycia-accept-1595d64ae5d5456a8f333ec0aa32eb0f-postgres-1  Stopping
+Container alycia-accept-1595d64ae5d5456a8f333ec0aa32eb0f-postgres-1  Stopped
+Container alycia-accept-1595d64ae5d5456a8f333ec0aa32eb0f-postgres-1  Removing
+Container alycia-accept-1595d64ae5d5456a8f333ec0aa32eb0f-postgres-1  Removed
+Volume alycia-accept-1595d64ae5d5456a8f333ec0aa32eb0f_api_logs  Removing
+Volume alycia-accept-1595d64ae5d5456a8f333ec0aa32eb0f_postgres_data  Removing
+Network alycia-accept-1595d64ae5d5456a8f333ec0aa32eb0f_default  Removing
+Network alycia-accept-1595d64ae5d5456a8f333ec0aa32eb0f_default  Removed
+Volume alycia-accept-1595d64ae5d5456a8f333ec0aa32eb0f_postgres_data  Removed
+Volume alycia-accept-1595d64ae5d5456a8f333ec0aa32eb0f_api_logs  Removed
+VMRC=0
+PASS Docker Compose in disposable Alpine guest
