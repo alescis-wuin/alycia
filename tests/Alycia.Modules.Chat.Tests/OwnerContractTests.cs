@@ -184,11 +184,15 @@ public sealed class OwnerContractTests
                 var index = new ProjectIndexService(new ConversationIndexOwners(new(db.Database)), storage, ChatFixture.IndexFiles(db, reader), live);
                 var passages = (await index.BuildAsync(chat.Id, default)).Chunks;
                 Assert.NotEmpty(passages);
-                foreach (var adapter in new IProjectIndex[] { index, new SnapshotIndex(chat.Id, passages) })
+                foreach (var adapter in new IProjectIndex[] { index, new SnapshotIndex(chat.Id, passages, other.Id) })
                 {
                     Assert.Empty((await adapter.BuildScopedAsync(chat.Id, new HashSet<Guid>(), default)).Chunks);
                     Assert.Empty((await adapter.BuildScopedAsync(other.Id, new HashSet<Guid> { file.Id }, default)).Chunks);
-                    var chunks = (await adapter.BuildScopedAsync(chat.Id, new HashSet<Guid> { file.Id }, default)).Chunks;
+                    await Assert.ThrowsAsync<ConversationNotFoundException>(() => adapter.BuildScopedAsync(Guid.Empty, null, default));
+                    var scoped = await adapter.BuildScopedAsync(chat.Id, new HashSet<Guid> { file.Id, Guid.Empty }, default);
+                    Assert.Equal(1, scoped.EligibleFiles);
+                    Assert.Equal(1, scoped.IndexedFiles);
+                    var chunks = scoped.Chunks;
                     Assert.Equal(passages.Select(c => c.Text), chunks.Select(c => c.Text));
                     Assert.All(chunks, chunk => Assert.Equal(file.Id, chunk.FileId));
                     await Assert.ThrowsAnyAsync<OperationCanceledException>(() => adapter.BuildScopedAsync(chat.Id, null, new(true)));

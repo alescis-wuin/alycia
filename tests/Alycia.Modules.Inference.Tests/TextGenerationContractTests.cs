@@ -62,9 +62,11 @@ public sealed class TextGenerationContractTests
         var owner = Guid.NewGuid();
         var file = Guid.NewGuid();
         var chunk = new SourceChunk(file, "sample.txt", "sha", "", "text", 0, 3, 1, 1, "abc", ["type"], true);
-        IProjectIndex index = new SnapshotIndex(owner, [chunk]);
+        var emptyOwner = Guid.NewGuid();
+        IProjectIndex index = new SnapshotIndex(owner, [chunk], emptyOwner);
         chunk.References[0] = "changed";
-        Assert.Empty((await index.BuildAsync(Guid.NewGuid(), default)).Chunks);
+        Assert.Empty((await index.BuildAsync(emptyOwner, default)).Chunks);
+        await Assert.ThrowsAsync<ConversationNotFoundException>(() => index.BuildAsync(Guid.NewGuid(), default));
         Assert.Empty((await index.BuildScopedAsync(owner, new HashSet<Guid>(), default)).Chunks);
         var returned = Assert.Single((await index.BuildScopedAsync(owner, new HashSet<Guid> { file }, default)).Chunks);
         Assert.Equal("type", returned.References[0]);
