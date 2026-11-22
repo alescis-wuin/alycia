@@ -17,7 +17,7 @@ public sealed class TemporalFactStorage(DatabaseFacade database) : ITemporalFact
 
     public Task<int[]> IndexedAsync(Guid owner, int[] sequences, CancellationToken ct) =>
         database.SqlQuery<int>($"""
-            SELECT sequence AS "Value" FROM chat.temporal_memory WHERE owner={owner} AND sequence=ANY({sequences}) AND version={Version}
+            SELECT sequence AS "Value" FROM chat.temporal_memory WHERE owner={owner} AND sequence=ANY({sequences.ToArray()}) AND version={Version}
             """).ToArrayAsync(ct);
 
     public async Task SaveAsync(Guid owner, int sequence, DateTimeOffset observed, string[] topics, string facts, string search, CancellationToken ct)
@@ -26,7 +26,7 @@ public sealed class TemporalFactStorage(DatabaseFacade database) : ITemporalFact
         {
             await database.ExecuteSqlInterpolatedAsync($"""
                 INSERT INTO chat.temporal_memory(owner,sequence,observed,topics,facts,search,version)
-                VALUES ({owner},{sequence},{observed},{topics},{facts}::jsonb,to_tsvector('french',{search}),{Version})
+                VALUES ({owner},{sequence},{observed},{topics.ToArray()},{facts}::jsonb,to_tsvector('french',{search}),{Version})
                 ON CONFLICT(owner,sequence) DO UPDATE SET topics=excluded.topics,facts=excluded.facts,search=excluded.search,version=excluded.version
                 WHERE chat.temporal_memory.version <> excluded.version
                 """, ct);
@@ -46,11 +46,11 @@ public sealed class TemporalFactStorage(DatabaseFacade database) : ITemporalFact
             """).ToListAsync(ct);
     public Task<List<string>> SelectedAsync(Guid owner, int through, DateTimeOffset before, int[] sequences, CancellationToken ct) =>
         database.SqlQuery<string>($"""
-            SELECT facts::text AS "Value" FROM chat.temporal_memory WHERE owner={owner} AND observed<{before} AND sequence<={through} AND sequence=ANY({sequences}) AND version={Version}
+            SELECT facts::text AS "Value" FROM chat.temporal_memory WHERE owner={owner} AND observed<{before} AND sequence<={through} AND sequence=ANY({sequences.ToArray()}) AND version={Version}
             """).ToListAsync(ct);
     public Task<List<string>> TopicsAsync(Guid owner, int through, DateTimeOffset before, string[] topics, CancellationToken ct) =>
         database.SqlQuery<string>($"""
-            SELECT facts::text AS "Value" FROM chat.temporal_memory WHERE owner={owner} AND observed<{before} AND sequence<={through} AND version={Version} AND topics && {topics}
+            SELECT facts::text AS "Value" FROM chat.temporal_memory WHERE owner={owner} AND observed<{before} AND sequence<={through} AND version={Version} AND topics && {topics.ToArray()}
             ORDER BY sequence LIMIT 257
             """).ToListAsync(ct);
     public Task<List<string>> ExportAsync(Guid owner, int after, int limit, CancellationToken ct) =>
