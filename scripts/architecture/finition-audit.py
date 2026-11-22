@@ -19,6 +19,7 @@ SPEC.loader.exec_module(exporter)
 PAIRS = {
     "ITextGeneration": "Text_and_stream_agree_and_enforce_capabilities",
     "ILocalEmbeddings": "Vector_provider_preserves_row_order_identity_and_cancellation",
+    "IIndexSourceDocuments": "Document_index_pages_preserve_cursor_scope_digest_and_exclusion",
     "IImportLimitsReader": "Import_limits_preserve_defaults_overrides_and_cancellation_in_both_adapters",
     "IConversationIndexOwners": "Conversation_pages_and_tool_policies_agree_on_scope_cursors_and_cancellation",
     "IToolConversationPolicy": "Conversation_pages_and_tool_policies_agree_on_scope_cursors_and_cancellation",
