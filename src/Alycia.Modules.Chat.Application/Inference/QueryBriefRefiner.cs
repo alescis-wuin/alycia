@@ -7,6 +7,7 @@ public sealed class QueryBriefRefiner(IChatModel model) : IQueryBriefRefiner
 {
     public async Task<QueryBrief> RefineAsync(QueryBrief brief, BriefGeneration config, CancellationToken ct)
     {
+        brief = SearchSnapshots.Copy(brief)!;
         var schema = JsonSerializer.SerializeToElement(new
         {
             type = "object",
