@@ -1,0 +1,38 @@
+{
+  "P0": "fadd9aa41148ac3f147b25a73fb6d023928242c6",
+  "candidat_initial": "a898c60887c8c60bcc572abb262bf449d7105573",
+  "commit_applicatif": "89f2ba67439c5c78c2817e277c261c64a8a413b5",
+  "arbre_git": "6cd494b4e756f947f58bf22da04dd8deeb91733a",
+  "arbre_hors_repertoire_de_recette": "abbf68f692fb3a82374936f2d07e8bf01c82979a",
+  "domaines": {
+    "contracts": 12,
+    "configuration": 3,
+    "context": 23,
+    "conversations": 31,
+    "documents": 29,
+    "indexing": 12,
+    "inference": 59,
+    "memory": 7,
+    "retrieval": 31,
+    "tools": 13,
+    "workspaces": 13,
+    "platform": 1
+  },
+  "maitre_seul": {
+    "alycia.client.avalonia.tests.dll": 63,
+    "alycia.modules.chat.tests.dll": 105
+  },
+  "total_dotnet": 402,
+  "total_python": 38,
+  "ancienne_suite_chat": {
+    "methodes": 177,
+    "methodes_deplacees": 95,
+    "cas": 256,
+    "cas_deplaces": 151,
+    "cas_restant_au_maitre": 105
+  },
+  "identites_changees_depuis_base_signee": 189,
+  "packages_version": "0.1.0",
+  "packages_reconstruits": 7,
+  "migrations_preservees": 25
+}

@@ -1,23 +1,23 @@
-dotnet restore /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/inference-qe4w59ds/inference/Inference.slnx --locked-mode --configfile /workspace/scratch/d996445e2691/tooling/tmp/alycia-module-run-6wxvdybk/NuGet.Config -m:1
+dotnet restore /tmp/alycia-extraction-ozkcrko7/inference-s366nmbv/inference/Inference.slnx --locked-mode --configfile /tmp/alycia-module-run-scawmm2z/NuGet.Config -m:1
   Determining projects to restore...
-  Restored /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/inference-qe4w59ds/inference/testing/Alycia.Modules.Inference.Mocks/Alycia.Modules.Inference.Mocks.csproj (in 167 ms).
-  Restored /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/inference-qe4w59ds/inference/src/Alycia.Modules.Inference/Alycia.Modules.Inference.csproj (in 167 ms).
-  Restored /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/inference-qe4w59ds/inference/tests/Alycia.Modules.Inference.Tests/Alycia.Modules.Inference.Tests.csproj (in 167 ms).
-dotnet build /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/inference-qe4w59ds/inference/Inference.slnx -c Release --no-restore -m:1 -v:q
+  Restored /tmp/alycia-extraction-ozkcrko7/inference-s366nmbv/inference/src/Alycia.Modules.Inference/Alycia.Modules.Inference.csproj (in 305 ms).
+  Restored /tmp/alycia-extraction-ozkcrko7/inference-s366nmbv/inference/tests/Alycia.Modules.Inference.Tests/Alycia.Modules.Inference.Tests.csproj (in 305 ms).
+  Restored /tmp/alycia-extraction-ozkcrko7/inference-s366nmbv/inference/testing/Alycia.Modules.Inference.Mocks/Alycia.Modules.Inference.Mocks.csproj (in 305 ms).
+dotnet build /tmp/alycia-extraction-ozkcrko7/inference-s366nmbv/inference/Inference.slnx -c Release --no-restore -m:1 -v:q
 
 
     0 Warning(s)
     0 Error(s)
 
-Time Elapsed 00:00:05.82
-dotnet test /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/inference-qe4w59ds/inference/Inference.slnx -c Release --no-build --no-restore -m:1 --logger trx --results-directory /workspace/scratch/d996445e2691/tooling/tmp/alycia-module-run-6wxvdybk
-Test run for /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/inference-qe4w59ds/inference/tests/Alycia.Modules.Inference.Tests/bin/Release/net10.0/Alycia.Modules.Inference.Tests.dll (.NETCoreApp,Version=v10.0)
+Time Elapsed 00:00:06.67
+dotnet test /tmp/alycia-extraction-ozkcrko7/inference-s366nmbv/inference/Inference.slnx -c Release --no-build --no-restore -m:1 --logger trx --results-directory /tmp/alycia-module-run-scawmm2z
+Test run for /tmp/alycia-extraction-ozkcrko7/inference-s366nmbv/inference/tests/Alycia.Modules.Inference.Tests/bin/Release/net10.0/Alycia.Modules.Inference.Tests.dll (.NETCoreApp,Version=v10.0)
 A total of 1 test files matched the specified pattern.
-Results File: /workspace/scratch/d996445e2691/tooling/tmp/alycia-module-run-6wxvdybk/_c9ce3e8ec5f9_2026-11-22_23_15_29_net10.0.trx
+Results File: /tmp/alycia-module-run-scawmm2z/_c9ce3e8ec5f9_2026-11-23_00_39_31_net10.0.trx
 
-Passed!  - Failed:     0, Passed:    15, Skipped:     0, Total:    15, Duration: 214 ms - Alycia.Modules.Inference.Tests.dll (net10.0)
+Passed!  - Failed:     0, Passed:    59, Skipped:     0, Total:    59, Duration: 6 s - Alycia.Modules.Inference.Tests.dll (net10.0)
 VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.
-PASS Inference: 3 projects, 15 passed, 0 skipped
+PASS Inference: 3 projects, 59 passed, 0 skipped
   The package Alycia.Modules.Inference.Mocks.0.1.0 is missing a readme. Go to https://aka.ms/nuget/authoring-best-practices/readme to learn why package readmes are important.
-  Successfully created package '/workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/repacked/Alycia.Modules.Inference.Mocks.0.1.0.nupkg'.
+  Successfully created package '/tmp/alycia-extraction-ozkcrko7/repacked/Alycia.Modules.Inference.Mocks.0.1.0.nupkg'.
 PASS independent package Alycia.Modules.Inference.Mocks.0.1.0.nupkg

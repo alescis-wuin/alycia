@@ -12,14 +12,21 @@
   },
   "published": {
     "Alycia.Api": {
-      "Alycia.Api.dll": "1c08e849bd1e577bf7abbc9ed4e4d6e58eba702f925c47e04485cd831fd223da",
+      "Alycia.Api.dll": "3d8a3bec53ac8a83a709c315106610406ba69eb09974f4afb8cfd36316ac2c2a",
       "Alycia.Api.deps.json": "afbd4ffd43878a3bd873cb01eae51b9247397243ee59c1ef1e2865b605eb4a70",
       "Alycia.Contracts.dll": "57957512121e2f9af8ac91a1a7adf873980f6d9bbe068db1faefeafcae3d612c"
     },
     "Alycia.Client.Avalonia": {
-      "Alycia.Client.Avalonia.dll": "37018cf1282ffa1c0586761e7e7cb91fd13168efbb32d8b4b87a850729f65571",
+      "Alycia.Client.Avalonia.dll": "582c3144e4f45cd1cad858749ebbb323ce1a9f5f681620a6e5059858017fe802",
       "Alycia.Client.Avalonia.deps.json": "f04e7f172bb09df244377d98fde2d367ef4b2d285f358dfa8614f65b3c2b13a6",
       "Alycia.Contracts.dll": "57957512121e2f9af8ac91a1a7adf873980f6d9bbe068db1faefeafcae3d612c"
     }
+  },
+  "docker": "Engine 28.3.3 (QEMU/Alpine), CLI 26.1.5, Compose 2.26.1",
+  "commit_applicatif": "89f2ba67439c5c78c2817e277c261c64a8a413b5",
+  "arbre_git": "6cd494b4e756f947f58bf22da04dd8deeb91733a",
+  "versions_informatives": {
+    "Alycia.Api": "1.0.0+89f2ba67439c5c78c2817e277c261c64a8a413b5",
+    "Alycia.Client.Avalonia": "1.0.0+89f2ba67439c5c78c2817e277c261c64a8a413b5"
   }
 }

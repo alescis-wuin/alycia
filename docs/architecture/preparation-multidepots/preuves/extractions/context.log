@@ -1,20 +1,20 @@
-dotnet restore /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/context-5uzh4j7g/context/Context.slnx --locked-mode --configfile /workspace/scratch/d996445e2691/tooling/tmp/alycia-module-run-2x1c9dm0/NuGet.Config -m:1
+dotnet restore /tmp/alycia-extraction-ozkcrko7/context-jctf3ojz/context/Context.slnx --locked-mode --configfile /tmp/alycia-module-run-br3n38rr/NuGet.Config -m:1
   Determining projects to restore...
-  Restored /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/context-5uzh4j7g/context/testing/Alycia.Modules.Context.Mocks/Alycia.Modules.Context.Mocks.csproj (in 273 ms).
-  Restored /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/context-5uzh4j7g/context/tests/Alycia.Modules.Context.Tests/Alycia.Modules.Context.Tests.csproj (in 274 ms).
-  Restored /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/context-5uzh4j7g/context/src/Alycia.Modules.Context/Alycia.Modules.Context.csproj (in 274 ms).
-dotnet build /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/context-5uzh4j7g/context/Context.slnx -c Release --no-restore -m:1 -v:q
+  Restored /tmp/alycia-extraction-ozkcrko7/context-jctf3ojz/context/src/Alycia.Modules.Context/Alycia.Modules.Context.csproj (in 188 ms).
+  Restored /tmp/alycia-extraction-ozkcrko7/context-jctf3ojz/context/tests/Alycia.Modules.Context.Tests/Alycia.Modules.Context.Tests.csproj (in 190 ms).
+  Restored /tmp/alycia-extraction-ozkcrko7/context-jctf3ojz/context/testing/Alycia.Modules.Context.Mocks/Alycia.Modules.Context.Mocks.csproj (in 188 ms).
+dotnet build /tmp/alycia-extraction-ozkcrko7/context-jctf3ojz/context/Context.slnx -c Release --no-restore -m:1 -v:q
 
 
     0 Warning(s)
     0 Error(s)
 
-Time Elapsed 00:00:05.83
-dotnet test /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/context-5uzh4j7g/context/Context.slnx -c Release --no-build --no-restore -m:1 --logger trx --results-directory /workspace/scratch/d996445e2691/tooling/tmp/alycia-module-run-2x1c9dm0
-Test run for /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/context-5uzh4j7g/context/tests/Alycia.Modules.Context.Tests/bin/Release/net10.0/Alycia.Modules.Context.Tests.dll (.NETCoreApp,Version=v10.0)
+Time Elapsed 00:00:06.90
+dotnet test /tmp/alycia-extraction-ozkcrko7/context-jctf3ojz/context/Context.slnx -c Release --no-build --no-restore -m:1 --logger trx --results-directory /tmp/alycia-module-run-br3n38rr
+Test run for /tmp/alycia-extraction-ozkcrko7/context-jctf3ojz/context/tests/Alycia.Modules.Context.Tests/bin/Release/net10.0/Alycia.Modules.Context.Tests.dll (.NETCoreApp,Version=v10.0)
 A total of 1 test files matched the specified pattern.
-Results File: /workspace/scratch/d996445e2691/tooling/tmp/alycia-module-run-2x1c9dm0/_c9ce3e8ec5f9_2026-11-22_23_14_20_net10.0.trx
+Results File: /tmp/alycia-module-run-br3n38rr/_c9ce3e8ec5f9_2026-11-23_00_38_12_net10.0.trx
 
-Passed!  - Failed:     0, Passed:     3, Skipped:     0, Total:     3, Duration: 41 ms - Alycia.Modules.Context.Tests.dll (net10.0)
+Passed!  - Failed:     0, Passed:    23, Skipped:     0, Total:    23, Duration: 110 ms - Alycia.Modules.Context.Tests.dll (net10.0)
 VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.
-PASS Context: 3 projects, 3 passed, 0 skipped
+PASS Context: 3 projects, 23 passed, 0 skipped

@@ -17,7 +17,7 @@ Avec le SDK épinglé déjà dans le PATH, exécuter depuis la racine.
 
 ```sh
 git fetch origin develop prepare/extraction-multidepots-p0-p8
-git switch --track origin/prepare/extraction-multidepots-p0-p8
+git switch --detach origin/prepare/extraction-multidepots-p0-p8
 python3 scripts/modules.py bootstrap-packages
 python3 scripts/modules.py build-module inference
 python3 scripts/modules.py test-module inference
@@ -32,7 +32,7 @@ Sous PowerShell, utiliser `py -3` à la place de `python3`. La recette historiqu
 
 ## Recette PostgreSQL et ONNX
 
-Fournir une instance PostgreSQL 17 jetable avec pgvector, les clients `psql`, `createdb` et `dropdb`, et un rôle de recette avec CREATEDB. Définir `ALYCIA_CHAT_TEST_CONNECTION` ainsi que les variables libpq `PGHOST`, `PGPORT`, `PGUSER` et, si nécessaire, `PGPASSWORD` pour ce même serveur. La recette crée des bases nommées par UUID. La migration Workspaces précède Chat. Le catalogue SQL et les deux listes d’IDs EF sont comparés aux références signées.
+Fournir une instance PostgreSQL 17 jetable avec pgvector, les clients `psql`, `createdb` et `dropdb`, et un rôle autorisé à créer et supprimer des bases, ainsi qu’à exécuter `CREATE EXTENSION vector` dans les nouvelles bases. La campagne utilise le rôle initial du serveur jetable. Définir `ALYCIA_CHAT_TEST_CONNECTION` ainsi que les variables libpq `PGHOST`, `PGPORT`, `PGUSER` et, si nécessaire, `PGPASSWORD` pour ce même serveur. La recette crée des bases nommées par UUID. La migration Workspaces précède Chat. Le catalogue SQL et les deux listes d’IDs EF sont comparés aux références signées.
 
 Définir `ALYCIA_RERANK_DIRECTORY` avec les deux fichiers du modèle Horizon à la révision `23139fec6f1f448cdf89a5ac2d2c6bf5e8c7b398`. Les empreintes et les commandes de récupération sont dans la [recette ONNX de référence](../decouplage/finition/D29-commandes.md). La suite de transport HTTP utilise un serveur Ollama contrôlé. Le contrôle de conteneurs requiert un moteur Docker et Docker Compose v2.24.4 ou ultérieur. Pour un moteur dans une VM, transférer son port HTTP de boucle locale au même port sur le poste de recette et définir `ALYCIA_DOCKER_TEST_PORT`.
 
@@ -55,6 +55,8 @@ Le propriétaire fonctionnel propose la migration et les invariants. Workspaces 
 Pour changer un package, modifier la version chez son propriétaire, documenter son API et recalculer les verrous concernés avec `dotnet restore --force-evaluate --configfile NuGet.Config` après construction de la nouvelle version. Relever ses empreintes puis actualiser le manifeste et les références exactes des consommateurs. La recette courante refuse tout autre contenu à version identique. La surface publique initiale est dans `modules/contracts/tests/Alycia.Contracts.Tests/Fixtures/public-api.txt`.
 
 Lors de la future subdivision, exporter l’historique propre à chaque chemin en conservant la table de déplacements pour les anciens chemins. Substituer une révision Git immuable à chacun des douze dossiers dans un seul commit du maître. Documenter alors les URL et SHA réels. Pour la mise à jour suivante, choisir une révision revue, mettre à jour sa référence et ses packages ensemble, puis lancer les deux recettes avant la PR. Un retrait avant intégration consiste à revenir à `develop`. Après intégration, une PR de retour rétablit ensemble les sources, les références et leurs verrous (`git revert` du commit d’intégration, ou `git revert -m 1` si c’est un commit de fusion). Aucune migration inverse n’est nécessaire pour ce lot.
+
+Les deux exemples qui suivent utilisent la syntaxe Bash. Depuis fish, ouvrir `bash` pour exécuter le bloc.
 
 Pour obtenir dès maintenant un instantané de la seule révision d’Inference et de son entrée de compilation, exécuter depuis le maître après le bootstrap. Le répertoire affiché contient aussi les résultats locaux du contrôle.
 

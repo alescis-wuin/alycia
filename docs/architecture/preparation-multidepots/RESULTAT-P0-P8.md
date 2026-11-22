@@ -1,103 +1,72 @@
-# Recette P0–P8 · extraction multi-dépôts Alycia
+# Alycia · Clôture P0–P8
 
-**PRÊT POUR EXTRACTION SOUS LINUX.** Docker Compose a construit l’image API, démarré PostgreSQL et l’API sur un projet jetable, obtenu HTTP 200 sur `/healthz`, puis supprimé ses conteneurs, son réseau et ses volumes.
+Les douze modules exportés exécutent **234 cas propriétaires**. Le maître exécute ces mêmes cas et les **168 cas d’intégration ou d’interface**. Les 402 cas .NET et les 38 tests Python de la recette passent. La commande unique `python3 scripts/modules.py check-master` a terminé jusqu’au contrôle HTTP 200 dans Docker Compose. [Journal complet](preuves/master-definitif.log) · [Comparaison des identités par domaine](preuves/extraction-vs-maitre.tsv)
 
-## Référence Git
+## Révisions et périmètre
 
-| Élément | Valeur |
+| Référence | Valeur |
 |---|---|
-| Base `develop` | `fadd9aa41148ac3f147b25a73fb6d023928242c6` |
-| Arbre de base | `c928d8a19f2764bf54ddad0deb93ca8a4c023935` |
-| Commit d’implémentation déposé sur GitHub | `ee93008a1241efd42e773d743c1cd1166a099bc0` |
-| Arbre d’implémentation et de preuves | `6562dab224f3aa76d453b08fc41834bbb0443e27` |
-| Arbre applicatif hors dossier de preuves | `e6b7b68a4029c3cb1c12979274ef5640b59969fa` |
-| Branche et PR | `prepare/extraction-multidepots-p0-p8` vers `develop`. Une seule livraison. Tête finale et arbre intégral consignés dans la description de la PR. |
+| Base signée `develop` | `fadd9aa41148ac3f147b25a73fb6d023928242c6` |
+| Premier candidat audité | `a898c60887c8c60bcc572abb262bf449d7105573` |
+| Commit applicatif utilisé pour la recette finale | [`89f2ba67439c5c78c2817e277c261c64a8a413b5`](https://github.com/alescis-wuin/alycia/commit/89f2ba67439c5c78c2817e277c261c64a8a413b5) |
+| Arbre Git complet de ce commit | `6cd494b4e756f947f58bf22da04dd8deeb91733a` |
+| Arbre en excluant uniquement `docs/architecture/preparation-multidepots/` | `abbf68f692fb3a82374936f2d07e8bf01c82979a` |
+| Livraison | [PR #54](https://github.com/alescis-wuin/alycia/pull/54), de `prepare/extraction-multidepots-p0-p8` vers `develop`. La description donne la tête et l’arbre du commit final de preuves. |
 
-La tête de livraison ajoute le présent rapport et ses preuves par-dessus le commit d’implémentation. La description de la PR fige les deux SHA finaux. Ils peuvent être relus depuis la branche publiée.
+La recette a été exécutée dans un checkout propre du commit applicatif GitHub. Les identités historiques, les empreintes attendues des paquets et le catalogue PostgreSQL de référence appartiennent déjà à ce commit. Le dernier commit ajoute et actualise les résultats dans le répertoire de recette. Les rapports historiques G1–G12 restent consultables dans leur version d’origine.
 
-```sh
-git fetch origin prepare/extraction-multidepots-p0-p8
-git rev-parse FETCH_HEAD 'FETCH_HEAD^{tree}'
-```
+## Bilan P0–P8
 
-La base est le commit de fusion de la PR #53. GitHub a retourné `verified: true` et `reason: valid` pour ce commit. La branche était protégée et la vue consultée indiquait une liste vide de contrôles de statut requis. [BASELINE.json](BASELINE.json) contient les champs observés, les 400 identités relues dans les TRX et les empreintes des preuves antérieures. La PR #53 qualifie Linux pour G11. GitHub indique `unsigned` pour la tête d’implémentation. La procédure de signature par le mainteneur est dans le guide. Les journaux G11/G12 originaux décrivent une campagne antérieure et restent intacts. Windows natif est différé.
-
-## Bilan du lot
-
-| Phase | Réalisation et vérification |
+| Phase | Résultat vérifié |
 |---|---|
-| P0 | Départ confirmé par `git ls-remote`, `git rev-parse` et l’API GitHub. 23 projets de production et 12 suites initiaux, plus le benchmark et le collecteur Roslyn. Inventaire des projets et des entrées de compatibilité rattaché au commit signé de départ. |
-| P1 | Les 890 chemins de base ont une destination. La matrice courante couvre les fichiers suivis. Le collecteur a identifié 633 déclarations publiques de types, les ports, les adaptateurs et les doubles. Les tables et les accès SQL/EF sont rattachés à leur propriétaire. |
-| P2 | Douze dossiers exportables, 43 projets répartis dans les solutions de domaine. Le maître conserve 7 projets de composition, de migration, de test et de benchmark. Roslyn inspecte les 50 projets de la solution. Son propre projet est inventorié à part. |
-| P3 | Sept paquets locaux versionnés `0.1.0`. Contracts et Platform servent aux consommateurs de production, cinq paquets de doubles servent aux suites de domaines. Chaque paquet a été reconstruit hors checkout et comparé octet pour octet. La surface CLR des contrats, relevée sur la DLL compilée depuis la base signée, est vérifiée par le test propriétaire. |
-| P4 | Les doubles centraux sont redistribués entre les dix domaines métier. Contracts et Platform possèdent leurs fixtures techniques. Les ports privés de conversations et de workspaces utilisent leurs types de domaine dans leur propre dépôt. 59 conformités réussies, six exclusions exercées par leurs tests. Onze classes historiques ont changé d’assembly, soit 38 cas VSTest. La correspondance est bijective pour les 400 cas. |
-| P5 | Les contrôles statiques et Roslyn passent. Chaque copie contrôle ses sources MSBuild, les chemins des DLL résolues, leur identité, le verrou NuGet et les octets du feed fourni. Les tests négatifs couvrent notamment les cycles, les types concrets étrangers, les accès SQL/EF, les références inter-domaines, les packages ouverts et les mocks en production. |
-| P6 | 25 fichiers de migration, designers et snapshots égaux aux blobs de base. Les 12 IDs Chat et l’ID Workspaces ont été relus après application à une base neuve. Zéro changement de modèle en attente pour les deux contextes. Catalogue identique, 13 tables applicatives, 2 historiques, 34 contraintes. Les tests de concurrence, de révocation, de rollback et de perte de réponse à COMMIT ont tourné avec PostgreSQL et pgvector réels. |
-| P7 | Bootstrap local, scripts autonomes, Make, Bash et PowerShell, assemblage maître et guide de retour disponibles. API et Boréale publiées en Release. Le DevHost Mock fonctionne. L’API publiée a refusé les combinaisons interdites et son manifeste comme ses DLL sont exempts de dépendances de test. |
-| P8 | Douze copies distinctes en dehors du checkout, restauration verrouillée, build Release, 83 tests propriétaires aboutis. La recette maître compte 402 tests .NET, dont les 400 de référence, et 38 tests Python. Zéro échec ou cas ignoré dans ces suites. Compatibilités HTTP, OpenAPI, JSON et RAG confirmées. Image Docker construite, services démarrés et arrêtés, `/healthz` HTTP 200. |
+| P0 · Référence | La base signée, ses 400 cas VSTest et les deux cas introduits par le candidat ont chacun une correspondance. [Base](BASELINE.json) · [Cas individuels](CAS-VSTEST.tsv) |
+| P1 · Propriété | Les 890 chemins signés ont une destination. L’inventaire couvre 662 déclarations publiques Roslyn et les opérations SQL/EF. [Chemins](DEPLACEMENTS.tsv) · [Types](TYPES.tsv) · [Accès aux données](preuves/D29-propriete.tsv) |
+| P2 · Structure | 12 répertoires et 12 solutions autonomes, 43 projets de domaine et 7 projets au maître. Les 50 projets de la solution sont examinés. [Inventaire physique](OWNERSHIP.tsv) |
+| P3 · Contrats | Sept paquets 0.1.0 reconstruits et comparés octet pour octet hors checkout. Surface publique des contrats comparée à la référence. [Paquets et SHA-256](PACKAGES.tsv) |
+| P4 · Tests et doubles | 95 méthodes supplémentaires changent de propriétaire. Les 59 conformités passent et les six exclusions ont une justification exercée. La garde vérifie le domaine physique des doubles comportementaux. [Ports](PORTS.tsv) · [Méthodes](TEST-METHODES.tsv) |
+| P5 · Dépendances | Les gardes examinent les références sources et binaires résolues, les sources MSBuild évaluées, les verrous et les dépendances des publications. Le feed réservé à Alycia est local. [Graphe](DEPENDENCIES.tsv) · [Contrôle de production](preuves/mock-production.log) |
+| P6 · Persistance | 25 fichiers EF identiques aux blobs signés, 12 migrations Chat au maître et une Workspaces chez son propriétaire. Deux modèles sans changement en attente. Le schéma PostgreSQL présente 13 tables applicatives, deux historiques, 34 contraintes, 117 colonnes et 31 index dans les schémas inspectés. [Migrations](MIGRATIONS.tsv) · [Contraintes](preuves/schema.tsv) · [Colonnes et index](preuves/schema-details.tsv) |
+| P7 · Assemblage | SDK 10.0.404 provisionné et vérifié dans un répertoire utilisateur. Entrées Bash, fish et PowerShell documentées. Debug et Release compilés. API et Boréale publiées. [Commandes](COMMANDES.md) · [Environnement et DLL](preuves/environnement.json) |
+| P8 · Extraction et maître | 12 copies extérieures, cache NuGet neuf pour la campagne, 234 tests propriétaires. Maître complet jusqu’à Docker, 402 tests .NET, 38 Python, zéro échec et zéro cas ignoré dans les suites de recette. [Extraction](preuves/extraction-definitive.log) · [Maître](preuves/master-definitif.log) |
 
-## Extractions contrôlées
+## Résultat de la revue et corrections
 
-| Domaine | Projets | Tests de la copie isolée |
-|---|---:|---:|
-| configuration | 3 | 2 |
-| context | 3 | 3 |
-| contracts | 3 | 2 |
-| conversations | 6 | 21 |
-| documents | 4 | 13 |
-| indexing | 3 | 1 |
-| inference | 3 | 15 |
-| memory | 3 | 1 |
-| platform | 3 | 1 |
-| retrieval | 4 | 9 |
-| tools | 3 | 2 |
-| workspaces | 5 | 13 |
+Le candidat `a898c608` exécutait 83 cas dans les modules. Une modification de la version du prompt de mémoire échappait à la suite Memory isolée. Le contrôle de schéma comparait les contraintes mais laissait passer une colonne et un index supplémentaires. Seize propriétaires de ports divergeaient du domaine de l’adaptateur et de son double. La première campagne du maître avait été reprise après une interruption.
 
-La suite maître reprend ces 83 cas et ajoute les scénarios d’intégration et de présentation. Le champ `baselineTestsPresent: 316` de `compatibility.json` concerne la première référence D00. Le contrôle de la PR #53 utilise sa propre archive TRX et la table `TESTS.tsv` pour retrouver les 400 cas dans les 402 exécutés. Les totaux maître et modules mesurent deux exécutions distinctes. Le PDF binaire utilisé pour les coordonnées sur deux pages accompagne Documents avec exactement les mêmes octets que la fixture signée. Les doubles de lecture des conversations et des documents coopèrent à travers `ITurnDocuments`.
-
-## Recette fonctionnelle
-
-| Contrôle | Résultat |
+| Finition | Correction et preuve |
 |---|---|
-| HTTP historique | 35 scénarios dans l’ordre de référence, six contrôles additionnels sur les originaux et deux en mode Mock |
-| OpenAPI | 47 chemins. SHA-256 `d4ff9cb794dca7ccd775a9923d3732c1bf08cbd747c808d4359771426cd53b49` |
-| JSON v1 sérialisé | 2 074 octets. SHA-256 `b1d22617099059db98ec9a44cefa109927067d1a1ed25182f601e77135a2751b` |
-| RAG | 92 résultats ordonnés, aucun seuil en échec. SHA-256 canonique `0811f60b9dd1b5f42b9249e9876172c3a6b716f311fcc403da21e0f5407a4990` |
-| Catalogue PostgreSQL | SHA-256 `8effd5b93f0ac18907d9d958e550f4c69a444a3f52bbb69b66fbe20965609333` |
-| Outils et sécurité | NDJSON, rejeu de tour, accès aux originaux, MCP, refus du Mock en production et barrières documentaires exercés par les tests de transport et d’intégration |
-| Environnement | Debian 13 x86-64, SDK .NET 10.0.404, Python 3.12.14, PostgreSQL 17.11, pgvector 0.8.0, ONNX CPU avec les empreintes signées |
+| F1 | Les 177 méthodes et 256 cas initiaux de Chat ont une décision individuelle. 151 cas passent dans un module. 105 cas de Chat et 63 de Boréale restent au maître. Les théories conservent leurs jeux de paramètres. Deux libellés tronqués identiques sont distingués par les arguments xUnit sérialisés et les GUID VSTest. [Arguments et GUID](TEST-PARAMETRES.tsv) · [Valeurs observées dans l’adaptateur](preuves/arguments-xunit.json). Depuis la base signée, 189 des 400 identités ont changé d’assembly. [Décisions](TESTS-MAITRE.tsv) · [400 correspondances signées](TESTS.tsv) · [402 cas du candidat](CAS-VSTEST.tsv) |
+| F2 | 16 rattachements corrigés. Les consommateurs accèdent aux doubles distribués par leurs paquets verrouillés ou à leurs fixtures locales. Les 59 conformités et 6 exclusions sont reliées à leur méthode exécutée. [Matrice](PORTS.tsv) |
+| F3 | Le SDK privé x64 a été utilisé sous Bash et fish. Une archive altérée a été rejetée avant installation. Les deux empreintes Linux sont épinglées. La procédure PowerShell et les contraintes de licence sont documentées. [Bash](preuves/sdk-bash.log) · [fish](preuves/sdk-fish.log) · [Rejet SHA-512](preuves/sdk-corrompu.log) · [Guide](ASSEMBLAGE.md) |
+| F4 | Une invocation intégrale a publié les applications, contrôlé la production et le schéma, exécuté les suites et validé les services Docker avec PostgreSQL. [Journal](preuves/master-definitif.log) · [Healthcheck](preuves/docker.log) |
+| F5 | Chaque solution restaure, compile en Release et exécute ses tests hors checkout. Les identités VSTest des douze copies sont comparées individuellement à celles du maître. [Résultat par domaine](preuves/extraction-vs-maitre.tsv) |
+| F6 | 35 scénarios HTTP historiques, six contrôles des originaux et deux du DevHost Mock, 47 chemins OpenAPI, JSON v1 de 2 074 octets et 92 résultats RAG ordonnés conformes. Publication vectorielle, révocation, refus de commit, rollback, perte d’accusé de COMMIT et idempotence sont exercés avec PostgreSQL et pgvector. [Compatibilité](preuves/compatibility.json) · [TRX](preuves/trx.zip) |
+| F7 | Inventaires, captures Roslyn, catalogues accompagnés de leurs empreintes, sorties de compilation, résultats et commandes associés à la révision testée. [Empreintes des preuves](preuves/SHA256SUMS) |
+| F8 | GitHub indique `verified: false`, raison `unsigned`, pour le commit applicatif. La base est `verified: true`. La procédure du mainteneur rejoue chaque commit avec sa signature en vérifiant son arbre et prépare une branche de remplacement. [Script](../../../scripts/architecture/preparer-signature.sh) · [Commandes](COMMANDES.md) |
 
-## Critères de clôture
+Deux essais négatifs ont été réalisés sur des copies jetables. La suite Memory autonome échoue désormais sur la version de prompt modifiée. Le catalogue PostgreSQL détecte la colonne et l’index ajoutés à la base d’essai. [Témoin Memory](preuves/temoin-memoire.log) · [Témoin SQL](preuves/temoin-schema.log)
 
-| Critère P8 | Statut et preuve |
-|---|---|
-| Autonomie des douze domaines | Réussi. [Journaux de chaque copie](preuves/extractions/) |
-| Paquets locaux | Réussi. [Identités, versions et SHA-256](PACKAGES.tsv), [bootstrap](preuves/bootstrap.log) |
-| Graphe métier | Réussi. [Dépendances](DEPENDENCIES.tsv), [gardes négatives](preuves/python-extraction.log) |
-| Mocks et propriété des ports | Réussi. [Conformités et exclusions](PORTS.tsv) |
-| Comportements historiques | Réussi. [Correspondance VSTest](TESTS.tsv), [résultats TRX](preuves/trx.zip) |
-| Compatibilité de transport et de recherche | Réussi. [Comparaisons exécutées](preuves/compatibility.json) |
-| Persistance et atomicité | Réussi. [Catalogue PostgreSQL](preuves/schema.tsv), [migrations](MIGRATIONS.tsv) et scénarios transactionnels dans les TRX |
-| Assemblage du maître | Réussi. [Build Release](preuves/build-Release.log), [refus en production](preuves/mock-production.log), [Docker](preuves/docker.log) |
-| Périmètre Git et publication | Respecté. Un dépôt, une branche de livraison, une PR, aucun nouveau workflow ni gitlink. Feed NuGet local. |
-| Reproductibilité | Réussi. [Commandes](COMMANDES.md), [environnement](preuves/environnement.json) et [empreintes](preuves/SHA256SUMS) |
+## Suites autonomes
 
-## Commandes et preuves
+| Domaine | Cas réussis | Preuves |
+|---|---:|---|
+| Configuration | 3 | [Journal](preuves/extractions/configuration.log) · [Identités](preuves/extractions/configuration.cases) |
+| Context | 23 | [Journal](preuves/extractions/context.log) · [Identités](preuves/extractions/context.cases) |
+| Contracts | 12 | [Journal](preuves/extractions/contracts.log) · [Identités](preuves/extractions/contracts.cases) |
+| Conversations | 31 | [Journal](preuves/extractions/conversations.log) · [Identités](preuves/extractions/conversations.cases) |
+| Documents | 29 | [Journal](preuves/extractions/documents.log) · [Identités](preuves/extractions/documents.cases) |
+| Indexing | 12 | [Journal](preuves/extractions/indexing.log) · [Identités](preuves/extractions/indexing.cases) |
+| Inference | 59 | [Journal](preuves/extractions/inference.log) · [Identités](preuves/extractions/inference.cases) |
+| Memory | 7 | [Journal](preuves/extractions/memory.log) · [Identités](preuves/extractions/memory.cases) |
+| Platform | 1 | [Journal](preuves/extractions/platform.log) · [Identités](preuves/extractions/platform.cases) |
+| Retrieval | 31 | [Journal](preuves/extractions/retrieval.log) · [Identités](preuves/extractions/retrieval.cases) |
+| Tools | 13 | [Journal](preuves/extractions/tools.log) · [Identités](preuves/extractions/tools.cases) |
+| Workspaces | 13 | [Journal](preuves/extractions/workspaces.log) · [Identités](preuves/extractions/workspaces.cases) |
 
-Les commandes sont à exécuter à la racine. Le [guide d’assemblage](ASSEMBLAGE.md) donne les variables de recette PostgreSQL et ONNX, le lancement, le futur changement de version, la signature et le retour arrière.
+**Total des domaines**  234. **Cas exécutés uniquement au maître**  105 intégrations Chat et 63 cas du client Avalonia. Les totaux des campagnes d’extraction et du maître se recouvrent. Le champ `baselineTestsPresent` de la comparaison historique HTTP/RAG se rapporte au jalon D00. La correspondance des 400 cas de la base signée est établie séparément dans [TESTS.tsv](TESTS.tsv).
 
-```sh
-python3 scripts/modules.py bootstrap-packages
-python3 scripts/modules.py check-module inference
-python3 scripts/modules.py check-extraction
-python3 scripts/modules.py check-master
-bash scripts/quality.sh lint
-(cd docs/architecture/preparation-multidepots/preuves && sha256sum -c SHA256SUMS)
-```
+## Conditions et limites
 
-Les extractions ont été exécutées avec un cache NuGet temporaire neuf, alimenté par les paquets de ce lot et NuGet.org. Le traitement `check-master` a repris par commandes individuelles après un redémarrage de l’hôte pendant la recette HTTP. Chaque étape dispose de ses résultats. Les prérequis et les commandes exécutées figurent dans [COMMANDES.md](COMMANDES.md). Les résultats PostgreSQL et ONNX proviennent de vrais adaptateurs. Le serveur compatible Ollama utilisé pour la recette HTTP est contrôlé. Le build Docker a utilisé le SDK Microsoft 10.0.404 avec le certificat racine du proxy de recette pour les connexions TLS. Le Dockerfile et ses contrôles de hashes ont été exécutés tels que livrés. La campagne reporte Windows natif conformément au mandat. GPU et KDE n’ont pas été rejoués. La branche conserve le dépôt Git existant. Le différentiel des workflows et des gitlinks est vide, et les sept paquets restent dans le feed local.
+Le test ONNX utilise le modèle Horizon sur CPU avec poids et tokenizer vérifiés. La recette HTTP pilote un fournisseur compatible Ollama contrôlé. Docker Compose utilise le Dockerfile livré et un moteur dans une VM Alpine. L’image SDK du banc emploie le certificat de confiance du proxy de recette. PostgreSQL 17.11 et pgvector 0.8.0 ont exercé les transactions sur des bases jetables.
 
-- [Projets initiaux](BASELINE-PROJETS.tsv), [déplacements](DEPLACEMENTS.tsv), [propriétaires actuels](OWNERSHIP.tsv) et [types publics](TYPES.tsv) et [propriété des tables et opérations SQL/EF](preuves/D29-propriete.tsv).
-- [Dépendances déclarées, résolues et compilées](DEPENDENCIES.tsv), [ports et suites communes](PORTS.tsv), [packages et SHA-256](PACKAGES.tsv) et [migrations immuables](MIGRATIONS.tsv).
-- [Classes déplacées](TEST-CLASSES.tsv), [correspondance des 400 cas réellement passés](TESTS.tsv), [14 TRX](preuves/trx.zip), [capture Roslyn](preuves/capture.zip) et [journaux des douze copies](preuves/extractions/).
-- [Comparaison de compatibilité](preuves/compatibility.json), [catalogue SQL](preuves/schema.tsv), [versions et empreintes de publication](preuves/environnement.json), [preuve Docker](preuves/docker.log) et [SHA-256 des preuves](preuves/SHA256SUMS).
+Le portage natif Windows est différé. Le SDK Linux arm64 est épinglé et son installation native reste à vérifier. GPU et KDE/Wayland n’ont pas été rejoués. La validation des extractions utilise des répertoires autonomes. Les douze dépôts distants, les gitlinks, la CI/CD et la publication NuGet restent hors du périmètre livré. Toute publication future demande une décision explicite sur les droits de redistribution. La signature reconnue par GitHub reste une intervention du mainteneur. [Guide d’assemblage](ASSEMBLAGE.md)

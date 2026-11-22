@@ -1,0 +1,30 @@
+[
+  {
+    "source": "a898c608",
+    "VSTestId": "f9e03bc1-07c2-3dd7-262d-bcdd6397daa9",
+    "XunitTestCaseUniqueID": "10118f5a690a698672c5460160fcf0b32a1cf192",
+    "FullyQualifiedName": "Alycia.Modules.Chat.Tests.ToolCallingTests.IncompleteOrMalformedCallsNeverBecomeExecutable",
+    "TestMethodArgumentsBase64": "RWxlbWVudFR5cGU6U3lzdGVtLlN0cmluZzpVM2x6ZEdWdExrOWlhbVZqZEE9PQpSYW5rOlN5c3RlbS5JbnQzMjoxClRvdGFsTGVuZ3RoOlN5c3RlbS5JbnQzMjoxCkxlbmd0aDA6U3lzdGVtLkludDMyOjEKTG93ZXJCb3VuZDA6U3lzdGVtLkludDMyOjAKSXRlbTA6U3lzdGVtLlN0cmluZzpleUp0WlhOellXZGxJanA3SW5SdmIyeGZZMkZzYkhNaU9sdDdJbVoxYm1OMGFXOXVJanA3SW01aGJXVWlPaUp3Y205cVpXTjBYM0psWVdRaUxDSmhjbWQxYldWdWRITWlPaUpwYm5aaGJHbGtJbjE5WFgwc0ltUnZibVVpT25SeWRXVXNJbVJ2Ym1WZmNtVmhjMjl1SWpvaWMzUnZjQ0o5"
+  },
+  {
+    "source": "a898c608",
+    "VSTestId": "05e661de-e8c8-4eaf-ac4e-f3e4e222d381",
+    "XunitTestCaseUniqueID": "584fa866b3e4a3183b1fcb315ec9299121d3f508",
+    "FullyQualifiedName": "Alycia.Modules.Chat.Tests.ToolCallingTests.IncompleteOrMalformedCallsNeverBecomeExecutable",
+    "TestMethodArgumentsBase64": "RWxlbWVudFR5cGU6U3lzdGVtLlN0cmluZzpVM2x6ZEdWdExrOWlhbVZqZEE9PQpSYW5rOlN5c3RlbS5JbnQzMjoxClRvdGFsTGVuZ3RoOlN5c3RlbS5JbnQzMjoxCkxlbmd0aDA6U3lzdGVtLkludDMyOjEKTG93ZXJCb3VuZDA6U3lzdGVtLkludDMyOjAKSXRlbTA6U3lzdGVtLlN0cmluZzpleUp0WlhOellXZGxJanA3SW5SdmIyeGZZMkZzYkhNaU9sdDdJbVoxYm1OMGFXOXVJanA3SW01aGJXVWlPaUp3Y205cVpXTjBYMnhwYzNRaUxDSmhjbWQxYldWdWRITWlPbnQ5ZlgxZGZTd2laRzl1WlNJNlptRnNjMlY5"
+  },
+  {
+    "source": "Inference après déplacement",
+    "VSTestId": "77f809a4-10d2-431f-342a-7228884ce802",
+    "XunitTestCaseUniqueID": "0f01247f72eddc740cda30b55fc04cf8519fa9a2",
+    "FullyQualifiedName": "Alycia.Modules.Chat.Tests.ToolCallingTests.IncompleteOrMalformedCallsNeverBecomeExecutable",
+    "TestMethodArgumentsBase64": "RWxlbWVudFR5cGU6U3lzdGVtLlN0cmluZzpVM2x6ZEdWdExrOWlhbVZqZEE9PQpSYW5rOlN5c3RlbS5JbnQzMjoxClRvdGFsTGVuZ3RoOlN5c3RlbS5JbnQzMjoxCkxlbmd0aDA6U3lzdGVtLkludDMyOjEKTG93ZXJCb3VuZDA6U3lzdGVtLkludDMyOjAKSXRlbTA6U3lzdGVtLlN0cmluZzpleUp0WlhOellXZGxJanA3SW5SdmIyeGZZMkZzYkhNaU9sdDdJbVoxYm1OMGFXOXVJanA3SW01aGJXVWlPaUp3Y205cVpXTjBYMnhwYzNRaUxDSmhjbWQxYldWdWRITWlPbnQ5ZlgxZGZTd2laRzl1WlNJNlptRnNjMlY5"
+  },
+  {
+    "source": "Inference après déplacement",
+    "VSTestId": "b7282fe0-c27e-462d-4b1f-14f872590913",
+    "XunitTestCaseUniqueID": "b01bf9a4e8762721cd55ba67b2dfe1ae8082391b",
+    "FullyQualifiedName": "Alycia.Modules.Chat.Tests.ToolCallingTests.IncompleteOrMalformedCallsNeverBecomeExecutable",
+    "TestMethodArgumentsBase64": "RWxlbWVudFR5cGU6U3lzdGVtLlN0cmluZzpVM2x6ZEdWdExrOWlhbVZqZEE9PQpSYW5rOlN5c3RlbS5JbnQzMjoxClRvdGFsTGVuZ3RoOlN5c3RlbS5JbnQzMjoxCkxlbmd0aDA6U3lzdGVtLkludDMyOjEKTG93ZXJCb3VuZDA6U3lzdGVtLkludDMyOjAKSXRlbTA6U3lzdGVtLlN0cmluZzpleUp0WlhOellXZGxJanA3SW5SdmIyeGZZMkZzYkhNaU9sdDdJbVoxYm1OMGFXOXVJanA3SW01aGJXVWlPaUp3Y205cVpXTjBYM0psWVdRaUxDSmhjbWQxYldWdWRITWlPaUpwYm5aaGJHbGtJbjE5WFgwc0ltUnZibVVpT25SeWRXVXNJbVJ2Ym1WZmNtVmhjMjl1SWpvaWMzUnZjQ0o5"
+  }
+]

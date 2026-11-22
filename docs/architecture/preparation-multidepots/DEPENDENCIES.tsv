@@ -594,6 +594,7 @@ NuGet/package	Alycia.Modules.Memory.Tests	Microsoft.TestPlatform.ObjectModel	17.
 NuGet/package	Alycia.Modules.Memory.Tests	Microsoft.TestPlatform.TestHost	17.14.1
 NuGet/package	Alycia.Modules.Memory.Tests	Newtonsoft.Json	13.0.3
 NuGet/package	Alycia.Modules.Memory.Tests	Npgsql	10.0.3
+NuGet/package	Alycia.Modules.Memory.Tests	Npgsql.EntityFrameworkCore.PostgreSQL	10.0.3
 NuGet/package	Alycia.Modules.Memory.Tests	xunit	2.9.3
 NuGet/package	Alycia.Modules.Memory.Tests	xunit.abstractions	2.0.3
 NuGet/package	Alycia.Modules.Memory.Tests	xunit.analyzers	1.18.0
@@ -882,6 +883,7 @@ NuGet/project	Alycia.Modules.Chat.Tests	Alycia.Modules.Workspaces.Infrastructure
 NuGet/project	Alycia.Modules.Chat.Tests	Alycia.Modules.Workspaces.Mocks	1.0.0
 NuGet/project	Alycia.Modules.Chat.Tests	Alycia.Persistence.Migrations	1.0.0
 NuGet/project	Alycia.Modules.Configuration.Tests	Alycia.Modules.Configuration	1.0.0
+NuGet/project	Alycia.Modules.Configuration.Tests	Alycia.Modules.Configuration.Mocks	1.0.0
 NuGet/project	Alycia.Modules.Context.Tests	Alycia.Modules.Context	1.0.0
 NuGet/project	Alycia.Modules.Context.Tests	Alycia.Modules.Context.Mocks	1.0.0
 NuGet/project	Alycia.Modules.Conversations.RepositoryFixtures	Alycia.Modules.Chat.Application	1.0.0
@@ -994,6 +996,7 @@ PackageReference	Alycia.Modules.Memory	Microsoft.EntityFrameworkCore.Relational	
 PackageReference	Alycia.Modules.Memory	Npgsql	10.0.3
 PackageReference	Alycia.Modules.Memory.Mocks	Alycia.Contracts	[0.1.0]
 PackageReference	Alycia.Modules.Memory.Tests	Microsoft.NET.Test.Sdk	17.14.1
+PackageReference	Alycia.Modules.Memory.Tests	Npgsql.EntityFrameworkCore.PostgreSQL	10.0.3
 PackageReference	Alycia.Modules.Memory.Tests	xunit	2.9.3
 PackageReference	Alycia.Modules.Memory.Tests	xunit.runner.visualstudio	3.1.4
 PackageReference	Alycia.Modules.Retrieval	Alycia.Contracts	[0.1.0]
@@ -1087,6 +1090,7 @@ ProjectReference	Alycia.Modules.Chat.Tests	Alycia.Modules.Tools.Mocks	—
 ProjectReference	Alycia.Modules.Chat.Tests	Alycia.Modules.Workspaces.Mocks	—
 ProjectReference	Alycia.Modules.Chat.Tests	Alycia.Persistence.Migrations	—
 ProjectReference	Alycia.Modules.Configuration.Tests	Alycia.Modules.Configuration	—
+ProjectReference	Alycia.Modules.Configuration.Tests	Alycia.Modules.Configuration.Mocks	—
 ProjectReference	Alycia.Modules.Context.Tests	Alycia.Modules.Context	—
 ProjectReference	Alycia.Modules.Context.Tests	Alycia.Modules.Context.Mocks	—
 ProjectReference	Alycia.Modules.Conversations.RepositoryFixtures	Alycia.Modules.Chat.Application	—
@@ -4302,6 +4306,7 @@ assembly Roslyn	Alycia.Modules.Configuration.Mocks	mscorlib	—
 assembly Roslyn	Alycia.Modules.Configuration.Mocks	netstandard	—
 assembly Roslyn	Alycia.Modules.Configuration.Tests	Alycia.Contracts	—
 assembly Roslyn	Alycia.Modules.Configuration.Tests	Alycia.Modules.Configuration	—
+assembly Roslyn	Alycia.Modules.Configuration.Tests	Alycia.Modules.Configuration.Mocks	—
 assembly Roslyn	Alycia.Modules.Configuration.Tests	Microsoft.CSharp	—
 assembly Roslyn	Alycia.Modules.Configuration.Tests	Microsoft.EntityFrameworkCore	—
 assembly Roslyn	Alycia.Modules.Configuration.Tests	Microsoft.EntityFrameworkCore.Abstractions	—
@@ -7748,6 +7753,7 @@ assembly Roslyn	Alycia.Modules.Memory.Tests	Microsoft.Win32.Primitives	—
 assembly Roslyn	Alycia.Modules.Memory.Tests	Microsoft.Win32.Registry	—
 assembly Roslyn	Alycia.Modules.Memory.Tests	Newtonsoft.Json	—
 assembly Roslyn	Alycia.Modules.Memory.Tests	Npgsql	—
+assembly Roslyn	Alycia.Modules.Memory.Tests	Npgsql.EntityFrameworkCore.PostgreSQL	—
 assembly Roslyn	Alycia.Modules.Memory.Tests	System	—
 assembly Roslyn	Alycia.Modules.Memory.Tests	System.AppContext	—
 assembly Roslyn	Alycia.Modules.Memory.Tests	System.Buffers	—
