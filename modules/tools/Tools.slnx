@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="src/Alycia.Modules.Tools/Alycia.Modules.Tools.csproj" />
+  <Project Path="testing/Alycia.Modules.Tools.Mocks/Alycia.Modules.Tools.Mocks.csproj" />
+  <Project Path="tests/Alycia.Modules.Tools.Tests/Alycia.Modules.Tools.Tests.csproj" />
+</Solution>

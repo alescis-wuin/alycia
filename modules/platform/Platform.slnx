@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="src/Alycia.Platform.Persistence/Alycia.Platform.Persistence.csproj" />
+  <Project Path="testing/Alycia.Platform.Fixtures/Alycia.Platform.Fixtures.csproj" />
+  <Project Path="tests/Alycia.Platform.Tests/Alycia.Platform.Tests.csproj" />
+</Solution>

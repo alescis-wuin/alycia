@@ -1,0 +1,23 @@
+dotnet restore /tmp/alycia-extraction-a4j11tcv/contracts-cszwap10/contracts/Contracts.slnx --locked-mode --configfile /tmp/alycia-module-run-shy2w3t2/NuGet.Config -m:1
+  Determining projects to restore...
+  Restored /tmp/alycia-extraction-a4j11tcv/contracts-cszwap10/contracts/testing/Alycia.Contracts.Fixtures/Alycia.Contracts.Fixtures.csproj (in 72 ms).
+  Restored /tmp/alycia-extraction-a4j11tcv/contracts-cszwap10/contracts/src/Alycia.Contracts/Alycia.Contracts.csproj (in 72 ms).
+  Restored /tmp/alycia-extraction-a4j11tcv/contracts-cszwap10/contracts/tests/Alycia.Contracts.Tests/Alycia.Contracts.Tests.csproj (in 721 ms).
+dotnet build /tmp/alycia-extraction-a4j11tcv/contracts-cszwap10/contracts/Contracts.slnx -c Release --no-restore -m:1 -v:q
+
+
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:06.16
+dotnet test /tmp/alycia-extraction-a4j11tcv/contracts-cszwap10/contracts/Contracts.slnx -c Release --no-build --no-restore -m:1 --logger trx --results-directory /tmp/alycia-module-run-shy2w3t2
+Test run for /tmp/alycia-extraction-a4j11tcv/contracts-cszwap10/contracts/tests/Alycia.Contracts.Tests/bin/Release/net10.0/Alycia.Contracts.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+Results File: /tmp/alycia-module-run-shy2w3t2/_c9ce3e8ec5f9_2026-11-22_23_16_38_net10.0.trx
+
+Passed!  - Failed:     0, Passed:     2, Skipped:     0, Total:     2, Duration: 93 ms - Alycia.Contracts.Tests.dll (net10.0)
+VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.
+PASS Contracts: 3 projects, 2 passed, 0 skipped
+  The package Alycia.Contracts.0.1.0 is missing a readme. Go to https://aka.ms/nuget/authoring-best-practices/readme to learn why package readmes are important.
+  Successfully created package '/tmp/alycia-extraction-a4j11tcv/repacked/Alycia.Contracts.0.1.0.nupkg'.
+PASS independent package Alycia.Contracts.0.1.0.nupkg

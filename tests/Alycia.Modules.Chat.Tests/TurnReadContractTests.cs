@@ -62,7 +62,8 @@ public sealed class TurnReadContractTests
             await db.SaveChangesAsync();
             var documents = new TurnDocuments(db, ChatFixture.DocumentScope);
             var reads = new ConversationReadModel(db, documents);
-            var mock = new SnapshotTurnReads([owner.Id, other.Id, empty.Id], messages, scoped);
+            var scopedDocuments = new SnapshotTurnDocuments(scoped);
+            var mock = new SnapshotTurnReads([owner.Id, other.Id, empty.Id], messages, scopedDocuments);
             var temporalMock = new SnapshotTemporalHistory(
                 [new(owner.Id, 4, "{}"), new(other.Id, 2, "{}")], messages);
             foreach (ITemporalHistorySources temporal in new ITemporalHistorySources[] {
@@ -82,7 +83,7 @@ public sealed class TurnReadContractTests
             messages.Clear();
             scoped.Clear();
             foreach (var (context, tools, query, files) in new (IConversationContextReader, IToolHistoryReader, IQuerySources, ITurnDocuments)[]
-                { (reads, reads, reads, documents), (mock, mock, mock, mock) })
+                { (reads, reads, reads, documents), (mock, mock, mock, scopedDocuments) })
             {
                 ITurnHistory history = context;
                 var page = await history.RecentAsync(owner.Id, 2, 4, default);

@@ -43,7 +43,7 @@ public sealed class RoutingContractTests
             await Assert.ThrowsAsync<ConversationNotFoundException>(() => adapter.PrepareAsync(Guid.Empty, "orion", search, default));
         }
         var simulated = new FixtureQueryPlanner(rows, q => q == "merci" ? new("direct", "fixture", false, false) : new("retrieval", "fixture", true, true));
-        var real = new QueryPlanner(new SnapshotTurnReads([owner, other], [], rows));
+        var real = new QueryPlanner(new SnapshotTurnReads([owner, other], [], new SnapshotTurnDocuments(rows)));
         var prior = new PlannedQuery(true, null, null, null, null);
         var rules = new RoutingRules("auto", 2, 1, false, false, null);
         var refiner = new RecordedQueryBrief(_ => null, "fixture");

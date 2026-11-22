@@ -63,8 +63,10 @@ def check(published=None):
             assert result.returncode and expected in result.stdout, (target.name, environment, result.returncode)
         if published:
             manifest = json.loads((published / "Alycia.Api.deps.json").read_text())
-            assert not any(key.split("/")[0] == "Alycia.Modules.Testing" for key in manifest["libraries"])
-            assert not list(published.rglob("Alycia.Modules.Testing.dll"))
+            def testing(name):
+                return name in {"Alycia.Modules.Testing", "Alycia.DevHost"} or name.endswith((".Mocks", "Fixtures", ".Tests"))
+            assert not any(testing(key.split("/")[0]) for key in manifest["libraries"])
+            assert not any(testing(file.stem) for file in published.rglob("*.dll"))
             print("PASS published dependency manifest, binaries and Production refusal")
         print("PASS mock inventory, ordered deltas, origin denial, host denial and three startup refusals")
 

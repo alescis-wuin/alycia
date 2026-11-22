@@ -1,0 +1,22 @@
+dotnet restore /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/workspaces-nkkb87kf/workspaces/Workspaces.slnx --locked-mode --configfile /workspace/scratch/d996445e2691/tooling/tmp/alycia-module-run-098ghhd9/NuGet.Config -m:1
+  Determining projects to restore...
+  Restored /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/workspaces-nkkb87kf/workspaces/src/Alycia.Modules.Workspaces.Application/Alycia.Modules.Workspaces.Application.csproj (in 106 ms).
+  Restored /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/workspaces-nkkb87kf/workspaces/src/Alycia.Modules.Workspaces.Domain/Alycia.Modules.Workspaces.Domain.csproj (in 105 ms).
+  Restored /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/workspaces-nkkb87kf/workspaces/testing/Alycia.Modules.Workspaces.Mocks/Alycia.Modules.Workspaces.Mocks.csproj (in 54 ms).
+  Restored /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/workspaces-nkkb87kf/workspaces/src/Alycia.Modules.Workspaces.Infrastructure/Alycia.Modules.Workspaces.Infrastructure.csproj (in 243 ms).
+  Restored /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/workspaces-nkkb87kf/workspaces/tests/Alycia.Modules.Workspaces.Tests/Alycia.Modules.Workspaces.Tests.csproj (in 358 ms).
+dotnet build /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/workspaces-nkkb87kf/workspaces/Workspaces.slnx -c Release --no-restore -m:1 -v:q
+
+
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:08.86
+dotnet test /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/workspaces-nkkb87kf/workspaces/Workspaces.slnx -c Release --no-build --no-restore -m:1 --logger trx --results-directory /workspace/scratch/d996445e2691/tooling/tmp/alycia-module-run-098ghhd9
+Test run for /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/workspaces-nkkb87kf/workspaces/tests/Alycia.Modules.Workspaces.Tests/bin/Release/net10.0/Alycia.Modules.Workspaces.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+Results File: /workspace/scratch/d996445e2691/tooling/tmp/alycia-module-run-098ghhd9/_c9ce3e8ec5f9_2026-11-22_23_16_40_net10.0.trx
+
+Passed!  - Failed:     0, Passed:    13, Skipped:     0, Total:    13, Duration: 1 s - Alycia.Modules.Workspaces.Tests.dll (net10.0)
+VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.
+PASS Workspaces: 5 projects, 13 passed, 0 skipped

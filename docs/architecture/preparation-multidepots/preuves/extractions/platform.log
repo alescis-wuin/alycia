@@ -1,0 +1,23 @@
+dotnet restore /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/platform-n5avn04c/platform/Platform.slnx --locked-mode --configfile /workspace/scratch/d996445e2691/tooling/tmp/alycia-module-run-9qpoazpq/NuGet.Config -m:1
+  Determining projects to restore...
+  Restored /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/platform-n5avn04c/platform/testing/Alycia.Platform.Fixtures/Alycia.Platform.Fixtures.csproj (in 70 ms).
+  Restored /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/platform-n5avn04c/platform/src/Alycia.Platform.Persistence/Alycia.Platform.Persistence.csproj (in 153 ms).
+  Restored /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/platform-n5avn04c/platform/tests/Alycia.Platform.Tests/Alycia.Platform.Tests.csproj (in 159 ms).
+dotnet build /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/platform-n5avn04c/platform/Platform.slnx -c Release --no-restore -m:1 -v:q
+
+
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:05.22
+dotnet test /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/platform-n5avn04c/platform/Platform.slnx -c Release --no-build --no-restore -m:1 --logger trx --results-directory /workspace/scratch/d996445e2691/tooling/tmp/alycia-module-run-9qpoazpq
+Test run for /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/platform-n5avn04c/platform/tests/Alycia.Platform.Tests/bin/Release/net10.0/Alycia.Platform.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+Results File: /workspace/scratch/d996445e2691/tooling/tmp/alycia-module-run-9qpoazpq/_c9ce3e8ec5f9_2026-11-22_23_15_50_net10.0.trx
+
+Passed!  - Failed:     0, Passed:     1, Skipped:     0, Total:     1, Duration: 11 ms - Alycia.Platform.Tests.dll (net10.0)
+VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.
+PASS Platform: 3 projects, 1 passed, 0 skipped
+  The package Alycia.Platform.Persistence.0.1.0 is missing a readme. Go to https://aka.ms/nuget/authoring-best-practices/readme to learn why package readmes are important.
+  Successfully created package '/workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/repacked/Alycia.Platform.Persistence.0.1.0.nupkg'.
+PASS independent package Alycia.Platform.Persistence.0.1.0.nupkg

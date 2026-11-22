@@ -5,13 +5,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../Alycia.Modules.Documents/Alycia.Modules.Documents.csproj" />
+    <ProjectReference Include="../../modules/documents/src/Alycia.Modules.Documents/Alycia.Modules.Documents.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="../Alycia.Modules.Chat.Domain/Alycia.Modules.Chat.Domain.csproj" />
+    <ProjectReference Include="../../modules/conversations/src/Alycia.Modules.Chat.Domain/Alycia.Modules.Chat.Domain.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="../Alycia.Modules.Workspaces.Domain/Alycia.Modules.Workspaces.Domain.csproj" />
+    <ProjectReference Include="../../modules/workspaces/src/Alycia.Modules.Workspaces.Domain/Alycia.Modules.Workspaces.Domain.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
@@ -26,7 +26,7 @@
     <Using Include="Alycia.Persistence.Migrations" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="../Alycia.Modules.Configuration/Alycia.Modules.Configuration.csproj" />
+    <ProjectReference Include="../../modules/configuration/src/Alycia.Modules.Configuration/Alycia.Modules.Configuration.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="Alycia.Modules.Configuration" />

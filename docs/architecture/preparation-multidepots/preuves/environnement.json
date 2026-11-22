@@ -1,0 +1,25 @@
+{
+  "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "distribution": "Debian GNU/Linux 13 (trixie)",
+  "python": "3.12.14",
+  "dotnet": "10.0.404",
+  "git": "git version 2.56.1",
+  "postgreSQL": "17.11",
+  "pgvector": "0.8.0",
+  "onnx": {
+    "tokenizer.json": "7925f638b5444897efe3b4608eed56c1652f0ed39c2662c8302de1bc264c6088",
+    "onnx/model_quantized.onnx": "f913154682468bfe92d6a7e02ed4e994e548c112fddc74452b573b17c949046e"
+  },
+  "published": {
+    "Alycia.Api": {
+      "Alycia.Api.dll": "1c08e849bd1e577bf7abbc9ed4e4d6e58eba702f925c47e04485cd831fd223da",
+      "Alycia.Api.deps.json": "afbd4ffd43878a3bd873cb01eae51b9247397243ee59c1ef1e2865b605eb4a70",
+      "Alycia.Contracts.dll": "57957512121e2f9af8ac91a1a7adf873980f6d9bbe068db1faefeafcae3d612c"
+    },
+    "Alycia.Client.Avalonia": {
+      "Alycia.Client.Avalonia.dll": "37018cf1282ffa1c0586761e7e7cb91fd13168efbb32d8b4b87a850729f65571",
+      "Alycia.Client.Avalonia.deps.json": "f04e7f172bb09df244377d98fde2d367ef4b2d285f358dfa8614f65b3c2b13a6",
+      "Alycia.Contracts.dll": "57957512121e2f9af8ac91a1a7adf873980f6d9bbe068db1faefeafcae3d612c"
+    }
+  }
+}

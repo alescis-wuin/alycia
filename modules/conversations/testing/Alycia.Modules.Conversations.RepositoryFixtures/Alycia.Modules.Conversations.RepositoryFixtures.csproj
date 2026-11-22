@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Alycia.Modules.Chat.Application/Alycia.Modules.Chat.Application.csproj" />
+    <Using Include="Alycia.Contracts.Chat" />
+  </ItemGroup>
+</Project>

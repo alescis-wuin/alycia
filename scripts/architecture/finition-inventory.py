@@ -8,6 +8,7 @@ from pathlib import Path
 import re
 import sys
 
+from layout import assembly, layer, parts as layout_parts, projects as project_paths, implementation_group, owned_sources
 from module_rules import owner
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -54,12 +55,12 @@ def export(capture, destination):
     errors, matrix = guard.check_records(rows, ROOT)
     if errors:
         raise ValueError("\n".join(errors))
-    types = {(r[1].split("/")[1], r[5]): r[1] for r in rows if r[0] == "D" and r[3] == "NamedType"
-             and r[1].startswith("src/") and "/obj/" not in r[1]}
+    types = {(assembly(r[1]), r[5]): r[1] for r in rows if r[0] == "D" and r[3] == "NamedType"
+             and layer(r[1]) == "src" and "/obj/" not in r[1]}
     exceptions, edges, evidence = defaultdict(set), defaultdict(set), defaultdict(set)
     for r in rows:
         kind, path = r[:2]
-        if not path.startswith("src/") or "/obj/" in path or "/Migrations/" in path:
+        if not layer(path) == "src" or "/obj/" in path or "/Migrations/" in path:
             continue
         if kind in {"E", "S", "Y"}:
             resource = guard.SETS.get(r[4], r[4]) if kind == "E" else r[3]
@@ -79,7 +80,7 @@ def export(capture, destination):
         raise ValueError("Graphe logique divergent")
     # Include explicit allocations/factories and file operations absent from the D19 analyzer.
     pattern = re.compile(r"\b(?:new\s+(?:Chat|Workspaces)DbContext\b|CreateDbContext(?:Async)?\b|(?:File|Directory|FileStream|FileStorage)\s*[.(]|\.PathFor\s*\()")
-    for file in sorted((ROOT / "src").rglob("*.cs")):
+    for file in sorted(owned_sources(ROOT, "src")):
         if {"obj", "bin", "Migrations"} & set(file.parts):
             continue
         path = file.relative_to(ROOT).as_posix()

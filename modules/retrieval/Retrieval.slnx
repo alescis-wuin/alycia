@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="src/Alycia.Modules.Retrieval/Alycia.Modules.Retrieval.csproj" />
+  <Project Path="src/Alycia.Modules.Retrieval.Onnx/Alycia.Modules.Retrieval.Onnx.csproj" />
+  <Project Path="testing/Alycia.Modules.Retrieval.Mocks/Alycia.Modules.Retrieval.Mocks.csproj" />
+  <Project Path="tests/Alycia.Modules.Retrieval.Tests/Alycia.Modules.Retrieval.Tests.csproj" />
+</Solution>

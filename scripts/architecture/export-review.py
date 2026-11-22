@@ -7,6 +7,7 @@ import importlib.util
 from pathlib import Path
 import sys
 
+from layout import assembly, layer, parts as layout_parts, projects as project_paths, implementation_group, owned_sources
 from module_rules import owner
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -25,7 +26,7 @@ OWNERS = {
 def export(directory, destination):
     rows = [line.split("\t") for f in sorted(directory.glob("*.tsv")) for line in f.read_text().splitlines()]
     projects = {r[2]: ROOT / r[1] for r in rows if r[0] == "A"}
-    properties = {p.stem for group in ("src", "tests", "benchmarks") for p in (ROOT / group).glob("*/*.csproj")}
+    properties = {p.stem for p in project_paths(ROOT)}
     if set(projects) != properties:
         raise ValueError("Capture must include the solution and the benchmark")
     problems, logical = guard.check_records(rows, ROOT)
@@ -42,12 +43,12 @@ def export(directory, destination):
         for pair, types in sorted(logical.items()):
             write.writerow(["relation entre propriétaires", *pair, ", ".join(sorted(types))])
 
-    interfaces = {r[2]: r[1] for r in rows if r[0] == "I" and r[1].startswith("src/") and "/obj/" not in r[1]}
+    interfaces = {r[2]: r[1] for r in rows if r[0] == "I" and layer(r[1]) == "src" and "/obj/" not in r[1]}
     implementations = defaultdict(lambda: defaultdict(set))
     for row in rows:
         if row[0] == "M" and row[3] in interfaces and "/obj/" not in row[1]:
             path = Path(row[1])
-            group = "double" if path.parts[1] == "Alycia.Modules.Testing" else path.parts[0]
+            group = implementation_group(path)
             implementations[row[3]][group].add(row[2])
     with (destination / "D19-matrice-contrats.csv").open("w", newline="") as f:
         write = csv.writer(f, lineterminator="\n")
@@ -55,7 +56,7 @@ def export(directory, destination):
                         "implémentations dans les tests", "conformité commune adaptateur et double"])
         for port, path in sorted(interfaces.items()):
             name = port.rsplit(".", 1)[-1]
-            parts = Path(path).parts
+            parts = layout_parts(path)
             area = OWNERS.get(name) or owner(path, name) or ("Workspaces" if "Workspaces" in parts[1] else parts[2])
             groups = implementations[port]
             suite = ("TextGenerationContractTests.Text_and_stream_agree_and_enforce_capabilities"

@@ -1,0 +1,47 @@
+{
+  "branche": "develop",
+  "commit": "fadd9aa41148ac3f147b25a73fb6d023928242c6",
+  "arbre": "c928d8a19f2764bf54ddad0deb93ca8a4c023935",
+  "parents": [
+    "bc8515475d73f30842344156f3de3850a67b4c4f",
+    "e1c97cee3d796a78789687ff653775e2fbc953e0"
+  ],
+  "verificationGitHub": {
+    "verified": true,
+    "reason": "valid",
+    "verified_at": "2026-11-22T21:41:06Z"
+  },
+  "protectionVisible": {
+    "enabled": true,
+    "required_status_checks": {
+      "enforcement_level": "off",
+      "contexts": [],
+      "checks": []
+    }
+  },
+  "integration": {
+    "PR": 53,
+    "fusionnee": true,
+    "shaFusion": "fadd9aa41148ac3f147b25a73fb6d023928242c6",
+    "brancheBase": "develop",
+    "qualificationLinux": "PR 53 : Linux G11 qualified. Windows deferred."
+  },
+  "testsVSTestRelusDansArchive": 400,
+  "fichiersPreuvesSha256": {
+    "docs/architecture/decouplage/cloture/GATES.json": "ae93a2fcd231ace91f3c6700dc1450d563a1fab2db19da3cfc1c2d742dde799b",
+    "docs/architecture/decouplage/cloture/DEPENDENCIES.tsv": "ef043869b2451dae95cc0813552a613bc68f6cddea3e68968588de32ad1d4039",
+    "docs/architecture/decouplage/cloture/OWNERSHIP.tsv": "44b622d2bd7eaa62bb9c860011c6e9cae551f9866225b5780beccdc04a5ad0ae",
+    "docs/architecture/decouplage/cloture/PORTS.tsv": "863a65f244b3ba3a2bce3400fbefa01a3fa05e240a085a624518a875e60d7e3e",
+    "docs/architecture/decouplage/cloture/TESTS.json": "9a44938086bd9381cf0513238ed78792576f54ad6961e551397870ea7712ebb9",
+    "docs/architecture/decouplage/cloture/COMPATIBILITY.json": "9b1d23ec5b16be98183976db3cd0c4d35ce03645f1ed935244f277d218bbc4a1",
+    "docs/architecture/decouplage/cloture/TRANSACTIONS.md": "2b28e6bbc7144f1849157839d72db4538b3e5ae0878af8796cb247c162195074",
+    "docs/architecture/decouplage/cloture/recette/trx.zip": "3133f9b53e8d162a27678d2840dfbbcac69fe9271298a05ffebda37b3511ebbc",
+    "docs/architecture/decouplage/cloture/recette/openapi.raw": "d4ff9cb794dca7ccd775a9923d3732c1bf08cbd747c808d4359771426cd53b49",
+    "docs/architecture/decouplage/cloture/recette/rag.json": "a7625d824fa9196dfe0046a664acbc14790e921b3e330f61eaa28cc6bde94092",
+    "docs/architecture/decouplage/cloture/recette/tests-vstest.tsv": "3d98bb5e9391a452ad6fe50eec56ae28cfbf820ab84788b029bf86eae7865354",
+    "docs/architecture/decouplage/cloture/recette/schema.tsv": "8effd5b93f0ac18907d9d958e550f4c69a444a3f52bbb69b66fbe20965609333",
+    "docs/architecture/decouplage/cloture/recette/roslyn.zip": "1686679437a404e65b94e674f01d516f7ef063b2d629ab2fd592e7e2ea104adc"
+  },
+  "urlControleBranche": "https://api.github.com/repos/alescis-wuin/alycia/branches/develop",
+  "urlPR": "https://github.com/alescis-wuin/alycia/pull/53"
+}

@@ -42,7 +42,7 @@ public sealed class TurnOutputContractTests
         var model = new ScriptedTextGeneration(["bon", "jour"]); var meter = new MemoryModelMeter(model);
         var options = new ChatOptions { AutoSummarize = false, MaxHistoryTurns = 2, UseProjectTools = false };
         var c = new ContextConversation(owner, 2, ScriptedTextGeneration.Model, "système", "", 0, "", "", "{}");
-        var reader = new SnapshotTurnReads([owner], [new(owner, 1, request, "user", "avant", default), new(owner, 2, request, "assistant", "réponse", default)], []);
+        var reader = new SnapshotTurnReads([owner], [new(owner, 1, request, "user", "avant", default), new(owner, 2, request, "assistant", "réponse", default)], new SnapshotTurnDocuments([]));
         var scope = new ToolTurnScope(owner, null, c.Model); var parameters = options.Context();
         foreach (ITurnContext context in new ITurnContext[] { new TurnContext(new ContextMemory(), reader, new Alycia.Modules.Context.SlidingHistory()), new FixtureTurnContext(reader, new ReferenceSlidingHistory()) })
         {

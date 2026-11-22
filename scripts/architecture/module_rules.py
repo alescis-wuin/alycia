@@ -30,6 +30,8 @@ TYPE_OWNERS = {
 
 def owner(path, symbol=""):
     parts = PurePosixPath(path).parts
+    if parts[:1] == ("modules",):
+        parts = parts[2:]
     if parts[1] not in CHAT_PROJECTS:
         return None
     basename = parts[-1].split(".")[0]
@@ -41,6 +43,8 @@ def owner(path, symbol=""):
 
 def module_owner(path, symbol):
     parts = PurePosixPath(path).parts
+    if parts[:1] == ("modules",):
+        parts = parts[2:]
     if len(parts) < 3 or parts[0] != "src":
         return None
     project = parts[1]

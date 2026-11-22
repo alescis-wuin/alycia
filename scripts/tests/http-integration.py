@@ -719,7 +719,7 @@ def main():
             try:
                 # Mark cleanup before migration: a failed migration can still create the database.
                 created = True
-                subprocess.run(ef + ["update", "--project", "src/Alycia.Modules.Workspaces.Infrastructure",
+                subprocess.run(ef + ["update", "--project", "modules/workspaces/src/Alycia.Modules.Workspaces.Infrastructure",
                     "--context", "WorkspacesDbContext", "--no-build"], cwd=ROOT, env=env, check=True, stdout=log, stderr=log, timeout=120)
                 subprocess.run(ef + ["update"] + ef_options, cwd=ROOT, env=env, check=True, stdout=log, stderr=log, timeout=120)
                 with socket.socket() as reserve:

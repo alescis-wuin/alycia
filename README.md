@@ -1,6 +1,19 @@
 
 # Alycia
 
+## Construire depuis un clone
+
+Installer le SDK .NET 10.0.404 et Python 3, puis exécuter à la racine.
+
+```sh
+python3 scripts/modules.py bootstrap-packages
+dotnet restore Alycia.slnx --locked-mode --configfile NuGet.Config
+dotnet build Alycia.slnx --no-restore -m:1
+```
+
+Les commandes par domaine, les prérequis des intégrations et la procédure de retour figurent dans [le guide d’assemblage](docs/architecture/preparation-multidepots/ASSEMBLAGE.md).
+
+
 Alycia is a local generative AI client for Ollama. It combines an Avalonia desktop interface, an ASP.NET Core API, PostgreSQL-backed conversations and retrieval from local documents and source code.
 
 ## Modular architecture

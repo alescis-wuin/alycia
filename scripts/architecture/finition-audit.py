@@ -7,6 +7,7 @@ from collections import defaultdict
 from pathlib import Path
 import xml.etree.ElementTree as ET
 
+from layout import assembly, layer, parts as layout_parts, projects as project_paths, implementation_group, owned_sources
 from module_rules import module_owner
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -90,14 +91,17 @@ def main():
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
     rows = [line.split("\t") for f in sorted(args.capture.glob("*.tsv")) for line in f.read_text().splitlines()]
-    declared = {(r[1].split("/")[1], r[5]): r[1] for r in rows if r[0] == "D" and r[3] == "NamedType"
-                and r[1].startswith("src/") and "/obj/" not in r[1]}
-    ports = {r[2]: r[1] for r in rows if r[0] == "I" and r[1].startswith("src/") and "/obj/" not in r[1]}
+    declared = {(assembly(r[1]), r[5]): r[1] for r in rows if r[0] == "D" and r[3] == "NamedType"
+                and layer(r[1]) == "src" and "/obj/" not in r[1]}
+    ports = {r[2]: r[1] for r in rows if r[0] == "I" and layer(r[1]) == "src" and "/obj/" not in r[1]}
+    with (ROOT / "scripts/architecture/port-owners.tsv").open() as stream:
+        owners_by_port = {r["port"]: r["owner"] for r in csv.DictReader(stream, delimiter="\t")}
+    if set(owners_by_port) != set(ports):
+        raise ValueError("Public port inventory differs from the declared owners")
     implementations = defaultdict(lambda: defaultdict(set))
     for r in rows:
         if r[0] == "M" and r[3] in ports and "/obj/" not in r[1]:
-            path = Path(r[1]).parts
-            group = "double" if path[1] == "Alycia.Modules.Testing" or path[0] == "tests" and "Doubles" in path else path[0]
+            group = implementation_group(r[1])
             implementations[r[3]][group].add(r[2])
     with (LOCATION / "D20-ports.tsv").open() as source:
         baseline = {r["port"].rsplit(".", 1)[-1]: r for r in csv.DictReader(source, delimiter="\t")}
@@ -110,7 +114,7 @@ def main():
         "ITextTokenCounter": ("Primitive de comptage dépendante du vocabulaire du fournisseur.", "MatchesIndependentHuggingFaceCountsForFrenchCodeAndCjk"),
         "IChatTurnScope": ("Durée de vie et terminaison de la transaction explicitement exercées sur les deux dépôts.", "Conversation_ports_rollback_the_pair_and_commit_memory_at_the_expected_revision"),
     }
-    tests = {p.relative_to(ROOT).as_posix(): p.read_text(encoding="utf-8-sig") for p in sorted((ROOT/"tests").glob("**/*.cs")) if "obj" not in p.parts}
+    tests = {p.relative_to(ROOT).as_posix(): p.read_text(encoding="utf-8-sig") for p in owned_sources(ROOT, "tests") if "obj" not in p.parts}
     contracts = []
     for port, path in sorted(ports.items()):
         name = port.rsplit(".", 1)[-1]
@@ -124,7 +128,7 @@ def main():
             raise ValueError("Conformité non vérifiée: " + port + " (" + proof + ")")
         status = "VALIDÉ" if ran else ("EXCLU" if category != "comportemental" else "OUVERT")
         detail = initial["raison"] if status == "EXCLU" else (proof or "Suite commune et double à démontrer")
-        module = initial["propriétaire"] if initial else (exporter.OWNERS.get(name) or module_owner(path, name) or Path(path).parent.name)
+        module = owners_by_port[port].capitalize()
         method = proof
         if status == "EXCLU":
             detail, method = excluded_checks[name]
@@ -166,7 +170,7 @@ def main():
             tables[r["schema"] + "." + r["relation"]].append(r["constraint_name"])
         accesses = defaultdict(lambda: defaultdict(set))
         for r in rows:
-            if r[0] in {"E", "S"} and r[1].startswith("src/") and "/Migrations/" not in r[1] and "/obj/" not in r[1]:
+            if r[0] in {"E", "S"} and layer(r[1]) == "src" and "/Migrations/" not in r[1] and "/obj/" not in r[1]:
                 table = exporter.guard.SETS.get(r[4], r[4]) if r[0] == "E" else r[3]
                 accesses[table][r[0]].add(r[1] + ":" + r[2])
         owners = exporter.guard.TABLE_OWNERS
@@ -184,7 +188,7 @@ def main():
 
     edges = defaultdict(set)
     for r in rows:
-        if r[0] != "R" or not r[1].startswith("src/") or "/obj/" in r[1] or "/Migrations/" in r[1]: continue
+        if r[0] != "R" or not layer(r[1]) == "src" or "/obj/" in r[1] or "/Migrations/" in r[1]: continue
         source = module_owner(r[1], r[3])
         target_path = declared.get((r[4], r[5]))
         target = module_owner(target_path, r[6]) if target_path else None
