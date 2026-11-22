@@ -20,7 +20,7 @@ public sealed class BriefSnapshotTests
         gate.SetResult(new(null));
         var result = await pending;
         Assert.Equal(["initial"], result.Labels);
-        Assert.Equal(["locale"], result.Constraints);
+        Assert.Equal(["locale"], Assert.IsType<string[]>(result.Constraints));
     }
 
     private sealed class PendingInspection(Task<ModelTokenization> inspection) : IChatModel

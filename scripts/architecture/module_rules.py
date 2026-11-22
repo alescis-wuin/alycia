@@ -109,3 +109,18 @@ CONTRACT_AREAS = {
     "Alycia.Modules.Testing": {"Chat", "Indexing", "Inference", "Documents", "Workspaces", "Retrieval"},
     "Alycia.Modules.Workspaces.Infrastructure": {"Workspaces", "Chat", "Indexing"},
 }
+
+# Explicit contract namespaces used by each owner sharing the historical Chat assemblies.
+LOGICAL_CONTRACT_AREAS = {
+    "Configuration": {"Chat", "Context", "Documents", "Indexing", "Inference", "Memory", "Retrieval", "Tools"},
+    "Context": {"Chat", "Context", "Documents", "Indexing", "Inference", "Memory", "Retrieval", "Tools"},
+    "Conversations": {"Chat", "Context", "Documents", "Indexing", "Inference", "Memory", "Retrieval", "Tools", "Workspaces"},
+    "Documents": {"Chat", "Context", "Documents", "Indexing", "Inference", "Workspaces"},
+    "Indexing": {"Chat", "Context", "Documents", "Indexing", "Inference", "Memory", "Retrieval", "Workspaces"},
+    "Inference": {"Chat", "Inference", "Retrieval"},
+    "Memory": {"Chat", "Context", "Documents", "Indexing", "Inference", "Memory"},
+    "Persistence": {"Chat"},
+    "Projects": set(),
+    "Retrieval": {"Chat", "Context", "Documents", "Indexing", "Retrieval"},
+    "Tools": {"Chat", "Context", "Documents", "Indexing", "Inference", "Retrieval", "Tools"},
+}

@@ -53,6 +53,13 @@ class ModuleBoundariesTests(unittest.TestCase):
         self.source(inference, "Generate.cs", "using P = Alycia.Contracts.Workspaces.Profile; class Generate(P value);")
         self.assertIn("contract boundary: Alycia.Modules.Inference -> T:Alycia.Contracts.Workspaces.Profile", self.guard(False))
 
+    def test_logical_tool_inside_chat_cannot_import_a_workspace_contract(self):
+        contracts = self.project(CONTRACTS)
+        self.source(contracts, "Profile.cs", "namespace Alycia.Contracts.Workspaces; public record Profile(int Revision);")
+        app = self.project(APP, [CONTRACTS])
+        self.source(app, "Tools/Read.cs", "using P = Alycia.Contracts.Workspaces.Profile; public class Read(P value);")
+        self.assertIn("contract boundary: Tools -> T:Alycia.Contracts.Workspaces.Profile", self.guard(False))
+
     def test_assembly_and_logical_context_refuse_mutable_settings_and_tracked_entities(self):
         contracts = self.project(CONTRACTS)
         self.source(contracts, "ChatSettings.cs", "namespace Alycia.Contracts.Chat; public class ChatSettings {}")
