@@ -1,11 +1,10 @@
 using Alycia.Contracts.Tools;
-using Alycia.Modules.Chat.Application.Context;
 using Alycia.Modules.Chat.Domain;
 
 namespace Alycia.Modules.Chat.Application;
 
 public sealed class ChatService(IChatRepository repository, IChatModel model, ChatOptions options,
-    ITurnContext turnContext, IConversationMemory memory, ITurnTools tools, ITurnRouter routing, ITurnResponseAudit audit, GenerationGate gate, IForegroundActivity foreground, IModelMeterFactory meters)
+    ITurnContext turnContext, IConversationMemory memory, ITurnTools tools, ITurnRouter routing, ITurnResponseAudit audit, GenerationGate gate, IForegroundActivity foreground, IModelMeterFactory meters, CreateQueryBriefRefiner briefRefiner)
 {
     public async Task<Conversation> CreateAsync(string? title, string? modelName, string? systemPrompt,
         CancellationToken cancellationToken, Guid? workspaceId = null)
@@ -13,7 +12,7 @@ public sealed class ChatService(IChatRepository repository, IChatModel model, Ch
         var conversation = Conversation.Create(title, modelName, systemPrompt);
         conversation.AssignWorkspace(workspaceId);
         // Validate the system instruction before accepting a conversation.
-        SlidingContext.ValidatePrompt(conversation.SystemPrompt, "Bonjour", options.Context());
+        options.Context().ValidatePrompt(conversation.SystemPrompt, "Bonjour");
         var models = await model.ListModelsAsync(cancellationToken);
         if (!models.Contains(conversation.Model, StringComparer.Ordinal))
         {
@@ -53,7 +52,7 @@ public sealed class ChatService(IChatRepository repository, IChatModel model, Ch
                 throw new ChatConflictException();
             }
 
-            return new(previous, null, true, Usage: TurnResponseAudit.ReadUsage(previous[1].DiagnosticsJson));
+            return new(previous, null, true, Usage: TurnDiagnosticsWriter.ReadUsage(previous[1].DiagnosticsJson));
         }
 
         if (revision.HasValue) ConversationConfiguration.CheckRevision(conversation, revision.Value);
@@ -61,7 +60,7 @@ public sealed class ChatService(IChatRepository repository, IChatModel model, Ch
         using var priority = foreground.PreferForeground();
         var measured = meters.Create(model);
         var routed = await routing.PrepareAsync(conversation.Id, conversation.MessageCount, text, settings.RoutingRequest(),
-            new QueryBriefRefiner(measured), onDelta is null ? null : () => onDelta(new("", Status: "Préparation du contexte…")), cancellationToken);
+            briefRefiner(measured), onDelta is null ? null : () => onDelta(new("", Status: "Préparation du contexte…")), cancellationToken);
         measured.AddCalls(routed.Calls);
         settings = settings.WithRouting(routed.State);
         var toolScope = new ToolTurnScope(conversation.Id, conversation.WorkspaceId, conversation.Model);
@@ -75,10 +74,10 @@ public sealed class ChatService(IChatRepository repository, IChatModel model, Ch
         var review = await audit.ReviewAsync(id, generated, window, settings.Verification(), measured, onDelta, cancellationToken);
         var user = new ChatMessage(id, conversation.MessageCount + 1, requestId, "user", text);
         var assistant = new ChatMessage(id, conversation.MessageCount + 2, requestId, "assistant", review.Reply);
-        TurnResponseAudit.AttachToolTrace(assistant, generated.Tools);
+        TurnDiagnosticsWriter.AttachToolTrace(assistant, generated.Tools);
         memory.Apply(conversation, context.Prepared?.MemoryChange());
         var usage = measured.Snapshot(settings.ModelIdentity, settings.TokenCounter);
-        TurnResponseAudit.AttachDiagnostics(assistant, conversation, generated, window, settings, usage, review);
+        TurnDiagnosticsWriter.AttachDiagnostics(assistant, conversation, generated, window, settings, usage, review);
         conversation.CompleteTurn();
         // One atomic SaveChanges for both messages and the revision. A failed
         // model call/cancellation never leaves an orphan user message in storage.

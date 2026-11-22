@@ -21,7 +21,7 @@ public sealed class ToolSummaryRecoveryTests
         var original = Context();
         var events = new List<ModelDelta>();
         var options = new ChatOptions();
-        var result = await ProjectAgent.RunAsync(model, sources, Guid.NewGuid(), "demo", original.ToolPrompt(), options.ToolGeneration(),
+        var result = await ProjectAgent.RunAsync(RecursiveSummarizer.Create, model, sources, Guid.NewGuid(), "demo", original.ToolPrompt(), options.ToolGeneration(),
             delta => { events.Add(delta); return Task.CompletedTask; }, default);
 
         Assert.Equal("Réponse finale", result.Content);
@@ -59,7 +59,7 @@ public sealed class ToolSummaryRecoveryTests
         using var http = Client(handler);
         var sources = new Sources();
         var events = new List<ModelDelta>();
-        Task Run() => ProjectAgent.RunAsync(ChatFixture.Ollama(http, new()), sources, Guid.NewGuid(), "demo", Context().ToolPrompt(), new ChatOptions().ToolGeneration(),
+        Task Run() => ProjectAgent.RunAsync(RecursiveSummarizer.Create, ChatFixture.Ollama(http, new()), sources, Guid.NewGuid(), "demo", Context().ToolPrompt(), new ChatOptions().ToolGeneration(),
             delta => { events.Add(delta); return Task.CompletedTask; }, cancel.Token);
         if (failure == "cancel") await Assert.ThrowsAnyAsync<OperationCanceledException>(Run);
         else

@@ -1,3 +1,4 @@
+using Alycia.Modules.Workspaces.Domain;
 using System.IO.Compression;
 using Alycia.Modules.Chat.Application;
 using Alycia.Modules.Chat.Domain;
@@ -47,7 +48,7 @@ public sealed class ConversationHistoryTests
             db.WorkspaceFileOverrides.Add(new() { ConversationId = source.Id, FileId = shared.Id, Mode = "excluded" });
             var turn = Guid.NewGuid();
             source.CompleteTurn();
-            await new EfChatRepository(db, ChatFixture.Profiles(db), new TurnDocuments(db, ChatFixture.DocumentScope)).AppendTurnAsync(source, new(source.Id, 3, turn, "user", "Ensuite"),
+            await new EfChatRepository(db, ChatFixture.Profiles(db)).AppendTurnAsync(source, new(source.Id, 3, turn, "user", "Ensuite"),
                 new(source.Id, 4, turn, "assistant", "Suite"), default);
             await importer.ImportAsync(source.Id, Guid.NewGuid(), [new("tardif.txt", new MemoryStream("après"u8.ToArray()))], default);
 

@@ -1,0 +1,62 @@
+{
+  "model": "all-minilm:22m",
+  "rows": 3,
+  "dimensions": 384,
+  "finite": true,
+  "duplicateIdentical": true,
+  "differentInputsDiffer": true,
+  "hashes": [
+    "0d26394327fbe6a3f5979fcf60bd1256db5de6d086357201bd1acf1c061c9a39",
+    "ad190d29ced40eb7eedc8541d910e2a1a3943e6728ff0a5554350281faf21b79",
+    "0d26394327fbe6a3f5979fcf60bd1256db5de6d086357201bd1acf1c061c9a39"
+  ],
+  "models": [
+    {
+      "name": "all-minilm:22m",
+      "model": "all-minilm:22m",
+      "modified_at": "2026-11-22T19:16:13.722624828+01:00",
+      "size": 45960996,
+      "digest": "1b226e2802dbb772b5fc32a58f103ca1804ef7501331012de126ab22f67475ef",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "bert",
+        "families": [
+          "bert"
+        ],
+        "parameter_size": "23M",
+        "quantization_level": "F16",
+        "context_length": 512,
+        "embedding_length": 384,
+        "runner": "ggml"
+      },
+      "capabilities": [
+        "embedding"
+      ]
+    },
+    {
+      "name": "qwen2.5:0.5b",
+      "model": "qwen2.5:0.5b",
+      "modified_at": "2026-11-22T19:15:54.718300982+01:00",
+      "size": 397821319,
+      "digest": "a8b0c51577010a279d933d14c2a8ab4b268079d44c5c8830c0a93900f1827c67",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "qwen2",
+        "families": [
+          "qwen2"
+        ],
+        "parameter_size": "494.03M",
+        "quantization_level": "Q4_K_M",
+        "context_length": 32768,
+        "embedding_length": 896,
+        "runner": "ggml"
+      },
+      "capabilities": [
+        "completion",
+        "tools"
+      ]
+    }
+  ]
+}

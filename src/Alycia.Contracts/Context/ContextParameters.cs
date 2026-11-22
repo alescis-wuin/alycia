@@ -27,5 +27,14 @@ public sealed record ContextParameters(InferenceCall Inference, SummaryParameter
         return this with { Inference = Inference with { SafetyTokens = tokens }, Summary = Summary with { SafetyTokens = tokens } };
     }
 
+    public void ValidatePrompt(string system, string user)
+    {
+        if (PromptCost(system, user) > AvailableInputTokens)
+            throw new ArgumentException("Le message et l’instruction système dépassent le budget de contexte. Raccourcissez-les.");
+    }
+
+    public int PromptCost(string system, string user) =>
+        Count(user) + (system.Length == 0 ? 0 : Count(system));
+
     public int Count(string text) => PromptTokens.Count(text, Inference.TokenCounter);
 }

@@ -4,7 +4,7 @@ namespace Alycia.Modules.Chat.Application;
 
 // One active inference per conversation in this API process. The database
 // revision remains the authoritative cross-process protection at commit time.
-public sealed class GenerationGate
+public sealed class GenerationGate : Alycia.Contracts.Documents.IConversationLease
 {
     private readonly ConcurrentDictionary<Guid, byte> _active = new();
 

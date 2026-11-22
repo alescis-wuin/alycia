@@ -1,17 +1,18 @@
+using Alycia.Modules.Chat.Application.Context;
+using TurnContextMode = Alycia.Modules.Chat.Application.Context.TurnContextMode;
 using Alycia.Contracts.Retrieval;
 using Alycia.Contracts.Memory;
 using Alycia.Contracts.Context;
 using Alycia.Contracts.Tools;
 using Alycia.Modules.Chat.Domain;
 
-using Alycia.Modules.Chat.Application.Context;
 
 namespace Alycia.Modules.Chat.Application.Conversations;
 
 public sealed record ContextPreparationResult(ContextWindow Context, ChatOptions Options, GenerationUsage Usage, int Revision, int OmittedMessages, string Estimator);
 
 public sealed class ConversationContextPreparation(IChatRepository repository, IChatModel model, ITurnTools tools, ITurnContext turnContext,
-    IConversationMemory memoryWriter, ITurnRouter routing, ChatOptions defaults, GenerationGate gate, IModelMeterFactory meters)
+    IConversationMemory memoryWriter, ITurnRouter routing, ChatOptions defaults, GenerationGate gate, IModelMeterFactory meters, CreateQueryBriefRefiner briefRefiner)
 {
     private sealed record Inputs(Conversation Conversation, ContextConversation ContextOwner, string Text, ChatOptions Options, IModelMeter Measured, TurnContextBudget Budget);
 
@@ -49,7 +50,7 @@ public sealed class ConversationContextPreparation(IChatRepository repository, I
     {
         var measured = meters.Create(model);
         var routed = await routing.PrepareAsync(conversation.Id, conversation.MessageCount, text, options.RoutingRequest(),
-            new QueryBriefRefiner(measured), null, ct);
+            briefRefiner(measured), null, ct);
         measured.AddCalls(routed.Calls);
         options = options.WithRouting(routed.State);
         var useTools = await tools.AvailableForContextAsync(new ToolTurnScope(conversation.Id, conversation.WorkspaceId, conversation.Model),
@@ -61,7 +62,7 @@ public sealed class ConversationContextPreparation(IChatRepository repository, I
 
     private async Task<ContextPreparationResult> BuildAsync(Inputs inputs, TurnContextMode mode, Func<string, Task>? progress, CancellationToken ct)
     {
-        var result = await turnContext.BuildAsync(inputs.ContextOwner, inputs.Text, inputs.Budget, model, inputs.Measured, mode, progress, ct);
+        var result = await turnContext.BuildAsync(inputs.ContextOwner, inputs.Text, inputs.Budget, model, inputs.Measured, mode.ForContext(), progress, ct);
         if (mode == TurnContextMode.PrepareMemory && memoryWriter.Apply(inputs.Conversation, result.Prepared?.MemoryChange()))
             await repository.SaveAsync(ct);
         return new(result.Window, inputs.Options, inputs.Measured.Snapshot(inputs.Options.ModelIdentity, inputs.Options.TokenCounter), inputs.Conversation.Revision,

@@ -13,7 +13,7 @@ public sealed record ExtractedDocument(string Text, bool Complete, IReadOnlyList
 // Coordinates identify original pages/parts/cells. No OCR, macros or formula evaluation.
 public static class StructuredDocuments
 {
-    public const int Version = 1;
+    public const int Version = Alycia.Contracts.Indexing.IndexedOriginal.ExtractorVersion;
     public static bool Supports(string name) => new[] { ".pdf", ".docx", ".xlsx", ".pptx" }.Contains(Path.GetExtension(name).ToLowerInvariant());
     public static ExtractedDocument Extract(string name, byte[] bytes)
     {

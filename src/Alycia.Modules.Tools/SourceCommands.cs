@@ -66,8 +66,11 @@ public sealed class SourceCommands(IAuthorizedToolSources sources) : ISourceComm
     {
         if (!args.TryGetProperty("fileId", out var key) || key.ValueKind != JsonValueKind.String || !key.TryGetGuid(out var id))
             throw new ArgumentException("fileId doit être l’identifiant fourni par l’inventaire ou la recherche.");
-        var file = await sources.ReadAsync(conversation, id, ct);
-        if (file.Text.Length == 0) throw new ArgumentException("Aucun texte disponible : " + file.Origin);
+        AuthorizedToolSource file;
+        try { file = await sources.ReadAsync(conversation, id, ct); }
+        catch (ArgumentException error)
+        { return new(Json(new { error = error.Message }), true) { Refusal = ToolRefusal.UnavailableSource }; }
+        if (file.Text.Length == 0) return new(Json(new { error = "Aucun texte disponible : " + file.Origin }), true) { Refusal = ToolRefusal.UnavailableSource };
         var start = 0; var end = file.Text.Length; string? symbol = null; var headerOnly = false;
         if (args.TryGetProperty("symbol", out var requested))
         {
@@ -88,7 +91,7 @@ public sealed class SourceCommands(IAuthorizedToolSources sources) : ISourceComm
                 }).Take(12).ToList();
                 string Choices() => Json(new { error = matches.Length == 0 ? "Symbole introuvable." : "Symbole ambigu : utilisez un nom complet ou un offset.", candidates });
                 while (Bytes(Choices()) > budget && candidates.Count > 0) candidates.RemoveAt(candidates.Count - 1);
-                return new(Choices(), true);
+                return new(Choices(), true) { Refusal = ToolRefusal.InvalidArguments };
             }
             symbol = matches[0].Key; start = matches[0].Min(c => c.Start); end = matches[0].Max(c => c.End);
             headerOnly = matches[0].Any(c => c.Kind == "type_header");

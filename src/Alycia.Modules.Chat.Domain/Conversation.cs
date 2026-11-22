@@ -7,6 +7,13 @@ public sealed class Conversation
     [System.ComponentModel.DataAnnotations.Schema.NotMapped, System.Text.Json.Serialization.JsonIgnore]
     public ConversationProjectSnapshot? ProjectSnapshot { get; set; }
 
+    public Conversation DetachedCopy()
+    {
+        var copy = (Conversation)MemberwiseClone();
+        if (ProjectSnapshot is { } snapshot) copy.ProjectSnapshot = snapshot with { Notes = snapshot.Notes.ToArray() };
+        return copy;
+    }
+
     public void AssignWorkspace(Guid? id)
     {
         if (WorkspaceId == id) return;

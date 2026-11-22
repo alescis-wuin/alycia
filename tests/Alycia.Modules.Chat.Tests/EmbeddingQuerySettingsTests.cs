@@ -67,7 +67,7 @@ public sealed class EmbeddingQuerySettingsTests
             return Task.FromResult(new EmbeddingBatch(input.Select(_ => new float[] { 1, 0 }).ToArray(), null));
         }
 
-        public Task<Dictionary<string, double>> SimilaritiesAsync(string identity, string[] keys, float[] query, CancellationToken ct)
+        public Task<Dictionary<string, double>> SimilaritiesAsync(Guid owner, string identity, string[] keys, float[] query, CancellationToken ct)
         {
             VectorSpaces.Add(identity);
             return Task.FromResult(new Dictionary<string, double>());

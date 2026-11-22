@@ -1,0 +1,705 @@
+{
+  "unitéStatistique": "Trois processus par version. Pour le microbenchmark, 24 mesures intra-processus par taille. p95 entre processus = maximum de trois observations.",
+  "observations": [
+    {
+      "version": "base",
+      "mesure": "Construction froide · 64 passages",
+      "unité": "ms",
+      "répétitions": 3,
+      "brut": [
+        44.9774,
+        36.9931,
+        37.7558
+      ],
+      "moyenne": 39.908766666666665,
+      "médiane": 37.7558,
+      "p95": 44.9774
+    },
+    {
+      "version": "candidat",
+      "mesure": "Construction froide · 64 passages",
+      "unité": "ms",
+      "répétitions": 3,
+      "brut": [
+        31.8343,
+        29.2279,
+        29.0853
+      ],
+      "moyenne": 30.049166666666668,
+      "médiane": 29.2279,
+      "p95": 31.8343
+    },
+    {
+      "version": "base",
+      "mesure": "Allocation BM25 chaud · 64 passages",
+      "unité": "octets/appel",
+      "répétitions": 3,
+      "brut": [
+        171439,
+        170585,
+        171439
+      ],
+      "moyenne": 171154.33333333334,
+      "médiane": 171439,
+      "p95": 171439
+    },
+    {
+      "version": "candidat",
+      "mesure": "Allocation BM25 chaud · 64 passages",
+      "unité": "octets/appel",
+      "répétitions": 3,
+      "brut": [
+        171609,
+        170585,
+        171609
+      ],
+      "moyenne": 171267.66666666666,
+      "médiane": 171609,
+      "p95": 171609
+    },
+    {
+      "version": "base",
+      "mesure": "BM25 chaud · 64 passages · p50 des 24 mesures",
+      "unité": "ms",
+      "répétitions": 3,
+      "brut": [
+        0.2074,
+        0.1878,
+        0.2068
+      ],
+      "moyenne": 0.20066666666666666,
+      "médiane": 0.2068,
+      "p95": 0.2074
+    },
+    {
+      "version": "candidat",
+      "mesure": "BM25 chaud · 64 passages · p50 des 24 mesures",
+      "unité": "ms",
+      "répétitions": 3,
+      "brut": [
+        0.2637,
+        0.2331,
+        0.2261
+      ],
+      "moyenne": 0.24096666666666666,
+      "médiane": 0.2331,
+      "p95": 0.2637
+    },
+    {
+      "version": "base",
+      "mesure": "BM25 chaud · 64 passages · p95 des 24 mesures",
+      "unité": "ms",
+      "répétitions": 3,
+      "brut": [
+        0.4227,
+        0.361,
+        0.345
+      ],
+      "moyenne": 0.3762333333333333,
+      "médiane": 0.361,
+      "p95": 0.4227
+    },
+    {
+      "version": "candidat",
+      "mesure": "BM25 chaud · 64 passages · p95 des 24 mesures",
+      "unité": "ms",
+      "répétitions": 3,
+      "brut": [
+        0.6105,
+        0.4046,
+        0.4205
+      ],
+      "moyenne": 0.47853333333333337,
+      "médiane": 0.4205,
+      "p95": 0.6105
+    },
+    {
+      "version": "base",
+      "mesure": "Classement chaud · 64 passages · p50 des 24 mesures",
+      "unité": "ms",
+      "répétitions": 3,
+      "brut": [
+        0.4506,
+        0.4087,
+        0.4502
+      ],
+      "moyenne": 0.4365,
+      "médiane": 0.4502,
+      "p95": 0.4506
+    },
+    {
+      "version": "candidat",
+      "mesure": "Classement chaud · 64 passages · p50 des 24 mesures",
+      "unité": "ms",
+      "répétitions": 3,
+      "brut": [
+        0.5314,
+        0.4186,
+        0.4477
+      ],
+      "moyenne": 0.4659,
+      "médiane": 0.4477,
+      "p95": 0.5314
+    },
+    {
+      "version": "base",
+      "mesure": "Classement chaud · 64 passages · p95 des 24 mesures",
+      "unité": "ms",
+      "répétitions": 3,
+      "brut": [
+        0.739,
+        0.5182,
+        0.6726
+      ],
+      "moyenne": 0.6432666666666667,
+      "médiane": 0.6726,
+      "p95": 0.739
+    },
+    {
+      "version": "candidat",
+      "mesure": "Classement chaud · 64 passages · p95 des 24 mesures",
+      "unité": "ms",
+      "répétitions": 3,
+      "brut": [
+        1.1435,
+        0.6479,
+        0.6357
+      ],
+      "moyenne": 0.8090333333333334,
+      "médiane": 0.6479,
+      "p95": 1.1435
+    },
+    {
+      "version": "base",
+      "mesure": "Construction froide · 512 passages",
+      "unité": "ms",
+      "répétitions": 3,
+      "brut": [
+        91.8665,
+        141.3301,
+        84.1767
+      ],
+      "moyenne": 105.7911,
+      "médiane": 91.8665,
+      "p95": 141.3301
+    },
+    {
+      "version": "candidat",
+      "mesure": "Construction froide · 512 passages",
+      "unité": "ms",
+      "répétitions": 3,
+      "brut": [
+        147.0149,
+        139.3547,
+        187.8285
+      ],
+      "moyenne": 158.06603333333334,
+      "médiane": 147.0149,
+      "p95": 187.8285
+    },
+    {
+      "version": "base",
+      "mesure": "Allocation BM25 chaud · 512 passages",
+      "unité": "octets/appel",
+      "répétitions": 3,
+      "brut": [
+        1357585,
+        1357554,
+        1357565
+      ],
+      "moyenne": 1357568,
+      "médiane": 1357565,
+      "p95": 1357585
+    },
+    {
+      "version": "candidat",
+      "mesure": "Allocation BM25 chaud · 512 passages",
+      "unité": "octets/appel",
+      "répétitions": 3,
+      "brut": [
+        1357554,
+        1357575,
+        1357596
+      ],
+      "moyenne": 1357575,
+      "médiane": 1357575,
+      "p95": 1357596
+    },
+    {
+      "version": "base",
+      "mesure": "BM25 chaud · 512 passages · p50 des 24 mesures",
+      "unité": "ms",
+      "répétitions": 3,
+      "brut": [
+        1.3623,
+        1.3106,
+        1.338
+      ],
+      "moyenne": 1.3369666666666666,
+      "médiane": 1.338,
+      "p95": 1.3623
+    },
+    {
+      "version": "candidat",
+      "mesure": "BM25 chaud · 512 passages · p50 des 24 mesures",
+      "unité": "ms",
+      "répétitions": 3,
+      "brut": [
+        1.4122,
+        1.614,
+        1.394
+      ],
+      "moyenne": 1.4734,
+      "médiane": 1.4122,
+      "p95": 1.614
+    },
+    {
+      "version": "base",
+      "mesure": "BM25 chaud · 512 passages · p95 des 24 mesures",
+      "unité": "ms",
+      "répétitions": 3,
+      "brut": [
+        3.4723,
+        2.1036,
+        3.026
+      ],
+      "moyenne": 2.8673,
+      "médiane": 3.026,
+      "p95": 3.4723
+    },
+    {
+      "version": "candidat",
+      "mesure": "BM25 chaud · 512 passages · p95 des 24 mesures",
+      "unité": "ms",
+      "répétitions": 3,
+      "brut": [
+        3.9326,
+        3.882,
+        3.5042
+      ],
+      "moyenne": 3.7729333333333335,
+      "médiane": 3.882,
+      "p95": 3.9326
+    },
+    {
+      "version": "base",
+      "mesure": "Classement chaud · 512 passages · p50 des 24 mesures",
+      "unité": "ms",
+      "répétitions": 3,
+      "brut": [
+        2.5156,
+        2.3906,
+        2.514
+      ],
+      "moyenne": 2.4734,
+      "médiane": 2.514,
+      "p95": 2.5156
+    },
+    {
+      "version": "candidat",
+      "mesure": "Classement chaud · 512 passages · p50 des 24 mesures",
+      "unité": "ms",
+      "répétitions": 3,
+      "brut": [
+        2.5574,
+        2.6079,
+        2.3769
+      ],
+      "moyenne": 2.5140666666666664,
+      "médiane": 2.5574,
+      "p95": 2.6079
+    },
+    {
+      "version": "base",
+      "mesure": "Classement chaud · 512 passages · p95 des 24 mesures",
+      "unité": "ms",
+      "répétitions": 3,
+      "brut": [
+        4.1106,
+        5.1033,
+        5.1206
+      ],
+      "moyenne": 4.7781666666666665,
+      "médiane": 5.1033,
+      "p95": 5.1206
+    },
+    {
+      "version": "candidat",
+      "mesure": "Classement chaud · 512 passages · p95 des 24 mesures",
+      "unité": "ms",
+      "répétitions": 3,
+      "brut": [
+        4.8524,
+        12.9595,
+        4.1147
+      ],
+      "moyenne": 7.308866666666667,
+      "médiane": 4.8524,
+      "p95": 12.9595
+    },
+    {
+      "version": "base",
+      "mesure": "Construction froide · 2048 passages",
+      "unité": "ms",
+      "répétitions": 3,
+      "brut": [
+        277.7468,
+        268.1046,
+        271.047
+      ],
+      "moyenne": 272.29946666666666,
+      "médiane": 271.047,
+      "p95": 277.7468
+    },
+    {
+      "version": "candidat",
+      "mesure": "Construction froide · 2048 passages",
+      "unité": "ms",
+      "répétitions": 3,
+      "brut": [
+        318.4402,
+        340.6659,
+        270.0305
+      ],
+      "moyenne": 309.7122,
+      "médiane": 318.4402,
+      "p95": 340.6659
+    },
+    {
+      "version": "base",
+      "mesure": "Allocation BM25 chaud · 2048 passages",
+      "unité": "octets/appel",
+      "répétitions": 3,
+      "brut": [
+        5453396,
+        5453179,
+        5453117
+      ],
+      "moyenne": 5453230.666666667,
+      "médiane": 5453179,
+      "p95": 5453396
+    },
+    {
+      "version": "candidat",
+      "mesure": "Allocation BM25 chaud · 2048 passages",
+      "unité": "octets/appel",
+      "répétitions": 3,
+      "brut": [
+        5453180,
+        5453158,
+        5453319
+      ],
+      "moyenne": 5453219,
+      "médiane": 5453180,
+      "p95": 5453319
+    },
+    {
+      "version": "base",
+      "mesure": "BM25 chaud · 2048 passages · p50 des 24 mesures",
+      "unité": "ms",
+      "répétitions": 3,
+      "brut": [
+        6.5635,
+        6.3478,
+        5.9994
+      ],
+      "moyenne": 6.303566666666667,
+      "médiane": 6.3478,
+      "p95": 6.5635
+    },
+    {
+      "version": "candidat",
+      "mesure": "BM25 chaud · 2048 passages · p50 des 24 mesures",
+      "unité": "ms",
+      "répétitions": 3,
+      "brut": [
+        6.9679,
+        7.1814,
+        5.6113
+      ],
+      "moyenne": 6.586866666666666,
+      "médiane": 6.9679,
+      "p95": 7.1814
+    },
+    {
+      "version": "base",
+      "mesure": "BM25 chaud · 2048 passages · p95 des 24 mesures",
+      "unité": "ms",
+      "répétitions": 3,
+      "brut": [
+        11.4221,
+        19.8289,
+        14.113
+      ],
+      "moyenne": 15.121333333333334,
+      "médiane": 14.113,
+      "p95": 19.8289
+    },
+    {
+      "version": "candidat",
+      "mesure": "BM25 chaud · 2048 passages · p95 des 24 mesures",
+      "unité": "ms",
+      "répétitions": 3,
+      "brut": [
+        19.4612,
+        13.8271,
+        11.5272
+      ],
+      "moyenne": 14.938500000000001,
+      "médiane": 13.8271,
+      "p95": 19.4612
+    },
+    {
+      "version": "base",
+      "mesure": "Classement chaud · 2048 passages · p50 des 24 mesures",
+      "unité": "ms",
+      "répétitions": 3,
+      "brut": [
+        10.9918,
+        10.4198,
+        11.7914
+      ],
+      "moyenne": 11.067666666666666,
+      "médiane": 10.9918,
+      "p95": 11.7914
+    },
+    {
+      "version": "candidat",
+      "mesure": "Classement chaud · 2048 passages · p50 des 24 mesures",
+      "unité": "ms",
+      "répétitions": 3,
+      "brut": [
+        10.4742,
+        11.3617,
+        10.4302
+      ],
+      "moyenne": 10.755366666666667,
+      "médiane": 10.4742,
+      "p95": 11.3617
+    },
+    {
+      "version": "base",
+      "mesure": "Classement chaud · 2048 passages · p95 des 24 mesures",
+      "unité": "ms",
+      "répétitions": 3,
+      "brut": [
+        19.2602,
+        26.3432,
+        16.1397
+      ],
+      "moyenne": 20.581033333333334,
+      "médiane": 19.2602,
+      "p95": 26.3432
+    },
+    {
+      "version": "candidat",
+      "mesure": "Classement chaud · 2048 passages · p95 des 24 mesures",
+      "unité": "ms",
+      "répétitions": 3,
+      "brut": [
+        16.3635,
+        18.4911,
+        14.8274
+      ],
+      "moyenne": 16.560666666666666,
+      "médiane": 16.3635,
+      "p95": 18.4911
+    },
+    {
+      "version": "base",
+      "mesure": "Indexation persistante et reprise",
+      "unité": "s",
+      "répétitions": 3,
+      "brut": [
+        68.1233546,
+        38.2644535,
+        44.8722823
+      ],
+      "moyenne": 50.420030133333334,
+      "médiane": 44.8722823,
+      "p95": 68.1233546
+    },
+    {
+      "version": "candidat",
+      "mesure": "Indexation persistante et reprise",
+      "unité": "s",
+      "répétitions": 3,
+      "brut": [
+        13.0544253,
+        11.1136534,
+        14.6255026
+      ],
+      "moyenne": 12.931193766666667,
+      "médiane": 13.0544253,
+      "p95": 14.6255026
+    },
+    {
+      "version": "base",
+      "mesure": "Mémoire et réparation du checkpoint",
+      "unité": "s",
+      "répétitions": 3,
+      "brut": [
+        2.4896891,
+        2.1819312,
+        2.4004266
+      ],
+      "moyenne": 2.3573489666666667,
+      "médiane": 2.4004266,
+      "p95": 2.4896891
+    },
+    {
+      "version": "candidat",
+      "mesure": "Mémoire et réparation du checkpoint",
+      "unité": "s",
+      "répétitions": 3,
+      "brut": [
+        2.4498676,
+        2.3352037,
+        2.6741229
+      ],
+      "moyenne": 2.4863980666666667,
+      "médiane": 2.4498676,
+      "p95": 2.6741229
+    },
+    {
+      "version": "base",
+      "mesure": "Recherche hybride sur vecteurs préparés",
+      "unité": "s",
+      "répétitions": 3,
+      "brut": [
+        0.0738931,
+        0.065489,
+        0.0632223
+      ],
+      "moyenne": 0.0675348,
+      "médiane": 0.065489,
+      "p95": 0.0738931
+    },
+    {
+      "version": "candidat",
+      "mesure": "Recherche hybride sur vecteurs préparés",
+      "unité": "s",
+      "répétitions": 3,
+      "brut": [
+        0.0553994,
+        0.0593695,
+        0.0850616
+      ],
+      "moyenne": 0.06661016666666666,
+      "médiane": 0.0593695,
+      "p95": 0.0850616
+    },
+    {
+      "version": "base",
+      "mesure": "RSS maximale du benchmark",
+      "unité": "MiB",
+      "répétitions": 3,
+      "brut": [
+        105.30859375,
+        105.1640625,
+        117.64453125
+      ],
+      "moyenne": 109.37239583333333,
+      "médiane": 105.30859375,
+      "p95": 117.64453125
+    },
+    {
+      "version": "candidat",
+      "mesure": "RSS maximale du benchmark",
+      "unité": "MiB",
+      "répétitions": 3,
+      "brut": [
+        105.609375,
+        102.27734375,
+        102.09765625
+      ],
+      "moyenne": 103.328125,
+      "médiane": 102.27734375,
+      "p95": 105.609375
+    },
+    {
+      "version": "base",
+      "mesure": "RSS maximale de la recette de persistance",
+      "unité": "MiB",
+      "répétitions": 3,
+      "brut": [
+        348.17578125,
+        341.875,
+        349.63671875
+      ],
+      "moyenne": 346.5625,
+      "médiane": 348.17578125,
+      "p95": 349.63671875
+    },
+    {
+      "version": "candidat",
+      "mesure": "RSS maximale de la recette de persistance",
+      "unité": "MiB",
+      "répétitions": 3,
+      "brut": [
+        338.703125,
+        338.11328125,
+        350.0234375
+      ],
+      "moyenne": 342.2799479166667,
+      "médiane": 338.703125,
+      "p95": 350.0234375
+    },
+    {
+      "version": "base",
+      "mesure": "Premier delta Ollama CPU",
+      "unité": "ms",
+      "répétitions": 3,
+      "brut": [
+        867.86,
+        543.44,
+        546.63
+      ],
+      "moyenne": 652.6433333333333,
+      "médiane": 546.63,
+      "p95": 867.86
+    },
+    {
+      "version": "candidat",
+      "mesure": "Premier delta Ollama CPU",
+      "unité": "ms",
+      "répétitions": 3,
+      "brut": [
+        592.88,
+        452.9,
+        516.76
+      ],
+      "moyenne": 520.8466666666667,
+      "médiane": 516.76,
+      "p95": 592.88
+    },
+    {
+      "version": "base",
+      "mesure": "Tour Ollama CPU avec persistance",
+      "unité": "ms",
+      "répétitions": 3,
+      "brut": [
+        3168.78,
+        1250.76,
+        1116.18
+      ],
+      "moyenne": 1845.24,
+      "médiane": 1250.76,
+      "p95": 3168.78
+    },
+    {
+      "version": "candidat",
+      "mesure": "Tour Ollama CPU avec persistance",
+      "unité": "ms",
+      "répétitions": 3,
+      "brut": [
+        1137.51,
+        897.64,
+        982.85
+      ],
+      "moyenne": 1006.0,
+      "médiane": 982.85,
+      "p95": 1137.51
+    }
+  ]
+}

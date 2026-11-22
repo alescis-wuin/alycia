@@ -54,7 +54,7 @@ public sealed class EmbeddingIndexBoundaryTests
     {
         public string[] Keys { get; private set; } = [];
 
-        public async Task<Dictionary<string, double>> SimilaritiesAsync(string identity, string[] keys, float[] query, CancellationToken ct)
+        public async Task<Dictionary<string, double>> SimilaritiesAsync(Guid owner, string identity, string[] keys, float[] query, CancellationToken ct)
         {
             Keys = keys;
             await cancel.CancelAsync();

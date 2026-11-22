@@ -12,14 +12,8 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <ProjectReference Include="../Alycia.Modules.Documents/Alycia.Modules.Documents.csproj" />
-    <Using Include="Alycia.Modules.Documents" />
     <Using Include="Alycia.Contracts.Documents" />
     <Using Include="Alycia.Contracts.Indexing" />
-    <Using Include="Alycia.Modules.Indexing" />
-    <ProjectReference Include="../Alycia.Modules.Indexing/Alycia.Modules.Indexing.csproj" />
-    <Using Include="Alycia.Modules.Retrieval" />
-    <ProjectReference Include="../Alycia.Modules.Retrieval/Alycia.Modules.Retrieval.csproj" />
     <Using Include="Alycia.Contracts.Retrieval" />
   </ItemGroup>
   <ItemGroup>
@@ -30,5 +24,8 @@
     <Using Include="Alycia.Contracts.Chat" />
     <Using Include="Alycia.Contracts.Tools" />
     <Using Include="Alycia.Contracts.Inference" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Alycia.Contracts.Context" />
   </ItemGroup>
 </Project>

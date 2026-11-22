@@ -1,3 +1,4 @@
+using Alycia.Modules.Workspaces.Domain;
 using Alycia.Modules.Chat.Domain;
 using Alycia.Modules.Chat.Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -28,7 +29,7 @@ public sealed class DocumentScopeTests
                 second.Add(newFile);
                 await second.SaveChangesAsync();
             }
-            var scope = new DocumentScope(session => new InterleavedLookup(new ConversationWorkspaceLookup(session), MoveAsync));
+            var scope = new DocumentScope(session => new InterleavedLookup(new ConversationWorkspaceLookup(session), MoveAsync), ChatFixture.Enlist);
             var firstRead = await new TurnDocuments(db, scope).FilesAsync(chat.Id, default);
             Assert.Equal(oldFile.Id, Assert.Single(firstRead).Id);
             var nextRead = await new TurnDocuments(db, ChatFixture.DocumentScope).FilesAsync(chat.Id, default);

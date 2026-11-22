@@ -1,3 +1,4 @@
+using Alycia.Modules.Testing;
 using System.Text.Json;
 using Alycia.Modules.Chat.Application;
 using Alycia.Contracts.Tools;
@@ -6,6 +7,23 @@ namespace Alycia.Modules.Chat.Tests;
 
 public sealed class TurnToolsTests
 {
+    [Fact]
+    public async Task Tool_selection_binds_snapshot_and_ordinary_access_to_the_current_owner()
+    {
+        foreach (var simulated in new[] { false, true })
+        {
+            var scope = new ToolTurnScope(Guid.NewGuid(), Guid.NewGuid(), "demo");
+            var ordinary = new Sources(false);
+            var snapshot = new Sources(true);
+            ITurnTools adapter = simulated ? new FixtureTurnTools(ordinary, snapshot) : new TurnTools(RecursiveSummarizer.Create, ordinary, snapshot);
+            Assert.Same(snapshot, await adapter.SelectAsync(scope, true, new Model(true), default));
+            Assert.False(await adapter.AvailableForContextAsync(scope, true, new Model(true), default));
+            Assert.Null(await adapter.SelectAsync(scope with { WorkspaceId = null }, true, new Model(true), default));
+            Assert.Null(await adapter.SelectAsync(scope, true, new Model(false), default));
+            Assert.All(snapshot.Probes.Concat(ordinary.Probes), owner => Assert.Equal(scope.ConversationId, owner));
+        }
+    }
+
     [Theory]
     [InlineData(false, true)]
     [InlineData(true, true)]
@@ -17,7 +35,7 @@ public sealed class TurnToolsTests
         var snapshot = hasSnapshot ? new Sources(true) : null;
         var model = new Model(true);
 
-        var selected = await new TurnTools(ordinary, snapshot).SelectAsync(scope, true, model, default);
+        var selected = await new TurnTools(RecursiveSummarizer.Create, ordinary, snapshot).SelectAsync(scope, true, model, default);
 
         var expected = attached && hasSnapshot ? snapshot! : ordinary;
         Assert.Same(expected, selected);
@@ -39,7 +57,7 @@ public sealed class TurnToolsTests
         var snapshot = new Sources(hasSources);
         var model = new Model(supported);
 
-        var selected = await new TurnTools(ordinary, snapshot).SelectAsync(scope, enabled, model, default);
+        var selected = await new TurnTools(RecursiveSummarizer.Create, ordinary, snapshot).SelectAsync(scope, enabled, model, default);
 
         Assert.Null(selected);
         Assert.Equal(expectedSourceProbes, snapshot.Probes.Count);
@@ -56,7 +74,7 @@ public sealed class TurnToolsTests
         var ordinary = new Sources(available);
         var snapshot = new Sources(!available);
 
-        var result = await new TurnTools(ordinary, snapshot).AvailableForContextAsync(scope, true, new Model(true), default);
+        var result = await new TurnTools(RecursiveSummarizer.Create, ordinary, snapshot).AvailableForContextAsync(scope, true, new Model(true), default);
 
         Assert.Equal(available, result);
         Assert.Equal([scope.ConversationId], ordinary.Probes);
@@ -72,7 +90,7 @@ public sealed class TurnToolsTests
         cancellation.Cancel();
 
         var error = await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            new TurnTools(new Sources(true)).SelectAsync(scope, true, model, cancellation.Token));
+            new TurnTools(RecursiveSummarizer.Create, new Sources(true)).SelectAsync(scope, true, model, cancellation.Token));
 
         Assert.Equal(cancellation.Token, error.CancellationToken);
         Assert.Empty(model.Probes);
@@ -94,7 +112,7 @@ public sealed class TurnToolsTests
             return Task.CompletedTask;
         }
 
-        var reply = await new TurnTools().GenerateAsync(new Model(true), active ? new Sources(true) : null,
+        var reply = await new TurnTools(RecursiveSummarizer.Create).GenerateAsync(new Model(true), active ? new Sources(true) : null,
             scope, window.ToolPrompt(), new ChatOptions().ToolGeneration(), streaming ? OnDelta : null, default);
 
         Assert.Equal(expected, reply.Content);

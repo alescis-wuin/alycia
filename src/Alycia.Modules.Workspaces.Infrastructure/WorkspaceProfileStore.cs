@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Alycia.Modules.Workspaces.Infrastructure;
 
-public sealed class WorkspaceProfileStore(RelationalSession session, IWorkspaceIdentityDirectory identities)
+public sealed class WorkspaceProfileStore(RelationalSession session, IWorkspaceIdentityDirectory identities, bool lockRows = false)
     : IWorkspaceProfiles, IProjectIndexOwners
 {
     public Task<ProjectProfile?> FindAsync(Guid id, CancellationToken ct) =>
@@ -17,10 +17,12 @@ public sealed class WorkspaceProfileStore(RelationalSession session, IWorkspaceI
         {
             await using var command = connection.CreateCommand();
             command.Transaction = transaction;
-            command.CommandText = """
+            const string select = """
                 SELECT "Instructions", "DefaultModel", "Archived", "Revision", "NotesJson"
                 FROM chat.workspace_profiles WHERE "Id" = @id
                 """;
+            if (lockRows) command.CommandText = select + " FOR SHARE";
+            else command.CommandText = select;
             RelationalSession.AddParameter(command, "id", id);
             await using var reader = await command.ExecuteReaderAsync(token);
             if (!await reader.ReadAsync(token)) return (ProjectProfile?)null;

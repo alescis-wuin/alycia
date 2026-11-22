@@ -33,7 +33,7 @@ public sealed record EmbeddingJob(EmbeddingProgress Progress, EmbeddingSettings 
 }
 
 // A separate short-lived connection avoids writing indexing state into a chat's repeatable-read snapshot.
-public sealed class PostgresEmbeddingStore(string connectionString, IMemoryVectorEligibility memory, Func<DbTransaction, IndexJobSource> sourceFor) : IEmbeddingSimilarityReader
+public sealed partial class PostgresEmbeddingStore(string connectionString, IMemoryVectorEligibility memory, Func<DbTransaction, bool, IndexJobSource> sourceFor) : IEmbeddingSimilarityReader
 {
     private async Task<NpgsqlConnection> OpenAsync(CancellationToken ct)
     {
@@ -45,12 +45,21 @@ public sealed class PostgresEmbeddingStore(string connectionString, IMemoryVecto
     public async Task QueueAsync(Guid owner, bool project, EmbeddingSettings profile, CancellationToken ct, bool retry = false)
     {
         await using var connection = await OpenAsync(ct);
+        if (profile.SourceRevision.Length == 0)
+        {
+            await using var snapshot = await connection.BeginTransactionAsync(System.Data.IsolationLevel.RepeatableRead, ct);
+            var revision = await sourceFor(snapshot, false).RevisionAsync(owner, project, ct);
+            if (revision is null) return;
+            profile = profile with { SourceRevision = revision };
+            await snapshot.CommitAsync(ct);
+        }
         await using var command = new NpgsqlCommand("""
             INSERT INTO chat.embedding_jobs(owner_id, is_project, options_json) VALUES ($1, $2, $3)
             ON CONFLICT(owner_id, is_project) DO UPDATE SET options_json = EXCLUDED.options_json,
                 revision = chat.embedding_jobs.revision + 1, retry_at = CASE WHEN $4 THEN now() ELSE chat.embedding_jobs.retry_at END,
                 state = CASE WHEN chat.embedding_jobs.state = 'paused' AND NOT $4 THEN 'paused' ELSE 'queued' END,
-                detail = '', fingerprint = '', cycle_calls = 0, updated_at = now()
+                detail = '', fingerprint = '', cycle_calls = 0, updated_at = now(),
+                vector_digest = NULL, vector_dimensions = NULL
             WHERE chat.embedding_jobs.options_json <> EXCLUDED.options_json OR $4
             """, connection);
         command.Parameters.AddWithValue(owner); command.Parameters.AddWithValue(project);
@@ -99,7 +108,7 @@ public sealed class PostgresEmbeddingStore(string connectionString, IMemoryVecto
         query.Parameters.AddWithValue(job.Revision);
         if (await query.ExecuteScalarAsync(ct) is not true) return false;
         return job.Settings.SourceRevision.Length == 0 ||
-            await sourceFor(snapshot).RevisionAsync(job.Progress.OwnerId, job.Progress.IsProject, ct) == job.Settings.SourceRevision;
+            await sourceFor(snapshot, false).RevisionAsync(job.Progress.OwnerId, job.Progress.IsProject, ct) == job.Settings.SourceRevision;
     }
 
     public async Task SetDimensionsAsync(EmbeddingJob job, string digest, int dimensions, CancellationToken ct)
@@ -157,12 +166,15 @@ public sealed class PostgresEmbeddingStore(string connectionString, IMemoryVecto
         catch { await connection.DisposeAsync(); throw; }
     }
 
-    public async Task<Dictionary<string, float[]>> ReadAsync(string identity, IReadOnlyList<string> keys, CancellationToken ct)
+    public async Task<Dictionary<string, float[]>> ReadAsync(Guid owner, bool project, string identity, IReadOnlyList<string> keys, CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
         if (keys.Count == 0) return new(StringComparer.Ordinal);
         var submitted = keys.ToArray();
         await using var connection = await OpenAsync(ct);
-        return await ReadAsync(connection, identity, submitted, ct);
+        await using var snapshot = await connection.BeginTransactionAsync(System.Data.IsolationLevel.RepeatableRead, ct);
+        var allowed = await VisibleKeysAsync(snapshot, owner, project, identity, submitted, ct);
+        return await ReadAsync(connection, identity, allowed, ct);
     }
 
     private static async Task<Dictionary<string, float[]>> ReadAsync(NpgsqlConnection connection, string identity,
@@ -179,17 +191,14 @@ public sealed class PostgresEmbeddingStore(string connectionString, IMemoryVecto
         return values;
     }
 
-    public async Task WriteAsync(string identity, SourceChunk chunk, float[] vector, Guid? conversation, int sequence, CancellationToken ct)
+    private static async Task WriteAsync(NpgsqlTransaction transaction, string identity, SourceChunk chunk, float[] coordinates,
+        Guid? conversation, int sequence, CancellationToken ct)
     {
-        if (vector.Length is < 1 or > 8192) throw new ChatModelException("Vecteur invalide.");
-        var coordinates = vector.ToArray();
-        if (coordinates.Any(v => !float.IsFinite(v))) throw new ChatModelException("Vecteur invalide.");
-        await using var connection = await OpenAsync(ct);
         await using var command = new NpgsqlCommand("""
             INSERT INTO chat.embedding_vectors(identity, key, file_id, conversation_id, sequence, start_offset, end_offset, content_hash, embedding)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-            ON CONFLICT(identity,key) DO UPDATE SET embedding = EXCLUDED.embedding
-            """, connection);
+            ON CONFLICT(identity,key) DO NOTHING
+            """, transaction.Connection, transaction);
         command.Parameters.AddWithValue(identity); command.Parameters.AddWithValue(EmbeddingChunks.Key(chunk));
         command.Parameters.Add(new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Uuid, Value = conversation is null ? chunk.FileId : DBNull.Value });
         command.Parameters.Add(new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Uuid, Value = conversation is Guid id ? id : DBNull.Value });
@@ -203,6 +212,8 @@ public sealed class PostgresEmbeddingStore(string connectionString, IMemoryVecto
     {
         var coordinates = query.ToArray();
         await using var connection = await OpenAsync(ct);
+        await using var snapshot = await connection.BeginTransactionAsync(System.Data.IsolationLevel.RepeatableRead, ct);
+        if (await sourceFor(snapshot, false).RevisionAsync(owner, false, ct) is null) return [];
         await using var ext = new NpgsqlCommand("SELECT EXISTS(SELECT 1 FROM pg_extension WHERE extname='vector')", connection);
         var pgvector = await ext.ExecuteScalarAsync(ct) is true;
         // A page contributes at most 32 finalists. Sequence descending breaks ties across pages as in PostgreSQL.
@@ -234,11 +245,56 @@ public sealed class PostgresEmbeddingStore(string connectionString, IMemoryVecto
         return best.ToDictionary(r => r.Sequence, r => r.Score);
     }
 
-    public async Task<Dictionary<string, double>> SimilaritiesAsync(string identity, string[] keys, float[] query, CancellationToken ct)
+    private async Task<string[]> VisibleKeysAsync(NpgsqlTransaction snapshot, Guid owner, bool project,
+        string identity, string[] eligible, CancellationToken ct)
+    {
+        var scope = sourceFor(snapshot, false);
+        if (await scope.RevisionAsync(owner, project, ct) is null) return [];
+        var visible = new List<string>();
+        foreach (var page in eligible.Chunk(256))
+        {
+            await using var rows = new NpgsqlCommand("""
+                SELECT key,file_id,content_hash,conversation_id,sequence FROM chat.embedding_vectors
+                WHERE identity=$1 AND key=ANY($2) AND (conversation_id=$3 OR file_id IS NOT NULL)
+                """, snapshot.Connection, snapshot);
+            rows.Parameters.AddWithValue(identity);
+            rows.Parameters.AddWithValue(page);
+            rows.Parameters.AddWithValue(owner);
+            var files = new List<(string Key, Guid Id, string Hash)>();
+            var history = new List<(string Key, int Sequence, string Hash)>();
+            await using (var reader = await rows.ExecuteReaderAsync(ct))
+            {
+                while (await reader.ReadAsync(ct))
+                {
+                    if (reader.IsDBNull(1))
+                    {
+                        if (!project && !reader.IsDBNull(3) && reader.GetGuid(3) == owner)
+                            history.Add((reader.GetString(0), reader.GetInt32(4), reader.GetString(2)));
+                    }
+                    else files.Add((reader.GetString(0), reader.GetGuid(1), reader.GetString(2)));
+                }
+            }
+            foreach (var group in history.GroupBy(h => h.Sequence))
+            {
+                var hash = await scope.HistoryHashAsync(owner, group.Key, ct);
+                visible.AddRange(group.Where(h => h.Hash == hash).Select(h => h.Key));
+            }
+            if (files.Count == 0) continue;
+            var hashes = files.Select(f => (f.Id, f.Hash)).ToHashSet();
+            var allowed = await scope.EligibleFilesAsync(owner, project, hashes, ct);
+            visible.AddRange(files.Where(f => allowed.Contains((f.Id, f.Hash))).Select(f => f.Key));
+        }
+        return visible.ToArray();
+    }
+
+    public async Task<Dictionary<string, double>> SimilaritiesAsync(Guid owner, string identity, string[] keys, float[] query, CancellationToken ct)
     {
         var eligible = keys.ToArray();
         var coordinates = query.ToArray();
         await using var connection = await OpenAsync(ct);
+        await using var snapshot = await connection.BeginTransactionAsync(System.Data.IsolationLevel.RepeatableRead, ct);
+        eligible = await VisibleKeysAsync(snapshot, owner, false, identity, eligible, ct);
+        if (eligible.Length == 0) return [];
         await using var extension = new NpgsqlCommand("SELECT EXISTS(SELECT 1 FROM pg_extension WHERE extname = 'vector')", connection);
         if (await extension.ExecuteScalarAsync(ct) is not true)
             return (await ReadAsync(connection, identity, eligible, ct)).Where(v => v.Value.Length == coordinates.Length)

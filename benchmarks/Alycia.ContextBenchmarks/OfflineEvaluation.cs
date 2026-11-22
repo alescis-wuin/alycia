@@ -1,3 +1,4 @@
+using Alycia.Modules.Inference;
 using Alycia.Contracts.Context;
 using Alycia.Contracts.Documents;
 using Alycia.Modules.Documents;
@@ -121,7 +122,7 @@ internal static class OfflineEvaluation
             var outcome = await router.PrepareAsync(conversation, 0, item.Question, options.RoutingRequest(),
                 new QueryBriefRefiner(new NoInference()), null, default);
             options = options.WithRouting(outcome.State);
-            var packed = ProjectRetrieval.Pack(options.SourceCandidates ?? [], files, suite.Budget, options.Context());
+            var packed = PassageContext.Pack(options.SourceCandidates ?? [], files, suite.Budget, options.Context());
             elapsed.Add(timer.Elapsed.TotalMilliseconds);
             var paths = packed.Sources.Select(s => s.Path).Distinct().Take(suite.K).ToArray();
             var hits = paths.Select((p, i) => item.Expected.Contains(p) ? i + 1 : 0).Where(i => i > 0).ToArray();

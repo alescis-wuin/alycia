@@ -1,4 +1,3 @@
-using Alycia.Modules.Chat.Application.Context;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -55,7 +54,7 @@ public sealed class ToolCallingTests
         var tools = new Sources();
         var original = Context();
         var events = new List<ModelDelta>();
-        var reply = await ProjectAgent.RunAsync(model, tools, Guid.NewGuid(), "demo", original.ToolPrompt(), new ChatOptions().ToolGeneration(),
+        var reply = await ProjectAgent.RunAsync(RecursiveSummarizer.Create, model, tools, Guid.NewGuid(), "demo", original.ToolPrompt(), new ChatOptions().ToolGeneration(),
             e => { events.Add(e); return Task.CompletedTask; }, default);
         Assert.Equal("Réponse sourcée", reply.Content);
         Assert.Equal(3, tools.Calls);
@@ -76,7 +75,7 @@ public sealed class ToolCallingTests
     public async Task AgentCompactsOnlyUnderPressureAndKeepsTheLastCompleteRound()
     {
         var model = new AgentModel(); var tools = new Sources(5000);
-        var result = await ProjectAgent.RunAsync(model, tools, Guid.NewGuid(), "demo", Context().ToolPrompt(), new ChatOptions().ToolGeneration(), null, default);
+        var result = await ProjectAgent.RunAsync(RecursiveSummarizer.Create, model, tools, Guid.NewGuid(), "demo", Context().ToolPrompt(), new ChatOptions().ToolGeneration(), null, default);
         Assert.Equal(3, tools.Calls); Assert.True(model.Summaries > 0);
         Assert.Contains(model.Inputs[^1], m => m.Role == "tool" && m.ToolName == "project_read");
         Assert.All(model.Inputs, input => Assert.Contains(input, m => m.Content == "QUESTION"));
@@ -87,7 +86,7 @@ public sealed class ToolCallingTests
     public async Task ReorderedIdenticalArgumentsDoNotRepeatIoAndStopTheLoop()
     {
         var model = new RepeatingModel(); var tools = new Sources(); var events = new List<ModelDelta>();
-        var error = await Assert.ThrowsAsync<ChatModelException>(() => ProjectAgent.RunAsync(model, tools, Guid.NewGuid(), "demo", Context().ToolPrompt(), new ChatOptions().ToolGeneration(),
+        var error = await Assert.ThrowsAsync<ChatModelException>(() => ProjectAgent.RunAsync(RecursiveSummarizer.Create, model, tools, Guid.NewGuid(), "demo", Context().ToolPrompt(), new ChatOptions().ToolGeneration(),
             e => { events.Add(e); return Task.CompletedTask; }, default));
         Assert.Contains("répète", error.Message); Assert.Equal(1, tools.Calls);
         Assert.Equal(2, events.Count(e => e.Tool?.RepeatSuppressed == true));
@@ -97,12 +96,12 @@ public sealed class ToolCallingTests
     public async Task ToolLimitAndCancellationStopFurtherExecution()
     {
         var limited = new Sources();
-        await Assert.ThrowsAsync<ChatModelException>(() => ProjectAgent.RunAsync(new AgentModel(), limited, Guid.NewGuid(), "demo",
+        await Assert.ThrowsAsync<ChatModelException>(() => ProjectAgent.RunAsync(RecursiveSummarizer.Create, new AgentModel(), limited, Guid.NewGuid(), "demo",
             Context().ToolPrompt(), new ChatOptions { ToolMaxCalls = 2 }.ToolGeneration(), null, default));
         Assert.Equal(2, limited.Calls);
         using var cancel = new CancellationTokenSource();
         var interrupted = new Sources();
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => ProjectAgent.RunAsync(new AgentModel(), interrupted, Guid.NewGuid(), "demo",
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => ProjectAgent.RunAsync(RecursiveSummarizer.Create, new AgentModel(), interrupted, Guid.NewGuid(), "demo",
             Context().ToolPrompt(), new ChatOptions().ToolGeneration(), e => { if (e.Tool is not null) cancel.Cancel(); return Task.CompletedTask; }, cancel.Token));
         Assert.Equal(1, interrupted.Calls);
     }
@@ -112,7 +111,7 @@ public sealed class ToolCallingTests
     {
         var settings = new ChatOptions { ToolMaxCalls = 2 };
         var sources = new Sources();
-        var error = await Assert.ThrowsAsync<ChatModelException>(() => ProjectAgent.RunAsync(
+        var error = await Assert.ThrowsAsync<ChatModelException>(() => ProjectAgent.RunAsync(RecursiveSummarizer.Create,
             new AgentModel(), sources, Guid.NewGuid(), "demo", Context().ToolPrompt(), settings.ToolGeneration(),
             delta =>
             {

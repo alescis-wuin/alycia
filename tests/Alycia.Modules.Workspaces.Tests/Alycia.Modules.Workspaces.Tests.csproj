@@ -15,6 +15,7 @@
     <Using Include="Xunit" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="../../src/Alycia.Modules.Workspaces.Infrastructure/Alycia.Modules.Workspaces.Infrastructure.csproj" />
     <ProjectReference Include="../../src/Alycia.Modules.Workspaces.Application/Alycia.Modules.Workspaces.Application.csproj" />
   </ItemGroup>
 </Project>

@@ -15,13 +15,17 @@ spec.loader.exec_module(guard)
 
 
 CONTRACT_SUITES = {
+    "Alycia.Modules.Conversations.Tests": {"Alycia.Modules.Chat.Domain", "Alycia.Modules.Chat.Application",
+        "Alycia.Modules.Chat.Infrastructure", "Alycia.Contracts", "Alycia.Platform.Persistence", "Alycia.Modules.Testing"},
+    "Alycia.Modules.Configuration.Tests": {"Alycia.Contracts", "Alycia.Modules.Configuration"},
     "Alycia.Modules.Inference.Tests": {"Alycia.Contracts", "Alycia.Modules.Inference", "Alycia.Modules.Testing"},
-    "Alycia.Modules.Workspaces.Tests": {"Alycia.Modules.Workspaces.Domain", "Alycia.Modules.Workspaces.Application"},
-    "Alycia.Modules.Context.Tests": {"Alycia.Contracts", "Alycia.Modules.Context"},
+    "Alycia.Modules.Workspaces.Tests": {"Alycia.Modules.Workspaces.Domain", "Alycia.Modules.Workspaces.Application",
+        "Alycia.Modules.Workspaces.Infrastructure", "Alycia.Contracts", "Alycia.Platform.Persistence"},
+    "Alycia.Modules.Context.Tests": {"Alycia.Contracts", "Alycia.Modules.Context", "Alycia.Modules.Testing"},
     "Alycia.Modules.Tools.Tests": {"Alycia.Contracts", "Alycia.Modules.Tools", "Alycia.Modules.Testing"},
-    "Alycia.Modules.Documents.Tests": {"Alycia.Contracts", "Alycia.Modules.Documents"},
+    "Alycia.Modules.Documents.Tests": {"Alycia.Contracts", "Alycia.Modules.Documents", "Alycia.Platform.Persistence", "Alycia.Modules.Documents.Infrastructure"},
     "Alycia.Modules.Indexing.Tests": {"Alycia.Contracts", "Alycia.Modules.Indexing", "Alycia.Modules.Testing"},
-    "Alycia.Modules.Retrieval.Tests": {"Alycia.Contracts", "Alycia.Modules.Retrieval", "Alycia.Modules.Testing"},
+    "Alycia.Modules.Retrieval.Tests": {"Alycia.Contracts", "Alycia.Modules.Retrieval", "Alycia.Modules.Retrieval.Onnx", "Alycia.Modules.Testing"},
     "Alycia.Modules.Memory.Tests": {"Alycia.Contracts", "Alycia.Modules.Memory", "Alycia.Modules.Testing"},
 }
 
@@ -50,7 +54,7 @@ def build(name, independent_inputs=None):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("modules", nargs="*", metavar="MODULE")
-    parser.add_argument("--require-complete", action="store_true", help="also require isolation of every remaining Chat assembly")
+    parser.add_argument("--require-complete", action="store_true", help="require autonomous builds and an owner suite for every product module")
     args = parser.parse_args()
     selected = args.modules
     for item in selected or sorted(guard.ISOLATED.keys() | CONTRACT_SUITES.keys()):
@@ -59,19 +63,9 @@ if __name__ == "__main__":
         build(item)
     if args.require_complete:
         projects = {p.stem for p in (ROOT / "src").glob("Alycia.Modules.*/*.csproj")}
-        unresolved = []
-        for item in sorted(projects - guard.ISOLATED.keys()):
-            owner = ".".join(item.split(".")[:3])
-            own_projects = {p for p in projects if p == owner or p.startswith(owner + ".")}
-            try:
-                build(item, own_projects | {"Alycia.Contracts", "Alycia.Platform.Persistence"})
-            except subprocess.CalledProcessError:
-                print(f"ÉCHEC compilation autonome {item}", flush=True)
-                unresolved.append(item)
-                continue
-            # Isolated compilation alone does not establish behavioral autonomy.
-            if owner + ".Tests" not in CONTRACT_SUITES:
-                print(f"Suite de comportement autonome absente pour {item}", flush=True)
-                unresolved.append(item)
-        if unresolved:
-            raise SystemExit("Modules sans isolation démontrée: " + ", ".join(unresolved))
+        if selected:
+            parser.error("--require-complete requires all modules and suites")
+        uncovered = projects - set().union(*CONTRACT_SUITES.values())
+        missing = projects - guard.ISOLATED.keys()
+        if missing or uncovered:
+            raise SystemExit("Modules sans compilation ou suite autonome: " + ", ".join(sorted(missing | uncovered)))

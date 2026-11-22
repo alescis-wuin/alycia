@@ -6,6 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../src/Alycia.Modules.Retrieval.Onnx/Alycia.Modules.Retrieval.Onnx.csproj" />
     <ProjectReference Include="../../src/Alycia.Modules.Retrieval/Alycia.Modules.Retrieval.csproj" />
     <ProjectReference Include="../../src/Alycia.Modules.Testing/Alycia.Modules.Testing.csproj" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />

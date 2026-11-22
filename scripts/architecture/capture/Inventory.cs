@@ -69,7 +69,7 @@ public sealed class Inventory : DiagnosticAnalyzer
                 if (node is UsingDirectiveSyntax { Name: { } imported })
                     Row("N", path, Line(node), imported.ToString().Replace("global::", ""));
                 if (node is SimpleNameSyntax endpointName && path.StartsWith("src/Alycia.Api/", StringComparison.Ordinal)
-                    && !path.EndsWith("/ChatRegistration.cs", StringComparison.Ordinal) && !path.EndsWith("/Program.cs", StringComparison.Ordinal))
+                    && path is not ("src/Alycia.Api/Chat/ChatRegistration.cs" or "src/Alycia.Api/Workspaces/WorkspaceRegistration.cs" or "src/Alycia.Api/Program.cs"))
                 {
                     var token = endpointName.Identifier.ValueText;
                     if (token is "ChatDbContext" or "WorkspacesDbContext" or "DbContext" or "DbSet" or "DatabaseFacade" or "AddDbContext"
@@ -84,9 +84,7 @@ public sealed class Inventory : DiagnosticAnalyzer
                 {
                     if (model.GetConstantValue(assignment.Right, analysis.CancellationToken).Value is string command)
                     {
-                        foreach (System.Text.RegularExpressions.Match match in System.Text.RegularExpressions.Regex.Matches(command,
-                            @"(?i)\b(chat|workspaces)\.([a-z_][a-z0-9_]*)"))
-                            Row("S", path, Line(node), match.Value.ToLowerInvariant());
+                        foreach (var relation in Relations(command)) Row("S", path, Line(node), relation);
                     }
                     else Row("Y", path, Line(node), "CommandText resolved at runtime");
                 }
@@ -94,6 +92,20 @@ public sealed class Inventory : DiagnosticAnalyzer
                 {
                     var operation = model.GetSymbolInfo(node, analysis.CancellationToken).Symbol as IMethodSymbol;
                     var name = operation?.Name;
+                    if (operation?.ContainingType.ToDisplayString() == "Microsoft.EntityFrameworkCore.DbContext"
+                        && name is ("Set" or "Find" or "FindAsync" or "Add" or "AddAsync" or "Attach" or "Update" or "Remove" or "Entry"))
+                    {
+                        if (operation.TypeArguments.Length == 1)
+                        {
+                            var entity = operation.TypeArguments[0].ToDisplayString();
+                            var mapping = name == "Set" && node.Parent is ArrowExpressionClauseSyntax getter &&
+                                getter.Parent is PropertyDeclarationSyntax declaration &&
+                                model.GetDeclaredSymbol(declaration) is IPropertySymbol { Type: INamedTypeSymbol { Name: "DbSet" } dbSet } &&
+                                SymbolEqualityComparer.Default.Equals(dbSet.TypeArguments[0], operation.TypeArguments[0]);
+                            Row(mapping ? "H" : "E", path, Line(node), "DbContext", entity, entity);
+                        }
+                        else Row("Y", path, Line(node), "non-generic EF access: " + name);
+                    }
                     if (name is not null && (name.StartsWith("ExecuteSql", StringComparison.Ordinal) ||
                         name.StartsWith("FromSql", StringComparison.Ordinal) || name.StartsWith("SqlQuery", StringComparison.Ordinal) ||
                         operation!.MethodKind == MethodKind.Constructor && operation.ContainingType.Name == "NpgsqlCommand"))
@@ -111,9 +123,7 @@ public sealed class Inventory : DiagnosticAnalyzer
                                     Row("Y", path, Line(node), "NpgsqlCommand with interpolated SQL");
                             }
                             if (sql is null) Row("Y", path, Line(node), "SQL resolved at runtime: " + name);
-                            else foreach (System.Text.RegularExpressions.Match match in System.Text.RegularExpressions.Regex.Matches(sql,
-                                @"(?i)\b(chat|workspaces)\.([a-z_][a-z0-9_]*)"))
-                                Row("S", path, Line(node), match.Value.ToLowerInvariant());
+                            else foreach (var relation in Relations(sql)) Row("S", path, Line(node), relation);
                         }
                     }
                 }
@@ -154,6 +164,11 @@ public sealed class Inventory : DiagnosticAnalyzer
                         else
                             Row("Y", path, Line(node), methodSymbol.ToDisplayString());
                     }
+                    if ((methodSymbol.Name is "GetService" or "GetRequiredService" or "GetKeyedService" or "GetRequiredKeyedService" or "GetServices"
+                        && (methodSymbol.ContainingType.ToDisplayString() == "System.IServiceProvider"
+                            || methodSymbol.ContainingNamespace.ToDisplayString().StartsWith("Microsoft.Extensions.DependencyInjection", StringComparison.Ordinal)))
+                        || methodSymbol.ContainingType.ToDisplayString() == "Microsoft.Extensions.DependencyInjection.ActivatorUtilities")
+                        Row("L", path, Line(node), methodSymbol.Name, methodSymbol.ContainingType.ToDisplayString());
                     if (methodSymbol.Name is "AddScoped" or "AddTransient" or "AddSingleton" or "AddHostedService" or "AddHttpClient" or "AddDbContext"
                         && methodSymbol.ContainingNamespace.ToDisplayString().StartsWith("Microsoft.Extensions.DependencyInjection", StringComparison.Ordinal))
                         Row("L", path, Line(node), methodSymbol.Name, string.Join(", ", methodSymbol.TypeArguments.Select(a => a.ToDisplayString())));
@@ -191,6 +206,20 @@ public sealed class Inventory : DiagnosticAnalyzer
                 parameter.Type.ContainingAssembly.Name == "Markdig" && parameter.Type.ToDisplayString() == "Markdig.Syntax.Block",
             _ => false
         };
+    }
+
+    private static IEnumerable<string> Relations(string sql)
+    {
+        const string qualified = """(?i)(?<![a-z0-9_])"?(chat|workspaces)"?\s*\.\s*"?([a-z_][a-z0-9_]*)"?""";
+        foreach (System.Text.RegularExpressions.Match match in System.Text.RegularExpressions.Regex.Matches(sql, qualified))
+            yield return (match.Groups[1].Value + "." + match.Groups[2].Value).ToLowerInvariant();
+        // A change of search_path must not bypass ownership by dropping the schema.
+        const string unqualified = """(?i)\b(?:FROM|JOIN|UPDATE|INTO|TABLE)\s+"?(attachments|workspace_profiles|workspace_file_overrides|document_analyses|conversations|messages|embedding_jobs|embedding_vectors|knowledge_units|temporal_memory|prompt_profiles|import_settings|workspaces)"?(?![\w".])""";
+        foreach (System.Text.RegularExpressions.Match match in System.Text.RegularExpressions.Regex.Matches(sql, unqualified))
+        {
+            var table = match.Groups[1].Value.ToLowerInvariant();
+            yield return (table == "workspaces" ? "workspaces." : "chat.") + table;
+        }
     }
 
     private static string Line(SyntaxNode node) => (node.GetLocation().GetLineSpan().StartLinePosition.Line + 1).ToString();

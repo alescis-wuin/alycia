@@ -8,7 +8,7 @@ public sealed class CitationAuditTests
     [Fact]
     public void RecognizesOnlySuppliedPassagesAndDoesNotTreatReferencesAsTruth()
     {
-        var id = Guid.NewGuid(); var reference = ProjectRetrieval.Reference(id, "hash", 20, 40);
+        var id = Guid.NewGuid(); var reference = SourceCoordinates.Reference(id, "hash", 20, 40);
         var source = new SourceExcerpt(id, "src/A.cs", 20, true, "code", reference, 2, 3, "hash", 20, 40);
         var report = CitationAudit.Check($"Affirmation fausse [{reference}] puis [{reference.ToLowerInvariant()}] [S000000000000].", [source], []);
         Assert.Equal("unknown_references", report.Status);

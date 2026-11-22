@@ -3,7 +3,7 @@ using Alycia.Platform.Persistence;
 
 namespace Alycia.Modules.Chat.Infrastructure;
 
-public sealed class ConversationIndexOwners(RelationalSession session) : IConversationIndexOwners
+public sealed class ConversationIndexOwners(RelationalSession session, bool lockRows = false) : IConversationIndexOwners
 {
     private static ConversationIndexOwner Read(DbDataReader rows)
     {
@@ -27,7 +27,9 @@ public sealed class ConversationIndexOwners(RelationalSession session) : IConver
         {
             await using var query = db.CreateCommand();
             query.Transaction = tx;
-            query.CommandText = """SELECT "Id", "WorkspaceId", "Revision", "SettingsJson", "MessageCount" FROM chat.conversations WHERE "Id"=@id""";
+            const string select = """SELECT "Id", "WorkspaceId", "Revision", "SettingsJson", "MessageCount" FROM chat.conversations WHERE "Id"=@id""";
+            if (lockRows) query.CommandText = select + " FOR SHARE";
+            else query.CommandText = select;
             RelationalSession.AddParameter(query, "id", id);
             await using var rows = await query.ExecuteReaderAsync(token);
             return await rows.ReadAsync(token) ? Read(rows) : null;
@@ -60,10 +62,12 @@ public sealed class ConversationIndexOwners(RelationalSession session) : IConver
         {
             await using var query = db.CreateCommand();
             query.Transaction = tx;
-            query.CommandText = """
+            const string select = """
                 SELECT "RequestId", "Sequence", "Role", "Content", "CreatedAtUtc" FROM chat.messages
                 WHERE "ConversationId"=@owner AND "Sequence">@after AND "Sequence"<=@through ORDER BY "Sequence" LIMIT @count
                 """;
+            if (lockRows) query.CommandText = select + " FOR SHARE";
+            else query.CommandText = select;
             RelationalSession.AddParameter(query, "owner", owner);
             RelationalSession.AddParameter(query, "after", after);
             RelationalSession.AddParameter(query, "through", through);

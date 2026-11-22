@@ -35,7 +35,7 @@ public static class ConversationTransfer
         var conversation = Conversation.Create(archive.Title, archive.Model, archive.SystemPrompt);
         conversation.Configure(archive.Model, archive.SystemPrompt, archive.ContextNotes,
             ConversationConfiguration.Serialize(archive.Options));
-        SlidingContext.ValidatePrompt(ConversationConfiguration.System(conversation), "Bonjour", archive.Options.Context());
+        archive.Options.Context().ValidatePrompt(ConversationConfiguration.System(conversation), "Bonjour");
         for (var i = 0; i < archive.Messages.Length; i++)
         {
             var message = archive.Messages[i];

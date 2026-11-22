@@ -5,10 +5,16 @@ public sealed class MeteredChatModel(IChatModel inner) : IModelMeter
 {
     private readonly System.Collections.Concurrent.ConcurrentQueue<ModelCallUsage> _calls = new();
     public void AddCalls(IEnumerable<ModelCallUsage> calls) { foreach (var call in calls) _calls.Enqueue(call); }
-    public GenerationUsage Snapshot(string? identity, ITextTokenCounter? counter) => new(_calls.ToArray(), identity, PromptTokens.Description(counter),
-        _calls.All(c => c.Stats?.PromptTokens is not null) ? _calls.Sum(c => (long)c.Stats!.PromptTokens!.Value) : null,
-        _calls.All(c => c.Stats?.OutputTokens is not null) ? _calls.Sum(c => (long)c.Stats!.OutputTokens!.Value) : null,
-        _calls.Sum(c => c.ElapsedMilliseconds), _calls.All(c => c.Stats?.PromptTokens is not null && c.Stats.OutputTokens is not null));
+    public GenerationUsage Snapshot(string? identity, ITextTokenCounter? counter)
+    {
+        var calls = System.Collections.Immutable.ImmutableArray.CreateRange(_calls.ToArray());
+        var hasInput = calls.All(c => c.Stats?.PromptTokens is not null);
+        var hasOutput = calls.All(c => c.Stats?.OutputTokens is not null);
+        return new(calls, identity, PromptTokens.Description(counter),
+            hasInput ? calls.Sum(c => (long)c.Stats!.PromptTokens!.Value) : null,
+            hasOutput ? calls.Sum(c => (long)c.Stats!.OutputTokens!.Value) : null,
+            calls.Sum(c => c.ElapsedMilliseconds), hasInput && hasOutput);
+    }
     public Task<ModelTokenization> InspectAsync(string model, string tokenCounting, CancellationToken ct) => inner.InspectAsync(model, tokenCounting, ct);
     public Task<bool> SupportsToolsAsync(string model, CancellationToken ct) => inner.SupportsToolsAsync(model, ct);
     public Task<IReadOnlyList<string>> ListModelsAsync(CancellationToken ct) => inner.ListModelsAsync(ct);

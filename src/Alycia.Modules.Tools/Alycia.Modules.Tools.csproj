@@ -7,4 +7,12 @@
   <ItemGroup>
     <ProjectReference Include="../Alycia.Contracts/Alycia.Contracts.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Using Include="Alycia.Contracts.Chat" />
+    <Using Include="Alycia.Contracts.Context" />
+    <Using Include="Alycia.Contracts.Indexing" />
+    <Using Include="Alycia.Contracts.Inference" />
+    <Using Include="Alycia.Contracts.Retrieval" />
+    <Using Include="Alycia.Contracts.Tools" />
+  </ItemGroup>
 </Project>

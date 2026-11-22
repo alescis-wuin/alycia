@@ -19,7 +19,7 @@ public sealed class ConversationSettingsService(IChatRepository repository, ICha
         if (modelName != conversation.Model && !(await model.ListModelsAsync(ct)).Contains(modelName))
             throw new ArgumentException("Choisissez un modèle local capable de générer du texte.");
         conversation.Configure(modelName, systemPrompt, contextNotes, ConversationConfiguration.Serialize(captured));
-        SlidingContext.ValidatePrompt(ConversationConfiguration.System(conversation), "Bonjour", captured.Context());
+        captured.Context().ValidatePrompt(ConversationConfiguration.System(conversation), "Bonjour");
         await repository.SaveAsync(ct);
         return ConversationProjection.Summary(conversation);
     }

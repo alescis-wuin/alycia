@@ -7,13 +7,14 @@ using Alycia.Platform.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Alycia.Modules.Chat.Application;
-using Alycia.Modules.Chat.Application.Context;
 
 namespace Alycia.Modules.Chat.Tests;
 
 internal static class ChatFixture
 {
-    internal static DocumentScope DocumentScope { get; } = new(session => new ConversationWorkspaceLookup(session));
+    internal static DocumentScope DocumentScope { get; } = new(session => new ConversationWorkspaceLookup(session), Enlist);
+    internal static DbContext Enlist(System.Data.Common.DbConnection connection) =>
+        new ChatDbContext(new DbContextOptionsBuilder<ChatDbContext>().UseNpgsql(connection).Options);
     internal static GenerationGate Gate { get; } = new();
     internal static IForegroundActivity Foreground { get; } = new ForegroundActivity();
     internal static InferenceScheduler Scheduler { get; } = new();
@@ -29,29 +30,40 @@ internal static class ChatFixture
         return new(session, new WorkspaceIdentityDirectory(session));
     }
 
-    public static LiveIndexFileAccess LiveFiles(ChatDbContext database) => new((DbContextOptions<ChatDbContext>)database.GetService<IDbContextOptions>(),
+    public static LiveIndexFileAccess LiveFiles(ChatDbContext database) => new(() => new ChatDbContext((DbContextOptions<ChatDbContext>)database.GetService<IDbContextOptions>()),
             session => new WorkspaceProfileStore(session, new WorkspaceIdentityDirectory(session)), DocumentScope);
 
     public static IndexSourceDocumentsAdapter IndexFiles(ChatDbContext database, ProjectSourceReader reader) => new(database,
-        (DbContextOptions<ChatDbContext>)database.GetService<IDbContextOptions>(), reader, LiveFiles(database), DocumentScope);
+        () => new ChatDbContext((DbContextOptions<ChatDbContext>)database.GetService<IDbContextOptions>()), reader, LiveFiles(database), DocumentScope);
 
     public static KnowledgeStore Knowledge(ChatDbContext database, ProjectSourceReader reader) =>
-        new(database, LiveFiles(database), IndexFiles(database, reader));
+        new(new PassageScoring(), database.Database, LiveFiles(database), IndexFiles(database, reader));
 
-    public static PostgresEmbeddingStore Embeddings(ChatDbContext database)
+    public static PostgresEmbeddingStore Embeddings(ChatDbContext database, string? overrideConnection = null)
     {
-        var connection = database.Database.GetConnectionString()!;
-        return new(connection, new Alycia.Modules.Memory.MemoryVectorEligibility(connection), transaction =>
+        var connection = overrideConnection ?? database.Database.GetConnectionString()!;
+        return new(connection, new Alycia.Modules.Memory.MemoryVectorEligibility(connection), (transaction, publishing) =>
         {
             var session = new RelationalSession(transaction);
-            return new(new ConversationIndexOwners(session), new WorkspaceProfileStore(session, new WorkspaceIdentityDirectory(session)));
+            return new(new ConversationIndexOwners(session, publishing), new WorkspaceProfileStore(session, new WorkspaceIdentityDirectory(session), publishing),
+                (owner, project, hashes, ct) => DocumentScope.EligibleHashesAsync(transaction, owner, project, hashes, publishing, ct));
         });
     }
 
     public static ChatGenerationAdapter Ollama(HttpClient http, ChatOptions options) =>
         new(new OllamaTextGeneration(http, Scheduler, Tokenizers), options.InferenceCall());
 
-    public static ChatService Create(IChatRepository repository, IChatModel model, ChatOptions options) =>
-        new(repository, model, options, new TurnContext(repository, new Alycia.Modules.Context.SlidingHistory()), new ConversationMemory(repository, ChatFixture.Gate),
-            new TurnTools(), new TurnRouting(new QueryPlanner(repository)), new TurnResponseAudit(), Gate, Foreground, new ModelMeterFactory());
+    public static ChatService Create<T>(T repository, IChatModel model, ChatOptions options)
+        where T : IChatRepository, IConversationContextReader, IQuerySources => Create(repository, repository, repository, model, options);
+
+    public static ChatService Create(DbContext database, IChatModel model, ChatOptions options)
+    {
+        var chat = (ChatDbContext)database;
+        var reads = new ConversationReadModel(database, new TurnDocuments(database, DocumentScope));
+        return Create(new EfChatRepository(database, Profiles(chat)), reads, reads, model, options);
+    }
+
+    private static ChatService Create(IChatRepository repository, IConversationContextReader history, IQuerySources sources, IChatModel model, ChatOptions options) =>
+        new(repository, model, options, new TurnContext(new ContextMemory(), history, new Alycia.Modules.Context.SlidingHistory()), new ConversationMemory(repository, ChatFixture.Gate),
+            new TurnTools(RecursiveSummarizer.Create), new TurnRouting(new QueryPlanner(sources)), new TurnResponseAudit(), Gate, Foreground, new ModelMeterFactory(), model => new QueryBriefRefiner(model));
 }

@@ -1,3 +1,4 @@
+using Alycia.Modules.Testing;
 using Alycia.Contracts.Retrieval;
 using Alycia.Modules.Inference;
 using Alycia.Modules.Retrieval;
@@ -56,7 +57,7 @@ public sealed class KnowledgePipelineTests
             var jobs = ChatFixture.Embeddings(db);
             var model = new AnnotationModel();
             var worker = new BackgroundEmbeddingIndex(ChatFixture.IndexFiles(db, reader), ChatFixture.LiveFiles(db), jobs, new NoVectors(), IndexParameters.Default, new ConversationIndexOwners(new(db.Database)), ChatFixture.Profiles(db), ChatFixture.Profiles(db), ChatFixture.Foreground, new(notes, model, ChatFixture.Foreground));
-            var index = new ProjectIndexService(new ConversationIndexOwners(new(db.Database)), storage, ChatFixture.IndexFiles(db, reader), ChatFixture.LiveFiles(db), IndexParameters.Capture(options), notes);
+            var index = new ProjectIndexService(new ConversationIndexOwners(new(db.Database)), new PassageCacheDirectory(storage.Root), ChatFixture.IndexFiles(db, reader), ChatFixture.LiveFiles(db), IndexParameters.Capture(options), notes);
             await worker.DiscoverAsync(default);
             async Task<EmbeddingJob> Job() => Assert.Single(await jobs.JobsAsync(default));
             async Task<EmbeddingJob> Complete()
@@ -93,7 +94,7 @@ public sealed class KnowledgePipelineTests
             Assert.DoesNotContain(model.Prompts, t => t.Contains("NE_PAS_TRANSMETTRE"));
             var after = await index.BuildAsync(owner.Id, default);
             Assert.Equal(before.Chunks.Select(c => c.Text), after.Chunks.Select(c => c.Text));
-            Assert.All(after.Chunks, c => Assert.Equal(ProjectRetrieval.Reference(c), c.Guide!.Reference));
+            Assert.All(after.Chunks, c => Assert.Equal(SourceCoordinates.Reference(c), c.Guide!.Reference));
             Assert.Empty((await index.BuildAsync(other.Id, default)).Chunks);
             var root = await notes.DocumentAsync(alpha.Id, alpha.Sha256, options.Enrichment.Profile, default);
             Assert.NotNull(root);
@@ -113,6 +114,17 @@ public sealed class KnowledgePipelineTests
             var hits = await notes.HistoryAsync(owner.Id, "quasar", options.Enrichment.Profile, 1, DateTimeOffset.UtcNow.AddMinutes(1), default);
             Assert.Single(hits); Assert.Contains(1, hits.Keys);
             Assert.Empty(await notes.HistoryAsync(other.Id, "quasar", options.Enrichment.Profile, 5, DateTimeOffset.UtcNow.AddMinutes(1), default));
+            var timeLimit = DateTimeOffset.UtcNow.AddMinutes(1);
+            var historyFixture = new FixtureHistoryKnowledge([new(owner.Id, options.Enrichment.Profile, 1, DateTimeOffset.UtcNow, "quasar")]);
+            foreach (var knowledge in new IHistoryKnowledge[] { notes, historyFixture })
+            {
+                Assert.Contains(1, (await knowledge.HistoryAsync(owner.Id, "quasar", options.Enrichment.Profile, 1, timeLimit, default)).Keys);
+                Assert.Empty(await knowledge.HistoryAsync(other.Id, "quasar", options.Enrichment.Profile, 1, timeLimit, default));
+                Assert.Empty(await knowledge.HistoryAsync(owner.Id, "quasar", "other-profile", 1, timeLimit, default));
+                Assert.Empty(await knowledge.HistoryAsync(owner.Id, "quasar", options.Enrichment.Profile, 0, timeLimit, default));
+                Assert.Empty(await knowledge.HistoryAsync(owner.Id, "quasar", options.Enrichment.Profile, 1, DateTimeOffset.UnixEpoch, default));
+                await Assert.ThrowsAnyAsync<OperationCanceledException>(() => knowledge.HistoryAsync(owner.Id, "", options.Enrichment.Profile, 1, timeLimit, new(true)));
+            }
             var initialCalls = model.Prompts.Count;
             await jobs.QueueAsync(owner.Id, false, IndexParameters.Capture(options), default, retry: true);
             await Complete(); Assert.Equal(initialCalls, model.Prompts.Count);
@@ -249,7 +261,7 @@ public sealed class KnowledgePipelineTests
             QuerySummaryMaxCalls = 1,
             SourceCandidates = [chunk]
         };
-        var excerpt = new SourceExcerpt(file, chunk.Path, 8, true, "budget", ProjectRetrieval.Reference(file, chunk.Sha256, 0, 8),
+        var excerpt = new SourceExcerpt(file, chunk.Path, 8, true, "budget", SourceCoordinates.Reference(file, chunk.Sha256, 0, 8),
             1, 1, chunk.Sha256, 0, 8, Content: text[..8]);
         var window = new ContextWindow([new("user", text[..8])], 0, 24, 1, Sources: [excerpt]);
         var model = new SummaryModel();
@@ -260,7 +272,7 @@ public sealed class KnowledgePipelineTests
         var withGuide = await ContextGuides.AddAsync(window, settings.Context(), meter, true, default);
         var guide = Assert.Single(withGuide.Guides!);
         Assert.Equal("on_demand", guide.State);
-        Assert.Equal(ProjectRetrieval.Reference(chunk), guide.OriginalReference);
+        Assert.Equal(SourceCoordinates.Reference(chunk), guide.OriginalReference);
         Assert.Equal(text, string.Concat(model.Inputs.SkipLast(1)));
         Assert.InRange(model.Inputs.Count, 3, 8);
         Assert.InRange(guide.Tokens, 1, 512);

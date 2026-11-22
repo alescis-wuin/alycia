@@ -1,6 +1,6 @@
 """Logical owners of Chat code. New files in a feature directory inherit its owner."""
 
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 
 CHAT_PROJECTS = {"Alycia.Modules.Chat.Application", "Alycia.Modules.Chat.Infrastructure"}
 
@@ -55,35 +55,6 @@ def module_owner(path, symbol):
     return None
 
 
-# Direct logical dependencies (including typed ports and records). A target's domain
-# is not permission to use its Infrastructure classes; those are restricted below.
-ALLOWED = {
-    "Configuration": {"Context", "Conversations", "Inference", "Memory", "Persistence", "Tools"},
-    "Context": {"Configuration", "Conversations", "Indexing", "Inference", "Memory", "Retrieval"},
-    "Conversations": {"Configuration", "Context", "Inference", "Memory", "Persistence", "Retrieval", "Tools"},
-    "Documents": {"Configuration", "Context", "Conversations", "Indexing", "Inference", "Memory", "Persistence", "Projects"},
-    "Indexing": {"Configuration", "Context", "Conversations", "Inference", "Memory", "Persistence", "Retrieval"},
-    "Inference": {"Configuration", "Context"},
-    "Memory": {"Configuration", "Context", "Conversations", "Indexing", "Retrieval"},
-    "Persistence": set(),
-    "Projects": set(),
-    "Retrieval": {"Configuration", "Context", "Conversations", "Indexing", "Inference", "Memory"},
-    "Tools": {"Configuration", "Context", "Conversations", "Indexing", "Inference", "Memory", "Retrieval"},
-}
-
-# These consumers intentionally see a specific port or value and no implementation.
-NARROW_EDGES = {
-    ("Configuration", "Inference"): {"IChatModel", "ITextTokenCounter"},
-    ("Context", "Conversations"): {"IConversationContextReader", "IConversationMessagesReader"},
-    ("Context", "Tools"): {"ITurnTools"},
-    ("Conversations", "Tools"): {"IProjectTools", "ITurnTools"},
-    ("Indexing", "Inference"): {"IChatModel"},
-    ("Memory", "Conversations"): {"IConversationContextReader", "IConversationMessagesReader"},
-    ("Retrieval", "Conversations"): {"IChatRepository", "IConversationContextReader", "IConversationMessagesReader"},
-    ("Retrieval", "Indexing"): {"IIndexedEmbeddings"},
-    ("Tools", "Indexing"): {"IIndexedEmbeddings"},
-}
-
 # These consumers use request snapshots. Stored settings and tracked chat rows belong at the owning adapter.
 SNAPSHOT_CONSUMERS = {"Context", "Documents", "Indexing", "Inference", "Memory", "Retrieval", "Tools"}
 OWNER_INPUT_TYPES = {
@@ -95,32 +66,14 @@ OWNER_INPUT_TYPES = {
     "T:Alycia.Modules.Chat.Domain.WorkspaceProfile",
 }
 
-# Contract namespaces accepted by already isolated assemblies. Chat DTOs retain their
-# historical namespace for transport compatibility; no module implementation is a contract.
-CONTRACT_AREAS = {
-    "Alycia.Modules.Documents": {"Chat", "Documents", "Indexing"},
-    "Alycia.Modules.Indexing": {"Chat", "Indexing", "Inference", "Workspaces"},
-    "Alycia.Modules.Tools": {"Chat", "Documents", "Indexing", "Tools"},
-    "Alycia.Modules.Context": {"Context"},
-    "Alycia.Modules.Memory": {"Indexing", "Chat", "Memory"},
-    "Alycia.Modules.Inference": {"Chat", "Inference"},
-    "Alycia.Modules.Retrieval": {"Indexing", "Retrieval", "Chat", "Documents"},
-    "Alycia.Modules.Retrieval.Onnx": {"Indexing", "Retrieval"},
-    "Alycia.Modules.Testing": {"Chat", "Indexing", "Inference", "Documents", "Workspaces", "Retrieval"},
-    "Alycia.Modules.Workspaces.Infrastructure": {"Workspaces", "Chat", "Indexing"},
-}
 
-# Explicit contract namespaces used by each owner sharing the historical Chat assemblies.
-LOGICAL_CONTRACT_AREAS = {
-    "Configuration": {"Chat", "Context", "Documents", "Indexing", "Inference", "Memory", "Retrieval", "Tools"},
-    "Context": {"Chat", "Context", "Documents", "Indexing", "Inference", "Memory", "Retrieval", "Tools"},
-    "Conversations": {"Chat", "Context", "Documents", "Indexing", "Inference", "Memory", "Retrieval", "Tools", "Workspaces"},
-    "Documents": {"Chat", "Context", "Documents", "Indexing", "Inference", "Workspaces"},
-    "Indexing": {"Chat", "Context", "Documents", "Indexing", "Inference", "Memory", "Retrieval", "Workspaces"},
-    "Inference": {"Chat", "Inference", "Retrieval"},
-    "Memory": {"Chat", "Context", "Documents", "Indexing", "Inference", "Memory"},
-    "Persistence": {"Chat"},
-    "Projects": set(),
-    "Retrieval": {"Chat", "Context", "Documents", "Indexing", "Retrieval"},
-    "Tools": {"Chat", "Context", "Documents", "Indexing", "Inference", "Retrieval", "Tools"},
-}
+# Compiler IDs are individual permissions. New public classes and records never
+# become available implicitly by using the same namespace as an existing port.
+def contract_permissions():
+    from collections import defaultdict
+    result = defaultdict(set)
+    source = Path(__file__).with_name("contract-types.tsv")
+    for row in source.read_text().splitlines()[1:]:
+        project, type_id = row.split("\t")
+        result[project].add(type_id)
+    return result

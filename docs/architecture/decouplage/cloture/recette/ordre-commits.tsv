@@ -1,0 +1,276 @@
+ordre	horodatage serveur	pid	commande PostgreSQL
+1	2026-11-22 20:22:20.100 CET [90]	90	COMMIT
+2	2026-11-22 20:22:20.155 CET [90]	90	COMMIT
+3	2026-11-22 20:22:20.391 CET [94]	94	COMMIT
+4	2026-11-22 20:22:20.411 CET [94]	94	COMMIT
+5	2026-11-22 20:22:20.436 CET [94]	94	COMMIT
+6	2026-11-22 20:22:20.541 CET [94]	94	COMMIT
+7	2026-11-22 20:22:20.552 CET [94]	94	COMMIT
+8	2026-11-22 20:22:20.567 CET [94]	94	COMMIT
+9	2026-11-22 20:22:20.574 CET [94]	94	UPDATE chat.attachments SET "ContextMode" = 'project' WHERE "ContextMode" = 'window' AND ("ArchiveId" IS NOT NULL OR POSITION('/' IN "Name") > 0)
+10	2026-11-22 20:22:20.575 CET [94]	94	COMMIT
+11	2026-11-22 20:22:20.581 CET [94]	94	COMMIT
+12	2026-11-22 20:22:20.588 CET [94]	94	COMMIT
+13	2026-11-22 20:22:20.603 CET [94]	94	COMMIT
+14	2026-11-22 20:22:20.610 CET [94]	94	COMMIT
+15	2026-11-22 20:22:20.614 CET [94]	94	COMMIT
+16	2026-11-22 20:22:20.622 CET [94]	94	COMMIT
+17	2026-11-22 20:22:20.946 CET [97]	97	COMMIT
+18	2026-11-22 20:22:20.973 CET [98]	98	COMMIT
+19	2026-11-22 20:22:21.294 CET [102]	102	UPDATE chat.attachments SET "ConversationId" = $1, "WorkspaceId" = $2 WHERE "Id" = $3
+20	2026-11-22 20:22:21.295 CET [102]	102	COMMIT
+21	2026-11-22 20:22:21.315 CET [103]	103	SET LOCAL lock_timeout = '3s'
+22	2026-11-22 20:22:21.316 CET [103]	103	SELECT options_json,vector_digest,vector_dimensions FROM chat.embedding_jobs WHERE owner_id=$1 AND is_project=$2 AND revision=$3 AND state IN ('queued','partial','running') FOR UPDATE
+23	2026-11-22 20:22:21.319 CET [103]	103	SELECT "Id", "WorkspaceId", "Revision", "SettingsJson", "MessageCount" FROM chat.conversations WHERE "Id"=$1 FOR SHARE
+24	2026-11-22 20:22:21.321 CET [103]	103	SELECT "Instructions", "DefaultModel", "Archived", "Revision", "NotesJson" FROM chat.workspace_profiles WHERE "Id" = $1 FOR SHARE
+25	2026-11-22 20:22:21.339 CET [103]	103	ROLLBACK
+26	2026-11-22 20:22:21.346 CET [104]	104	COMMIT
+27	2026-11-22 20:22:21.365 CET [106]	106	SET LOCAL lock_timeout = '3s'
+28	2026-11-22 20:22:21.368 CET [106]	106	SELECT options_json,vector_digest,vector_dimensions FROM chat.embedding_jobs WHERE owner_id=$1 AND is_project=$2 AND revision=$3 AND state IN ('queued','partial','running') FOR UPDATE
+29	2026-11-22 20:22:21.372 CET [106]	106	SELECT "Id", "WorkspaceId", "Revision", "SettingsJson", "MessageCount" FROM chat.conversations WHERE "Id"=$1 FOR SHARE
+30	2026-11-22 20:22:21.372 CET [106]	106	SELECT "Instructions", "DefaultModel", "Archived", "Revision", "NotesJson" FROM chat.workspace_profiles WHERE "Id" = $1 FOR SHARE
+31	2026-11-22 20:22:21.379 CET [106]	106	LOCK TABLE chat.attachments, chat.workspace_file_overrides IN SHARE MODE NOWAIT
+32	2026-11-22 20:22:21.392 CET [106]	106	SELECT "WorkspaceId" FROM chat.conversations WHERE "Id"=$1 FOR SHARE
+33	2026-11-22 20:22:21.557 CET [106]	106	INSERT INTO chat.embedding_vectors(identity, key, file_id, conversation_id, sequence, start_offset, end_offset, content_hash, embedding) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT(identity,key) DO NOTHING
+34	2026-11-22 20:22:21.559 CET [106]	106	INSERT INTO chat.embedding_vectors(identity, key, file_id, conversation_id, sequence, start_offset, end_offset, content_hash, embedding) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT(identity,key) DO NOTHING
+35	2026-11-22 20:22:21.560 CET [106]	106	COMMIT
+36	2026-11-22 20:22:21.612 CET [108]	108	ROLLBACK
+37	2026-11-22 20:22:21.617 CET [109]	109	SET LOCAL lock_timeout = '3s'
+38	2026-11-22 20:22:21.618 CET [109]	109	SELECT options_json,vector_digest,vector_dimensions FROM chat.embedding_jobs WHERE owner_id=$1 AND is_project=$2 AND revision=$3 AND state IN ('queued','partial','running') FOR UPDATE
+39	2026-11-22 20:22:21.618 CET [109]	109	SELECT "Id", "WorkspaceId", "Revision", "SettingsJson", "MessageCount" FROM chat.conversations WHERE "Id"=$1 FOR SHARE
+40	2026-11-22 20:22:21.620 CET [109]	109	SELECT "Instructions", "DefaultModel", "Archived", "Revision", "NotesJson" FROM chat.workspace_profiles WHERE "Id" = $1 FOR SHARE
+41	2026-11-22 20:22:21.621 CET [109]	109	LOCK TABLE chat.attachments, chat.workspace_file_overrides IN SHARE MODE NOWAIT
+42	2026-11-22 20:22:21.621 CET [109]	109	SELECT "WorkspaceId" FROM chat.conversations WHERE "Id"=$1 FOR SHARE
+43	2026-11-22 20:22:21.624 CET [109]	109	ROLLBACK
+44	2026-11-22 20:22:21.634 CET [110]	110	COMMIT
+45	2026-11-22 20:22:21.644 CET [111]	111	ROLLBACK
+46	2026-11-22 20:22:21.646 CET [112]	112	SET LOCAL lock_timeout = '3s'
+47	2026-11-22 20:22:21.647 CET [112]	112	SELECT options_json,vector_digest,vector_dimensions FROM chat.embedding_jobs WHERE owner_id=$1 AND is_project=$2 AND revision=$3 AND state IN ('queued','partial','running') FOR UPDATE
+48	2026-11-22 20:22:21.648 CET [112]	112	SELECT "Id", "WorkspaceId", "Revision", "SettingsJson", "MessageCount" FROM chat.conversations WHERE "Id"=$1 FOR SHARE
+49	2026-11-22 20:22:21.648 CET [112]	112	SELECT "Instructions", "DefaultModel", "Archived", "Revision", "NotesJson" FROM chat.workspace_profiles WHERE "Id" = $1 FOR SHARE
+50	2026-11-22 20:22:21.648 CET [112]	112	ROLLBACK
+51	2026-11-22 20:22:21.653 CET [113]	113	COMMIT
+52	2026-11-22 20:22:21.673 CET [114]	114	ROLLBACK
+53	2026-11-22 20:22:21.675 CET [115]	115	SET LOCAL lock_timeout = '3s'
+54	2026-11-22 20:22:21.676 CET [115]	115	SELECT options_json,vector_digest,vector_dimensions FROM chat.embedding_jobs WHERE owner_id=$1 AND is_project=$2 AND revision=$3 AND state IN ('queued','partial','running') FOR UPDATE
+55	2026-11-22 20:22:21.676 CET [115]	115	SELECT "Id", "WorkspaceId", "Revision", "SettingsJson", "MessageCount" FROM chat.conversations WHERE "Id"=$1 FOR SHARE
+56	2026-11-22 20:22:21.676 CET [115]	115	ROLLBACK
+57	2026-11-22 20:22:21.685 CET [117]	117	SET LOCAL lock_timeout = '3s'
+58	2026-11-22 20:22:21.686 CET [117]	117	SELECT options_json,vector_digest,vector_dimensions FROM chat.embedding_jobs WHERE owner_id=$1 AND is_project=$2 AND revision=$3 AND state IN ('queued','partial','running') FOR UPDATE
+59	2026-11-22 20:22:21.686 CET [117]	117	ROLLBACK
+60	2026-11-22 20:22:21.812 CET [125]	125	COMMIT
+61	2026-11-22 20:22:21.834 CET [125]	125	COMMIT
+62	2026-11-22 20:22:21.875 CET [129]	129	COMMIT
+63	2026-11-22 20:22:21.886 CET [129]	129	COMMIT
+64	2026-11-22 20:22:21.894 CET [129]	129	COMMIT
+65	2026-11-22 20:22:21.902 CET [129]	129	COMMIT
+66	2026-11-22 20:22:21.908 CET [129]	129	COMMIT
+67	2026-11-22 20:22:21.916 CET [129]	129	COMMIT
+68	2026-11-22 20:22:21.920 CET [129]	129	UPDATE chat.attachments SET "ContextMode" = 'project' WHERE "ContextMode" = 'window' AND ("ArchiveId" IS NOT NULL OR POSITION('/' IN "Name") > 0)
+69	2026-11-22 20:22:21.921 CET [129]	129	COMMIT
+70	2026-11-22 20:22:21.924 CET [129]	129	COMMIT
+71	2026-11-22 20:22:21.935 CET [129]	129	COMMIT
+72	2026-11-22 20:22:21.947 CET [129]	129	COMMIT
+73	2026-11-22 20:22:21.958 CET [129]	129	COMMIT
+74	2026-11-22 20:22:21.964 CET [129]	129	COMMIT
+75	2026-11-22 20:22:21.975 CET [129]	129	COMMIT
+76	2026-11-22 20:22:22.003 CET [131]	131	COMMIT
+77	2026-11-22 20:22:22.007 CET [132]	132	COMMIT
+78	2026-11-22 20:22:22.080 CET [135]	135	SET LOCAL lock_timeout = '3s'
+79	2026-11-22 20:22:22.126 CET [135]	135	SELECT options_json,vector_digest,vector_dimensions FROM chat.embedding_jobs WHERE owner_id=$1 AND is_project=$2 AND revision=$3 AND state IN ('queued','partial','running') FOR UPDATE
+80	2026-11-22 20:22:22.169 CET [135]	135	SELECT "Id", "WorkspaceId", "Revision", "SettingsJson", "MessageCount" FROM chat.conversations WHERE "Id"=$1 FOR SHARE
+81	2026-11-22 20:22:22.235 CET [135]	135	LOCK TABLE chat.attachments, chat.workspace_file_overrides IN SHARE MODE NOWAIT
+82	2026-11-22 20:22:22.291 CET [135]	135	SELECT "WorkspaceId" FROM chat.conversations WHERE "Id"=$1 FOR SHARE
+83	2026-11-22 20:22:22.440 CET [135]	135	INSERT INTO chat.embedding_vectors(identity, key, file_id, conversation_id, sequence, start_offset, end_offset, content_hash, embedding) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT(identity,key) DO NOTHING
+84	2026-11-22 20:22:22.489 CET [135]	135	INSERT INTO chat.embedding_vectors(identity, key, file_id, conversation_id, sequence, start_offset, end_offset, content_hash, embedding) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT(identity,key) DO NOTHING
+85	2026-11-22 20:22:22.532 CET [135]	135	COMMIT
+86	2026-11-22 20:22:22.538 CET [136]	136	SET LOCAL lock_timeout = '3s'
+87	2026-11-22 20:22:22.584 CET [136]	136	SELECT options_json,vector_digest,vector_dimensions FROM chat.embedding_jobs WHERE owner_id=$1 AND is_project=$2 AND revision=$3 AND state IN ('queued','partial','running') FOR UPDATE
+88	2026-11-22 20:22:22.640 CET [136]	136	SELECT "Id", "WorkspaceId", "Revision", "SettingsJson", "MessageCount" FROM chat.conversations WHERE "Id"=$1 FOR SHARE
+89	2026-11-22 20:22:22.699 CET [136]	136	LOCK TABLE chat.attachments, chat.workspace_file_overrides IN SHARE MODE NOWAIT
+90	2026-11-22 20:22:22.749 CET [136]	136	SELECT "WorkspaceId" FROM chat.conversations WHERE "Id"=$1 FOR SHARE
+91	2026-11-22 20:22:22.944 CET [136]	136	ROLLBACK
+92	2026-11-22 20:22:23.029 CET [139]	139	SET LOCAL lock_timeout = '3s'
+93	2026-11-22 20:22:23.073 CET [139]	139	SELECT options_json,vector_digest,vector_dimensions FROM chat.embedding_jobs WHERE owner_id=$1 AND is_project=$2 AND revision=$3 AND state IN ('queued','partial','running') FOR UPDATE
+94	2026-11-22 20:22:23.116 CET [139]	139	ROLLBACK
+95	2026-11-22 20:22:23.297 CET [148]	148	COMMIT
+96	2026-11-22 20:22:23.312 CET [148]	148	COMMIT
+97	2026-11-22 20:22:23.357 CET [152]	152	COMMIT
+98	2026-11-22 20:22:23.365 CET [152]	152	COMMIT
+99	2026-11-22 20:22:23.371 CET [152]	152	COMMIT
+100	2026-11-22 20:22:23.378 CET [152]	152	COMMIT
+101	2026-11-22 20:22:23.382 CET [152]	152	COMMIT
+102	2026-11-22 20:22:23.388 CET [152]	152	COMMIT
+103	2026-11-22 20:22:23.393 CET [152]	152	UPDATE chat.attachments SET "ContextMode" = 'project' WHERE "ContextMode" = 'window' AND ("ArchiveId" IS NOT NULL OR POSITION('/' IN "Name") > 0)
+104	2026-11-22 20:22:23.398 CET [152]	152	COMMIT
+105	2026-11-22 20:22:23.411 CET [152]	152	COMMIT
+106	2026-11-22 20:22:23.420 CET [152]	152	COMMIT
+107	2026-11-22 20:22:23.431 CET [152]	152	COMMIT
+108	2026-11-22 20:22:23.441 CET [152]	152	COMMIT
+109	2026-11-22 20:22:23.452 CET [152]	152	COMMIT
+110	2026-11-22 20:22:23.464 CET [152]	152	COMMIT
+111	2026-11-22 20:22:23.489 CET [154]	154	COMMIT
+112	2026-11-22 20:22:23.495 CET [155]	155	COMMIT
+113	2026-11-22 20:22:23.529 CET [158]	158	SET LOCAL lock_timeout = '3s'
+114	2026-11-22 20:22:23.530 CET [158]	158	SELECT options_json,vector_digest,vector_dimensions FROM chat.embedding_jobs WHERE owner_id=$1 AND is_project=$2 AND revision=$3 AND state IN ('queued','partial','running') FOR UPDATE
+115	2026-11-22 20:22:23.531 CET [158]	158	SELECT "Id", "WorkspaceId", "Revision", "SettingsJson", "MessageCount" FROM chat.conversations WHERE "Id"=$1 FOR SHARE
+116	2026-11-22 20:22:23.532 CET [158]	158	LOCK TABLE chat.attachments, chat.workspace_file_overrides IN SHARE MODE NOWAIT
+117	2026-11-22 20:22:23.532 CET [158]	158	SELECT "WorkspaceId" FROM chat.conversations WHERE "Id"=$1 FOR SHARE
+118	2026-11-22 20:22:23.547 CET [158]	158	ROLLBACK
+119	2026-11-22 20:22:23.559 CET [161]	161	SET LOCAL lock_timeout = '3s'
+120	2026-11-22 20:22:23.560 CET [161]	161	SELECT options_json,vector_digest,vector_dimensions FROM chat.embedding_jobs WHERE owner_id=$1 AND is_project=$2 AND revision=$3 AND state IN ('queued','partial','running') FOR UPDATE
+121	2026-11-22 20:22:23.560 CET [161]	161	SELECT "Id", "WorkspaceId", "Revision", "SettingsJson", "MessageCount" FROM chat.conversations WHERE "Id"=$1 FOR SHARE
+122	2026-11-22 20:22:23.561 CET [162]	162	SET LOCAL lock_timeout = '3s'
+123	2026-11-22 20:22:23.561 CET [161]	161	LOCK TABLE chat.attachments, chat.workspace_file_overrides IN SHARE MODE NOWAIT
+124	2026-11-22 20:22:23.562 CET [161]	161	SELECT "WorkspaceId" FROM chat.conversations WHERE "Id"=$1 FOR SHARE
+125	2026-11-22 20:22:23.563 CET [162]	162	SELECT options_json,vector_digest,vector_dimensions FROM chat.embedding_jobs WHERE owner_id=$1 AND is_project=$2 AND revision=$3 AND state IN ('queued','partial','running') FOR UPDATE
+126	2026-11-22 20:22:23.566 CET [161]	161	INSERT INTO chat.embedding_vectors(identity, key, file_id, conversation_id, sequence, start_offset, end_offset, content_hash, embedding) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT(identity,key) DO NOTHING
+127	2026-11-22 20:22:23.567 CET [161]	161	INSERT INTO chat.embedding_vectors(identity, key, file_id, conversation_id, sequence, start_offset, end_offset, content_hash, embedding) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT(identity,key) DO NOTHING
+128	2026-11-22 20:22:23.567 CET [161]	161	COMMIT
+129	2026-11-22 20:22:23.568 CET [162]	162	SELECT "Id", "WorkspaceId", "Revision", "SettingsJson", "MessageCount" FROM chat.conversations WHERE "Id"=$1 FOR SHARE
+130	2026-11-22 20:22:23.570 CET [162]	162	LOCK TABLE chat.attachments, chat.workspace_file_overrides IN SHARE MODE NOWAIT
+131	2026-11-22 20:22:23.570 CET [162]	162	SELECT "WorkspaceId" FROM chat.conversations WHERE "Id"=$1 FOR SHARE
+132	2026-11-22 20:22:23.574 CET [162]	162	INSERT INTO chat.embedding_vectors(identity, key, file_id, conversation_id, sequence, start_offset, end_offset, content_hash, embedding) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT(identity,key) DO NOTHING
+133	2026-11-22 20:22:23.574 CET [162]	162	INSERT INTO chat.embedding_vectors(identity, key, file_id, conversation_id, sequence, start_offset, end_offset, content_hash, embedding) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT(identity,key) DO NOTHING
+134	2026-11-22 20:22:23.574 CET [162]	162	COMMIT
+135	2026-11-22 20:22:23.593 CET [164]	164	ROLLBACK
+136	2026-11-22 20:22:23.613 CET [166]	166	ROLLBACK
+137	2026-11-22 20:22:23.619 CET [167]	167	SET LOCAL lock_timeout = '3s'
+138	2026-11-22 20:22:23.620 CET [167]	167	SELECT options_json,vector_digest,vector_dimensions FROM chat.embedding_jobs WHERE owner_id=$1 AND is_project=$2 AND revision=$3 AND state IN ('queued','partial','running') FOR UPDATE
+139	2026-11-22 20:22:23.620 CET [167]	167	SELECT "Id", "WorkspaceId", "Revision", "SettingsJson", "MessageCount" FROM chat.conversations WHERE "Id"=$1 FOR SHARE
+140	2026-11-22 20:22:23.621 CET [167]	167	LOCK TABLE chat.attachments, chat.workspace_file_overrides IN SHARE MODE NOWAIT
+141	2026-11-22 20:22:23.622 CET [167]	167	SELECT "WorkspaceId" FROM chat.conversations WHERE "Id"=$1 FOR SHARE
+142	2026-11-22 20:22:23.625 CET [167]	167	ROLLBACK
+143	2026-11-22 20:22:23.637 CET [169]	169	SET LOCAL lock_timeout = '3s'
+144	2026-11-22 20:22:23.638 CET [169]	169	SELECT options_json,vector_digest,vector_dimensions FROM chat.embedding_jobs WHERE owner_id=$1 AND is_project=$2 AND revision=$3 AND state IN ('queued','partial','running') FOR UPDATE
+145	2026-11-22 20:22:23.639 CET [169]	169	ROLLBACK
+146	2026-11-22 20:22:23.645 CET [171]	171	SET LOCAL lock_timeout = '3s'
+147	2026-11-22 20:22:23.646 CET [171]	171	SELECT options_json,vector_digest,vector_dimensions FROM chat.embedding_jobs WHERE owner_id=$1 AND is_project=$2 AND revision=$3 AND state IN ('queued','partial','running') FOR UPDATE
+148	2026-11-22 20:22:23.646 CET [171]	171	ROLLBACK
+149	2026-11-22 20:22:23.655 CET [173]	173	SET LOCAL lock_timeout = '3s'
+150	2026-11-22 20:22:23.656 CET [173]	173	SELECT options_json,vector_digest,vector_dimensions FROM chat.embedding_jobs WHERE owner_id=$1 AND is_project=$2 AND revision=$3 AND state IN ('queued','partial','running') FOR UPDATE
+151	2026-11-22 20:22:23.657 CET [173]	173	SELECT "Id", "WorkspaceId", "Revision", "SettingsJson", "MessageCount" FROM chat.conversations WHERE "Id"=$1 FOR SHARE
+152	2026-11-22 20:22:23.658 CET [173]	173	LOCK TABLE chat.attachments, chat.workspace_file_overrides IN SHARE MODE NOWAIT
+153	2026-11-22 20:22:23.659 CET [173]	173	SELECT "WorkspaceId" FROM chat.conversations WHERE "Id"=$1 FOR SHARE
+154	2026-11-22 20:22:23.664 CET [173]	173	INSERT INTO chat.embedding_vectors(identity, key, file_id, conversation_id, sequence, start_offset, end_offset, content_hash, embedding) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT(identity,key) DO NOTHING
+155	2026-11-22 20:22:23.664 CET [173]	173	COMMIT
+156	2026-11-22 20:22:23.762 CET [181]	181	COMMIT
+157	2026-11-22 20:22:23.782 CET [181]	181	COMMIT
+158	2026-11-22 20:22:23.826 CET [185]	185	COMMIT
+159	2026-11-22 20:22:23.839 CET [185]	185	COMMIT
+160	2026-11-22 20:22:23.851 CET [185]	185	COMMIT
+161	2026-11-22 20:22:23.857 CET [185]	185	COMMIT
+162	2026-11-22 20:22:23.867 CET [185]	185	COMMIT
+163	2026-11-22 20:22:23.879 CET [185]	185	COMMIT
+164	2026-11-22 20:22:23.882 CET [185]	185	UPDATE chat.attachments SET "ContextMode" = 'project' WHERE "ContextMode" = 'window' AND ("ArchiveId" IS NOT NULL OR POSITION('/' IN "Name") > 0)
+165	2026-11-22 20:22:23.883 CET [185]	185	COMMIT
+166	2026-11-22 20:22:23.891 CET [185]	185	COMMIT
+167	2026-11-22 20:22:23.897 CET [185]	185	COMMIT
+168	2026-11-22 20:22:23.907 CET [185]	185	COMMIT
+169	2026-11-22 20:22:23.915 CET [185]	185	COMMIT
+170	2026-11-22 20:22:23.920 CET [185]	185	COMMIT
+171	2026-11-22 20:22:23.927 CET [185]	185	COMMIT
+172	2026-11-22 20:22:23.954 CET [187]	187	COMMIT
+173	2026-11-22 20:22:23.960 CET [188]	188	COMMIT
+174	2026-11-22 20:22:23.973 CET [190]	190	SET LOCAL lock_timeout = '3s'
+175	2026-11-22 20:22:23.974 CET [190]	190	SELECT options_json,vector_digest,vector_dimensions FROM chat.embedding_jobs WHERE owner_id=$1 AND is_project=$2 AND revision=$3 AND state IN ('queued','partial','running') FOR UPDATE
+176	2026-11-22 20:22:23.975 CET [190]	190	SELECT "Id", "WorkspaceId", "Revision", "SettingsJson", "MessageCount" FROM chat.conversations WHERE "Id"=$1 FOR SHARE
+177	2026-11-22 20:22:23.976 CET [190]	190	LOCK TABLE chat.attachments, chat.workspace_file_overrides IN SHARE MODE NOWAIT
+178	2026-11-22 20:22:23.976 CET [190]	190	SELECT "WorkspaceId" FROM chat.conversations WHERE "Id"=$1 FOR SHARE
+179	2026-11-22 20:22:23.982 CET [190]	190	INSERT INTO chat.embedding_vectors(identity, key, file_id, conversation_id, sequence, start_offset, end_offset, content_hash, embedding) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT(identity,key) DO NOTHING
+180	2026-11-22 20:22:23.983 CET [190]	190	INSERT INTO chat.embedding_vectors(identity, key, file_id, conversation_id, sequence, start_offset, end_offset, content_hash, embedding) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT(identity,key) DO NOTHING
+181	2026-11-22 20:22:23.983 CET [190]	190	COMMIT
+182	2026-11-22 20:22:24.021 CET [192]	192	COMMIT
+183	2026-11-22 20:22:24.026 CET [193]	193	COMMIT
+184	2026-11-22 20:22:24.034 CET [195]	195	SET LOCAL lock_timeout = '3s'
+185	2026-11-22 20:22:24.035 CET [195]	195	SELECT options_json,vector_digest,vector_dimensions FROM chat.embedding_jobs WHERE owner_id=$1 AND is_project=$2 AND revision=$3 AND state IN ('queued','partial','running') FOR UPDATE
+186	2026-11-22 20:22:24.035 CET [195]	195	SELECT "Id", "WorkspaceId", "Revision", "SettingsJson", "MessageCount" FROM chat.conversations WHERE "Id"=$1 FOR SHARE
+187	2026-11-22 20:22:24.038 CET [195]	195	SELECT "RequestId", "Sequence", "Role", "Content", "CreatedAtUtc" FROM chat.messages WHERE "ConversationId"=$1 AND "Sequence">$2 AND "Sequence"<=$3 ORDER BY "Sequence" LIMIT $4 FOR SHARE
+188	2026-11-22 20:22:24.040 CET [195]	195	INSERT INTO chat.embedding_vectors(identity, key, file_id, conversation_id, sequence, start_offset, end_offset, content_hash, embedding) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT(identity,key) DO NOTHING
+189	2026-11-22 20:22:24.041 CET [195]	195	COMMIT
+190	2026-11-22 20:22:24.085 CET [197]	197	ROLLBACK
+191	2026-11-22 20:22:24.105 CET [198]	198	ROLLBACK
+192	2026-11-22 20:22:24.134 CET [199]	199	ROLLBACK
+193	2026-11-22 20:22:24.173 CET [201]	201	ROLLBACK
+194	2026-11-22 20:22:24.196 CET [203]	203	ROLLBACK
+195	2026-11-22 20:22:24.200 CET [204]	204	ROLLBACK
+196	2026-11-22 20:22:24.212 CET [205]	205	ROLLBACK
+197	2026-11-22 20:22:24.220 CET [206]	206	ROLLBACK
+198	2026-11-22 20:22:24.227 CET [207]	207	ROLLBACK
+199	2026-11-22 20:22:24.235 CET [209]	209	ROLLBACK
+200	2026-11-22 20:22:24.245 CET [211]	211	ROLLBACK
+201	2026-11-22 20:22:24.351 CET [220]	220	COMMIT
+202	2026-11-22 20:22:24.365 CET [220]	220	COMMIT
+203	2026-11-22 20:22:24.409 CET [224]	224	COMMIT
+204	2026-11-22 20:22:24.418 CET [224]	224	COMMIT
+205	2026-11-22 20:22:24.423 CET [224]	224	COMMIT
+206	2026-11-22 20:22:24.428 CET [224]	224	COMMIT
+207	2026-11-22 20:22:24.432 CET [224]	224	COMMIT
+208	2026-11-22 20:22:24.445 CET [224]	224	COMMIT
+209	2026-11-22 20:22:24.449 CET [224]	224	UPDATE chat.attachments SET "ContextMode" = 'project' WHERE "ContextMode" = 'window' AND ("ArchiveId" IS NOT NULL OR POSITION('/' IN "Name") > 0)
+210	2026-11-22 20:22:24.449 CET [224]	224	COMMIT
+211	2026-11-22 20:22:24.452 CET [224]	224	COMMIT
+212	2026-11-22 20:22:24.457 CET [224]	224	COMMIT
+213	2026-11-22 20:22:24.469 CET [224]	224	COMMIT
+214	2026-11-22 20:22:24.480 CET [224]	224	COMMIT
+215	2026-11-22 20:22:24.486 CET [224]	224	COMMIT
+216	2026-11-22 20:22:24.509 CET [224]	224	COMMIT
+217	2026-11-22 20:22:24.552 CET [226]	226	COMMIT
+218	2026-11-22 20:22:24.559 CET [227]	227	COMMIT
+219	2026-11-22 20:22:24.582 CET [230]	230	SET LOCAL lock_timeout = '3s'
+220	2026-11-22 20:22:24.583 CET [230]	230	SELECT options_json,vector_digest,vector_dimensions FROM chat.embedding_jobs WHERE owner_id=$1 AND is_project=$2 AND revision=$3 AND state IN ('queued','partial','running') FOR UPDATE
+221	2026-11-22 20:22:24.584 CET [230]	230	SELECT "Id", "WorkspaceId", "Revision", "SettingsJson", "MessageCount" FROM chat.conversations WHERE "Id"=$1 FOR SHARE
+222	2026-11-22 20:22:24.585 CET [230]	230	LOCK TABLE chat.attachments, chat.workspace_file_overrides IN SHARE MODE NOWAIT
+223	2026-11-22 20:22:24.585 CET [230]	230	SELECT "WorkspaceId" FROM chat.conversations WHERE "Id"=$1 FOR SHARE
+224	2026-11-22 20:22:24.592 CET [230]	230	INSERT INTO chat.embedding_vectors(identity, key, file_id, conversation_id, sequence, start_offset, end_offset, content_hash, embedding) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT(identity,key) DO NOTHING
+225	2026-11-22 20:22:24.593 CET [230]	230	INSERT INTO chat.embedding_vectors(identity, key, file_id, conversation_id, sequence, start_offset, end_offset, content_hash, embedding) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT(identity,key) DO NOTHING
+226	2026-11-22 20:22:24.593 CET [230]	230	COMMIT
+227	2026-11-22 20:22:24.608 CET [233]	233	SET LOCAL lock_timeout = '3s'
+228	2026-11-22 20:22:24.611 CET [233]	233	SELECT options_json,vector_digest,vector_dimensions FROM chat.embedding_jobs WHERE owner_id=$1 AND is_project=$2 AND revision=$3 AND state IN ('queued','partial','running') FOR UPDATE
+229	2026-11-22 20:22:24.612 CET [233]	233	SELECT "Id", "WorkspaceId", "Revision", "SettingsJson", "MessageCount" FROM chat.conversations WHERE "Id"=$1 FOR SHARE
+230	2026-11-22 20:22:24.614 CET [233]	233	LOCK TABLE chat.attachments, chat.workspace_file_overrides IN SHARE MODE NOWAIT
+231	2026-11-22 20:22:24.615 CET [233]	233	SELECT "WorkspaceId" FROM chat.conversations WHERE "Id"=$1 FOR SHARE
+232	2026-11-22 20:22:24.620 CET [233]	233	INSERT INTO chat.embedding_vectors(identity, key, file_id, conversation_id, sequence, start_offset, end_offset, content_hash, embedding) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT(identity,key) DO NOTHING
+233	2026-11-22 20:22:24.621 CET [233]	233	INSERT INTO chat.embedding_vectors(identity, key, file_id, conversation_id, sequence, start_offset, end_offset, content_hash, embedding) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT(identity,key) DO NOTHING
+234	2026-11-22 20:22:24.621 CET [233]	233	COMMIT
+235	2026-11-22 20:22:24.837 CET [242]	242	COMMIT
+236	2026-11-22 20:22:24.854 CET [242]	242	COMMIT
+237	2026-11-22 20:22:24.903 CET [246]	246	COMMIT
+238	2026-11-22 20:22:24.915 CET [246]	246	COMMIT
+239	2026-11-22 20:22:24.922 CET [246]	246	COMMIT
+240	2026-11-22 20:22:24.928 CET [246]	246	COMMIT
+241	2026-11-22 20:22:24.931 CET [246]	246	COMMIT
+242	2026-11-22 20:22:24.938 CET [246]	246	COMMIT
+243	2026-11-22 20:22:24.941 CET [246]	246	UPDATE chat.attachments SET "ContextMode" = 'project' WHERE "ContextMode" = 'window' AND ("ArchiveId" IS NOT NULL OR POSITION('/' IN "Name") > 0)
+244	2026-11-22 20:22:24.942 CET [246]	246	COMMIT
+245	2026-11-22 20:22:24.945 CET [246]	246	COMMIT
+246	2026-11-22 20:22:24.947 CET [246]	246	COMMIT
+247	2026-11-22 20:22:24.955 CET [246]	246	COMMIT
+248	2026-11-22 20:22:24.963 CET [246]	246	COMMIT
+249	2026-11-22 20:22:24.968 CET [246]	246	COMMIT
+250	2026-11-22 20:22:24.978 CET [246]	246	COMMIT
+251	2026-11-22 20:22:25.012 CET [248]	248	COMMIT
+252	2026-11-22 20:22:25.017 CET [249]	249	COMMIT
+253	2026-11-22 20:22:25.028 CET [251]	251	CREATE FUNCTION hold_publish() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN PERFORM pg_advisory_xact_lock(947262); RETURN NEW; END $$
+254	2026-11-22 20:22:25.029 CET [251]	251	CREATE TRIGGER hold_publish BEFORE INSERT ON chat.embedding_vectors FOR EACH ROW EXECUTE FUNCTION hold_publish()
+255	2026-11-22 20:22:25.036 CET [252]	252	SELECT pg_advisory_lock(947262)
+256	2026-11-22 20:22:25.041 CET [254]	254	SET LOCAL lock_timeout = '3s'
+257	2026-11-22 20:22:25.042 CET [254]	254	SELECT options_json,vector_digest,vector_dimensions FROM chat.embedding_jobs WHERE owner_id=$1 AND is_project=$2 AND revision=$3 AND state IN ('queued','partial','running') FOR UPDATE
+258	2026-11-22 20:22:25.043 CET [254]	254	SELECT "Id", "WorkspaceId", "Revision", "SettingsJson", "MessageCount" FROM chat.conversations WHERE "Id"=$1 FOR SHARE
+259	2026-11-22 20:22:25.043 CET [254]	254	LOCK TABLE chat.attachments, chat.workspace_file_overrides IN SHARE MODE NOWAIT
+260	2026-11-22 20:22:25.044 CET [254]	254	SELECT "WorkspaceId" FROM chat.conversations WHERE "Id"=$1 FOR SHARE
+261	2026-11-22 20:22:25.052 CET [255]	255	SELECT s."Value" FROM ( SELECT pid AS "Value" FROM pg_stat_activity WHERE $1=ANY(pg_blocking_pids(pid)) ) AS s LIMIT 1
+262	2026-11-22 20:22:25.054 CET [254]	254	INSERT INTO chat.embedding_vectors(identity, key, file_id, conversation_id, sequence, start_offset, end_offset, content_hash, embedding) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT(identity,key) DO NOTHING
+263	2026-11-22 20:22:25.059 CET [256]	256	SELECT s."Value" FROM ( SELECT pid AS "Value" FROM pg_stat_activity WHERE $1=ANY(pg_blocking_pids(pid)) ) AS s LIMIT 1
+264	2026-11-22 20:22:25.065 CET [257]	257	SELECT s."Value" FROM ( SELECT pid AS "Value" FROM pg_stat_activity WHERE $1=ANY(pg_blocking_pids(pid)) ) AS s LIMIT 1
+265	2026-11-22 20:22:25.066 CET [252]	252	SELECT pg_advisory_unlock(947262)
+266	2026-11-22 20:22:25.067 CET [254]	254	INSERT INTO chat.embedding_vectors(identity, key, file_id, conversation_id, sequence, start_offset, end_offset, content_hash, embedding) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT(identity,key) DO NOTHING
+267	2026-11-22 20:22:25.068 CET [254]	254	COMMIT
+268	2026-11-22 20:22:25.070 CET [253]	253	UPDATE chat.attachments SET "ContextMode"='excluded' WHERE "Id"=$1
+269	2026-11-22 20:22:25.074 CET [258]	258	SET LOCAL lock_timeout = '3s'
+270	2026-11-22 20:22:25.076 CET [258]	258	SELECT options_json,vector_digest,vector_dimensions FROM chat.embedding_jobs WHERE owner_id=$1 AND is_project=$2 AND revision=$3 AND state IN ('queued','partial','running') FOR UPDATE
+271	2026-11-22 20:22:25.077 CET [258]	258	SELECT "Id", "WorkspaceId", "Revision", "SettingsJson", "MessageCount" FROM chat.conversations WHERE "Id"=$1 FOR SHARE
+272	2026-11-22 20:22:25.078 CET [258]	258	LOCK TABLE chat.attachments, chat.workspace_file_overrides IN SHARE MODE NOWAIT
+273	2026-11-22 20:22:25.079 CET [258]	258	SELECT "WorkspaceId" FROM chat.conversations WHERE "Id"=$1 FOR SHARE
+274	2026-11-22 20:22:25.082 CET [258]	258	ROLLBACK
+275	2026-11-22 20:22:25.093 CET [259]	259	ROLLBACK

@@ -1,3 +1,4 @@
+using Alycia.Modules.Workspaces.Domain;
 using System.Text;
 using Alycia.Contracts.Workspaces;
 using Alycia.Modules.Chat.Application;
@@ -40,7 +41,10 @@ public sealed class OwnerContractTests
             db.Add(project);
             primary.Configure("local", "", "", ConversationConfiguration.Serialize(new ChatOptions
             {
-                UseProjectTools = true, RoutingMode = "memory", RetrievalMode = "hybrid", EmbedHistory = true,
+                UseProjectTools = true,
+                RoutingMode = "memory",
+                RetrievalMode = "hybrid",
+                EmbedHistory = true,
                 EmbeddingModel = "projection-fixture"
             }));
             var turn = Guid.NewGuid();
@@ -181,7 +185,7 @@ public sealed class OwnerContractTests
                     Assert.Empty(await access.CurrentEntriesAsync(chat.Id, [Guid.Empty], default));
                     Assert.Equal(entry, Assert.Single(await access.CurrentEntriesAsync(chat.Id, [file.Id], default)));
                 }
-                var index = new ProjectIndexService(new ConversationIndexOwners(new(db.Database)), storage, ChatFixture.IndexFiles(db, reader), live);
+                var index = new ProjectIndexService(new ConversationIndexOwners(new(db.Database)), new PassageCacheDirectory(storage.Root), ChatFixture.IndexFiles(db, reader), live);
                 var passages = (await index.BuildAsync(chat.Id, default)).Chunks;
                 Assert.NotEmpty(passages);
                 foreach (var adapter in new IProjectIndex[] { index, new SnapshotIndex(chat.Id, passages, other.Id) })

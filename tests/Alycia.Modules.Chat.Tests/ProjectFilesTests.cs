@@ -1,3 +1,4 @@
+using Alycia.Modules.Workspaces.Domain;
 using Alycia.Modules.Workspaces.Infrastructure;
 using System.IO.Compression;
 using Alycia.Modules.Chat.Application;

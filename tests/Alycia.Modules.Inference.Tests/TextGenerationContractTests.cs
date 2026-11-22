@@ -36,6 +36,52 @@ public sealed class TextGenerationContractTests
     }
 
     [Fact]
+    public async Task Chat_model_adapters_preserve_stream_content_stop_and_supported_capabilities()
+    {
+        using var http = new HttpClient(new ProviderTransport()) { BaseAddress = new("http://localhost/") };
+        foreach (var chat in new IChatModel[] { new ChatGenerationAdapter(new OllamaTextGeneration(http, new(), new()), InferenceCall.Default), new ScriptedTextGeneration() })
+        {
+            var name = Assert.Single(await chat.ListModelsAsync(default));
+            Assert.False(await chat.SupportsToolsAsync(name, default));
+            Assert.Equal("Bonjour", await chat.GenerateAsync(name, Input, default));
+            var deltas = new List<string>();
+            var reply = await chat.StreamAsync(name, Input, InferenceCall.Default,
+                delta => { deltas.Add(delta.Content); return Task.CompletedTask; }, default);
+            Assert.Equal(reply.Content, string.Concat(deltas));
+            Assert.Equal(["Bon", "jour"], deltas);
+            using var stop = new CancellationTokenSource();
+            int emitted = 0;
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => chat.StreamAsync(name, Input, InferenceCall.Default,
+                delta => { emitted++; stop.Cancel(); return Task.CompletedTask; }, stop.Token));
+            Assert.Equal(1, emitted);
+            await Assert.ThrowsAsync<ChatModelException>(() => chat.StreamWithToolsAsync(name, Input, InferenceCall.Default, _ => Task.CompletedTask, default));
+        }
+    }
+
+    [Fact]
+    public async Task Meter_factories_isolate_operations_and_snapshot_partial_provider_usage()
+    {
+        foreach (var factory in new IModelMeterFactory[] { new ModelMeterFactory(), new MemoryMeterFactory() })
+        {
+            var meter = factory.Create(new ScriptedTextGeneration());
+            var other = factory.Create(new ScriptedTextGeneration());
+            await Task.WhenAll(Enumerable.Range(0, 4).Select(_ => Task.Run(() =>
+                meter.AddCalls([new("fixture", 2, 4, new(3, 2, null, null, null))]))));
+            var before = meter.Snapshot("model-a", null);
+            Assert.Equal(12, before.InputTokens);
+            Assert.Equal(8, before.OutputTokens);
+            Assert.True(before.Complete);
+            Assert.Empty(other.Snapshot(null, null).Calls);
+            Assert.Equal("Bonjour", await meter.GenerateAsync(ScriptedTextGeneration.Model, Input, default));
+            var after = meter.Snapshot("model-a", null);
+            Assert.Equal(4, before.Calls.Count);
+            Assert.Equal(5, after.Calls.Count);
+            Assert.Null(after.InputTokens);
+            Assert.False(after.Complete);
+        }
+    }
+
+    [Fact]
     public async Task Interrupted_script_stops_at_last_acknowledged_delta()
     {
         var provider = new ScriptedTextGeneration(["a", "b", "c"], failAfter: 1);
@@ -116,7 +162,7 @@ public sealed class TextGenerationContractTests
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         string? observed = null;
         using var http = new HttpClient(new ProviderTransport(release.Task, body => observed = body))
-            { BaseAddress = new("http://localhost/") };
+        { BaseAddress = new("http://localhost/") };
         ITextGeneration provider = new OllamaTextGeneration(http, new(), new());
         using var arguments = JsonDocument.Parse("""{"path":"initial"}""");
         ModelToolCall[] calls = [new(new("read", arguments.RootElement))];

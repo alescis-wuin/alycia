@@ -1,10 +1,17 @@
+using System.Collections.Frozen;
+using System.Collections.Immutable;
 using Alycia.Contracts.Context;
 using Alycia.Contracts.Chat;
 using Alycia.Contracts.Retrieval;
 
 namespace Alycia.Contracts.Indexing;
 
-public sealed record MemoryVectorMatches(IReadOnlyDictionary<int, double> Scores, IReadOnlyList<ModelCallUsage> Calls, string? Warning = null);
+public sealed class MemoryVectorMatches(IReadOnlyDictionary<int, double> scores, IReadOnlyList<ModelCallUsage> calls, string? warning = null)
+{
+    public IReadOnlyDictionary<int, double> Scores { get; } = scores.ToFrozenDictionary();
+    public IReadOnlyList<ModelCallUsage> Calls { get; } = calls.ToImmutableArray();
+    public string? Warning { get; } = warning;
+}
 public interface IIndexedEmbeddings
 {
     Task<SemanticSearch> SearchAsync(Guid conversation, string query, EmbeddingQuery settings,

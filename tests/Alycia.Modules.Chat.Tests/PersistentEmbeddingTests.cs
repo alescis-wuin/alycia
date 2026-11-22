@@ -83,7 +83,7 @@ public sealed class PersistentEmbeddingTests
                 Assert.Equal(stored, encoder.Texts);
             }
             finally { await count.Connection.DisposeAsync(); }
-            var index = new ProjectIndexService(new ConversationIndexOwners(new(database.Database)), storage, ChatFixture.IndexFiles(database, reader), ChatFixture.LiveFiles(database), IndexParameters.Capture(options));
+            var index = new ProjectIndexService(new ConversationIndexOwners(new(database.Database)), new PassageCacheDirectory(storage.Root), ChatFixture.IndexFiles(database, reader), ChatFixture.LiveFiles(database), IndexParameters.Capture(options));
             var snapshot = await index.BuildAsync(chat.Id, default);
             var searched = await resumed.SearchAsync(chat.Id, "Passage", EmbeddingQuery.Capture(options), snapshot.Chunks, default);
             Assert.Equal(snapshot.Chunks.Count, searched.Hits);

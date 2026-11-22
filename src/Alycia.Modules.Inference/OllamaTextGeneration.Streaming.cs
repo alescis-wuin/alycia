@@ -34,6 +34,7 @@ public sealed partial class OllamaTextGeneration
             var characters = 0;
             await foreach (var line in BoundedLines.ReadAsync(stream, inference.Token))
             {
+                inference.Token.ThrowIfCancellationRequested();
                 inference.RenewDeadline();
                 if (string.IsNullOrWhiteSpace(line)) continue;
                 using var json = JsonDocument.Parse(line);
@@ -66,7 +67,11 @@ public sealed partial class OllamaTextGeneration
                     throw new ChatModelException("Réponse Ollama trop volumineuse ou invalide.");
                 content.Append(text);
                 if (useTools) thoughts.Append(thinking);
-                if (text.Length > 0 || !string.IsNullOrEmpty(thinking)) await onDelta(new(text, thinking));
+                if (text.Length > 0 || !string.IsNullOrEmpty(thinking))
+                {
+                    await onDelta(new(text, thinking));
+                    inference.Token.ThrowIfCancellationRequested();
+                }
                 if (root.TryGetProperty("done", out var done) && done.GetBoolean())
                 {
                     if (string.IsNullOrWhiteSpace(content.ToString()) && calls.Count == 0)

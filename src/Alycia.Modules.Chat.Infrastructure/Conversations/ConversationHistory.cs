@@ -8,15 +8,15 @@ namespace Alycia.Modules.Chat.Infrastructure;
 
 public sealed record ConversationSearchPage(IReadOnlyList<Conversation> Items, bool HasMore);
 
-public sealed class ConversationHistory(ChatDbContext database, ChatOptions defaults, IArchiveDocuments documents)
+public sealed class ConversationHistory(DbContext database, ChatOptions defaults, IArchiveDocuments documents)
 {
     public async Task<ConversationSearchPage> SearchAsync(string? q, int? offset, Guid? workspaceId, bool? unassigned, CancellationToken ct)
     {
         var query = q?.Trim() ?? "";
         if (query.Length > 200 || offset is < 0 or > 100000) throw new ArgumentException("Recherche invalide.");
         var pattern = "%" + query.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_") + "%";
-        var matches = database.Conversations.AsNoTracking().Where(c => query == "" || EF.Functions.ILike(c.Title, pattern, "\\")
-            || database.Messages.Any(m => m.ConversationId == c.Id && EF.Functions.ILike(m.Content, pattern, "\\")));
+        var matches = database.Set<Conversation>().AsNoTracking().Where(c => query == "" || EF.Functions.ILike(c.Title, pattern, "\\")
+            || database.Set<ChatMessage>().Any(m => m.ConversationId == c.Id && EF.Functions.ILike(m.Content, pattern, "\\")));
         if (workspaceId.HasValue || unassigned == true) matches = matches.Where(c => c.WorkspaceId == workspaceId);
         var items = await matches.OrderByDescending(c => c.UpdatedAtUtc).ThenBy(c => c.Id)
             .Skip(offset ?? 0).Take(51).ToListAsync(ct);
@@ -28,15 +28,15 @@ public sealed class ConversationHistory(ChatDbContext database, ChatOptions defa
     public async Task<Conversation> ImportAsync(byte[] bytes, CancellationToken ct)
     {
         var restored = ConversationTransfer.Restore(ConversationTransfer.Parse(bytes));
-        database.Conversations.Add(restored.Conversation);
-        database.Messages.AddRange(restored.Messages);
+        database.Set<Conversation>().Add(restored.Conversation);
+        database.Set<ChatMessage>().AddRange(restored.Messages);
         await database.SaveChangesAsync(ct);
         return restored.Conversation;
     }
 
     public async Task<Conversation> ForkAsync(Guid id, int revision, int? throughSequence, CancellationToken ct)
     {
-        var original = await database.Conversations.AsNoTracking().SingleOrDefaultAsync(c => c.Id == id, ct)
+        var original = await database.Set<Conversation>().AsNoTracking().SingleOrDefaultAsync(c => c.Id == id, ct)
             ?? throw new ConversationNotFoundException();
         ConversationConfiguration.CheckRevision(original, revision);
         var through = throughSequence ?? original.MessageCount;
@@ -48,7 +48,6 @@ public sealed class ConversationHistory(ChatDbContext database, ChatOptions defa
         restored.Conversation.AssignWorkspace(original.WorkspaceId);
         var copyId = restored.Conversation.Id;
         var fork = documents.Fork(id, copyId, through, original.WorkspaceId.HasValue);
-        var forkEntities = new List<object>(restored.Messages) { restored.Conversation };
         var commitStarted = false;
         try
         {
@@ -57,7 +56,8 @@ public sealed class ConversationHistory(ChatDbContext database, ChatOptions defa
             // The source cannot be edited between validation and commit of the fork.
             if (!await database.Database.SqlQuery<bool>($"""SELECT TRUE AS "Value" FROM chat.conversations WHERE "Id"={id} AND "Revision"={revision} FOR SHARE""").AnyAsync(ct))
                 throw new ChatConflictException();
-            database.AddRange(forkEntities);
+            database.Set<Conversation>().Add(restored.Conversation);
+            database.Set<ChatMessage>().AddRange(restored.Messages);
             await database.SaveChangesAsync(acceptAllChangesOnSuccess: false, cancellationToken: ct);
             ct.ThrowIfCancellationRequested();
             commitStarted = true;
@@ -68,7 +68,8 @@ public sealed class ConversationHistory(ChatDbContext database, ChatOptions defa
         catch
         {
             // A retry in this scope must not insert the abandoned fork.
-            foreach (var entity in forkEntities) database.Entry(entity).State = EntityState.Detached;
+            database.Entry(restored.Conversation).State = EntityState.Detached;
+            foreach (var message in restored.Messages) database.Entry(message).State = EntityState.Detached;
             // Before COMMIT, disposing the transaction rolls back even if SaveChanges ran.
             fork.Detach(!commitStarted || await CanDiscardFailedCommitAsync(copyId));
             throw;
@@ -84,7 +85,7 @@ public sealed class ConversationHistory(ChatDbContext database, ChatOptions defa
         {
             await using var probe = await database.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted, timeout.Token);
             await database.Database.ExecuteSqlRawAsync("LOCK TABLE chat.conversations IN SHARE MODE NOWAIT", timeout.Token);
-            return !await database.Conversations.AsNoTracking().AnyAsync(c => c.Id == copyId, timeout.Token);
+            return !await database.Set<Conversation>().AsNoTracking().AnyAsync(c => c.Id == copyId, timeout.Token);
         }
         catch (Exception ex) when (ex is DbException or IOException or TimeoutException or OperationCanceledException or InvalidOperationException)
         {
@@ -95,11 +96,11 @@ public sealed class ConversationHistory(ChatDbContext database, ChatOptions defa
 
     private async Task<ConversationArchive> ArchiveAsync(Guid id, int? through, CancellationToken ct)
     {
-        var conversation = await database.Conversations.AsNoTracking().SingleOrDefaultAsync(c => c.Id == id, ct)
+        var conversation = await database.Set<Conversation>().AsNoTracking().SingleOrDefaultAsync(c => c.Id == id, ct)
             ?? throw new ConversationNotFoundException();
         var limit = through ?? conversation.MessageCount;
         if (limit > ConversationTransfer.MaxMessages) throw new ArgumentException("Export limité à 2000 messages : utilisez la sauvegarde complète.");
-        var query = database.Messages.AsNoTracking().Where(m => m.ConversationId == id && m.Sequence <= limit);
+        var query = database.Set<ChatMessage>().AsNoTracking().Where(m => m.ConversationId == id && m.Sequence <= limit);
         if (await query.SumAsync(m => (long)m.Content.Length + m.ToolTraceJson.Length + m.DiagnosticsJson.Length, ct) > ConversationTransfer.MaxBytes)
             throw new ArgumentException("Export trop volumineux : utilisez la sauvegarde complète.");
         var messages = await query.OrderBy(m => m.Sequence)

@@ -37,4 +37,33 @@
     <Using Include="Alycia.Contracts.Tools" />
     <Using Include="Alycia.Contracts.Inference" />
   </ItemGroup>
+  <ItemGroup>
+    <Using Include="Alycia.Modules.Context" />
+    <Using Include="Alycia.Modules.Memory" />
+    <Using Include="Alycia.Modules.Tools" />
+    <Using Include="Alycia.Contracts.Context" />
+    <Using Include="Alycia.Contracts.Memory" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Alycia.Persistence.Migrations" />
+    <Using Include="Alycia.Modules.Documents.Infrastructure" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Alycia.Persistence.Migrations/Alycia.Persistence.Migrations.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Alycia.Modules.Documents.Infrastructure/Alycia.Modules.Documents.Infrastructure.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Alycia.Modules.Documents/Alycia.Modules.Documents.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Alycia.Modules.Indexing/Alycia.Modules.Indexing.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Alycia.Modules.Configuration/Alycia.Modules.Configuration.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Alycia.Modules.Configuration" />
+  </ItemGroup>
 </Project>

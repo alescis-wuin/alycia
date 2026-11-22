@@ -1,0 +1,202 @@
+waiting for server to start.... done
+server started
+
+
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:03.56
+PASS Alycia.Contracts
+
+
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:06.75
+PASS Alycia.Modules.Chat.Application
+
+
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:02.66
+PASS Alycia.Modules.Chat.Domain
+
+
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:11.87
+PASS Alycia.Modules.Chat.Infrastructure
+
+
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:05.09
+PASS Alycia.Modules.Configuration
+Test run for /tmp/alycia-isolated-_c6zdlml/tests/Alycia.Modules.Configuration.Tests/bin/Release/net10.0/Alycia.Modules.Configuration.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:     2, Skipped:     0, Total:     2, Duration: 290 ms - Alycia.Modules.Configuration.Tests.dll (net10.0)
+VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.
+PASS Alycia.Modules.Configuration.Tests
+
+
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:05.66
+PASS Alycia.Modules.Context
+Test run for /tmp/alycia-isolated-1rwm5h7h/tests/Alycia.Modules.Context.Tests/bin/Release/net10.0/Alycia.Modules.Context.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:     3, Skipped:     0, Total:     3, Duration: 40 ms - Alycia.Modules.Context.Tests.dll (net10.0)
+VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.
+PASS Alycia.Modules.Context.Tests
+Test run for /tmp/alycia-isolated-571v5mlc/tests/Alycia.Modules.Conversations.Tests/bin/Release/net10.0/Alycia.Modules.Conversations.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:     1, Skipped:     0, Total:     1, Duration: 36 ms - Alycia.Modules.Conversations.Tests.dll (net10.0)
+VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.
+PASS Alycia.Modules.Conversations.Tests
+
+
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:05.28
+PASS Alycia.Modules.Documents
+
+
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:10.15
+PASS Alycia.Modules.Documents.Infrastructure
+Test run for /tmp/alycia-isolated-7s0baw_f/tests/Alycia.Modules.Documents.Tests/bin/Release/net10.0/Alycia.Modules.Documents.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:     2, Skipped:     0, Total:     2, Duration: 36 ms - Alycia.Modules.Documents.Tests.dll (net10.0)
+VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.
+PASS Alycia.Modules.Documents.Tests
+
+
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:06.03
+PASS Alycia.Modules.Indexing
+Test run for /tmp/alycia-isolated-0ql05e6v/tests/Alycia.Modules.Indexing.Tests/bin/Release/net10.0/Alycia.Modules.Indexing.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:     1, Skipped:     0, Total:     1, Duration: 21 ms - Alycia.Modules.Indexing.Tests.dll (net10.0)
+VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.
+PASS Alycia.Modules.Indexing.Tests
+
+
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:05.33
+PASS Alycia.Modules.Inference
+Test run for /tmp/alycia-isolated-v1l998oo/tests/Alycia.Modules.Inference.Tests/bin/Release/net10.0/Alycia.Modules.Inference.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:    14, Skipped:     0, Total:    14, Duration: 218 ms - Alycia.Modules.Inference.Tests.dll (net10.0)
+VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.
+PASS Alycia.Modules.Inference.Tests
+
+
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:05.56
+PASS Alycia.Modules.Memory
+Test run for /tmp/alycia-isolated-wv_8kojh/tests/Alycia.Modules.Memory.Tests/bin/Release/net10.0/Alycia.Modules.Memory.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:     1, Skipped:     0, Total:     1, Duration: 268 ms - Alycia.Modules.Memory.Tests.dll (net10.0)
+VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.
+PASS Alycia.Modules.Memory.Tests
+
+
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:04.68
+PASS Alycia.Modules.Retrieval
+
+
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:05.32
+PASS Alycia.Modules.Retrieval.Onnx
+Test run for /tmp/alycia-isolated-7aufqc6h/tests/Alycia.Modules.Retrieval.Tests/bin/Release/net10.0/Alycia.Modules.Retrieval.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:     4, Skipped:     0, Total:     4, Duration: 65 ms - Alycia.Modules.Retrieval.Tests.dll (net10.0)
+VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.
+PASS Alycia.Modules.Retrieval.Tests
+
+
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:05.40
+PASS Alycia.Modules.Testing
+
+
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:05.12
+PASS Alycia.Modules.Tools
+Test run for /tmp/alycia-isolated-posn48g8/tests/Alycia.Modules.Tools.Tests/bin/Release/net10.0/Alycia.Modules.Tools.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:     2, Skipped:     0, Total:     2, Duration: 63 ms - Alycia.Modules.Tools.Tests.dll (net10.0)
+VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.
+PASS Alycia.Modules.Tools.Tests
+
+
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:04.36
+PASS Alycia.Modules.Workspaces.Application
+
+
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:02.70
+PASS Alycia.Modules.Workspaces.Domain
+
+
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:09.88
+PASS Alycia.Modules.Workspaces.Infrastructure
+Test run for /tmp/alycia-isolated-infsvo4q/tests/Alycia.Modules.Workspaces.Tests/bin/Release/net10.0/Alycia.Modules.Workspaces.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:    13, Skipped:     0, Total:    13, Duration: 1 s - Alycia.Modules.Workspaces.Tests.dll (net10.0)
+VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.
+PASS Alycia.Modules.Workspaces.Tests
+
+
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:12.00
+PASS Alycia.Persistence.Migrations
+
+
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:02.71
+PASS Alycia.Platform.Persistence

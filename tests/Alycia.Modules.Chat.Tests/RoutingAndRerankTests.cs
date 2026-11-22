@@ -48,12 +48,12 @@ public class RoutingAndRerankTests
         var options = new ChatOptions { RerankEnabled = true, RerankCandidateLimit = 2, RerankTimeoutMs = 50 };
         var stable = await ChatFixture.Retrieval(new FixtureIndex(corpus), reranker: new FakeReranker(false))
             .PrepareAsync(id, "Orion", options.ProjectSearch(), default);
-        Assert.Equal(baseline.Select(ProjectRetrieval.Reference), stable.Chunks.Select(ProjectRetrieval.Reference));
+        Assert.Equal(baseline.Select(SourceCoordinates.Reference), stable.Chunks.Select(SourceCoordinates.Reference));
         Assert.Equal(2, stable.Report.Rerank!.Scores!.Count);
         var delayed = ChatFixture.Retrieval(new FixtureIndex(corpus), reranker: new FakeReranker(true));
         var fallback = await delayed.PrepareAsync(id, "Orion", options.ProjectSearch(), default);
         Assert.Equal("timeout", fallback.Report.Rerank!.State);
-        Assert.Equal(baseline.Select(ProjectRetrieval.Reference), fallback.Chunks.Select(ProjectRetrieval.Reference));
+        Assert.Equal(baseline.Select(SourceCoordinates.Reference), fallback.Chunks.Select(SourceCoordinates.Reference));
         using var cancelled = new CancellationTokenSource(); cancelled.Cancel();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => delayed.PrepareAsync(id, "Orion", options.ProjectSearch(), cancelled.Token));
     }
@@ -85,7 +85,7 @@ public class RoutingAndRerankTests
         Assert.Equal(visible.FileId, Assert.Single(provider.Reranked));
         Assert.Equal(visible, Assert.Single(result.Chunks));
         var decision = Assert.Single(result.Report.Decisions!);
-        Assert.Equal(ProjectRetrieval.Reference(visible), decision.Reference);
+        Assert.Equal(SourceCoordinates.Reference(visible), decision.Reference);
         Assert.Equal(new[] { 0, 1 }, decision.Queries!.Select(hit => hit.Query));
     }
 

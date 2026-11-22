@@ -693,7 +693,7 @@ def main():
     # This scenario exercises the fallback independently of any locally installed weights.
     env.pop("ALYCIA_RERANK_DIRECTORY", None)
     ef = ["dotnet", "tool", "run", "dotnet-ef", "database"]
-    ef_options = ["--project", "src/Alycia.Modules.Chat.Infrastructure", "--context", "ChatDbContext", "--no-build"]
+    ef_options = ["--project", "src/Alycia.Persistence.Migrations", "--context", "ChatDbContext", "--no-build"]
     provider = None
     if args.case == "mock":
         env["ALYCIA_MOCK_INFERENCE"] = "true"

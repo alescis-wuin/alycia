@@ -21,7 +21,7 @@ internal static class TestTurnSnapshots
             f.MetadataSource, f.ContextMode);
 }
 
-internal interface ITestConversationRepository : IChatRepository
+internal interface ITestConversationRepository : IChatRepository, IConversationContextReader, IToolHistoryReader, IQuerySources
 {
     Task<IReadOnlyList<Attachment>> FilesAsync(Guid id, CancellationToken ct);
 

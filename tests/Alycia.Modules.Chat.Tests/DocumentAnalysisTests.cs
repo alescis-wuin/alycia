@@ -43,7 +43,7 @@ public sealed class DocumentAnalysisTests
             Assert.Equal("", code.SourceCreatedAt);
             Assert.Contains("fuseau non fourni", code.MetadataSource);
             var model = new Model();
-            var service = new DocumentAnalysisService(database, model, new ProjectSourceReader(storage), ChatFixture.Gate, new AnalysisConversationOwner(database, new(), model), ChatFixture.DocumentScope, new ModelMeterFactory());
+            var service = new DocumentAnalysisService(RecursiveSummarizer.Create, database, model, new ProjectSourceReader(storage), ChatFixture.Gate, new AnalysisConversationOwner(database, new(), model), ChatFixture.DocumentScope, new ModelMeterFactory());
             var report = await service.AnalyzeAsync(conversation.Id, conversation.Revision, null, 1024, null, default);
             Assert.Equal(4, report.FileCount);
             Assert.Contains("Source : tree.txt intégral", string.Join("\n", model.Inputs));
@@ -51,7 +51,7 @@ public sealed class DocumentAnalysisTests
             Assert.Contains(code.Name, report.TreeText);
             Assert.Contains("sourceFingerprint", report.ManifestJson);
             Assert.Contains("2025-01-02T03:04:05Z", report.TreeText);
-            var context = await new EfChatRepository(database, ChatFixture.Profiles(database), new TurnDocuments(database, ChatFixture.DocumentScope)).ContextFilesAsync(conversation.Id, 1, default);
+            var context = await new ConversationReadModel(database, new TurnDocuments(database, ChatFixture.DocumentScope)).ContextFilesAsync(conversation.Id, 1, default);
             Assert.Equal(2, context.Count);
             Assert.Contains(context, f => f.Id == code.Id);
             Assert.EndsWith(report.SummaryText, Assert.Single(context, f => f.Id == report.Id).Text);
@@ -82,7 +82,7 @@ public sealed class DocumentAnalysisTests
             code.ContextMode = "excluded"; conversation.AttachFiles();
             await database.SaveChangesAsync();
             Assert.All(await service.ListAsync(conversation.Id, default), a => Assert.True(a.IsStale));
-            Assert.Empty(await new EfChatRepository(database, ChatFixture.Profiles(database), new TurnDocuments(database, ChatFixture.DocumentScope)).ContextFilesAsync(conversation.Id, 1, default));
+            Assert.Empty(await new ConversationReadModel(database, new TurnDocuments(database, ChatFixture.DocumentScope)).ContextFilesAsync(conversation.Id, 1, default));
 
             var unsafeArchive = Zip(("nested.zip", Zip(("../escape.txt", "no"u8.ToArray()))));
             await Assert.ThrowsAsync<ArgumentException>(() => importer.ImportAsync(conversation.Id, Guid.NewGuid(),

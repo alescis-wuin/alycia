@@ -6,6 +6,7 @@ public sealed record IndexedOriginal(string Text, bool Complete, string Origin)
 {
     // Stored passage keys, checkpoints and caches include this segmentation format.
     public const int StructureVersion = 3;
+    public const int ExtractorVersion = 1;
 }
 public sealed record IndexFileCursor(Guid Id, string Name);
 

@@ -12,7 +12,7 @@ namespace Alycia.Modules.Chat.Tests;
 
 public sealed class ProjectCreationTests
 {
-    private static ProjectCatalog Catalog(ChatDbContext database)
+    internal static ProjectCatalog Catalog(ChatDbContext database)
     {
         var session = new RelationalSession(database.Database);
         var identities = new WorkspaceIdentityDirectory(session);

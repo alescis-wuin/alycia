@@ -9,4 +9,13 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.14" />
     <PackageReference Include="Npgsql" Version="10.0.3" />
   </ItemGroup>
+  <ItemGroup>
+    <Using Include="Alycia.Contracts.Chat" />
+    <Using Include="Alycia.Contracts.Context" />
+    <Using Include="Alycia.Contracts.Indexing" />
+    <Using Include="Alycia.Contracts.Inference" />
+    <Using Include="Alycia.Contracts.Memory" />
+    <Using Include="Alycia.Contracts.Tools" />
+    <Using Include="Alycia.Contracts.Retrieval" />
+  </ItemGroup>
 </Project>

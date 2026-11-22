@@ -1,0 +1,11 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Alycia.Contracts -> $RECETTE/alycia/src/Alycia.Contracts/bin/Debug/net10.0/Alycia.Contracts.dll
+  Alycia.Modules.Inference -> $RECETTE/alycia/src/Alycia.Modules.Inference/bin/Debug/net10.0/Alycia.Modules.Inference.dll
+  Alycia.Modules.Testing -> $RECETTE/alycia/src/Alycia.Modules.Testing/bin/Debug/net10.0/Alycia.Modules.Testing.dll
+  Alycia.Modules.Inference.Tests -> $RECETTE/alycia/tests/Alycia.Modules.Inference.Tests/bin/Debug/net10.0/Alycia.Modules.Inference.Tests.dll
+Test run for $RECETTE/alycia/tests/Alycia.Modules.Inference.Tests/bin/Debug/net10.0/Alycia.Modules.Inference.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:     1, Skipped:     0, Total:     1, Duration: 184 ms - Alycia.Modules.Inference.Tests.dll (net10.0)
+VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.

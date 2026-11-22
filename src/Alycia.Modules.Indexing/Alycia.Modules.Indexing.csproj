@@ -11,4 +11,14 @@
     <Using Include="Alycia.Contracts.Inference" />
     <Using Include="Alycia.Contracts.Indexing" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.14" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Alycia.Contracts.Documents" />
+    <Using Include="Alycia.Contracts.Context" />
+    <Using Include="Alycia.Contracts.Retrieval" />
+    <Using Include="Alycia.Contracts.Memory" />
+    <Using Include="Alycia.Contracts.Tools" />
+  </ItemGroup>
 </Project>

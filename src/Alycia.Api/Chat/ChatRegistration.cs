@@ -7,7 +7,6 @@ using Alycia.Modules.Chat.Application.Conversations;
 using Alycia.Contracts.Workspaces;
 using Alycia.Platform.Persistence;
 using Alycia.Modules.Workspaces.Infrastructure;
-using Alycia.Modules.Chat.Application.Context;
 using Alycia.Modules.Chat.Application;
 using Alycia.Modules.Chat.Infrastructure;
 using Microsoft.AspNetCore.Http.Features;
@@ -37,6 +36,13 @@ internal static class ChatRegistration
         builder.Services.AddSingleton(IndexParameters.Capture(options));
         builder.Services.AddDbContext<ChatDbContext>(db => db.UseNpgsql(connection,
             provider => provider.MigrationsHistoryTable("__EFMigrationsHistory", "chat")));
+        builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<ChatDbContext>());
+        builder.Services.AddScoped<Func<DbContext>>(sp =>
+        {
+            var options = sp.GetRequiredService<DbContextOptions<ChatDbContext>>();
+            return () => new ChatDbContext(options);
+        });
+        builder.Services.AddSingleton<IConversationLease>(sp => sp.GetRequiredService<GenerationGate>());
         AddAlyciaContext(builder.Services);
         AddAlyciaConversations(builder.Services);
         AddAlyciaProjects(builder.Services);
@@ -50,6 +56,9 @@ internal static class ChatRegistration
 
     private static void AddAlyciaContext(IServiceCollection services)
     {
+        services.AddSingleton<IContextMemory, ContextMemory>();
+        services.AddSingleton<CreateSummaryReducer>(RecursiveSummarizer.Create);
+        services.AddSingleton<IPassageScoring, PassageScoring>();
         services.AddScoped<ITurnContext, TurnContext>();
         services.AddSingleton<Alycia.Contracts.Context.ISlidingHistory, Alycia.Modules.Context.SlidingHistory>();
         services.AddScoped<ConversationContextPreparation>();
@@ -59,13 +68,15 @@ internal static class ChatRegistration
     {
         services.AddSingleton<GenerationGate>();
         services.AddScoped<IChatRepository, EfChatRepository>();
-        services.AddScoped<IConversationContextReader>(sp => sp.GetRequiredService<IChatRepository>());
+        services.AddScoped<ConversationReadModel>();
+        services.AddScoped<IConversationContextReader>(sp => sp.GetRequiredService<ConversationReadModel>());
         services.AddScoped<IAnalysisConversation, AnalysisConversationOwner>();
         services.AddScoped<IConversationFileChanges, ConversationFileChanges>();
         services.AddScoped<ConversationHistory>();
         services.AddScoped<ConversationSettingsService>();
         services.AddScoped<PromptCatalog>();
-        services.AddScoped<IQuerySources>(sp => sp.GetRequiredService<IChatRepository>());
+        services.AddScoped<IQuerySources>(sp => sp.GetRequiredService<ConversationReadModel>());
+        services.AddSingleton<CreateQueryBriefRefiner>(_ => model => new QueryBriefRefiner(model));
         services.AddScoped<IQueryPlanner, QueryPlanner>();
         services.AddScoped<ITurnRouter, TurnRouting>();
         services.AddScoped<ITurnResponseAudit, TurnResponseAudit>();
@@ -73,7 +84,7 @@ internal static class ChatRegistration
             sp.GetRequiredService<IChatRepository>(), sp.GetRequiredService<IChatModel>(), sp.GetRequiredService<ChatOptions>(),
             sp.GetRequiredService<ITurnContext>(), sp.GetRequiredService<IConversationMemory>(), sp.GetRequiredService<ITurnTools>(),
             sp.GetRequiredService<ITurnRouter>(), sp.GetRequiredService<ITurnResponseAudit>(),
-            sp.GetRequiredService<GenerationGate>(), sp.GetRequiredService<IForegroundActivity>(), sp.GetRequiredService<IModelMeterFactory>()));
+            sp.GetRequiredService<GenerationGate>(), sp.GetRequiredService<IForegroundActivity>(), sp.GetRequiredService<IModelMeterFactory>(), sp.GetRequiredService<CreateQueryBriefRefiner>()));
     }
 
     private static void AddAlyciaProjects(IServiceCollection services)
@@ -105,7 +116,7 @@ internal static class ChatRegistration
     private static void AddAlyciaTools(IServiceCollection services)
     {
         services.AddScoped<ITurnTools, TurnTools>();
-        services.AddScoped<IToolHistoryReader>(sp => sp.GetRequiredService<IChatRepository>());
+        services.AddScoped<IToolHistoryReader>(sp => sp.GetRequiredService<ConversationReadModel>());
         services.AddScoped<IToolConversationPolicy, ToolConversationPolicyReader>();
         services.AddScoped<ISourceCommands, Alycia.Modules.Tools.SourceCommands>();
         services.AddScoped<ProjectToolService>();
@@ -116,17 +127,20 @@ internal static class ChatRegistration
 
     private static void AddAlyciaIndexing(IServiceCollection services, string connection)
     {
+        services.AddSingleton(sp => new PassageCacheDirectory(sp.GetRequiredService<FileStorage>().Root));
+        services.AddScoped(sp => sp.GetRequiredService<ChatDbContext>().Database);
         services.AddScoped<IProjectIndex, ProjectIndexService>();
         services.AddScoped<IndexCatalog>();
-        services.AddScoped<ILiveIndexFileAccess>(sp => new LiveIndexFileAccess(sp.GetRequiredService<DbContextOptions<ChatDbContext>>(),
+        services.AddScoped<ILiveIndexFileAccess>(sp => new LiveIndexFileAccess(sp.GetRequiredService<Func<DbContext>>(),
             session => new WorkspaceProfileStore(session, new WorkspaceIdentityDirectory(session)), sp.GetRequiredService<DocumentScope>()));
         services.AddScoped<KnowledgeStore>();
         services.AddScoped<IHistoryKnowledge>(sp => sp.GetRequiredService<KnowledgeStore>());
         services.AddScoped<KnowledgeBuilder>();
-        services.AddScoped(_ => new PostgresEmbeddingStore(connection, new Alycia.Modules.Memory.MemoryVectorEligibility(connection), transaction =>
+        services.AddScoped(sp => new PostgresEmbeddingStore(connection, new Alycia.Modules.Memory.MemoryVectorEligibility(connection), (transaction, publishing) =>
         {
             var session = new RelationalSession(transaction);
-            return new IndexJobSource(new ConversationIndexOwners(session), new WorkspaceProfileStore(session, new WorkspaceIdentityDirectory(session)));
+            return new IndexJobSource(new ConversationIndexOwners(session, publishing), new WorkspaceProfileStore(session, new WorkspaceIdentityDirectory(session), publishing),
+                (owner, project, hashes, ct) => sp.GetRequiredService<DocumentScope>().EligibleHashesAsync(transaction, owner, project, hashes, publishing, ct));
         }));
         services.AddScoped<IConversationIndexOwners, ConversationIndexOwners>();
         services.AddScoped<IProjectIndexOwners>(sp => sp.GetRequiredService<WorkspaceProfileStore>());
@@ -147,7 +161,8 @@ internal static class ChatRegistration
 
     private static void AddAlyciaDocuments(WebApplicationBuilder builder)
     {
-        builder.Services.AddSingleton(new DocumentScope(session => new ConversationWorkspaceLookup(session)));
+        builder.Services.AddSingleton(new DocumentScope(session => new ConversationWorkspaceLookup(session),
+            connection => new ChatDbContext(new DbContextOptionsBuilder<ChatDbContext>().UseNpgsql(connection).Options)));
         builder.Services.AddScoped<ITurnDocuments, TurnDocuments>();
         builder.Services.AddScoped<IConversationOriginals, ConversationOriginals>();
         builder.Services.AddScoped<IArchiveDocuments, ArchiveDocuments>();

@@ -1,3 +1,4 @@
+using Alycia.Modules.Testing;
 using Alycia.Modules.Retrieval;
 using Alycia.Contracts.Indexing;
 using Alycia.Contracts.Memory;
@@ -27,7 +28,7 @@ public class TemporalMemoryIntegrationTests
             }
             await db.SaveChangesAsync();
             var storage = new Alycia.Modules.Memory.TemporalFactStorage(db.Database);
-            var worker = new TemporalMemoryStore(storage, new TemporalHistorySources(db, new() { TemporalMemoryEnabled = true }), new NoVectors());
+            var worker = new TemporalMemoryStore(new PassageScoring(), storage, new TemporalHistorySources(db, new() { TemporalMemoryEnabled = true }), new NoVectors());
             await worker.RefreshAsync(default);
             Assert.Equal(32, await storage.ContiguousThroughAsync(conversation.Id, 36, default));
             await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM chat.temporal_memory WHERE owner={conversation.Id} AND sequence=7");
@@ -65,7 +66,7 @@ public class TemporalMemoryIntegrationTests
             Turn(owner, 4, "Correction [région]: Bretagne", "Merci.");
             Turn(other, 2, "Décision [région]: INTERDIT", "D'accord.");
             await db.SaveChangesAsync();
-            var store = new TemporalMemoryStore(new Alycia.Modules.Memory.TemporalFactStorage(db.Database), new TemporalHistorySources(db, options), new NoVectors());
+            var store = new TemporalMemoryStore(new PassageScoring(), new Alycia.Modules.Memory.TemporalFactStorage(db.Database), new TemporalHistorySources(db, options), new NoVectors());
             await store.RefreshAsync(default); await store.RefreshAsync(default);
             var data = await store.ExportAsync(owner.Id, 0, 50, default);
             Assert.Equal(4, data.Length); Assert.DoesNotContain(data, f => f.Quote.Contains("INTERDIT"));
@@ -74,7 +75,7 @@ public class TemporalMemoryIntegrationTests
             {
                 var copy = options.Copy();
                 copy.Recall = await store.RecallAsync(owner.Id, question, TemporalRecallSettings.Capture(copy), owner.MessageCount, default);
-                return (await TemporalContext.BuildAsync(new EfChatRepository(db, ChatFixture.Profiles(db), new TurnDocuments(db, ChatFixture.DocumentScope)), owner.ForContext(copy), question, copy.Context(), default)).Context;
+                return (await TemporalContext.BuildAsync(new ContextMemory(), new ConversationReadModel(db, new TurnDocuments(db, ChatFixture.DocumentScope)), owner.ForContext(copy), question, copy.Context(), default)).Context;
             }
             var current = await Recall("Quelle région ?");
             Assert.Contains(current.MemoryTexts!, t => t.Text.Contains("Bretagne"));
@@ -89,17 +90,47 @@ public class TemporalMemoryIntegrationTests
             {
                 var scope = fact.Quote.Contains("INTERDIT") ? other.Id : owner.Id;
                 if (fact.Role == "assistant") continue;
-                var chunk = new SourceChunk(Guid.NewGuid(), "history/" + fact.Sequence, fact.Sha256, fact.Role, "history",
-                    0, fact.Quote.Length, 1, 1, fact.Quote, [], true);
-                await embeddings.WriteAsync("fixture:digest", chunk, [1, 0], scope, fact.Sequence, default);
+                var message = await db.Messages.SingleAsync(m => m.ConversationId == scope && m.Sequence == fact.Sequence);
+                var chunk = new SourceChunk(message.RequestId, $"{scope:N}/history/{fact.Sequence}", fact.Sha256, fact.Role, "history",
+                    0, message.Content.Length, 1, 1, message.Content, [], true);
+                await embeddings.QueueAsync(scope, false, new EmbeddingSettings("fixture", 8, 128, true), default);
+                var job = (await embeddings.JobsAsync(default)).Single(j => j.Progress.OwnerId == scope);
+                Assert.True(await embeddings.PublishEligibleVectorsAsync(job, "fixture:digest", [chunk], [[1, 0]], scope, fact.Sequence, default));
             }
             var semanticOptions = options.Copy(); semanticOptions.RetrievalMode = "hybrid"; semanticOptions.EmbeddingModel = "fixture";
             var engine = new BackgroundEmbeddingIndex(ChatFixture.IndexFiles(db, new(new FileStorage(Path.GetTempPath()))), ChatFixture.LiveFiles(db), embeddings, new QueryEncoder(), IndexParameters.Capture(options), new ConversationIndexOwners(new(db.Database)), ChatFixture.Profiles(db), ChatFixture.Profiles(db), ChatFixture.Foreground);
-            var semanticStore = new TemporalMemoryStore(new Alycia.Modules.Memory.TemporalFactStorage(db.Database), new TemporalHistorySources(db, options), engine);
+            var semanticStore = new TemporalMemoryStore(new PassageScoring(), new Alycia.Modules.Memory.TemporalFactStorage(db.Database), new TemporalHistorySources(db, options), engine);
             var paraphrase = await semanticStore.RecallAsync(owner.Id, "Territoire géographique ?", TemporalRecallSettings.Capture(semanticOptions), 4, default);
             Assert.Single(paraphrase.Calls);
             Assert.Contains(paraphrase.Facts, f => f.Quote.Contains("Bretagne"));
             Assert.DoesNotContain(paraphrase.Facts, f => f.Quote.Contains("INTERDIT"));
+            var observed = data.Select(f => (owner.Id, f)).Concat((await store.ExportAsync(other.Id, 0, 10, default)).Select(f => (other.Id, f))).ToArray();
+            var fixture = new FixtureTemporalIndex(observed);
+            foreach (var (recall, index) in new (ITemporalMemory, ITemporalMemoryIndex)[] { (store, store), (fixture, fixture) })
+            {
+                await index.RefreshAsync(default); await index.RefreshAsync(default);
+                Assert.Equal(new[] { 2, 3 }, (await index.ExportAsync(owner.Id, 1, 2, default)).Select(f => f.Sequence));
+                var bounded = await recall.RecallAsync(owner.Id, "Quelle région au 2026-01-02", TemporalRecallSettings.Capture(options), 4, default);
+                Assert.Contains(bounded.Facts, f => f.Quote.Contains("Normandie"));
+                Assert.DoesNotContain(bounded.Facts, f => f.Quote.Contains("Bretagne") || f.Quote.Contains("INTERDIT"));
+                Assert.Empty((await recall.RecallAsync(Guid.Empty, "région", TemporalRecallSettings.Capture(options), 4, default)).Facts);
+                await Assert.ThrowsAnyAsync<OperationCanceledException>(() => index.ClearAsync(owner.Id, new(true)));
+                Assert.Equal(4, await index.ClearAsync(owner.Id, default));
+                Assert.Equal(0, await index.ClearAsync(owner.Id, default));
+                Assert.Equal(2, (await index.ExportAsync(other.Id, 0, 10, default)).Length);
+                await index.RefreshAsync(default);
+                Assert.Equal(data, await index.ExportAsync(owner.Id, 0, 10, default));
+            }
+            foreach (var maintenance in new IIndexMaintenance[] { new IndexMaintenance(store, engine, embeddings),
+                new FixtureIndexMaintenance(fixture.RefreshAsync, _ => Task.CompletedTask) })
+            {
+                var target = maintenance is IndexMaintenance ? (ITemporalMemoryIndex)store : fixture;
+                await target.ClearAsync(owner.Id, default);
+                await Assert.ThrowsAnyAsync<OperationCanceledException>(() => maintenance.RunCycleAsync(new(true)));
+                Assert.Empty(await target.ExportAsync(owner.Id, 0, 10, default));
+                await maintenance.RunCycleAsync(default);
+                Assert.Equal(data, await target.ExportAsync(owner.Id, 0, 10, default));
+            }
             var ref1 = past.Temporal!.Sources.Single(s => s.Role == "user");
             Assert.Contains(ref1.Reference, CitationAudit.Check($"Preuve [{ref1.Reference}]", [], [], past.Temporal.Sources).Recognized);
             await store.ClearAsync(owner.Id, default);

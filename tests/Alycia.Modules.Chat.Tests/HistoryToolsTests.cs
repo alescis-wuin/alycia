@@ -11,7 +11,7 @@ public sealed class HistoryToolsTests
     [Fact]
     public async Task OldDecisionRemainsSearchableBeyondLedgerLimitAndKeepsBothRoles()
     {
-        var repository = new Repository(300); var tools = new HistoryTools(repository);
+        var repository = new Repository(300); var tools = new HistoryTools(new PassageScoring(), repository);
         var result = await tools.CallAsync(repository.Conversation.Id, "history_search", JsonSerializer.SerializeToElement(new { query = "orion" }), 8192, default);
         Assert.Contains("/srv/orion", result.Text);
         Assert.Contains(result.History!, h => h.Sequence == 1 && h.Role == "user");
@@ -29,7 +29,7 @@ public sealed class HistoryToolsTests
     [Fact]
     public async Task NoMatchReturnsScanContinuationAndInvalidOffsetsNeverReadAnotherTurn()
     {
-        var repository = new Repository(2100); var tools = new HistoryTools(repository);
+        var repository = new Repository(2100); var tools = new HistoryTools(new PassageScoring(), repository);
         var result = await tools.CallAsync(repository.Conversation.Id, "history_search", JsonSerializer.SerializeToElement(new { query = "neptune" }), 2048, default);
         using var json = JsonDocument.Parse(result.Text);
         Assert.Equal(HistoryTools.MaxScanMessages, json.RootElement.GetProperty("scannedMessages").GetInt32());

@@ -4,7 +4,6 @@ using Alycia.Contracts.Retrieval;
 using Alycia.Contracts.Memory;
 using Alycia.Modules.Chat.Application.Conversations;
 using Alycia.Modules.Chat.Application;
-using Alycia.Modules.Chat.Application.Context;
 using Alycia.Modules.Chat.Domain;
 
 namespace Alycia.Modules.Chat.Tests;
@@ -102,8 +101,8 @@ public sealed class ConversationContextPreparationTests
         public bool AllowSettingsWrite { get; init; }
         public int Writes { get; private set; }
         public int OptionReads { get; private set; }
-        public ConversationContextPreparation Service() => new(this, this, new TurnTools(), new TurnContext(this, new Alycia.Modules.Context.SlidingHistory()),
-            new ConversationMemory(this, ChatFixture.Gate), new TurnRouting(new QueryPlanner(this), this, this), Defaults, ChatFixture.Gate, new ModelMeterFactory());
+        public ConversationContextPreparation Service() => new(this, this, new TurnTools(RecursiveSummarizer.Create), new TurnContext(new ContextMemory(), this, new Alycia.Modules.Context.SlidingHistory()),
+            new ConversationMemory(this, ChatFixture.Gate), new TurnRouting(new QueryPlanner(this), this, this), Defaults, ChatFixture.Gate, new ModelMeterFactory(), model => new QueryBriefRefiner(model));
 
         public Task<ModelTokenization> InspectAsync(string model, string tokenCounting, CancellationToken ct)
         {

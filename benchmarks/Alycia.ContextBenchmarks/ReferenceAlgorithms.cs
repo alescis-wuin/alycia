@@ -6,8 +6,8 @@ internal static class ReferenceAlgorithms
 {
     public static double[] Bm25(IReadOnlyList<SourceChunk> chunks, string query)
     {
-        var terms = ProjectRetrieval.Tokens(query).Distinct().Take(32).ToArray();
-        var documents = chunks.Select(c => ProjectRetrieval.Tokens(c.Text + " " + c.Path + " " + c.Symbol + " " + c.Symbol + " " + c.Symbol)
+        var terms = LexicalTerms.Split(query).Distinct().Take(32).ToArray();
+        var documents = chunks.Select(c => LexicalTerms.Split(c.Text + " " + c.Path + " " + c.Symbol + " " + c.Symbol + " " + c.Symbol)
             .GroupBy(t => t).ToDictionary(g => g.Key, g => g.Count())).ToArray();
         var lengths = documents.Select(d => d.Values.Sum()).ToArray();
         var average = Math.Max(1, lengths.Length == 0 ? 1 : lengths.Average());

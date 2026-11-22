@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Alycia.Modules.Documents/Alycia.Modules.Documents.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Alycia.Modules.Chat.Domain/Alycia.Modules.Chat.Domain.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Alycia.Modules.Workspaces.Domain/Alycia.Modules.Workspaces.Domain.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.14" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.14" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Alycia.Persistence.Migrations" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Alycia.Modules.Configuration/Alycia.Modules.Configuration.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Alycia.Modules.Configuration" />
+  </ItemGroup>
+</Project>
