@@ -154,24 +154,26 @@ ALYCIA_MOCK_INFERENCE=true dotnet run --no-build --project src/Alycia.DevHost --
 
 Pour Docker, définir le secret de développement `POSTGRES_PASSWORD` exigé par Compose, puis utiliser `docker compose config --quiet`, `docker compose up --build -d`, `docker compose ps`, `curl -fsS http://127.0.0.1:8080/healthz`, puis `docker compose stop`. Pour le GPU Ollama, rejouer la recette réelle et inspecter la mémoire vidéo du modèle pendant sa résidence avec `ollama ps` et `/api/ps`. Pour KDE, lancer Boréale dans une session Wayland et exercer clavier, navigation, dialogue de fichiers et flux d’un tour. Sous Windows, avec PostgreSQL de test et les poids disponibles, exécuter `./scripts/check.ps1 -Integration`, puis `./scripts/demo.ps1 -Action All`. Ces essais ont le statut NON TESTÉ sur leurs plateformes respectives.
 
-Les commits de la PR sont publiés par l’API Git Data. GitHub indique `unsigned`. Pour produire une branche vérifiée avec une clé SSH déjà inscrite comme **signing key** sur le compte GitHub de l’intégrateur, utiliser un environnement Git authentifié, une adresse de commit associée au compte, et remplacer le chemin de clé ci-dessous. La série est rejouée sur une branche neuve. Le contrôle des arbres précède l’envoi.
+La PR #51 conserve les commits publiés par le connecteur. GitHub les classe `unsigned`. L’intégrateur prépare la livraison signée sur sa machine, avec une identité SSH ou GPG de signature enregistrée auprès de GitHub. Les trois SHA complets sont ceux du fichier `LIRE-MOI.md` de l’archive de preuves. Le script vérifie les deux branches distantes, signe chaque commit sur une nouvelle branche locale et contrôle chaque arbre. Il s’arrête si la base ou la tête a changé.
 
 ```bash
-set -e
-git fetch origin
-candidate=origin/alycia-decouplage-modulaire-20261121
-finition=origin/refactor/alycia-finition-decouplage-20261121
-git merge-base --is-ancestor "$candidate" "$finition"
-git switch --create "refactor/alycia-finition-signee-$(date -u +%Y%m%d-%H%M%S)" "$candidate"
-export GIT_CONFIG_COUNT=2
-export GIT_CONFIG_KEY_0=gpg.format GIT_CONFIG_VALUE_0=ssh
-export GIT_CONFIG_KEY_1=user.signingkey GIT_CONFIG_VALUE_1="$HOME/.ssh/alycia_signing"
-while read -r commit; do git cherry-pick -S "$commit" || exit 1; done < <(git rev-list --reverse --first-parent "$candidate..$finition")
-git diff --exit-code "$finition" HEAD
-git push --set-upstream origin HEAD
-for commit in $(git rev-list "$candidate..HEAD"); do
-  test "$(gh api "repos/alescis-wuin/alycia/git/commits/$commit" --jq '.verification.verified')" = true || exit 1
-done
+bash scripts/architecture/preparer-signature.sh "$base_testee" "$tete_pr" "$arbre_attendu" ../alycia-finition-signee
+git -C ../alycia-finition-signee push --set-upstream origin HEAD
 ```
+
+Après l’envoi, exécuter ce contrôle avec GitHub CLI dans Bash. Le compte GitHub doit reconnaître chaque signature.
+
+```bash
+(
+  set -e
+  cd ../alycia-finition-signee
+  test "$(git rev-parse 'HEAD^{tree}')" = "$arbre_attendu"
+  for commit in $(git rev-list "$base_testee..HEAD"); do
+    test "$(gh api "repos/alescis-wuin/alycia/git/commits/$commit" --jq '.verification.verified')" = true
+  done
+)
+```
+
+La branche signée est distincte de la tête de la PR #51. Le fichier `LIRE-MOI.md` contient également la commande de création de sa PR en brouillon vers la même candidate.
 
 Le rapport des phases donne les SHA de retour arrière. Sur une branche de correction, `git revert <sha>` inverse une phase. Pour abandonner toute la série, quitter la branche de finition et utiliser la tête candidate de la PR #50. Les migrations historiques et les originaux existants sont conservés. Une promotion ultérieure requiert fermeture des écarts obligatoires, vérification GitHub, revue de la PR empilée, puis revue de #50 vers develop. Les promotions vers testing et main suivent ensuite le processus du dépôt.
