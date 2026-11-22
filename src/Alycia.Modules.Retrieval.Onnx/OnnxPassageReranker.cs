@@ -16,7 +16,10 @@ public sealed class OnnxPassageReranker(string? directory) : IPassageReranker, I
 
     public async Task<RerankScores> ScoreAsync(string question, IReadOnlyList<SourceChunk> passages, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(directory) || !await _slot.WaitAsync(0, ct))
+        if (string.IsNullOrWhiteSpace(directory)) throw new InvalidOperationException("Reclassement local indisponible.");
+        ct.ThrowIfCancellationRequested();
+        var submitted = passages.ToArray();
+        if (!await _slot.WaitAsync(0, ct))
             throw new InvalidOperationException("Reclassement local indisponible.");
         // Keep ownership of the native session until the native call has actually returned.
         var work = Task.Run(() =>
@@ -27,11 +30,11 @@ public sealed class OnnxPassageReranker(string? directory) : IPassageReranker, I
                 EnsureLoaded();
                 using var run = new RunOptions();
                 using var cancellation = ct.Register(() => run.Terminate = true);
-                var scores = new double[passages.Count];
-                for (var n = 0; n < passages.Count; n++)
+                var scores = new double[submitted.Length];
+                for (var n = 0; n < submitted.Length; n++)
                 {
                     ct.ThrowIfCancellationRequested();
-                    var passage = passages[n];
+                    var passage = submitted[n];
                     var pair = _tokenizer!.Encode(question, true, passage.Path + "\n" + passage.Symbol + "\n" + passage.Text,
                         includeTypeIds: true, includeAttentionMask: true).First();
                     if (pair.Ids.Count() is < 1 or > 384) throw new InvalidDataException("Paire de tokens invalide.");

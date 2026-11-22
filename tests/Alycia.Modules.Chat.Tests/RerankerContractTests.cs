@@ -15,6 +15,27 @@ public sealed class RerankerContractTests
     }
 
     [WeightsFact]
+    public async Task Native_worker_reads_only_a_snapshot_of_the_submitted_passages()
+    {
+        using var ranker = new OnnxPassageReranker(Environment.GetEnvironmentVariable("ALYCIA_RERANK_DIRECTORY"));
+        var passage = new SourceChunk(Guid.NewGuid(), "Paris.txt", "hash", "Paris", "text", 0, 5, 1, 1, "Paris", [], true);
+        var sources = new CallerOwnedList(passage);
+        var result = await ranker.ScoreAsync("Paris", sources, default);
+        Assert.Single(result.Values);
+        Assert.True(double.IsFinite(result.Values[0]));
+    }
+
+    private sealed class CallerOwnedList(SourceChunk source) : IReadOnlyList<SourceChunk>
+    {
+        private readonly int owner = Environment.CurrentManagedThreadId;
+        public int Count => 1;
+        public SourceChunk this[int index] => Environment.CurrentManagedThreadId == owner && index == 0
+            ? source : throw new InvalidOperationException("La collection appartient au thread appelant.");
+        public IEnumerator<SourceChunk> GetEnumerator() { yield return this[0]; }
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+    }
+
+    [WeightsFact]
     public async Task Verified_weights_and_the_recorded_adapter_preserve_positions_identity_and_cancellation()
     {
         using var neural = new OnnxPassageReranker(Environment.GetEnvironmentVariable("ALYCIA_RERANK_DIRECTORY"));
