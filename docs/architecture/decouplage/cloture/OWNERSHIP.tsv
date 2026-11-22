@@ -1,0 +1,823 @@
+nature	identité	propriétaire	source ou fixture	invariant ou interface
+adaptateur	Alycia.Api.Chat.ProjectMcpClient	Tools	tests/Alycia.Modules.Tools.Tests/ToolPortContractTests.cs	Alycia.Contracts.Tools.IProjectTools
+adaptateur	Alycia.Contracts.Chat.ChatSettings	Configuration	tests/Alycia.Modules.Chat.Tests/ConversationSettingsTransferTests.cs	Alycia.Contracts.Chat.IGenerationSettings
+adaptateur	Alycia.Contracts.Chat.ChatSettings	Configuration	tests/Alycia.Modules.Chat.Tests/ToolCallingTests.cs	Alycia.Contracts.Chat.IToolWindowSettings
+adaptateur	Alycia.Contracts.Chat.ChatSettings	Configuration	tests/Alycia.Modules.Chat.Tests/TurnSnapshotTests.cs	Alycia.Contracts.Chat.IIndexSettings
+adaptateur	Alycia.Contracts.Chat.ToolWindowParameters	Configuration	tests/Alycia.Modules.Chat.Tests/ToolCallingTests.cs	Alycia.Contracts.Chat.IToolWindowSettings
+adaptateur	Alycia.Contracts.Context.ContextParameters	Configuration	tests/Alycia.Modules.Chat.Tests/ToolCallingTests.cs	Alycia.Contracts.Chat.IToolWindowSettings
+adaptateur	Alycia.Contracts.Indexing.IndexParameters	Configuration	tests/Alycia.Modules.Chat.Tests/TurnSnapshotTests.cs	Alycia.Contracts.Chat.IIndexSettings
+adaptateur	Alycia.Contracts.Inference.GenerationParameters	Configuration	tests/Alycia.Modules.Chat.Tests/ConversationSettingsTransferTests.cs	Alycia.Contracts.Chat.IGenerationSettings
+adaptateur	Alycia.Modules.Chat.Application.ChatOptions	Configuration	tests/Alycia.Modules.Chat.Tests/ConversationSettingsTransferTests.cs	Alycia.Contracts.Chat.IGenerationSettings
+adaptateur	Alycia.Modules.Chat.Application.ChatOptions	Configuration	tests/Alycia.Modules.Chat.Tests/ToolCallingTests.cs	Alycia.Contracts.Chat.IToolWindowSettings
+adaptateur	Alycia.Modules.Chat.Application.ChatOptions	Configuration	tests/Alycia.Modules.Chat.Tests/TurnSnapshotTests.cs	Alycia.Contracts.Chat.IIndexSettings
+adaptateur	Alycia.Modules.Chat.Application.ConversationMemory	Memory	tests/Alycia.Modules.Chat.Tests/ConversationPortsContractTests.cs	Alycia.Modules.Chat.Application.IConversationMemory
+adaptateur	Alycia.Modules.Chat.Application.GenerationGate	Documents	tests/Alycia.Modules.Conversations.Tests/ExclusiveLeaseTests.cs	Alycia.Contracts.Documents.IConversationLease
+adaptateur	Alycia.Modules.Chat.Application.TurnRouting	Retrieval	tests/Alycia.Modules.Chat.Tests/RoutingContractTests.cs	Alycia.Contracts.Retrieval.ITurnRouter
+adaptateur	Alycia.Modules.Chat.Infrastructure.AnalysisConversationOwner	Documents	tests/Alycia.Modules.Chat.Tests/ArchiveAnalysisContractTests.cs	Alycia.Contracts.Documents.IAnalysisConversation
+adaptateur	Alycia.Modules.Chat.Infrastructure.ConversationFileChanges	Documents	tests/Alycia.Modules.Chat.Tests/OriginalsContractTests.cs	Alycia.Contracts.Documents.IConversationFileChanges
+adaptateur	Alycia.Modules.Chat.Infrastructure.ConversationIndexOwners	Conversations	tests/Alycia.Modules.Chat.Tests/OwnerContractTests.cs	Alycia.Contracts.Indexing.IConversationIndexOwners
+adaptateur	Alycia.Modules.Chat.Infrastructure.ConversationReadModel	Context	tests/Alycia.Modules.Chat.Tests/TurnReadContractTests.cs	Alycia.Contracts.Context.ITurnHistory
+adaptateur	Alycia.Modules.Chat.Infrastructure.ConversationReadModel	Conversations	tests/Alycia.Modules.Chat.Tests/TurnReadContractTests.cs	Alycia.Contracts.Context.IConversationContextReader
+adaptateur	Alycia.Modules.Chat.Infrastructure.ConversationReadModel	Retrieval	tests/Alycia.Modules.Chat.Tests/TurnReadContractTests.cs	Alycia.Contracts.Retrieval.IQuerySources
+adaptateur	Alycia.Modules.Chat.Infrastructure.ConversationReadModel	Tools	tests/Alycia.Modules.Chat.Tests/TurnReadContractTests.cs	Alycia.Contracts.Tools.IToolHistoryReader
+adaptateur	Alycia.Modules.Chat.Infrastructure.ConversationWorkspaceLookup	Documents	tests/Alycia.Modules.Chat.Tests/OwnerContractTests.cs	Alycia.Contracts.Documents.IConversationWorkspaceLookup
+adaptateur	Alycia.Modules.Chat.Infrastructure.EfChatRepository	Conversations	tests/Alycia.Modules.Chat.Tests/ConversationPortsContractTests.cs	Alycia.Modules.Chat.Application.IChatRepository
+adaptateur	Alycia.Modules.Chat.Infrastructure.EfChatRepository.TurnScope	Conversations	tests/Alycia.Modules.Chat.Tests/ConversationPortsContractTests.cs	Alycia.Modules.Chat.Application.IChatTurnScope
+adaptateur	Alycia.Modules.Chat.Infrastructure.ProjectNoteOrigins	Workspaces	tests/Alycia.Modules.Chat.Tests/ProjectProfileContractTests.cs	Alycia.Contracts.Workspaces.IProjectNoteOrigins
+adaptateur	Alycia.Modules.Chat.Infrastructure.TemporalHistorySources	Memory	tests/Alycia.Modules.Chat.Tests/TurnReadContractTests.cs	Alycia.Contracts.Memory.ITemporalHistorySources
+adaptateur	Alycia.Modules.Chat.Infrastructure.ToolConversationPolicyReader	Conversations	tests/Alycia.Modules.Chat.Tests/OwnerContractTests.cs	Alycia.Contracts.Documents.IToolConversationPolicy
+adaptateur	Alycia.Modules.Configuration.ImportSettingsStore	Documents	tests/Alycia.Modules.Chat.Tests/OwnerContractTests.cs	Alycia.Contracts.Documents.IImportLimitsReader
+adaptateur	Alycia.Modules.Context.RecursiveSummarizer	Context	tests/Alycia.Modules.Context.Tests/SummaryContractTests.cs	Alycia.Contracts.Context.ISummaryReducer
+adaptateur	Alycia.Modules.Context.SlidingHistory	Context	tests/Alycia.Modules.Context.Tests/HistorySelectionContractTests.cs	Alycia.Contracts.Context.ISlidingHistory
+adaptateur	Alycia.Modules.Context.TurnContext	Context	tests/Alycia.Modules.Chat.Tests/TurnOutputContractTests.cs	Alycia.Contracts.Context.ITurnContext
+adaptateur	Alycia.Modules.Documents.Infrastructure.ArchiveDocuments	Documents	tests/Alycia.Modules.Chat.Tests/ArchiveAnalysisContractTests.cs	Alycia.Contracts.Documents.IArchiveDocuments
+adaptateur	Alycia.Modules.Documents.Infrastructure.ArchiveDocuments.ForkAttempt	Documents	tests/Alycia.Modules.Chat.Tests/ArchiveAnalysisContractTests.cs	Alycia.Contracts.Documents.IDocumentFork
+adaptateur	Alycia.Modules.Documents.Infrastructure.AuthorizedToolSources	Documents	tests/Alycia.Modules.Chat.Tests/OwnerContractTests.cs	Alycia.Contracts.Documents.IAuthorizedToolSources
+adaptateur	Alycia.Modules.Documents.Infrastructure.ConversationOriginals	Documents	tests/Alycia.Modules.Chat.Tests/OriginalsContractTests.cs	Alycia.Contracts.Documents.IConversationOriginals
+adaptateur	Alycia.Modules.Documents.Infrastructure.DocumentMembershipOverrides	Documents	tests/Alycia.Modules.Chat.Tests/OriginalsContractTests.cs	Alycia.Contracts.Documents.IDocumentMembershipOverrides
+adaptateur	Alycia.Modules.Documents.Infrastructure.IndexSourceDocumentsAdapter	Indexing	tests/Alycia.Modules.Chat.Tests/IndexDocumentContractTests.cs	Alycia.Contracts.Indexing.IIndexSourceDocuments
+adaptateur	Alycia.Modules.Documents.Infrastructure.LiveIndexFileAccess	Documents	tests/Alycia.Modules.Chat.Tests/OwnerContractTests.cs	Alycia.Contracts.Documents.ILiveIndexFileAccess
+adaptateur	Alycia.Modules.Documents.Infrastructure.TurnDocuments	Documents	tests/Alycia.Modules.Chat.Tests/TurnReadContractTests.cs	Alycia.Contracts.Documents.ITurnDocuments
+adaptateur	Alycia.Modules.Indexing.BackgroundEmbeddingIndex	Indexing	tests/Alycia.Modules.Chat.Tests/VectorPublicationConcurrencyTests.cs	Alycia.Contracts.Indexing.IIndexedEmbeddings
+adaptateur	Alycia.Modules.Indexing.IndexMaintenance	Indexing	tests/Alycia.Modules.Chat.Tests/TemporalMemoryIntegrationTests.cs	Alycia.Contracts.Indexing.IIndexMaintenance
+adaptateur	Alycia.Modules.Indexing.IndexedEmbeddingSearch	Indexing	tests/Alycia.Modules.Chat.Tests/VectorPublicationConcurrencyTests.cs	Alycia.Contracts.Indexing.IIndexedEmbeddings
+adaptateur	Alycia.Modules.Indexing.KnowledgeStore	Indexing	tests/Alycia.Modules.Chat.Tests/KnowledgePipelineTests.cs	Alycia.Contracts.Indexing.IHistoryKnowledge
+adaptateur	Alycia.Modules.Indexing.PostgresEmbeddingStore	Indexing	tests/Alycia.Modules.Chat.Tests/VectorPublicationConcurrencyTests.cs	Alycia.Contracts.Indexing.IEmbeddingSimilarityReader
+adaptateur	Alycia.Modules.Indexing.ProjectIndexService	Indexing	tests/Alycia.Modules.Chat.Tests/OwnerContractTests.cs	Alycia.Contracts.Indexing.IProjectIndex
+adaptateur	Alycia.Modules.Inference.ChatGenerationAdapter	Inference	tests/Alycia.Modules.Inference.Tests/TextGenerationContractTests.cs	Alycia.Contracts.Inference.IChatModel
+adaptateur	Alycia.Modules.Inference.ForegroundActivity	Inference	tests/Alycia.Modules.Chat.Tests/KnowledgePipelineTests.cs	Alycia.Contracts.Inference.IForegroundActivity
+adaptateur	Alycia.Modules.Inference.MeteredChatModel	Inference	tests/Alycia.Modules.Inference.Tests/TextGenerationContractTests.cs	Alycia.Contracts.Inference.IChatModel
+adaptateur	Alycia.Modules.Inference.MeteredChatModel	Inference	tests/Alycia.Modules.Inference.Tests/TextGenerationContractTests.cs	Alycia.Contracts.Inference.IModelMeter
+adaptateur	Alycia.Modules.Inference.ModelMeterFactory	Inference	tests/Alycia.Modules.Inference.Tests/TextGenerationContractTests.cs	Alycia.Contracts.Inference.IModelMeterFactory
+adaptateur	Alycia.Modules.Inference.OllamaEmbeddings	Inference	tests/Alycia.Modules.Inference.Tests/TextGenerationContractTests.cs	Alycia.Contracts.Inference.ILocalEmbeddings
+adaptateur	Alycia.Modules.Inference.OllamaTextGeneration	Inference	tests/Alycia.Modules.Inference.Tests/TextGenerationContractTests.cs	Alycia.Contracts.Inference.ITextGeneration
+adaptateur	Alycia.Modules.Inference.QueryBriefRefiner	Retrieval	tests/Alycia.Modules.Inference.Tests/BriefContractTests.cs	Alycia.Contracts.Retrieval.IQueryBriefRefiner
+adaptateur	Alycia.Modules.Inference.QwenTokenCounter	Inference	tests/Alycia.Modules.Chat.Tests/TokenBudgetTests.cs	Alycia.Contracts.Inference.ITextTokenCounter
+adaptateur	Alycia.Modules.Memory.ContextMemory	Memory	tests/Alycia.Modules.Chat.Tests/TurnOutputContractTests.cs	Alycia.Contracts.Memory.IContextMemory
+adaptateur	Alycia.Modules.Memory.MemoryVectorEligibility	Indexing	tests/Alycia.Modules.Memory.Tests/EligibilityTests.cs	Alycia.Contracts.Indexing.IMemoryVectorEligibility
+adaptateur	Alycia.Modules.Memory.TemporalFactStorage	Memory	tests/Alycia.Modules.Chat.Tests/TemporalFactsContractTests.cs	Alycia.Contracts.Memory.ITemporalFactStorage
+adaptateur	Alycia.Modules.Memory.TemporalMemoryStore	Memory	tests/Alycia.Modules.Chat.Tests/TemporalMemoryIntegrationTests.cs	Alycia.Contracts.Memory.ITemporalMemory
+adaptateur	Alycia.Modules.Memory.TemporalMemoryStore	Memory	tests/Alycia.Modules.Chat.Tests/TemporalMemoryIntegrationTests.cs	Alycia.Contracts.Memory.ITemporalMemoryIndex
+adaptateur	Alycia.Modules.Retrieval.Onnx.OnnxPassageReranker	Retrieval	tests/Alycia.Modules.Chat.Tests/RerankerContractTests.cs	Alycia.Contracts.Retrieval.IPassageReranker
+adaptateur	Alycia.Modules.Retrieval.PassageScoring	Retrieval	tests/Alycia.Modules.Retrieval.Tests/ScoringContractTests.cs	Alycia.Contracts.Retrieval.IPassageScoring
+adaptateur	Alycia.Modules.Retrieval.ProjectRetrievalService	Retrieval	tests/Alycia.Modules.Chat.Tests/RoutingContractTests.cs	Alycia.Contracts.Retrieval.IProjectRetrieval
+adaptateur	Alycia.Modules.Retrieval.QueryPlanner	Retrieval	tests/Alycia.Modules.Chat.Tests/RoutingContractTests.cs	Alycia.Contracts.Retrieval.IQueryPlanner
+adaptateur	Alycia.Modules.Retrieval.RetrievalPipeline	Retrieval	tests/Alycia.Modules.Chat.Tests/RoutingContractTests.cs	Alycia.Contracts.Retrieval.IRetrievalPipeline
+adaptateur	Alycia.Modules.Retrieval.TurnResponseAudit	Conversations	tests/Alycia.Modules.Chat.Tests/TurnOutputContractTests.cs	Alycia.Contracts.Retrieval.ITurnResponseAudit
+adaptateur	Alycia.Modules.Tools.ProjectToolService	Tools	tests/Alycia.Modules.Tools.Tests/ToolPortContractTests.cs	Alycia.Contracts.Tools.IProjectTools
+adaptateur	Alycia.Modules.Tools.ProjectToolService	Tools	tests/Alycia.Modules.Tools.Tests/ToolPortContractTests.cs	Alycia.Contracts.Tools.ISnapshotProjectTools
+adaptateur	Alycia.Modules.Tools.SourceCommands	Tools	tests/Alycia.Modules.Tools.Tests/ToolPortContractTests.cs	Alycia.Contracts.Tools.ISourceCommands
+adaptateur	Alycia.Modules.Tools.TurnTools	Tools	tests/Alycia.Modules.Chat.Tests/TurnOutputContractTests.cs	Alycia.Contracts.Tools.ITurnTools
+adaptateur	Alycia.Modules.Workspaces.Infrastructure.EfWorkspaceRepository	Workspaces	tests/Alycia.Modules.Workspaces.Tests/RepositoryContractTests.cs	Alycia.Modules.Workspaces.Application.IWorkspaceRepository
+adaptateur	Alycia.Modules.Workspaces.Infrastructure.ProjectCatalog	Workspaces	tests/Alycia.Modules.Chat.Tests/OwnerContractTests.cs	Alycia.Contracts.Workspaces.IProjectModelDefaults
+adaptateur	Alycia.Modules.Workspaces.Infrastructure.ProjectCatalog	Workspaces	tests/Alycia.Modules.Chat.Tests/ProjectProfileContractTests.cs	Alycia.Contracts.Workspaces.IProjectCatalog
+adaptateur	Alycia.Modules.Workspaces.Infrastructure.WorkspaceIdentityDirectory	Workspaces	tests/Alycia.Modules.Chat.Tests/OwnerContractTests.cs	Alycia.Contracts.Workspaces.IWorkspaceIdentityDirectory
+adaptateur	Alycia.Modules.Workspaces.Infrastructure.WorkspaceProfileStore	Workspaces	tests/Alycia.Modules.Chat.Tests/OwnerContractTests.cs	Alycia.Contracts.Indexing.IProjectIndexOwners
+adaptateur	Alycia.Modules.Workspaces.Infrastructure.WorkspaceProfileStore	Workspaces	tests/Alycia.Modules.Chat.Tests/ProjectProfileContractTests.cs	Alycia.Contracts.Workspaces.IWorkspaceProfiles
+double	Alycia.Modules.Chat.Tests.Doubles.FixtureConversationMemory	Memory	tests/Alycia.Modules.Chat.Tests/ConversationPortsContractTests.cs	Alycia.Modules.Chat.Application.IConversationMemory
+double	Alycia.Modules.Chat.Tests.Doubles.MemoryChatRepository	Conversations	tests/Alycia.Modules.Chat.Tests/ConversationPortsContractTests.cs	Alycia.Modules.Chat.Application.IChatRepository
+double	Alycia.Modules.Chat.Tests.Doubles.MemoryChatRepository.Scope	Conversations	tests/Alycia.Modules.Chat.Tests/ConversationPortsContractTests.cs	Alycia.Modules.Chat.Application.IChatTurnScope
+double	Alycia.Modules.Testing.DeterministicEmbeddings	Inference	tests/Alycia.Modules.Inference.Tests/TextGenerationContractTests.cs	Alycia.Contracts.Inference.ILocalEmbeddings
+double	Alycia.Modules.Testing.FixedImportLimits	Documents	tests/Alycia.Modules.Chat.Tests/OwnerContractTests.cs	Alycia.Contracts.Documents.IImportLimitsReader
+double	Alycia.Modules.Testing.FixtureContextMemory	Memory	tests/Alycia.Modules.Chat.Tests/TurnOutputContractTests.cs	Alycia.Contracts.Memory.IContextMemory
+double	Alycia.Modules.Testing.FixtureHistoryKnowledge	Indexing	tests/Alycia.Modules.Chat.Tests/KnowledgePipelineTests.cs	Alycia.Contracts.Indexing.IHistoryKnowledge
+double	Alycia.Modules.Testing.FixtureIndexMaintenance	Indexing	tests/Alycia.Modules.Chat.Tests/TemporalMemoryIntegrationTests.cs	Alycia.Contracts.Indexing.IIndexMaintenance
+double	Alycia.Modules.Testing.FixturePassageScoring	Retrieval	tests/Alycia.Modules.Retrieval.Tests/ScoringContractTests.cs	Alycia.Contracts.Retrieval.IPassageScoring
+double	Alycia.Modules.Testing.FixtureQueryPlanner	Retrieval	tests/Alycia.Modules.Chat.Tests/RoutingContractTests.cs	Alycia.Contracts.Retrieval.IQueryPlanner
+double	Alycia.Modules.Testing.FixtureResponseAudit	Conversations	tests/Alycia.Modules.Chat.Tests/TurnOutputContractTests.cs	Alycia.Contracts.Retrieval.ITurnResponseAudit
+double	Alycia.Modules.Testing.FixtureRetrieval	Retrieval	tests/Alycia.Modules.Chat.Tests/RoutingContractTests.cs	Alycia.Contracts.Retrieval.IProjectRetrieval
+double	Alycia.Modules.Testing.FixtureRetrieval	Retrieval	tests/Alycia.Modules.Chat.Tests/RoutingContractTests.cs	Alycia.Contracts.Retrieval.IRetrievalPipeline
+double	Alycia.Modules.Testing.FixtureTemporalIndex	Memory	tests/Alycia.Modules.Chat.Tests/TemporalMemoryIntegrationTests.cs	Alycia.Contracts.Memory.ITemporalMemory
+double	Alycia.Modules.Testing.FixtureTemporalIndex	Memory	tests/Alycia.Modules.Chat.Tests/TemporalMemoryIntegrationTests.cs	Alycia.Contracts.Memory.ITemporalMemoryIndex
+double	Alycia.Modules.Testing.FixtureTurnContext	Context	tests/Alycia.Modules.Chat.Tests/TurnOutputContractTests.cs	Alycia.Contracts.Context.ITurnContext
+double	Alycia.Modules.Testing.FixtureTurnRouter	Retrieval	tests/Alycia.Modules.Chat.Tests/RoutingContractTests.cs	Alycia.Contracts.Retrieval.ITurnRouter
+double	Alycia.Modules.Testing.FixtureTurnTools	Tools	tests/Alycia.Modules.Chat.Tests/TurnOutputContractTests.cs	Alycia.Contracts.Tools.ITurnTools
+double	Alycia.Modules.Testing.MemoryAnalysisConversations	Documents	tests/Alycia.Modules.Chat.Tests/ArchiveAnalysisContractTests.cs	Alycia.Contracts.Documents.IAnalysisConversation
+double	Alycia.Modules.Testing.MemoryArchiveDocuments	Documents	tests/Alycia.Modules.Chat.Tests/ArchiveAnalysisContractTests.cs	Alycia.Contracts.Documents.IArchiveDocuments
+double	Alycia.Modules.Testing.MemoryArchiveDocuments.Attempt	Documents	tests/Alycia.Modules.Chat.Tests/ArchiveAnalysisContractTests.cs	Alycia.Contracts.Documents.IDocumentFork
+double	Alycia.Modules.Testing.MemoryConversationLeases	Documents	tests/Alycia.Modules.Conversations.Tests/ExclusiveLeaseTests.cs	Alycia.Contracts.Documents.IConversationLease
+double	Alycia.Modules.Testing.MemoryDocumentOverrides	Documents	tests/Alycia.Modules.Chat.Tests/OriginalsContractTests.cs	Alycia.Contracts.Documents.IDocumentMembershipOverrides
+double	Alycia.Modules.Testing.MemoryFileChanges	Documents	tests/Alycia.Modules.Chat.Tests/OriginalsContractTests.cs	Alycia.Contracts.Documents.IConversationFileChanges
+double	Alycia.Modules.Testing.MemoryMeterFactory	Inference	tests/Alycia.Modules.Inference.Tests/TextGenerationContractTests.cs	Alycia.Contracts.Inference.IModelMeterFactory
+double	Alycia.Modules.Testing.MemoryModelMeter	Inference	tests/Alycia.Modules.Inference.Tests/TextGenerationContractTests.cs	Alycia.Contracts.Inference.IChatModel
+double	Alycia.Modules.Testing.MemoryModelMeter	Inference	tests/Alycia.Modules.Inference.Tests/TextGenerationContractTests.cs	Alycia.Contracts.Inference.IModelMeter
+double	Alycia.Modules.Testing.MemoryProjectCatalog	Workspaces	tests/Alycia.Modules.Chat.Tests/OwnerContractTests.cs	Alycia.Contracts.Workspaces.IProjectModelDefaults
+double	Alycia.Modules.Testing.MemoryProjectCatalog	Workspaces	tests/Alycia.Modules.Chat.Tests/ProjectProfileContractTests.cs	Alycia.Contracts.Workspaces.IProjectCatalog
+double	Alycia.Modules.Testing.MemoryProjectCatalog	Workspaces	tests/Alycia.Modules.Chat.Tests/ProjectProfileContractTests.cs	Alycia.Contracts.Workspaces.IWorkspaceProfiles
+double	Alycia.Modules.Testing.MemoryTemporalFacts	Memory	tests/Alycia.Modules.Chat.Tests/TemporalFactsContractTests.cs	Alycia.Contracts.Memory.ITemporalFactStorage
+double	Alycia.Modules.Testing.MemoryWorkspaceDirectory	Workspaces	tests/Alycia.Modules.Chat.Tests/OwnerContractTests.cs	Alycia.Contracts.Workspaces.IWorkspaceIdentityDirectory
+double	Alycia.Modules.Testing.RecordedIndexedEmbeddings	Indexing	tests/Alycia.Modules.Chat.Tests/VectorPublicationConcurrencyTests.cs	Alycia.Contracts.Indexing.IIndexedEmbeddings
+double	Alycia.Modules.Testing.RecordedQueryBrief	Retrieval	tests/Alycia.Modules.Inference.Tests/BriefContractTests.cs	Alycia.Contracts.Retrieval.IQueryBriefRefiner
+double	Alycia.Modules.Testing.RecordedReranker	Retrieval	tests/Alycia.Modules.Chat.Tests/RerankerContractTests.cs	Alycia.Contracts.Retrieval.IPassageReranker
+double	Alycia.Modules.Testing.RecordedSummaries	Context	tests/Alycia.Modules.Context.Tests/SummaryContractTests.cs	Alycia.Contracts.Context.ISummaryReducer
+double	Alycia.Modules.Testing.ReferenceSlidingHistory	Context	tests/Alycia.Modules.Context.Tests/HistorySelectionContractTests.cs	Alycia.Contracts.Context.ISlidingHistory
+double	Alycia.Modules.Testing.ScriptedProjectTools	Tools	tests/Alycia.Modules.Tools.Tests/ToolPortContractTests.cs	Alycia.Contracts.Tools.IProjectTools
+double	Alycia.Modules.Testing.ScriptedProjectTools	Tools	tests/Alycia.Modules.Tools.Tests/ToolPortContractTests.cs	Alycia.Contracts.Tools.ISnapshotProjectTools
+double	Alycia.Modules.Testing.ScriptedProjectTools	Tools	tests/Alycia.Modules.Tools.Tests/ToolPortContractTests.cs	Alycia.Contracts.Tools.ISourceCommands
+double	Alycia.Modules.Testing.ScriptedTextGeneration	Inference	tests/Alycia.Modules.Inference.Tests/TextGenerationContractTests.cs	Alycia.Contracts.Inference.IChatModel
+double	Alycia.Modules.Testing.ScriptedTextGeneration	Inference	tests/Alycia.Modules.Inference.Tests/TextGenerationContractTests.cs	Alycia.Contracts.Inference.ITextGeneration
+double	Alycia.Modules.Testing.SnapshotConversations	Conversations	tests/Alycia.Modules.Chat.Tests/OwnerContractTests.cs	Alycia.Contracts.Documents.IToolConversationPolicy
+double	Alycia.Modules.Testing.SnapshotConversations	Conversations	tests/Alycia.Modules.Chat.Tests/OwnerContractTests.cs	Alycia.Contracts.Indexing.IConversationIndexOwners
+double	Alycia.Modules.Testing.SnapshotConversations	Documents	tests/Alycia.Modules.Chat.Tests/OwnerContractTests.cs	Alycia.Contracts.Documents.IConversationWorkspaceLookup
+double	Alycia.Modules.Testing.SnapshotIndex	Indexing	tests/Alycia.Modules.Chat.Tests/OwnerContractTests.cs	Alycia.Contracts.Indexing.IProjectIndex
+double	Alycia.Modules.Testing.SnapshotIndexDocuments	Indexing	tests/Alycia.Modules.Chat.Tests/IndexDocumentContractTests.cs	Alycia.Contracts.Indexing.IIndexSourceDocuments
+double	Alycia.Modules.Testing.SnapshotMemoryEligibility	Indexing	tests/Alycia.Modules.Memory.Tests/EligibilityTests.cs	Alycia.Contracts.Indexing.IMemoryVectorEligibility
+double	Alycia.Modules.Testing.SnapshotNoteOrigins	Workspaces	tests/Alycia.Modules.Chat.Tests/ProjectProfileContractTests.cs	Alycia.Contracts.Workspaces.IProjectNoteOrigins
+double	Alycia.Modules.Testing.SnapshotOriginals	Documents	tests/Alycia.Modules.Chat.Tests/OriginalsContractTests.cs	Alycia.Contracts.Documents.IConversationOriginals
+double	Alycia.Modules.Testing.SnapshotProjectDefaults	Workspaces	tests/Alycia.Modules.Chat.Tests/OwnerContractTests.cs	Alycia.Contracts.Workspaces.IProjectModelDefaults
+double	Alycia.Modules.Testing.SnapshotProjects	Workspaces	tests/Alycia.Modules.Chat.Tests/OwnerContractTests.cs	Alycia.Contracts.Indexing.IProjectIndexOwners
+double	Alycia.Modules.Testing.SnapshotSimilarities	Indexing	tests/Alycia.Modules.Chat.Tests/VectorPublicationConcurrencyTests.cs	Alycia.Contracts.Indexing.IEmbeddingSimilarityReader
+double	Alycia.Modules.Testing.SnapshotTemporalHistory	Memory	tests/Alycia.Modules.Chat.Tests/TurnReadContractTests.cs	Alycia.Contracts.Memory.ITemporalHistorySources
+double	Alycia.Modules.Testing.SnapshotToolSources	Documents	tests/Alycia.Modules.Chat.Tests/OwnerContractTests.cs	Alycia.Contracts.Documents.IAuthorizedToolSources
+double	Alycia.Modules.Testing.SnapshotToolSources	Documents	tests/Alycia.Modules.Chat.Tests/OwnerContractTests.cs	Alycia.Contracts.Documents.ILiveIndexFileAccess
+double	Alycia.Modules.Testing.SnapshotTurnReads	Context	tests/Alycia.Modules.Chat.Tests/TurnReadContractTests.cs	Alycia.Contracts.Context.ITurnHistory
+double	Alycia.Modules.Testing.SnapshotTurnReads	Conversations	tests/Alycia.Modules.Chat.Tests/TurnReadContractTests.cs	Alycia.Contracts.Context.IConversationContextReader
+double	Alycia.Modules.Testing.SnapshotTurnReads	Documents	tests/Alycia.Modules.Chat.Tests/TurnReadContractTests.cs	Alycia.Contracts.Documents.ITurnDocuments
+double	Alycia.Modules.Testing.SnapshotTurnReads	Retrieval	tests/Alycia.Modules.Chat.Tests/TurnReadContractTests.cs	Alycia.Contracts.Retrieval.IQuerySources
+double	Alycia.Modules.Testing.SnapshotTurnReads	Tools	tests/Alycia.Modules.Chat.Tests/TurnReadContractTests.cs	Alycia.Contracts.Tools.IToolHistoryReader
+double	Alycia.Modules.Workspaces.Tests.Doubles.MemoryWorkspaceRepository	Workspaces	tests/Alycia.Modules.Workspaces.Tests/RepositoryContractTests.cs	Alycia.Modules.Workspaces.Application.IWorkspaceRepository
+port	Alycia.Contracts.Chat.IGenerationSettings	Configuration	src/Alycia.Contracts/SettingsViews.cs	EXCLU
+port	Alycia.Contracts.Chat.IIndexSettings	Configuration	src/Alycia.Contracts/SettingsViews.cs	EXCLU
+port	Alycia.Contracts.Chat.IToolWindowSettings	Configuration	src/Alycia.Contracts/SettingsViews.cs	EXCLU
+port	Alycia.Contracts.Context.IConversationContextReader	Conversations	src/Alycia.Contracts/Context/ConversationHistory.cs	VALIDÉ
+port	Alycia.Contracts.Context.ISlidingHistory	Context	src/Alycia.Contracts/Context/SlidingHistory.cs	VALIDÉ
+port	Alycia.Contracts.Context.ISummaryReducer	Context	src/Alycia.Contracts/Context/ISummaryReducer.cs	VALIDÉ
+port	Alycia.Contracts.Context.ITurnContext	Context	src/Alycia.Contracts/Context/ITurnContext.cs	VALIDÉ
+port	Alycia.Contracts.Context.ITurnHistory	Context	src/Alycia.Contracts/Context/ConversationHistory.cs	VALIDÉ
+port	Alycia.Contracts.Documents.IAnalysisConversation	Documents	src/Alycia.Contracts/Documents/AnalysisConversation.cs	VALIDÉ
+port	Alycia.Contracts.Documents.IArchiveDocuments	Documents	src/Alycia.Contracts/Documents/OriginalAccess.cs	VALIDÉ
+port	Alycia.Contracts.Documents.IAuthorizedToolSources	Documents	src/Alycia.Contracts/Documents/IAuthorizedToolSources.cs	VALIDÉ
+port	Alycia.Contracts.Documents.IConversationFileChanges	Documents	src/Alycia.Contracts/Documents/IConversationFileChanges.cs	VALIDÉ
+port	Alycia.Contracts.Documents.IConversationLease	Documents	src/Alycia.Contracts/Documents/IConversationLease.cs	VALIDÉ
+port	Alycia.Contracts.Documents.IConversationOriginals	Documents	src/Alycia.Contracts/Documents/OriginalAccess.cs	VALIDÉ
+port	Alycia.Contracts.Documents.IConversationWorkspaceLookup	Documents	src/Alycia.Contracts/Documents/IConversationWorkspaceLookup.cs	VALIDÉ
+port	Alycia.Contracts.Documents.IDocumentFork	Documents	src/Alycia.Contracts/Documents/OriginalAccess.cs	VALIDÉ
+port	Alycia.Contracts.Documents.IDocumentMembershipOverrides	Documents	src/Alycia.Contracts/Documents/IDocumentMembershipOverrides.cs	VALIDÉ
+port	Alycia.Contracts.Documents.IImportLimitsReader	Documents	src/Alycia.Contracts/Documents/IImportLimitsReader.cs	VALIDÉ
+port	Alycia.Contracts.Documents.ILiveIndexFileAccess	Documents	src/Alycia.Contracts/Documents/ILiveIndexFileAccess.cs	VALIDÉ
+port	Alycia.Contracts.Documents.IToolConversationPolicy	Conversations	src/Alycia.Contracts/Documents/IToolConversationPolicy.cs	VALIDÉ
+port	Alycia.Contracts.Documents.ITurnDocuments	Documents	src/Alycia.Contracts/Documents/TurnDocuments.cs	VALIDÉ
+port	Alycia.Contracts.Indexing.IConversationIndexOwners	Conversations	src/Alycia.Contracts/Indexing/OwnerDiscovery.cs	VALIDÉ
+port	Alycia.Contracts.Indexing.IEmbeddingSimilarityReader	Indexing	src/Alycia.Contracts/Indexing/IEmbeddingSimilarityReader.cs	VALIDÉ
+port	Alycia.Contracts.Indexing.IHistoryKnowledge	Indexing	src/Alycia.Contracts/Indexing/IHistoryKnowledge.cs	VALIDÉ
+port	Alycia.Contracts.Indexing.IIndexMaintenance	Indexing	src/Alycia.Contracts/Indexing/IIndexMaintenance.cs	VALIDÉ
+port	Alycia.Contracts.Indexing.IIndexSourceDocuments	Indexing	src/Alycia.Contracts/Indexing/IndexSourceDocuments.cs	VALIDÉ
+port	Alycia.Contracts.Indexing.IIndexedEmbeddings	Indexing	src/Alycia.Contracts/Indexing/IIndexedEmbeddings.cs	VALIDÉ
+port	Alycia.Contracts.Indexing.IMemoryVectorEligibility	Indexing	src/Alycia.Contracts/Indexing/IMemoryVectorEligibility.cs	VALIDÉ
+port	Alycia.Contracts.Indexing.IProjectIndex	Indexing	src/Alycia.Contracts/Indexing/SourceIndex.cs	VALIDÉ
+port	Alycia.Contracts.Indexing.IProjectIndexOwners	Workspaces	src/Alycia.Contracts/Indexing/OwnerDiscovery.cs	VALIDÉ
+port	Alycia.Contracts.Inference.IChatModel	Inference	src/Alycia.Contracts/Inference/IChatModel.cs	VALIDÉ
+port	Alycia.Contracts.Inference.IForegroundActivity	Inference	src/Alycia.Contracts/Inference/IForegroundActivity.cs	EXCLU
+port	Alycia.Contracts.Inference.ILocalEmbeddings	Inference	src/Alycia.Contracts/Inference/ILocalEmbeddings.cs	VALIDÉ
+port	Alycia.Contracts.Inference.IModelMeter	Inference	src/Alycia.Contracts/Inference/IChatModel.cs	VALIDÉ
+port	Alycia.Contracts.Inference.IModelMeterFactory	Inference	src/Alycia.Contracts/Inference/IChatModel.cs	VALIDÉ
+port	Alycia.Contracts.Inference.ITextGeneration	Inference	src/Alycia.Contracts/Inference/ITextGeneration.cs	VALIDÉ
+port	Alycia.Contracts.Inference.ITextTokenCounter	Inference	src/Alycia.Contracts/Inference/ITextTokenCounter.cs	EXCLU
+port	Alycia.Contracts.Memory.IContextMemory	Memory	src/Alycia.Contracts/Memory/IContextMemory.cs	VALIDÉ
+port	Alycia.Contracts.Memory.ITemporalFactStorage	Memory	src/Alycia.Contracts/Memory/TemporalStorage.cs	VALIDÉ
+port	Alycia.Contracts.Memory.ITemporalHistorySources	Memory	src/Alycia.Contracts/Memory/TemporalStorage.cs	VALIDÉ
+port	Alycia.Contracts.Memory.ITemporalMemory	Memory	src/Alycia.Contracts/Memory/TemporalRecall.cs	VALIDÉ
+port	Alycia.Contracts.Memory.ITemporalMemoryIndex	Memory	src/Alycia.Contracts/Memory/ITemporalMemoryIndex.cs	VALIDÉ
+port	Alycia.Contracts.Retrieval.IPassageReranker	Retrieval	src/Alycia.Contracts/Retrieval/IPassageReranker.cs	VALIDÉ
+port	Alycia.Contracts.Retrieval.IPassageScoring	Retrieval	src/Alycia.Contracts/Retrieval/IPassageScoring.cs	VALIDÉ
+port	Alycia.Contracts.Retrieval.IProjectRetrieval	Retrieval	src/Alycia.Contracts/Retrieval/IProjectRetrieval.cs	VALIDÉ
+port	Alycia.Contracts.Retrieval.IQueryBriefRefiner	Retrieval	src/Alycia.Contracts/Retrieval/TurnRouting.cs	VALIDÉ
+port	Alycia.Contracts.Retrieval.IQueryPlanner	Retrieval	src/Alycia.Contracts/Retrieval/TurnRouting.cs	VALIDÉ
+port	Alycia.Contracts.Retrieval.IQuerySources	Retrieval	src/Alycia.Contracts/Retrieval/TurnRouting.cs	VALIDÉ
+port	Alycia.Contracts.Retrieval.IRetrievalPipeline	Retrieval	src/Alycia.Contracts/Retrieval/SearchPipeline.cs	VALIDÉ
+port	Alycia.Contracts.Retrieval.ITurnResponseAudit	Conversations	src/Alycia.Contracts/Retrieval/ITurnResponseAudit.cs	VALIDÉ
+port	Alycia.Contracts.Retrieval.ITurnRouter	Retrieval	src/Alycia.Contracts/Retrieval/TurnRouting.cs	VALIDÉ
+port	Alycia.Contracts.Tools.IProjectTools	Tools	src/Alycia.Contracts/Tools/IProjectTools.cs	VALIDÉ
+port	Alycia.Contracts.Tools.ISnapshotProjectTools	Tools	src/Alycia.Contracts/Tools/IProjectTools.cs	VALIDÉ
+port	Alycia.Contracts.Tools.ISourceCommands	Tools	src/Alycia.Contracts/Tools/SourceCommands.cs	VALIDÉ
+port	Alycia.Contracts.Tools.IToolHistoryReader	Tools	src/Alycia.Contracts/Tools/IToolHistoryReader.cs	VALIDÉ
+port	Alycia.Contracts.Tools.ITurnTools	Tools	src/Alycia.Contracts/Tools/ITurnTools.cs	VALIDÉ
+port	Alycia.Contracts.Workspaces.IProjectCatalog	Workspaces	src/Alycia.Contracts/Workspaces/WorkspaceProjects.cs	VALIDÉ
+port	Alycia.Contracts.Workspaces.IProjectModelDefaults	Workspaces	src/Alycia.Contracts/Workspaces/WorkspaceProjects.cs	VALIDÉ
+port	Alycia.Contracts.Workspaces.IProjectNoteOrigins	Workspaces	src/Alycia.Contracts/Workspaces/WorkspaceProjects.cs	VALIDÉ
+port	Alycia.Contracts.Workspaces.IWorkspaceIdentityDirectory	Workspaces	src/Alycia.Contracts/Workspaces/IWorkspaceIdentityDirectory.cs	VALIDÉ
+port	Alycia.Contracts.Workspaces.IWorkspaceProfiles	Workspaces	src/Alycia.Contracts/Workspaces/WorkspaceProjects.cs	VALIDÉ
+port	Alycia.Modules.Chat.Application.IChatRepository	Conversations	src/Alycia.Modules.Chat.Application/ChatContracts.cs	VALIDÉ
+port	Alycia.Modules.Chat.Application.IChatTurnScope	Conversations	src/Alycia.Modules.Chat.Application/ChatContracts.cs	EXCLU
+port	Alycia.Modules.Chat.Application.IConversationMemory	Memory	src/Alycia.Modules.Chat.Application/Conversations/ConversationMemory.cs	VALIDÉ
+port	Alycia.Modules.Workspaces.Application.IWorkspaceRepository	Workspaces	src/Alycia.Modules.Workspaces.Application/IWorkspaceRepository.cs	VALIDÉ
+table	chat.__EFMigrationsHistory	EF migrations chat	recette/tables.tsv	Journal EF associé au schéma.
+table	chat.attachments	Documents	recette/tables.tsv	Original, provenance, empreinte, ancre et portée effective.
+table	chat.conversations	Conversations	recette/tables.tsv	Appartenance, révision, nombre de messages et mémoire commise avec le tour.
+table	chat.document_analyses	Documents	recette/tables.tsv	Reprise d’analyse et rapport liés au propriétaire et au contenu.
+table	chat.embedding_jobs	Indexing	recette/tables.tsv	Révision de travail, identité et dimension du modèle, progression.
+table	chat.embedding_vectors	Indexing	recette/tables.tsv	Clé du passage et espace vectoriel, lot autorisé atomique.
+table	chat.import_settings	Configuration	recette/tables.tsv	Paramètres applicables à l’import.
+table	chat.knowledge_units	Indexing	recette/tables.tsv	Dérivé versionné et rattaché à sa source.
+table	chat.messages	Conversations	recette/tables.tsv	Séquence et rôle du couple de messages pour un RequestId.
+table	chat.prompt_profiles	Configuration	recette/tables.tsv	Profil et consignes de configuration.
+table	chat.temporal_memory	Memory	recette/tables.tsv	Séquence, date, empreinte et faits issus du message source.
+table	chat.workspace_file_overrides	Documents	recette/tables.tsv	Un mode par paire conversation et fichier.
+table	chat.workspace_profiles	Workspaces	recette/tables.tsv	Révision, instructions, notes et archivage du projet.
+table	workspaces.__EFMigrationsHistory	EF migrations workspaces	recette/tables.tsv	Journal EF associé au schéma.
+table	workspaces.workspaces	Workspaces	recette/tables.tsv	Identité et unicité insensible à la casse du nom.
+type	T:Alycia.Api.AlyciaApiHost	Alycia.Api	src/Alycia.Api/AlyciaApiHost.cs	déclaration Roslyn
+type	T:Alycia.Api.Chat.ChatEndpoints	Alycia.Api	src/Alycia.Api/Chat/ChatEndpoints.Analysis.cs	déclaration Roslyn
+type	T:Alycia.Api.Chat.ChatEndpoints	Alycia.Api	src/Alycia.Api/Chat/ChatEndpoints.Configuration.cs	déclaration Roslyn
+type	T:Alycia.Api.Chat.ChatEndpoints	Alycia.Api	src/Alycia.Api/Chat/ChatEndpoints.History.cs	déclaration Roslyn
+type	T:Alycia.Api.Chat.ChatEndpoints	Alycia.Api	src/Alycia.Api/Chat/ChatEndpoints.Index.cs	déclaration Roslyn
+type	T:Alycia.Api.Chat.ChatEndpoints	Alycia.Api	src/Alycia.Api/Chat/ChatEndpoints.Mcp.cs	déclaration Roslyn
+type	T:Alycia.Api.Chat.ChatEndpoints	Alycia.Api	src/Alycia.Api/Chat/ChatEndpoints.Memory.cs	déclaration Roslyn
+type	T:Alycia.Api.Chat.ChatEndpoints	Alycia.Api	src/Alycia.Api/Chat/ChatEndpoints.Projects.cs	déclaration Roslyn
+type	T:Alycia.Api.Chat.ChatEndpoints	Alycia.Api	src/Alycia.Api/Chat/ChatEndpoints.Streaming.cs	déclaration Roslyn
+type	T:Alycia.Api.Chat.ChatEndpoints	Alycia.Api	src/Alycia.Api/Chat/ChatEndpoints.cs	déclaration Roslyn
+type	T:Alycia.Api.Chat.ChatEndpoints.AnalyzeRequest	Alycia.Api	src/Alycia.Api/Chat/ChatEndpoints.Analysis.cs	déclaration Roslyn
+type	T:Alycia.Api.Chat.ChatEndpoints.ConfigureConversation	Alycia.Api	src/Alycia.Api/Chat/ChatEndpoints.Configuration.cs	déclaration Roslyn
+type	T:Alycia.Api.Chat.ChatEndpoints.ConfigureFile	Alycia.Api	src/Alycia.Api/Chat/ChatEndpoints.Configuration.cs	déclaration Roslyn
+type	T:Alycia.Api.Chat.ChatEndpoints.CreateConversation	Alycia.Api	src/Alycia.Api/Chat/ChatEndpoints.cs	déclaration Roslyn
+type	T:Alycia.Api.Chat.ChatEndpoints.EditProject	Alycia.Api	src/Alycia.Api/Chat/ChatEndpoints.Projects.cs	déclaration Roslyn
+type	T:Alycia.Api.Chat.ChatEndpoints.ForkConversation	Alycia.Api	src/Alycia.Api/Chat/ChatEndpoints.History.cs	déclaration Roslyn
+type	T:Alycia.Api.Chat.ChatEndpoints.MemoryRequest	Alycia.Api	src/Alycia.Api/Chat/ChatEndpoints.Memory.cs	déclaration Roslyn
+type	T:Alycia.Api.Chat.ChatEndpoints.NewProject	Alycia.Api	src/Alycia.Api/Chat/ChatEndpoints.Projects.cs	déclaration Roslyn
+type	T:Alycia.Api.Chat.ChatEndpoints.NoteEdit	Alycia.Api	src/Alycia.Api/Chat/ChatEndpoints.Projects.cs	déclaration Roslyn
+type	T:Alycia.Api.Chat.ChatEndpoints.PreviewContext	Alycia.Api	src/Alycia.Api/Chat/ChatEndpoints.Configuration.cs	déclaration Roslyn
+type	T:Alycia.Api.Chat.ChatEndpoints.ProjectMembership	Alycia.Api	src/Alycia.Api/Chat/ChatEndpoints.Projects.cs	déclaration Roslyn
+type	T:Alycia.Api.Chat.ChatEndpoints.RenameConversation	Alycia.Api	src/Alycia.Api/Chat/ChatEndpoints.cs	déclaration Roslyn
+type	T:Alycia.Api.Chat.ChatEndpoints.SavePrompt	Alycia.Api	src/Alycia.Api/Chat/ChatEndpoints.Configuration.cs	déclaration Roslyn
+type	T:Alycia.Api.Chat.ChatEndpoints.SelectAnalysis	Alycia.Api	src/Alycia.Api/Chat/ChatEndpoints.Analysis.cs	déclaration Roslyn
+type	T:Alycia.Api.Chat.ChatEndpoints.SendMessage	Alycia.Api	src/Alycia.Api/Chat/ChatEndpoints.cs	déclaration Roslyn
+type	T:Alycia.Api.Chat.ChatEndpoints.SetProjectMode	Alycia.Api	src/Alycia.Api/Chat/ChatEndpoints.Projects.cs	déclaration Roslyn
+type	T:Alycia.Api.Chat.ChatEndpoints.StreamMessage	Alycia.Api	src/Alycia.Api/Chat/ChatEndpoints.Streaming.cs	déclaration Roslyn
+type	T:Alycia.Api.Chat.ChatRegistration	Alycia.Api	src/Alycia.Api/Chat/ChatRegistration.cs	déclaration Roslyn
+type	T:Alycia.Api.Chat.ConversationResponses	Alycia.Api	src/Alycia.Api/Chat/ConversationResponses.cs	déclaration Roslyn
+type	T:Alycia.Api.Chat.EmbeddingWorker	Alycia.Api	src/Alycia.Api/Chat/EmbeddingWorker.cs	déclaration Roslyn
+type	T:Alycia.Api.Chat.LocalChatAccess	Alycia.Api	src/Alycia.Api/Chat/LocalChatAccess.cs	déclaration Roslyn
+type	T:Alycia.Api.Chat.ProjectMcpClient	Alycia.Api	src/Alycia.Api/Chat/ProjectMcpClient.cs	déclaration Roslyn
+type	T:Alycia.Api.Workspaces.WorkspaceEndpoints	Alycia.Api	src/Alycia.Api/Workspaces/WorkspaceEndpoints.cs	déclaration Roslyn
+type	T:Alycia.Api.Workspaces.WorkspaceEndpoints.CreateWorkspaceRequest	Alycia.Api	src/Alycia.Api/Workspaces/WorkspaceEndpoints.cs	déclaration Roslyn
+type	T:Alycia.Api.Workspaces.WorkspaceEndpoints.WorkspaceDto	Alycia.Api	src/Alycia.Api/Workspaces/WorkspaceEndpoints.cs	déclaration Roslyn
+type	T:Alycia.Api.Workspaces.WorkspaceEndpoints.WorkspaceEnvelope	Alycia.Api	src/Alycia.Api/Workspaces/WorkspaceEndpoints.cs	déclaration Roslyn
+type	T:Alycia.Api.Workspaces.WorkspaceRegistration	Alycia.Api	src/Alycia.Api/Workspaces/WorkspaceRegistration.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.AnalysisCreated	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/ChatApiClient.Analysis.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.AnalysisDetails	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/ChatApiClient.Analysis.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.AnalysisItem	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/ChatApiClient.Analysis.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.AnalysisRunItem	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/ChatApiClient.Analysis.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.App	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/App.axaml.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.Appearance	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/Appearance.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.BackendHealthProbe	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/BackendHealthProbe.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.BackendHealthResult	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/BackendHealthProbe.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.Brand	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/Brand.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.ChatApiClient	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/ChatApiClient.Analysis.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.ChatApiClient	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/ChatApiClient.Configuration.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.ChatApiClient	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/ChatApiClient.Features.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.ChatApiClient	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/ChatApiClient.Knowledge.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.ChatApiClient	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/ChatApiClient.Projects.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.ChatApiClient	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/ChatApiClient.Tools.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.ChatApiClient	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/ChatApiClient.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.ChatApiClient	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/ChatWindow.ImportSettings.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.ChatApiClient.ApiError	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/ChatApiClient.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.ChatApiException	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/ChatApiClient.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.ChatMessageItem	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/ChatApiClient.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.ChatSendResult	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/ChatApiClient.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.ChatWindow	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/ChatWindow.Analysis.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.ChatWindow	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/ChatWindow.ConfigurationTransfer.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.ChatWindow	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/ChatWindow.Documents.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.ChatWindow	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/ChatWindow.Features.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.ChatWindow	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/ChatWindow.Files.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.ChatWindow	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/ChatWindow.ImportSettings.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.ChatWindow	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/ChatWindow.Indexing.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.ChatWindow	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/ChatWindow.Inspector.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.ChatWindow	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/ChatWindow.Knowledge.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.ChatWindow	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/ChatWindow.Navigation.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.ChatWindow	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/ChatWindow.Prompts.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.ChatWindow	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/ChatWindow.Tools.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.ChatWindow	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/ChatWindow.axaml.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.ChatWindow.ScopeChoice	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/ChatWindow.Analysis.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.CitationEventArgs	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/MarkdownView.Rich.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.CitationInline	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/CitationInline.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.CitationParser	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/CitationInline.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.CodeBlocks	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/ChatWindow.Features.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.CodeHighlight	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/CodeHighlight.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.CodeSpan	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/CodeHighlight.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.ContextPreview	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/ChatApiClient.Features.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.ConversationSearch	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/ChatApiClient.Features.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.ConversationSettingsEditor	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/Presentation/Configuration/ConversationSettingsEditor.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.DialogFields	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/Presentation/DialogFields.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.DocumentChange	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/Presentation/Documents/DocumentList.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.DocumentList	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/Presentation/Documents/DocumentList.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.DocumentUpload	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/Presentation/Documents/DocumentUpload.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.DocumentUploadResult	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/Presentation/Documents/DocumentUpload.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.DraftEntry	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/DraftStore.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.DraftStore	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/DraftStore.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.EvidenceInspector	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/Presentation/Diagnostics/EvidenceInspector.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.EvidenceSelection	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/Presentation/Diagnostics/EvidenceSelection.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.FileItem	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/ChatApiClient.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.FormulaView	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/FormulaView.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.HistoryNote	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/Presentation/Knowledge/KnowledgeBrowser.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.HistoryNotes	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/Presentation/Knowledge/KnowledgeBrowser.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.IndexScope	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/Presentation/Knowledge/IndexingMonitor.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.IndexingMonitor	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/Presentation/Knowledge/IndexingMonitor.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.IndexingStatus	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/Presentation/Knowledge/IndexingMonitor.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.KnowledgeBrowser	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/Presentation/Knowledge/KnowledgeBrowser.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.KnowledgeDocument	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/Presentation/Knowledge/KnowledgeBrowser.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.KnowledgeFields	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/Presentation/Configuration/KnowledgeFields.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.MainWindow	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/MainWindow.axaml.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.MarkdownView	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/MarkdownView.Rich.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.MarkdownView	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/MarkdownView.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.MessagePage	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/ChatApiClient.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.Presentation.Conversations.ConversationComposer	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/Presentation/Conversations/ConversationComposer.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.Presentation.Conversations.ConversationSubmission	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/Presentation/Conversations/ConversationComposer.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.Presentation.Conversations.ConversationTimeline	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/Presentation/Conversations/ConversationTimeline.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.Presentation.Navigation.ProjectNavigation	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/Presentation/Navigation/ProjectNavigation.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.Program	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/Program.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.ProjectChoice	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/ChatApiClient.Projects.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.ProjectIndexSettings	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/Presentation/Knowledge/IndexingMonitor.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.ProjectSettings	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/ChatApiClient.Projects.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.ProjectToolsInfo	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/ChatApiClient.Tools.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.PromptItem	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/ChatApiClient.Features.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.PromptPresets	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/Presentation/Configuration/PromptPresets.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.ResponseDiagnostics	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/ResponseDiagnostics.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.SettingsReply	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/ChatApiClient.Features.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.SourcePreview	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/ChatApiClient.Projects.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.ToolDisplay	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/Presentation/Tools/ToolDisplay.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.ToolInspection	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/Presentation/Tools/ToolInspection.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.UploadFile	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/ChatApiClient.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.WorkspaceApiClient	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/WorkspaceApiClient.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.WorkspaceApiClient.CreateWorkspaceRequest	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/WorkspaceApiClient.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.WorkspaceApiClient.WorkspaceEnvelope	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/WorkspaceApiClient.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.WorkspaceOperationResult	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/WorkspaceApiClient.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.WorkspaceOperationState	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/WorkspaceApiClient.cs	déclaration Roslyn
+type	T:Alycia.Client.Avalonia.WorkspaceSummary	Alycia.Client.Avalonia	src/Alycia.Client.Avalonia/WorkspaceApiClient.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.BoundedLines	Alycia.Contracts	src/Alycia.Contracts/BoundedLines.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.ChatArchiveLimits	Alycia.Contracts	src/Alycia.Contracts/ChatArchiveLimits.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.ChatConflictException	Alycia.Contracts	src/Alycia.Contracts/Conversations.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.ChatJson	Alycia.Contracts	src/Alycia.Contracts/ChatJson.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.ChatSettings	Alycia.Contracts	src/Alycia.Contracts/ChatSettings.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.CitationReport	Alycia.Contracts	src/Alycia.Contracts/Diagnostics.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.ClaimFinding	Alycia.Contracts	src/Alycia.Contracts/Diagnostics.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.ClaimReport	Alycia.Contracts	src/Alycia.Contracts/Diagnostics.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.ClassificationReport	Alycia.Contracts	src/Alycia.Contracts/Retrieval.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.ContextWindowView	Alycia.Contracts	src/Alycia.Contracts/ContextPreview.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.ConversationNotFoundException	Alycia.Contracts	src/Alycia.Contracts/Conversations.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.ConversationSettingsFile`1	Alycia.Contracts	src/Alycia.Contracts/SettingsFileCodec.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.ConversationSummary	Alycia.Contracts	src/Alycia.Contracts/Conversations.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.EmbeddingProgress	Alycia.Contracts	src/Alycia.Contracts/Knowledge.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.EnrichmentOptions	Alycia.Contracts	src/Alycia.Contracts/Knowledge.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.EvidenceAssembly	Alycia.Contracts	src/Alycia.Contracts/Diagnostics.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.EvidenceDecision	Alycia.Contracts	src/Alycia.Contracts/Diagnostics.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.GenerationStats	Alycia.Contracts	src/Alycia.Contracts/Generation.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.GenerationUsage	Alycia.Contracts	src/Alycia.Contracts/Generation.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.HistoryEvidence	Alycia.Contracts	src/Alycia.Contracts/Memory.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.IGenerationSettings	Alycia.Contracts	src/Alycia.Contracts/SettingsViews.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.IIndexSettings	Alycia.Contracts	src/Alycia.Contracts/SettingsViews.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.IToolWindowSettings	Alycia.Contracts	src/Alycia.Contracts/SettingsViews.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.ImportLimits	Alycia.Contracts	src/Alycia.Contracts/ImportLimits.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.ImportPolicy	Alycia.Contracts	src/Alycia.Contracts/ImportPolicy.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.IndexedNote	Alycia.Contracts	src/Alycia.Contracts/Knowledge.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.MemoryBudgetLimits	Alycia.Contracts	src/Alycia.Contracts/SettingsViews.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.MemoryEntry	Alycia.Contracts	src/Alycia.Contracts/Memory.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.MemoryLedger	Alycia.Contracts	src/Alycia.Contracts/Memory.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.MemoryReport	Alycia.Contracts	src/Alycia.Contracts/Memory.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.MemoryTransfer	Alycia.Contracts	src/Alycia.Contracts/MemoryTransfer.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.MessageResponse	Alycia.Contracts	src/Alycia.Contracts/Conversations.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.ModelCallUsage	Alycia.Contracts	src/Alycia.Contracts/Generation.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.ModelDelta	Alycia.Contracts	src/Alycia.Contracts/ToolProtocol.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.ModelToolCall	Alycia.Contracts	src/Alycia.Contracts/ToolProtocol.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.PassageJudgment	Alycia.Contracts	src/Alycia.Contracts/Retrieval.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.PreparedMemoryChange	Alycia.Contracts	src/Alycia.Contracts/Memory/PreparedMemoryChange.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.PreviewMessage	Alycia.Contracts	src/Alycia.Contracts/ContextPreview.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.ProjectTool	Alycia.Contracts	src/Alycia.Contracts/ToolProtocol.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.ProjectToolCatalog	Alycia.Contracts	src/Alycia.Contracts/ToolProtocol.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.QueryBrief	Alycia.Contracts	src/Alycia.Contracts/Retrieval.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.QueryHit	Alycia.Contracts	src/Alycia.Contracts/Retrieval.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.QueryRoute	Alycia.Contracts	src/Alycia.Contracts/Retrieval.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.QuestionFacet	Alycia.Contracts	src/Alycia.Contracts/Retrieval.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.RerankReport	Alycia.Contracts	src/Alycia.Contracts/Retrieval.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.ResearchGoal	Alycia.Contracts	src/Alycia.Contracts/Diagnostics.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.ResearchReport	Alycia.Contracts	src/Alycia.Contracts/Diagnostics.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.ResolvedReferent	Alycia.Contracts	src/Alycia.Contracts/Retrieval.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.RetrievalCacheReport	Alycia.Contracts	src/Alycia.Contracts/Retrieval.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.RetrievalDecision	Alycia.Contracts	src/Alycia.Contracts/Retrieval.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.RetrievalReport	Alycia.Contracts	src/Alycia.Contracts/Retrieval.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.SearchQueryPlan	Alycia.Contracts	src/Alycia.Contracts/Retrieval.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.SearchTerm	Alycia.Contracts	src/Alycia.Contracts/Retrieval.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.SettingsFileCodec`1	Alycia.Contracts	src/Alycia.Contracts/SettingsFileCodec.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.SettingsInput	Alycia.Contracts	src/Alycia.Contracts/SettingsInput.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.SourceExcerpt	Alycia.Contracts	src/Alycia.Contracts/Diagnostics.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.SourceFileType	Alycia.Contracts	src/Alycia.Contracts/SourceFileType.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.StoredConversationSettings	Alycia.Contracts	src/Alycia.Contracts/StoredConversationSettings.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.SuppliedSource	Alycia.Contracts	src/Alycia.Contracts/Diagnostics.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.TemporalObservation	Alycia.Contracts	src/Alycia.Contracts/Memory.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.TemporalReport	Alycia.Contracts	src/Alycia.Contracts/Memory.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.ToolEvidence	Alycia.Contracts	src/Alycia.Contracts/ToolProtocol.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.ToolFunction	Alycia.Contracts	src/Alycia.Contracts/ToolProtocol.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.ToolObservation	Alycia.Contracts	src/Alycia.Contracts/ToolProtocol.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.ToolWindowBudget	Alycia.Contracts	src/Alycia.Contracts/ToolWindowBudget.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.ToolWindowParameters	Alycia.Contracts	src/Alycia.Contracts/SettingsViews.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.TurnDiagnostics	Alycia.Contracts	src/Alycia.Contracts/Diagnostics.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.TurnResponse	Alycia.Contracts	src/Alycia.Contracts/Conversations.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.UnitLabels	Alycia.Contracts	src/Alycia.Contracts/Knowledge.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.UsedGuide	Alycia.Contracts	src/Alycia.Contracts/Diagnostics.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.VerificationFollowup	Alycia.Contracts	src/Alycia.Contracts/Diagnostics.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Chat.WorkspaceNoteView	Alycia.Contracts	src/Alycia.Contracts/ContextPreview.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Context.ContextConversation	Alycia.Contracts	src/Alycia.Contracts/Context/ConversationHistory.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Context.ContextParameters	Alycia.Contracts	src/Alycia.Contracts/Context/ContextParameters.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Context.ContextWindow	Alycia.Contracts	src/Alycia.Contracts/Context/ContextWindow.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Context.CreateSummaryReducer	Alycia.Contracts	src/Alycia.Contracts/Context/ISummaryReducer.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Context.EvidenceParameters	Alycia.Contracts	src/Alycia.Contracts/Context/ContextParameters.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Context.GuideParameters	Alycia.Contracts	src/Alycia.Contracts/Context/ContextParameters.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Context.HistoryBudget	Alycia.Contracts	src/Alycia.Contracts/Context/SlidingHistory.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Context.HistoryMessage	Alycia.Contracts	src/Alycia.Contracts/Context/ConversationHistory.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Context.HistoryParameters	Alycia.Contracts	src/Alycia.Contracts/Context/ContextParameters.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Context.HistorySelection	Alycia.Contracts	src/Alycia.Contracts/Context/SlidingHistory.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Context.IConversationContextReader	Alycia.Contracts	src/Alycia.Contracts/Context/ConversationHistory.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Context.ISlidingHistory	Alycia.Contracts	src/Alycia.Contracts/Context/SlidingHistory.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Context.ISummaryReducer	Alycia.Contracts	src/Alycia.Contracts/Context/ISummaryReducer.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Context.ITurnContext	Alycia.Contracts	src/Alycia.Contracts/Context/ITurnContext.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Context.ITurnHistory	Alycia.Contracts	src/Alycia.Contracts/Context/ConversationHistory.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Context.PreparedContext	Alycia.Contracts	src/Alycia.Contracts/Context/PreparedContext.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Context.SummaryParameters	Alycia.Contracts	src/Alycia.Contracts/Context/SummaryParameters.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Context.SummarySource	Alycia.Contracts	src/Alycia.Contracts/Context/ISummaryReducer.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Context.TurnContextBudget	Alycia.Contracts	src/Alycia.Contracts/Context/ITurnContext.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Context.TurnContextMode	Alycia.Contracts	src/Alycia.Contracts/Context/ITurnContext.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Context.TurnContextResult	Alycia.Contracts	src/Alycia.Contracts/Context/ITurnContext.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Context.WindowMessage	Alycia.Contracts	src/Alycia.Contracts/Context/SlidingHistory.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Diagnostics.FailureType	Alycia.Contracts	src/Alycia.Contracts/Diagnostics/FailureType.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Documents.AnalysisCacheProfile	Alycia.Contracts	src/Alycia.Contracts/Documents/AnalysisConversation.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Documents.AnalysisConversation	Alycia.Contracts	src/Alycia.Contracts/Documents/AnalysisConversation.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Documents.AnalysisPreferences	Alycia.Contracts	src/Alycia.Contracts/Documents/AnalysisConversation.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Documents.AuthorizedToolSource	Alycia.Contracts	src/Alycia.Contracts/Documents/IAuthorizedToolSources.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Documents.ConversationFileState	Alycia.Contracts	src/Alycia.Contracts/Documents/IConversationFileChanges.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Documents.DownloadedOriginal	Alycia.Contracts	src/Alycia.Contracts/Documents/OriginalAccess.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Documents.IAnalysisConversation	Alycia.Contracts	src/Alycia.Contracts/Documents/AnalysisConversation.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Documents.IArchiveDocuments	Alycia.Contracts	src/Alycia.Contracts/Documents/OriginalAccess.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Documents.IAuthorizedToolSources	Alycia.Contracts	src/Alycia.Contracts/Documents/IAuthorizedToolSources.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Documents.IConversationFileChanges	Alycia.Contracts	src/Alycia.Contracts/Documents/IConversationFileChanges.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Documents.IConversationLease	Alycia.Contracts	src/Alycia.Contracts/Documents/IConversationLease.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Documents.IConversationOriginals	Alycia.Contracts	src/Alycia.Contracts/Documents/OriginalAccess.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Documents.IConversationWorkspaceLookup	Alycia.Contracts	src/Alycia.Contracts/Documents/IConversationWorkspaceLookup.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Documents.IDocumentFork	Alycia.Contracts	src/Alycia.Contracts/Documents/OriginalAccess.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Documents.IDocumentMembershipOverrides	Alycia.Contracts	src/Alycia.Contracts/Documents/IDocumentMembershipOverrides.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Documents.IImportLimitsReader	Alycia.Contracts	src/Alycia.Contracts/Documents/IImportLimitsReader.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Documents.ILiveIndexFileAccess	Alycia.Contracts	src/Alycia.Contracts/Documents/ILiveIndexFileAccess.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Documents.IToolConversationPolicy	Alycia.Contracts	src/Alycia.Contracts/Documents/IToolConversationPolicy.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Documents.ITurnDocuments	Alycia.Contracts	src/Alycia.Contracts/Documents/TurnDocuments.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Documents.IncomingFile	Alycia.Contracts	src/Alycia.Contracts/Documents/IncomingFile.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Documents.InventoryFile	Alycia.Contracts	src/Alycia.Contracts/Documents/InventoryFile.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Documents.OriginalUnavailableException	Alycia.Contracts	src/Alycia.Contracts/Documents/OriginalAccess.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Documents.ToolConversationPolicy	Alycia.Contracts	src/Alycia.Contracts/Documents/IToolConversationPolicy.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Documents.ToolSourceEntry	Alycia.Contracts	src/Alycia.Contracts/Documents/IAuthorizedToolSources.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Documents.TurnFile	Alycia.Contracts	src/Alycia.Contracts/Documents/TurnDocuments.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Documents.Utf8Text	Alycia.Contracts	src/Alycia.Contracts/Documents/Utf8Text.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Indexing.ConversationIndexOwner	Alycia.Contracts	src/Alycia.Contracts/Indexing/OwnerDiscovery.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Indexing.EmbeddingQuery	Alycia.Contracts	src/Alycia.Contracts/Indexing/EmbeddingQuery.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Indexing.IConversationIndexOwners	Alycia.Contracts	src/Alycia.Contracts/Indexing/OwnerDiscovery.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Indexing.IEmbeddingSimilarityReader	Alycia.Contracts	src/Alycia.Contracts/Indexing/IEmbeddingSimilarityReader.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Indexing.IHistoryKnowledge	Alycia.Contracts	src/Alycia.Contracts/Indexing/IHistoryKnowledge.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Indexing.IIndexMaintenance	Alycia.Contracts	src/Alycia.Contracts/Indexing/IIndexMaintenance.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Indexing.IIndexSourceDocuments	Alycia.Contracts	src/Alycia.Contracts/Indexing/IndexSourceDocuments.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Indexing.IIndexedEmbeddings	Alycia.Contracts	src/Alycia.Contracts/Indexing/IIndexedEmbeddings.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Indexing.IMemoryVectorEligibility	Alycia.Contracts	src/Alycia.Contracts/Indexing/IMemoryVectorEligibility.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Indexing.IProjectIndex	Alycia.Contracts	src/Alycia.Contracts/Indexing/SourceIndex.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Indexing.IProjectIndexOwners	Alycia.Contracts	src/Alycia.Contracts/Indexing/OwnerDiscovery.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Indexing.IndexFileCursor	Alycia.Contracts	src/Alycia.Contracts/Indexing/IndexSourceDocuments.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Indexing.IndexHistoryMessage	Alycia.Contracts	src/Alycia.Contracts/Indexing/OwnerDiscovery.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Indexing.IndexParameters	Alycia.Contracts	src/Alycia.Contracts/Indexing/IndexParameters.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Indexing.IndexSourceFile	Alycia.Contracts	src/Alycia.Contracts/Indexing/IndexSourceDocuments.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Indexing.IndexedOriginal	Alycia.Contracts	src/Alycia.Contracts/Indexing/IndexSourceDocuments.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Indexing.KnowledgeCacheKey	Alycia.Contracts	src/Alycia.Contracts/Indexing/KnowledgeCacheKey.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Indexing.LexicalTerms	Alycia.Contracts	src/Alycia.Contracts/Indexing/LexicalTerms.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Indexing.MemoryVectorMatches	Alycia.Contracts	src/Alycia.Contracts/Indexing/IIndexedEmbeddings.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Indexing.MemoryVectorSource	Alycia.Contracts	src/Alycia.Contracts/Indexing/IMemoryVectorEligibility.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Indexing.PassageGuide	Alycia.Contracts	src/Alycia.Contracts/Indexing/PassageGuide.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Indexing.ProjectIndexOwner	Alycia.Contracts	src/Alycia.Contracts/Indexing/OwnerDiscovery.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Indexing.ProjectIndexSnapshot	Alycia.Contracts	src/Alycia.Contracts/Indexing/SourceIndex.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Indexing.SourceChunk	Alycia.Contracts	src/Alycia.Contracts/Indexing/SourceIndex.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Indexing.SourceCoordinates	Alycia.Contracts	src/Alycia.Contracts/Indexing/SourceCoordinates.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Indexing.VectorScores	Alycia.Contracts	src/Alycia.Contracts/Indexing/VectorScores.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Inference.ChatModelException	Alycia.Contracts	src/Alycia.Contracts/Inference/ModelProtocol.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Inference.ChatModelFailure	Alycia.Contracts	src/Alycia.Contracts/Inference/ModelProtocol.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Inference.EmbeddingBatch	Alycia.Contracts	src/Alycia.Contracts/Inference/ILocalEmbeddings.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Inference.GenerationParameters	Alycia.Contracts	src/Alycia.Contracts/Inference/GenerationParameters.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Inference.IChatModel	Alycia.Contracts	src/Alycia.Contracts/Inference/IChatModel.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Inference.IForegroundActivity	Alycia.Contracts	src/Alycia.Contracts/Inference/IForegroundActivity.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Inference.ILocalEmbeddings	Alycia.Contracts	src/Alycia.Contracts/Inference/ILocalEmbeddings.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Inference.IModelMeter	Alycia.Contracts	src/Alycia.Contracts/Inference/IChatModel.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Inference.IModelMeterFactory	Alycia.Contracts	src/Alycia.Contracts/Inference/IChatModel.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Inference.ITextGeneration	Alycia.Contracts	src/Alycia.Contracts/Inference/ITextGeneration.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Inference.ITextTokenCounter	Alycia.Contracts	src/Alycia.Contracts/Inference/ITextTokenCounter.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Inference.InferenceCall	Alycia.Contracts	src/Alycia.Contracts/Inference/InferenceCall.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Inference.ModelCallBudget	Alycia.Contracts	src/Alycia.Contracts/Inference/ModelCallBudget.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Inference.ModelReply	Alycia.Contracts	src/Alycia.Contracts/Inference/ITextGeneration.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Inference.ModelTokenization	Alycia.Contracts	src/Alycia.Contracts/Inference/ITextGeneration.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Inference.PromptMessage	Alycia.Contracts	src/Alycia.Contracts/Inference/ModelProtocol.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Inference.PromptSnapshot	Alycia.Contracts	src/Alycia.Contracts/Inference/PromptSnapshot.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Inference.PromptTokens	Alycia.Contracts	src/Alycia.Contracts/Inference/InferenceCall.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Memory.IContextMemory	Alycia.Contracts	src/Alycia.Contracts/Memory/IContextMemory.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Memory.ITemporalFactStorage	Alycia.Contracts	src/Alycia.Contracts/Memory/TemporalStorage.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Memory.ITemporalHistorySources	Alycia.Contracts	src/Alycia.Contracts/Memory/TemporalStorage.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Memory.ITemporalMemory	Alycia.Contracts	src/Alycia.Contracts/Memory/TemporalRecall.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Memory.ITemporalMemoryIndex	Alycia.Contracts	src/Alycia.Contracts/Memory/ITemporalMemoryIndex.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Memory.MemorySelection	Alycia.Contracts	src/Alycia.Contracts/Memory/IContextMemory.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Memory.TemporalFact	Alycia.Contracts	src/Alycia.Contracts/Memory/TemporalRecall.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Memory.TemporalMessage	Alycia.Contracts	src/Alycia.Contracts/Memory/TemporalStorage.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Memory.TemporalOwner	Alycia.Contracts	src/Alycia.Contracts/Memory/TemporalStorage.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Memory.TemporalRecall	Alycia.Contracts	src/Alycia.Contracts/Memory/TemporalRecall.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Memory.TemporalRecallSettings	Alycia.Contracts	src/Alycia.Contracts/Memory/TemporalRecall.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Retrieval.BriefGeneration	Alycia.Contracts	src/Alycia.Contracts/Retrieval/TurnRouting.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Retrieval.ClaimVerification	Alycia.Contracts	src/Alycia.Contracts/Retrieval/ClaimVerification.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Retrieval.CreateQueryBriefRefiner	Alycia.Contracts	src/Alycia.Contracts/Retrieval/CreateQueryBriefRefiner.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Retrieval.EvidenceText	Alycia.Contracts	src/Alycia.Contracts/Retrieval/SearchPipeline.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Retrieval.IPassageReranker	Alycia.Contracts	src/Alycia.Contracts/Retrieval/IPassageReranker.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Retrieval.IPassageScoring	Alycia.Contracts	src/Alycia.Contracts/Retrieval/IPassageScoring.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Retrieval.IProjectRetrieval	Alycia.Contracts	src/Alycia.Contracts/Retrieval/IProjectRetrieval.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Retrieval.IQueryBriefRefiner	Alycia.Contracts	src/Alycia.Contracts/Retrieval/TurnRouting.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Retrieval.IQueryPlanner	Alycia.Contracts	src/Alycia.Contracts/Retrieval/TurnRouting.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Retrieval.IQuerySources	Alycia.Contracts	src/Alycia.Contracts/Retrieval/TurnRouting.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Retrieval.IRetrievalPipeline	Alycia.Contracts	src/Alycia.Contracts/Retrieval/SearchPipeline.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Retrieval.ITurnResponseAudit	Alycia.Contracts	src/Alycia.Contracts/Retrieval/ITurnResponseAudit.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Retrieval.ITurnRouter	Alycia.Contracts	src/Alycia.Contracts/Retrieval/TurnRouting.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Retrieval.PassageRankingSettings	Alycia.Contracts	src/Alycia.Contracts/Retrieval/PassageRankingSettings.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Retrieval.PassageSimilarities	Alycia.Contracts	src/Alycia.Contracts/Retrieval/SearchPipeline.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Retrieval.PlannedQuery	Alycia.Contracts	src/Alycia.Contracts/Retrieval/TurnRouting.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Retrieval.ProjectExcerpts	Alycia.Contracts	src/Alycia.Contracts/Retrieval/ProjectExcerpts.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Retrieval.ProjectSearch	Alycia.Contracts	src/Alycia.Contracts/Retrieval/IProjectRetrieval.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Retrieval.QueryHistoryItem	Alycia.Contracts	src/Alycia.Contracts/Retrieval/TurnRouting.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Retrieval.RerankScores	Alycia.Contracts	src/Alycia.Contracts/Retrieval/IPassageReranker.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Retrieval.RetrievalPreparation	Alycia.Contracts	src/Alycia.Contracts/Retrieval/SearchPipeline.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Retrieval.RetrievalRequest	Alycia.Contracts	src/Alycia.Contracts/Retrieval/SearchPipeline.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Retrieval.ReviewedReply	Alycia.Contracts	src/Alycia.Contracts/Retrieval/ITurnResponseAudit.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Retrieval.RoutedTurn	Alycia.Contracts	src/Alycia.Contracts/Retrieval/TurnRouting.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Retrieval.RoutingRequest	Alycia.Contracts	src/Alycia.Contracts/Retrieval/TurnRouting.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Retrieval.RoutingRules	Alycia.Contracts	src/Alycia.Contracts/Retrieval/TurnRouting.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Retrieval.RoutingState	Alycia.Contracts	src/Alycia.Contracts/Retrieval/TurnRouting.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Retrieval.SearchSnapshots	Alycia.Contracts	src/Alycia.Contracts/Retrieval/SearchSnapshots.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Retrieval.SemanticSearch	Alycia.Contracts	src/Alycia.Contracts/Retrieval/SearchPipeline.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Retrieval.VerificationResult	Alycia.Contracts	src/Alycia.Contracts/Retrieval/ClaimVerification.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Tools.GenerationReply	Alycia.Contracts	src/Alycia.Contracts/Tools/GenerationReply.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Tools.IProjectTools	Alycia.Contracts	src/Alycia.Contracts/Tools/IProjectTools.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Tools.ISnapshotProjectTools	Alycia.Contracts	src/Alycia.Contracts/Tools/IProjectTools.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Tools.ISourceCommands	Alycia.Contracts	src/Alycia.Contracts/Tools/SourceCommands.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Tools.IToolHistoryReader	Alycia.Contracts	src/Alycia.Contracts/Tools/IToolHistoryReader.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Tools.ITurnTools	Alycia.Contracts	src/Alycia.Contracts/Tools/ITurnTools.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Tools.ProjectToolResult	Alycia.Contracts	src/Alycia.Contracts/Tools/SourceCommands.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Tools.ToolArguments	Alycia.Contracts	src/Alycia.Contracts/Tools/ToolArguments.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Tools.ToolGeneration	Alycia.Contracts	src/Alycia.Contracts/Tools/ToolGeneration.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Tools.ToolPrompt	Alycia.Contracts	src/Alycia.Contracts/Tools/ToolGeneration.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Tools.ToolRefusal	Alycia.Contracts	src/Alycia.Contracts/Tools/SourceCommands.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Tools.ToolSourceHint	Alycia.Contracts	src/Alycia.Contracts/Tools/ToolGeneration.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Tools.ToolTurnScope	Alycia.Contracts	src/Alycia.Contracts/Tools/ToolTurnScope.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Workspaces.IProjectCatalog	Alycia.Contracts	src/Alycia.Contracts/Workspaces/WorkspaceProjects.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Workspaces.IProjectModelDefaults	Alycia.Contracts	src/Alycia.Contracts/Workspaces/WorkspaceProjects.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Workspaces.IProjectNoteOrigins	Alycia.Contracts	src/Alycia.Contracts/Workspaces/WorkspaceProjects.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Workspaces.IWorkspaceIdentityDirectory	Alycia.Contracts	src/Alycia.Contracts/Workspaces/IWorkspaceIdentityDirectory.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Workspaces.IWorkspaceProfiles	Alycia.Contracts	src/Alycia.Contracts/Workspaces/WorkspaceProjects.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Workspaces.ProjectEntry	Alycia.Contracts	src/Alycia.Contracts/Workspaces/WorkspaceProjects.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Workspaces.ProjectNote	Alycia.Contracts	src/Alycia.Contracts/Workspaces/WorkspaceProjects.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Workspaces.ProjectProfile	Alycia.Contracts	src/Alycia.Contracts/Workspaces/WorkspaceProjects.cs	déclaration Roslyn
+type	T:Alycia.Contracts.Workspaces.WorkspaceIdentity	Alycia.Contracts	src/Alycia.Contracts/Workspaces/IWorkspaceIdentityDirectory.cs	déclaration Roslyn
+type	T:Alycia.DevHost.DevelopmentInference	Alycia.DevHost	src/Alycia.DevHost/DevelopmentInference.cs	déclaration Roslyn
+type	T:Alycia.Modules.Chat.Application.ArchivedMessage	Conversations	src/Alycia.Modules.Chat.Application/ConversationArchive.cs	déclaration Roslyn
+type	T:Alycia.Modules.Chat.Application.ChatOptions	Conversations	src/Alycia.Modules.Chat.Application/Conversations/ChatOptions.cs	déclaration Roslyn
+type	T:Alycia.Modules.Chat.Application.ChatService	Conversations	src/Alycia.Modules.Chat.Application/ChatService.cs	déclaration Roslyn
+type	T:Alycia.Modules.Chat.Application.Context.ConversationContextModes	Conversations	src/Alycia.Modules.Chat.Application/Conversations/TurnContextMode.cs	déclaration Roslyn
+type	T:Alycia.Modules.Chat.Application.Context.TurnContextMode	Conversations	src/Alycia.Modules.Chat.Application/Conversations/TurnContextMode.cs	déclaration Roslyn
+type	T:Alycia.Modules.Chat.Application.ConversationArchive	Conversations	src/Alycia.Modules.Chat.Application/ConversationArchive.cs	déclaration Roslyn
+type	T:Alycia.Modules.Chat.Application.ConversationConfiguration	Conversations	src/Alycia.Modules.Chat.Application/Conversations/ConversationConfiguration.cs	déclaration Roslyn
+type	T:Alycia.Modules.Chat.Application.ConversationCreation	Conversations	src/Alycia.Modules.Chat.Application/Conversations/ConversationCreation.cs	déclaration Roslyn
+type	T:Alycia.Modules.Chat.Application.ConversationMemory	Conversations	src/Alycia.Modules.Chat.Application/Conversations/ConversationMemory.cs	déclaration Roslyn
+type	T:Alycia.Modules.Chat.Application.ConversationProjection	Conversations	src/Alycia.Modules.Chat.Application/Conversations/ConversationProjection.cs	déclaration Roslyn
+type	T:Alycia.Modules.Chat.Application.ConversationSettingsTransfer	Conversations	src/Alycia.Modules.Chat.Application/Conversations/ConversationSettingsTransfer.cs	déclaration Roslyn
+type	T:Alycia.Modules.Chat.Application.ConversationSnapshot	Conversations	src/Alycia.Modules.Chat.Application/Conversations/ConversationSnapshot.cs	déclaration Roslyn
+type	T:Alycia.Modules.Chat.Application.ConversationTransfer	Conversations	src/Alycia.Modules.Chat.Application/ConversationArchive.cs	déclaration Roslyn
+type	T:Alycia.Modules.Chat.Application.Conversations.ContextPreparationResult	Conversations	src/Alycia.Modules.Chat.Application/Conversations/ConversationContextPreparation.cs	déclaration Roslyn
+type	T:Alycia.Modules.Chat.Application.Conversations.ConversationContextPreparation	Conversations	src/Alycia.Modules.Chat.Application/Conversations/ConversationContextPreparation.cs	déclaration Roslyn
+type	T:Alycia.Modules.Chat.Application.Conversations.ConversationContextPreparation.Inputs	Conversations	src/Alycia.Modules.Chat.Application/Conversations/ConversationContextPreparation.cs	déclaration Roslyn
+type	T:Alycia.Modules.Chat.Application.Conversations.ConversationContextPreparation.PendingPreparation	Conversations	src/Alycia.Modules.Chat.Application/Conversations/ConversationContextPreparation.cs	déclaration Roslyn
+type	T:Alycia.Modules.Chat.Application.Conversations.ConversationSettingsService	Conversations	src/Alycia.Modules.Chat.Application/Conversations/ConversationSettingsService.cs	déclaration Roslyn
+type	T:Alycia.Modules.Chat.Application.Conversations.ConversationTemporalMemory	Conversations	src/Alycia.Modules.Chat.Application/Conversations/ConversationTemporalMemory.cs	déclaration Roslyn
+type	T:Alycia.Modules.Chat.Application.GenerationGate	Conversations	src/Alycia.Modules.Chat.Application/Conversations/GenerationGate.cs	déclaration Roslyn
+type	T:Alycia.Modules.Chat.Application.GenerationGate.Lease	Conversations	src/Alycia.Modules.Chat.Application/Conversations/GenerationGate.cs	déclaration Roslyn
+type	T:Alycia.Modules.Chat.Application.IChatRepository	Conversations	src/Alycia.Modules.Chat.Application/ChatContracts.cs	déclaration Roslyn
+type	T:Alycia.Modules.Chat.Application.IChatTurnScope	Conversations	src/Alycia.Modules.Chat.Application/ChatContracts.cs	déclaration Roslyn
+type	T:Alycia.Modules.Chat.Application.IConversationMemory	Conversations	src/Alycia.Modules.Chat.Application/Conversations/ConversationMemory.cs	déclaration Roslyn
+type	T:Alycia.Modules.Chat.Application.ModelConfiguration	Conversations	src/Alycia.Modules.Chat.Application/Conversations/ModelConfiguration.cs	déclaration Roslyn
+type	T:Alycia.Modules.Chat.Application.SendMessageResult	Conversations	src/Alycia.Modules.Chat.Application/ChatContracts.cs	déclaration Roslyn
+type	T:Alycia.Modules.Chat.Application.TurnDiagnosticsWriter	Conversations	src/Alycia.Modules.Chat.Application/Conversations/TurnDiagnosticsWriter.cs	déclaration Roslyn
+type	T:Alycia.Modules.Chat.Application.TurnRouting	Conversations	src/Alycia.Modules.Chat.Application/Conversations/TurnRouting.cs	déclaration Roslyn
+type	T:Alycia.Modules.Chat.Domain.ChatMessage	Conversations	src/Alycia.Modules.Chat.Domain/ChatMessage.cs	déclaration Roslyn
+type	T:Alycia.Modules.Chat.Domain.Conversation	Conversations	src/Alycia.Modules.Chat.Domain/Conversation.cs	déclaration Roslyn
+type	T:Alycia.Modules.Chat.Domain.ConversationProjectSnapshot	Conversations	src/Alycia.Modules.Chat.Domain/Conversation.cs	déclaration Roslyn
+type	T:Alycia.Modules.Chat.Infrastructure.AnalysisConversationOwner	Conversations	src/Alycia.Modules.Chat.Infrastructure/Conversations/AnalysisConversationOwner.cs	déclaration Roslyn
+type	T:Alycia.Modules.Chat.Infrastructure.ConversationFileChanges	Conversations	src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationFileChanges.cs	déclaration Roslyn
+type	T:Alycia.Modules.Chat.Infrastructure.ConversationHistory	Conversations	src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationHistory.cs	déclaration Roslyn
+type	T:Alycia.Modules.Chat.Infrastructure.ConversationIndexOwners	Conversations	src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationIndexOwners.cs	déclaration Roslyn
+type	T:Alycia.Modules.Chat.Infrastructure.ConversationMembership	Conversations	src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationMembership.cs	déclaration Roslyn
+type	T:Alycia.Modules.Chat.Infrastructure.ConversationReadModel	Conversations	src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationReadModel.cs	déclaration Roslyn
+type	T:Alycia.Modules.Chat.Infrastructure.ConversationSearchPage	Conversations	src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationHistory.cs	déclaration Roslyn
+type	T:Alycia.Modules.Chat.Infrastructure.ConversationWorkspaceLookup	Conversations	src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationWorkspaceLookup.cs	déclaration Roslyn
+type	T:Alycia.Modules.Chat.Infrastructure.EfChatRepository	Conversations	src/Alycia.Modules.Chat.Infrastructure/EfChatRepository.cs	déclaration Roslyn
+type	T:Alycia.Modules.Chat.Infrastructure.EfChatRepository.TurnScope	Conversations	src/Alycia.Modules.Chat.Infrastructure/EfChatRepository.cs	déclaration Roslyn
+type	T:Alycia.Modules.Chat.Infrastructure.ProjectNoteOrigins	Conversations	src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationMembership.cs	déclaration Roslyn
+type	T:Alycia.Modules.Chat.Infrastructure.TemporalHistorySources	Conversations	src/Alycia.Modules.Chat.Infrastructure/Conversations/TemporalHistorySources.cs	déclaration Roslyn
+type	T:Alycia.Modules.Chat.Infrastructure.ToolConversationPolicyReader	Conversations	src/Alycia.Modules.Chat.Infrastructure/Conversations/ToolConversationPolicyReader.cs	déclaration Roslyn
+type	T:Alycia.Modules.Chat.Infrastructure.VersionedChanges	Conversations	src/Alycia.Modules.Chat.Infrastructure/Conversations/VersionedChanges.cs	déclaration Roslyn
+type	T:Alycia.Modules.Configuration.ImportSettingsStore	Configuration	src/Alycia.Modules.Configuration/ImportSettingsStore.cs	déclaration Roslyn
+type	T:Alycia.Modules.Configuration.PromptCatalog	Configuration	src/Alycia.Modules.Configuration/PromptCatalog.cs	déclaration Roslyn
+type	T:Alycia.Modules.Configuration.PromptProfile	Configuration	src/Alycia.Modules.Configuration/PromptProfile.cs	déclaration Roslyn
+type	T:Alycia.Modules.Context.ContextGuides	Context	src/Alycia.Modules.Context/ContextGuides.cs	déclaration Roslyn
+type	T:Alycia.Modules.Context.ConversationContext	Context	src/Alycia.Modules.Context/ConversationContext.cs	déclaration Roslyn
+type	T:Alycia.Modules.Context.EvidenceComposer	Context	src/Alycia.Modules.Context/EvidenceComposer.cs	déclaration Roslyn
+type	T:Alycia.Modules.Context.EvidenceComposer.Candidate	Context	src/Alycia.Modules.Context/EvidenceComposer.cs	déclaration Roslyn
+type	T:Alycia.Modules.Context.FileContext	Context	src/Alycia.Modules.Context/FileContext.cs	déclaration Roslyn
+type	T:Alycia.Modules.Context.PassageContext	Context	src/Alycia.Modules.Context/PassageContext.cs	déclaration Roslyn
+type	T:Alycia.Modules.Context.ProjectContext	Context	src/Alycia.Modules.Context/ProjectContext.cs	déclaration Roslyn
+type	T:Alycia.Modules.Context.RecursiveContext	Context	src/Alycia.Modules.Context/RecursiveContext.cs	déclaration Roslyn
+type	T:Alycia.Modules.Context.RecursiveSummarizer	Context	src/Alycia.Modules.Context/RecursiveSummarizer.cs	déclaration Roslyn
+type	T:Alycia.Modules.Context.SlidingContext	Context	src/Alycia.Modules.Context/SlidingContext.cs	déclaration Roslyn
+type	T:Alycia.Modules.Context.SlidingHistory	Context	src/Alycia.Modules.Context/SlidingHistory.cs	déclaration Roslyn
+type	T:Alycia.Modules.Context.TemporalContext	Context	src/Alycia.Modules.Context/TemporalContext.cs	déclaration Roslyn
+type	T:Alycia.Modules.Context.TurnContext	Context	src/Alycia.Modules.Context/TurnContext.cs	déclaration Roslyn
+type	T:Alycia.Modules.Documents.ArchiveContents	Documents	src/Alycia.Modules.Documents/ArchiveContents.cs	déclaration Roslyn
+type	T:Alycia.Modules.Documents.Attachment	Documents	src/Alycia.Modules.Documents/Attachment.cs	déclaration Roslyn
+type	T:Alycia.Modules.Documents.CodeStructure	Documents	src/Alycia.Modules.Documents/CodeStructure.cs	déclaration Roslyn
+type	T:Alycia.Modules.Documents.DocumentAnalysis	Documents	src/Alycia.Modules.Documents/DocumentAnalysis.cs	déclaration Roslyn
+type	T:Alycia.Modules.Documents.DocumentContent	Documents	src/Alycia.Modules.Documents/DocumentContent.cs	déclaration Roslyn
+type	T:Alycia.Modules.Documents.DocumentSegment	Documents	src/Alycia.Modules.Documents/StructuredDocuments.cs	déclaration Roslyn
+type	T:Alycia.Modules.Documents.ExtractedDocument	Documents	src/Alycia.Modules.Documents/StructuredDocuments.cs	déclaration Roslyn
+type	T:Alycia.Modules.Documents.FileStorage	Documents	src/Alycia.Modules.Documents/FileStorage.cs	déclaration Roslyn
+type	T:Alycia.Modules.Documents.Infrastructure.AnalysisCheckpoints	Documents	src/Alycia.Modules.Documents.Infrastructure/AnalysisCheckpoints.cs	déclaration Roslyn
+type	T:Alycia.Modules.Documents.Infrastructure.AnalysisItem	Documents	src/Alycia.Modules.Documents.Infrastructure/DocumentAnalysisService.cs	déclaration Roslyn
+type	T:Alycia.Modules.Documents.Infrastructure.AnalysisRun	Documents	src/Alycia.Modules.Documents.Infrastructure/AnalysisCheckpoints.cs	déclaration Roslyn
+type	T:Alycia.Modules.Documents.Infrastructure.AnalysisUnit	Documents	src/Alycia.Modules.Documents.Infrastructure/AnalysisCheckpoints.cs	déclaration Roslyn
+type	T:Alycia.Modules.Documents.Infrastructure.ArchiveDocuments	Documents	src/Alycia.Modules.Documents.Infrastructure/ArchiveDocuments.cs	déclaration Roslyn
+type	T:Alycia.Modules.Documents.Infrastructure.ArchiveDocuments.ForkAttempt	Documents	src/Alycia.Modules.Documents.Infrastructure/ArchiveDocuments.cs	déclaration Roslyn
+type	T:Alycia.Modules.Documents.Infrastructure.AttachmentStorage	Documents	src/Alycia.Modules.Documents.Infrastructure/AttachmentStorage.cs	déclaration Roslyn
+type	T:Alycia.Modules.Documents.Infrastructure.AuthorizedToolSources	Documents	src/Alycia.Modules.Documents.Infrastructure/AuthorizedToolSources.cs	déclaration Roslyn
+type	T:Alycia.Modules.Documents.Infrastructure.ConversationFileSettings	Documents	src/Alycia.Modules.Documents.Infrastructure/ConversationFileSettings.cs	déclaration Roslyn
+type	T:Alycia.Modules.Documents.Infrastructure.ConversationFiles	Documents	src/Alycia.Modules.Documents.Infrastructure/ConversationFiles.cs	déclaration Roslyn
+type	T:Alycia.Modules.Documents.Infrastructure.ConversationOriginals	Documents	src/Alycia.Modules.Documents.Infrastructure/ConversationOriginals.cs	déclaration Roslyn
+type	T:Alycia.Modules.Documents.Infrastructure.DocumentAnalysisService	Documents	src/Alycia.Modules.Documents.Infrastructure/DocumentAnalysisService.Management.cs	déclaration Roslyn
+type	T:Alycia.Modules.Documents.Infrastructure.DocumentAnalysisService	Documents	src/Alycia.Modules.Documents.Infrastructure/DocumentAnalysisService.cs	déclaration Roslyn
+type	T:Alycia.Modules.Documents.Infrastructure.DocumentImportBatch	Documents	src/Alycia.Modules.Documents.Infrastructure/DocumentImportBatch.cs	déclaration Roslyn
+type	T:Alycia.Modules.Documents.Infrastructure.DocumentInventory	Documents	src/Alycia.Modules.Documents.Infrastructure/DocumentInventory.cs	déclaration Roslyn
+type	T:Alycia.Modules.Documents.Infrastructure.DocumentMembershipOverrides	Documents	src/Alycia.Modules.Documents.Infrastructure/DocumentMembershipOverrides.cs	déclaration Roslyn
+type	T:Alycia.Modules.Documents.Infrastructure.DocumentScope	Documents	src/Alycia.Modules.Documents.Infrastructure/DocumentScope.cs	déclaration Roslyn
+type	T:Alycia.Modules.Documents.Infrastructure.FileImport	Documents	src/Alycia.Modules.Documents.Infrastructure/FileImport.cs	déclaration Roslyn
+type	T:Alycia.Modules.Documents.Infrastructure.FileSummary	Documents	src/Alycia.Modules.Documents.Infrastructure/FileImport.cs	déclaration Roslyn
+type	T:Alycia.Modules.Documents.Infrastructure.IndexSourceDocumentsAdapter	Documents	src/Alycia.Modules.Documents.Infrastructure/IndexSourceDocumentsAdapter.cs	déclaration Roslyn
+type	T:Alycia.Modules.Documents.Infrastructure.LiveIndexFileAccess	Documents	src/Alycia.Modules.Documents.Infrastructure/LiveIndexFileAccess.cs	déclaration Roslyn
+type	T:Alycia.Modules.Documents.Infrastructure.PreparedDocument	Documents	src/Alycia.Modules.Documents.Infrastructure/DocumentImportBatch.cs	déclaration Roslyn
+type	T:Alycia.Modules.Documents.Infrastructure.ProjectFiles	Documents	src/Alycia.Modules.Documents.Infrastructure/ProjectFiles.cs	déclaration Roslyn
+type	T:Alycia.Modules.Documents.Infrastructure.ProjectSource	Documents	src/Alycia.Modules.Documents.Infrastructure/ProjectSourceReader.cs	déclaration Roslyn
+type	T:Alycia.Modules.Documents.Infrastructure.ProjectSourceReader	Documents	src/Alycia.Modules.Documents.Infrastructure/ProjectSourceReader.cs	déclaration Roslyn
+type	T:Alycia.Modules.Documents.Infrastructure.SourceFileMetadata	Documents	src/Alycia.Modules.Documents.Infrastructure/FileImport.cs	déclaration Roslyn
+type	T:Alycia.Modules.Documents.Infrastructure.SourcePreview	Documents	src/Alycia.Modules.Documents.Infrastructure/ProjectFiles.cs	déclaration Roslyn
+type	T:Alycia.Modules.Documents.Infrastructure.TurnDocuments	Documents	src/Alycia.Modules.Documents.Infrastructure/TurnDocuments.cs	déclaration Roslyn
+type	T:Alycia.Modules.Documents.Infrastructure.VersionedChanges	Documents	src/Alycia.Modules.Documents.Infrastructure/VersionedChanges.cs	déclaration Roslyn
+type	T:Alycia.Modules.Documents.ProjectInventory	Documents	src/Alycia.Modules.Documents/ProjectInventory.cs	déclaration Roslyn
+type	T:Alycia.Modules.Documents.ProjectInventory.Node	Documents	src/Alycia.Modules.Documents/ProjectInventory.cs	déclaration Roslyn
+type	T:Alycia.Modules.Documents.StructuredDocuments	Documents	src/Alycia.Modules.Documents/StructuredDocuments.cs	déclaration Roslyn
+type	T:Alycia.Modules.Documents.VerifiedOriginal	Documents	src/Alycia.Modules.Documents/VerifiedOriginal.cs	déclaration Roslyn
+type	T:Alycia.Modules.Documents.WorkspaceFileOverride	Documents	src/Alycia.Modules.Documents/WorkspaceFileOverride.cs	déclaration Roslyn
+type	T:Alycia.Modules.Indexing.BackgroundEmbeddingIndex	Indexing	src/Alycia.Modules.Indexing/BackgroundEmbeddingIndex.cs	déclaration Roslyn
+type	T:Alycia.Modules.Indexing.EmbeddingChunks	Indexing	src/Alycia.Modules.Indexing/EmbeddingChunks.cs	déclaration Roslyn
+type	T:Alycia.Modules.Indexing.EmbeddingJob	Indexing	src/Alycia.Modules.Indexing/PostgresEmbeddingStore.cs	déclaration Roslyn
+type	T:Alycia.Modules.Indexing.EmbeddingJobDiscovery	Indexing	src/Alycia.Modules.Indexing/EmbeddingJobDiscovery.cs	déclaration Roslyn
+type	T:Alycia.Modules.Indexing.EmbeddingQueue	Indexing	src/Alycia.Modules.Indexing/EmbeddingQueue.cs	déclaration Roslyn
+type	T:Alycia.Modules.Indexing.EmbeddingSettings	Indexing	src/Alycia.Modules.Indexing/PostgresEmbeddingStore.cs	déclaration Roslyn
+type	T:Alycia.Modules.Indexing.IndexCatalog	Indexing	src/Alycia.Modules.Indexing/IndexCatalog.cs	déclaration Roslyn
+type	T:Alycia.Modules.Indexing.IndexFiles	Indexing	src/Alycia.Modules.Indexing/IndexFiles.cs	déclaration Roslyn
+type	T:Alycia.Modules.Indexing.IndexJobSource	Indexing	src/Alycia.Modules.Indexing/IndexJobSource.cs	déclaration Roslyn
+type	T:Alycia.Modules.Indexing.IndexMaintenance	Indexing	src/Alycia.Modules.Indexing/IndexMaintenance.cs	déclaration Roslyn
+type	T:Alycia.Modules.Indexing.IndexSliceEnded	Indexing	src/Alycia.Modules.Indexing/KnowledgeBuilder.cs	déclaration Roslyn
+type	T:Alycia.Modules.Indexing.IndexedEmbeddingSearch	Indexing	src/Alycia.Modules.Indexing/IndexedEmbeddingSearch.cs	déclaration Roslyn
+type	T:Alycia.Modules.Indexing.IndexedKnowledge	Indexing	src/Alycia.Modules.Indexing/IndexedKnowledge.cs	déclaration Roslyn
+type	T:Alycia.Modules.Indexing.KnowledgeBuilder	Indexing	src/Alycia.Modules.Indexing/KnowledgeBuilder.cs	déclaration Roslyn
+type	T:Alycia.Modules.Indexing.KnowledgePass	Indexing	src/Alycia.Modules.Indexing/KnowledgeBuilder.cs	déclaration Roslyn
+type	T:Alycia.Modules.Indexing.KnowledgeStore	Indexing	src/Alycia.Modules.Indexing/KnowledgeStore.cs	déclaration Roslyn
+type	T:Alycia.Modules.Indexing.PassageCacheDirectory	Indexing	src/Alycia.Modules.Indexing/PassageCacheDirectory.cs	déclaration Roslyn
+type	T:Alycia.Modules.Indexing.PostgresEmbeddingStore	Indexing	src/Alycia.Modules.Indexing/PostgresEmbeddingStore.Publication.cs	déclaration Roslyn
+type	T:Alycia.Modules.Indexing.PostgresEmbeddingStore	Indexing	src/Alycia.Modules.Indexing/PostgresEmbeddingStore.cs	déclaration Roslyn
+type	T:Alycia.Modules.Indexing.ProjectIndexService	Indexing	src/Alycia.Modules.Indexing/ProjectIndexService.cs	déclaration Roslyn
+type	T:Alycia.Modules.Indexing.ProjectPassageCache	Indexing	src/Alycia.Modules.Indexing/ProjectPassageCache.cs	déclaration Roslyn
+type	T:Alycia.Modules.Indexing.ProjectPassageCache.Cached	Indexing	src/Alycia.Modules.Indexing/ProjectPassageCache.cs	déclaration Roslyn
+type	T:Alycia.Modules.Indexing.QueueIndex	Indexing	src/Alycia.Modules.Indexing/IndexCatalog.cs	déclaration Roslyn
+type	T:Alycia.Modules.Indexing.VectorSimilarity	Indexing	src/Alycia.Modules.Indexing/VectorSimilarity.cs	déclaration Roslyn
+type	T:Alycia.Modules.Inference.ChatGenerationAdapter	Inference	src/Alycia.Modules.Inference/ChatGenerationAdapter.cs	déclaration Roslyn
+type	T:Alycia.Modules.Inference.ForegroundActivity	Inference	src/Alycia.Modules.Inference/ForegroundActivity.cs	déclaration Roslyn
+type	T:Alycia.Modules.Inference.ForegroundActivity.Lease	Inference	src/Alycia.Modules.Inference/ForegroundActivity.cs	déclaration Roslyn
+type	T:Alycia.Modules.Inference.InferenceScheduler	Inference	src/Alycia.Modules.Inference/InferenceScheduler.cs	déclaration Roslyn
+type	T:Alycia.Modules.Inference.InferenceScheduler.Lease	Inference	src/Alycia.Modules.Inference/InferenceScheduler.cs	déclaration Roslyn
+type	T:Alycia.Modules.Inference.InferenceWindow	Inference	src/Alycia.Modules.Inference/InferenceWindow.cs	déclaration Roslyn
+type	T:Alycia.Modules.Inference.MeteredChatModel	Inference	src/Alycia.Modules.Inference/MeteredChatModel.cs	déclaration Roslyn
+type	T:Alycia.Modules.Inference.ModelMeterFactory	Inference	src/Alycia.Modules.Inference/MeteredChatModel.cs	déclaration Roslyn
+type	T:Alycia.Modules.Inference.ModelTokenizationCache	Inference	src/Alycia.Modules.Inference/ModelTokenizationCache.cs	déclaration Roslyn
+type	T:Alycia.Modules.Inference.OllamaEmbeddings	Inference	src/Alycia.Modules.Inference/OllamaEmbeddings.cs	déclaration Roslyn
+type	T:Alycia.Modules.Inference.OllamaTextGeneration	Inference	src/Alycia.Modules.Inference/OllamaTextGeneration.Budget.cs	déclaration Roslyn
+type	T:Alycia.Modules.Inference.OllamaTextGeneration	Inference	src/Alycia.Modules.Inference/OllamaTextGeneration.Streaming.cs	déclaration Roslyn
+type	T:Alycia.Modules.Inference.OllamaTextGeneration	Inference	src/Alycia.Modules.Inference/OllamaTextGeneration.cs	déclaration Roslyn
+type	T:Alycia.Modules.Inference.OllamaTextGeneration.ChatReply	Inference	src/Alycia.Modules.Inference/OllamaTextGeneration.cs	déclaration Roslyn
+type	T:Alycia.Modules.Inference.OllamaTextGeneration.ModelDetails	Inference	src/Alycia.Modules.Inference/OllamaTextGeneration.cs	déclaration Roslyn
+type	T:Alycia.Modules.Inference.OllamaTextGeneration.ModelInfo	Inference	src/Alycia.Modules.Inference/OllamaTextGeneration.cs	déclaration Roslyn
+type	T:Alycia.Modules.Inference.OllamaTextGeneration.ModelList	Inference	src/Alycia.Modules.Inference/OllamaTextGeneration.cs	déclaration Roslyn
+type	T:Alycia.Modules.Inference.QueryBriefRefiner	Inference	src/Alycia.Modules.Inference/QueryBriefRefiner.cs	déclaration Roslyn
+type	T:Alycia.Modules.Inference.QwenTokenCounter	Inference	src/Alycia.Modules.Inference/QwenTokenCounter.cs	déclaration Roslyn
+type	T:Alycia.Modules.Memory.ContextMemory	Memory	src/Alycia.Modules.Memory/ContextMemory.cs	déclaration Roslyn
+type	T:Alycia.Modules.Memory.MemoryVectorEligibility	Memory	src/Alycia.Modules.Memory/MemoryVectorEligibility.cs	déclaration Roslyn
+type	T:Alycia.Modules.Memory.StructuredMemory	Memory	src/Alycia.Modules.Memory/StructuredMemory.cs	déclaration Roslyn
+type	T:Alycia.Modules.Memory.TemporalFactStorage	Memory	src/Alycia.Modules.Memory/TemporalFactStorage.cs	déclaration Roslyn
+type	T:Alycia.Modules.Memory.TemporalMemory	Memory	src/Alycia.Modules.Memory/TemporalMemory.cs	déclaration Roslyn
+type	T:Alycia.Modules.Memory.TemporalMemoryStore	Memory	src/Alycia.Modules.Memory/TemporalMemoryStore.cs	déclaration Roslyn
+type	T:Alycia.Modules.Retrieval.CitationAudit	Retrieval	src/Alycia.Modules.Retrieval/CitationAudit.cs	déclaration Roslyn
+type	T:Alycia.Modules.Retrieval.ClaimAudit	Retrieval	src/Alycia.Modules.Retrieval/ClaimAudit.cs	déclaration Roslyn
+type	T:Alycia.Modules.Retrieval.LexicalIndex	Retrieval	src/Alycia.Modules.Retrieval/LexicalIndex.cs	déclaration Roslyn
+type	T:Alycia.Modules.Retrieval.LexicalIndex.Field	Retrieval	src/Alycia.Modules.Retrieval/LexicalIndex.cs	déclaration Roslyn
+type	T:Alycia.Modules.Retrieval.LexicalIndexCache	Retrieval	src/Alycia.Modules.Retrieval/LexicalIndex.cs	déclaration Roslyn
+type	T:Alycia.Modules.Retrieval.LexicalIndexCache.Entry	Retrieval	src/Alycia.Modules.Retrieval/LexicalIndex.cs	déclaration Roslyn
+type	T:Alycia.Modules.Retrieval.Onnx.OnnxPassageReranker	Retrieval	src/Alycia.Modules.Retrieval.Onnx/OnnxPassageReranker.cs	déclaration Roslyn
+type	T:Alycia.Modules.Retrieval.PassageClassifier	Retrieval	src/Alycia.Modules.Retrieval/PassageClassifier.cs	déclaration Roslyn
+type	T:Alycia.Modules.Retrieval.PassageEvidenceAudit	Retrieval	src/Alycia.Modules.Retrieval/PassageEvidenceAudit.cs	déclaration Roslyn
+type	T:Alycia.Modules.Retrieval.PassageRanking	Retrieval	src/Alycia.Modules.Retrieval/PassageRanking.cs	déclaration Roslyn
+type	T:Alycia.Modules.Retrieval.PassageScoring	Retrieval	src/Alycia.Modules.Retrieval/PassageScoring.cs	déclaration Roslyn
+type	T:Alycia.Modules.Retrieval.PassageSearch	Retrieval	src/Alycia.Modules.Retrieval/PassageSearch.cs	déclaration Roslyn
+type	T:Alycia.Modules.Retrieval.ProjectRetrievalService	Retrieval	src/Alycia.Modules.Retrieval/ProjectRetrievalService.cs	déclaration Roslyn
+type	T:Alycia.Modules.Retrieval.QueryPlanner	Retrieval	src/Alycia.Modules.Retrieval/QueryPlanner.cs	déclaration Roslyn
+type	T:Alycia.Modules.Retrieval.QueryPlanning	Retrieval	src/Alycia.Modules.Retrieval/QueryPlanning.cs	déclaration Roslyn
+type	T:Alycia.Modules.Retrieval.RankedPassages	Retrieval	src/Alycia.Modules.Retrieval/PassageRanking.cs	déclaration Roslyn
+type	T:Alycia.Modules.Retrieval.RetrievalPipeline	Retrieval	src/Alycia.Modules.Retrieval/RetrievalPipeline.cs	déclaration Roslyn
+type	T:Alycia.Modules.Retrieval.SemanticClaimAudit	Retrieval	src/Alycia.Modules.Retrieval/SemanticClaimAudit.cs	déclaration Roslyn
+type	T:Alycia.Modules.Retrieval.TurnResponseAudit	Retrieval	src/Alycia.Modules.Retrieval/TurnResponseAudit.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.ArchiveFile	Alycia.Modules.Testing	src/Alycia.Modules.Testing/MemoryArchiveDocuments.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.DeterministicEmbeddings	Alycia.Modules.Testing	src/Alycia.Modules.Testing/DeterministicEmbeddings.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.FixedImportLimits	Alycia.Modules.Testing	src/Alycia.Modules.Testing/FixedImportLimits.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.FixtureContextMemory	Alycia.Modules.Testing	src/Alycia.Modules.Testing/FixtureContextMemory.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.FixtureHistoryKnowledge	Alycia.Modules.Testing	src/Alycia.Modules.Testing/FixtureDerivedIndexes.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.FixtureIndexMaintenance	Alycia.Modules.Testing	src/Alycia.Modules.Testing/FixtureDerivedIndexes.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.FixturePassageScoring	Alycia.Modules.Testing	src/Alycia.Modules.Testing/FixturePassageScoring.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.FixtureQueryPlanner	Alycia.Modules.Testing	src/Alycia.Modules.Testing/FixtureRetrieval.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.FixtureResponseAudit	Alycia.Modules.Testing	src/Alycia.Modules.Testing/FixtureTurnOutput.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.FixtureRetrieval	Alycia.Modules.Testing	src/Alycia.Modules.Testing/FixtureRetrieval.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.FixtureTemporalIndex	Alycia.Modules.Testing	src/Alycia.Modules.Testing/FixtureDerivedIndexes.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.FixtureTurnContext	Alycia.Modules.Testing	src/Alycia.Modules.Testing/FixtureTurnContext.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.FixtureTurnRouter	Alycia.Modules.Testing	src/Alycia.Modules.Testing/FixtureRetrieval.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.FixtureTurnTools	Alycia.Modules.Testing	src/Alycia.Modules.Testing/FixtureTurnOutput.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.HistoryGroup	Alycia.Modules.Testing	src/Alycia.Modules.Testing/FixtureDerivedIndexes.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.IndexDocumentFixture	Alycia.Modules.Testing	src/Alycia.Modules.Testing/SnapshotIndexDocuments.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.MemoryAnalysisConversations	Alycia.Modules.Testing	src/Alycia.Modules.Testing/MemoryAnalysisConversations.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.MemoryArchiveDocuments	Alycia.Modules.Testing	src/Alycia.Modules.Testing/MemoryArchiveDocuments.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.MemoryArchiveDocuments.Attempt	Alycia.Modules.Testing	src/Alycia.Modules.Testing/MemoryArchiveDocuments.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.MemoryConversationLeases	Alycia.Modules.Testing	src/Alycia.Modules.Testing/MemoryConversationLeases.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.MemoryConversationLeases.Reservation	Alycia.Modules.Testing	src/Alycia.Modules.Testing/MemoryConversationLeases.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.MemoryDocumentOverrides	Alycia.Modules.Testing	src/Alycia.Modules.Testing/MemoryFileChanges.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.MemoryFileChanges	Alycia.Modules.Testing	src/Alycia.Modules.Testing/MemoryFileChanges.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.MemoryMeterFactory	Alycia.Modules.Testing	src/Alycia.Modules.Testing/MemoryModelMeter.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.MemoryModelMeter	Alycia.Modules.Testing	src/Alycia.Modules.Testing/MemoryModelMeter.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.MemoryProjectCatalog	Alycia.Modules.Testing	src/Alycia.Modules.Testing/MemoryProjectCatalog.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.MemoryTemporalFacts	Alycia.Modules.Testing	src/Alycia.Modules.Testing/MemoryTemporalFacts.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.MemoryTemporalFacts.Entry	Alycia.Modules.Testing	src/Alycia.Modules.Testing/MemoryTemporalFacts.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.MemoryWorkspaceDirectory	Alycia.Modules.Testing	src/Alycia.Modules.Testing/MemoryWorkspaceDirectory.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.OriginalFixture	Alycia.Modules.Testing	src/Alycia.Modules.Testing/SnapshotOriginals.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.RecordedIndexedEmbeddings	Alycia.Modules.Testing	src/Alycia.Modules.Testing/FixtureDerivedIndexes.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.RecordedMemorySource	Alycia.Modules.Testing	src/Alycia.Modules.Testing/SnapshotMemoryEligibility.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.RecordedPassage	Alycia.Modules.Testing	src/Alycia.Modules.Testing/FixtureDerivedIndexes.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.RecordedQueryBrief	Alycia.Modules.Testing	src/Alycia.Modules.Testing/RecordedQueryBrief.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.RecordedReranker	Alycia.Modules.Testing	src/Alycia.Modules.Testing/RecordedReranker.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.RecordedSummaries	Alycia.Modules.Testing	src/Alycia.Modules.Testing/RecordedSummaries.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.ReferenceSlidingHistory	Alycia.Modules.Testing	src/Alycia.Modules.Testing/ReferenceSlidingHistory.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.ScopedVector	Alycia.Modules.Testing	src/Alycia.Modules.Testing/SnapshotSimilarities.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.ScriptedProjectTools	Alycia.Modules.Testing	src/Alycia.Modules.Testing/ScriptedProjectTools.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.ScriptedTextGeneration	Alycia.Modules.Testing	src/Alycia.Modules.Testing/ScriptedTextGeneration.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.SnapshotConversations	Alycia.Modules.Testing	src/Alycia.Modules.Testing/SnapshotConversations.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.SnapshotIndex	Alycia.Modules.Testing	src/Alycia.Modules.Testing/SnapshotIndex.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.SnapshotIndexDocuments	Alycia.Modules.Testing	src/Alycia.Modules.Testing/SnapshotIndexDocuments.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.SnapshotMemoryEligibility	Alycia.Modules.Testing	src/Alycia.Modules.Testing/SnapshotMemoryEligibility.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.SnapshotNoteOrigins	Alycia.Modules.Testing	src/Alycia.Modules.Testing/MemoryProjectCatalog.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.SnapshotOriginals	Alycia.Modules.Testing	src/Alycia.Modules.Testing/SnapshotOriginals.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.SnapshotProjectDefaults	Alycia.Modules.Testing	src/Alycia.Modules.Testing/SnapshotProjectDefaults.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.SnapshotProjects	Alycia.Modules.Testing	src/Alycia.Modules.Testing/SnapshotConversations.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.SnapshotSimilarities	Alycia.Modules.Testing	src/Alycia.Modules.Testing/SnapshotSimilarities.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.SnapshotTemporalHistory	Alycia.Modules.Testing	src/Alycia.Modules.Testing/SnapshotTemporalHistory.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.SnapshotToolSources	Alycia.Modules.Testing	src/Alycia.Modules.Testing/SnapshotToolSources.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.SnapshotTurnReads	Alycia.Modules.Testing	src/Alycia.Modules.Testing/SnapshotTurnReads.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.ToolFixture	Alycia.Modules.Testing	src/Alycia.Modules.Testing/SnapshotToolSources.cs	déclaration Roslyn
+type	T:Alycia.Modules.Testing.ToolScenario	Alycia.Modules.Testing	src/Alycia.Modules.Testing/ScriptedProjectTools.cs	déclaration Roslyn
+type	T:Alycia.Modules.Tools.HistoryTools	Tools	src/Alycia.Modules.Tools/HistoryTools.cs	déclaration Roslyn
+type	T:Alycia.Modules.Tools.ProjectAgent	Tools	src/Alycia.Modules.Tools/ProjectAgent.cs	déclaration Roslyn
+type	T:Alycia.Modules.Tools.ProjectToolService	Tools	src/Alycia.Modules.Tools/ProjectToolService.Exploration.cs	déclaration Roslyn
+type	T:Alycia.Modules.Tools.ProjectToolService	Tools	src/Alycia.Modules.Tools/ProjectToolService.cs	déclaration Roslyn
+type	T:Alycia.Modules.Tools.ResearchPlan	Tools	src/Alycia.Modules.Tools/ResearchPlan.cs	déclaration Roslyn
+type	T:Alycia.Modules.Tools.SourceCommands	Tools	src/Alycia.Modules.Tools/SourceCommands.cs	déclaration Roslyn
+type	T:Alycia.Modules.Tools.ToolEvidenceReader	Tools	src/Alycia.Modules.Tools/ToolEvidenceReader.cs	déclaration Roslyn
+type	T:Alycia.Modules.Tools.ToolMemoryFallback	Tools	src/Alycia.Modules.Tools/ToolMemoryFallback.cs	déclaration Roslyn
+type	T:Alycia.Modules.Tools.TurnTools	Tools	src/Alycia.Modules.Tools/TurnTools.cs	déclaration Roslyn
+type	T:Alycia.Modules.Workspaces.Application.CreateWorkspaceService	Workspaces	src/Alycia.Modules.Workspaces.Application/CreateWorkspaceService.cs	déclaration Roslyn
+type	T:Alycia.Modules.Workspaces.Application.GetWorkspaceService	Workspaces	src/Alycia.Modules.Workspaces.Application/GetWorkspaceService.cs	déclaration Roslyn
+type	T:Alycia.Modules.Workspaces.Application.IWorkspaceRepository	Workspaces	src/Alycia.Modules.Workspaces.Application/IWorkspaceRepository.cs	déclaration Roslyn
+type	T:Alycia.Modules.Workspaces.Application.WorkspaceNameConflictException	Workspaces	src/Alycia.Modules.Workspaces.Application/WorkspaceNameConflictException.cs	déclaration Roslyn
+type	T:Alycia.Modules.Workspaces.Domain.Workspace	Workspaces	src/Alycia.Modules.Workspaces.Domain/Workspace.cs	déclaration Roslyn
+type	T:Alycia.Modules.Workspaces.Domain.WorkspaceProfile	Workspaces	src/Alycia.Modules.Workspaces.Domain/WorkspaceProfile.cs	déclaration Roslyn
+type	T:Alycia.Modules.Workspaces.Infrastructure.EfWorkspaceRepository	Workspaces	src/Alycia.Modules.Workspaces.Infrastructure/EfWorkspaceRepository.cs	déclaration Roslyn
+type	T:Alycia.Modules.Workspaces.Infrastructure.ProjectCatalog	Workspaces	src/Alycia.Modules.Workspaces.Infrastructure/ProjectCatalog.cs	déclaration Roslyn
+type	T:Alycia.Modules.Workspaces.Infrastructure.WorkspaceIdentityDirectory	Workspaces	src/Alycia.Modules.Workspaces.Infrastructure/WorkspaceIdentityDirectory.cs	déclaration Roslyn
+type	T:Alycia.Modules.Workspaces.Infrastructure.WorkspaceProfileStore	Workspaces	src/Alycia.Modules.Workspaces.Infrastructure/WorkspaceProfileStore.cs	déclaration Roslyn
+type	T:Alycia.Modules.Workspaces.Infrastructure.WorkspacesDbContext	Workspaces	src/Alycia.Modules.Workspaces.Infrastructure/WorkspacesDbContext.cs	déclaration Roslyn
+type	T:Alycia.Modules.Workspaces.Infrastructure.WorkspacesDbContextFactory	Workspaces	src/Alycia.Modules.Workspaces.Infrastructure/WorkspacesDbContextFactory.cs	déclaration Roslyn
+type	T:Alycia.Persistence.Migrations.ChatDbContext	Alycia.Persistence.Migrations	src/Alycia.Persistence.Migrations/ChatDbContext.cs	déclaration Roslyn
+type	T:Alycia.Persistence.Migrations.ChatDbContextFactory	Alycia.Persistence.Migrations	src/Alycia.Persistence.Migrations/ChatDbContext.cs	déclaration Roslyn
+type	T:Alycia.Platform.Persistence.RelationalSession	Alycia.Platform.Persistence	src/Alycia.Platform.Persistence/RelationalSession.cs	déclaration Roslyn

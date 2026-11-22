@@ -1,0 +1,17 @@
+{
+  "firstDeltaMs": 866.77,
+  "turnMs": 4514.88,
+  "passed": 2,
+  "checks": [
+    "real_ollama_model_selection_and_ndjson_turn",
+    "real_ollama_replay"
+  ],
+  "provider": "ollama",
+  "database": "isolated PostgreSQL",
+  "test_data_cleaned": true,
+  "continuous_chat_calls": 0,
+  "tool_rounds": 0,
+  "bounded_summary_calls": 0,
+  "pressure_tool_rounds": 0,
+  "empty_tool_summaries": 0
+}

@@ -29,8 +29,8 @@ public sealed class StreamingTests
         }))
         { BaseAddress = new Uri("http://127.0.0.1:11434/") };
         var deltas = new List<ModelDelta>();
-        var reply = await new OllamaChatModel(http, new()).StreamAsync("demo", [new("user", "hi")],
-            new() { Temperature = 0.1 }, delta => { deltas.Add(delta); return Task.CompletedTask; }, default);
+        var reply = await ChatFixture.Ollama(http, new()).StreamAsync("demo", [new("user", "hi")],
+            new ChatOptions() { Temperature = 0.1 }.InferenceCall(), delta => { deltas.Add(delta); return Task.CompletedTask; }, default);
         Assert.Equal("Bonjour 🙂", reply.Content);
         Assert.Equal("réflexion", deltas[0].Thinking);
         Assert.Equal(5, reply.Stats!.OutputTokens);
@@ -48,8 +48,8 @@ public sealed class StreamingTests
             request.RequestUri!.AbsolutePath == "/api/tags" ? "{\"models\":[{\"name\":\"demo\"}]}"
                 : request.RequestUri.AbsolutePath == "/api/show" ? "{\"capabilities\":[\"completion\"]}" : payload))))
         { BaseAddress = new Uri("http://127.0.0.1:11434/") };
-        await Assert.ThrowsAsync<ChatModelException>(() => new OllamaChatModel(http, new())
-            .StreamAsync("demo", [], new(), _ => Task.CompletedTask, default));
+        await Assert.ThrowsAsync<ChatModelException>(() => ChatFixture.Ollama(http, new())
+            .StreamAsync("demo", [], new ChatOptions().InferenceCall(), _ => Task.CompletedTask, default));
     }
 
     [Theory]
@@ -63,11 +63,11 @@ public sealed class StreamingTests
             request.RequestUri!.AbsolutePath == "/api/tags" ? "{\"models\":[{\"name\":\"demo\"}]}"
                 : request.RequestUri.AbsolutePath == "/api/show" ? "{\"capabilities\":[\"completion\"]}" : payload))))
         { BaseAddress = new Uri("http://127.0.0.1:11434/") };
-        await Assert.ThrowsAsync<ChatModelException>(() => new OllamaChatModel(http, new())
-            .StreamAsync("demo", [], new(), _ => Task.CompletedTask, default));
+        await Assert.ThrowsAsync<ChatModelException>(() => ChatFixture.Ollama(http, new())
+            .StreamAsync("demo", [], new ChatOptions().InferenceCall(), _ => Task.CompletedTask, default));
         // Explicit bounded mode remains available, including for summarization.
-        var bounded = await new OllamaChatModel(http, new()).StreamAsync("demo", [],
-            new() { GenerateUntilStop = false }, _ => Task.CompletedTask, default);
+        var bounded = await ChatFixture.Ollama(http, new()).StreamAsync("demo", [],
+            new ChatOptions() { GenerateUntilStop = false }.InferenceCall(), _ => Task.CompletedTask, default);
         Assert.Equal("partial", bounded.Content);
     }
 
@@ -79,8 +79,8 @@ public sealed class StreamingTests
                 : request.RequestUri.AbsolutePath == "/api/show" ? Response("{\"capabilities\":[\"completion\"]}")
                 : new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(new PacedStream()) })))
         { BaseAddress = new Uri("http://127.0.0.1:11434/") };
-        var reply = await new OllamaChatModel(http, new()).StreamAsync("demo", [],
-            new() { TimeoutSeconds = 1 }, _ => Task.CompletedTask, default);
+        var reply = await ChatFixture.Ollama(http, new()).StreamAsync("demo", [],
+            new ChatOptions() { TimeoutSeconds = 1 }.InferenceCall(), _ => Task.CompletedTask, default);
         Assert.Equal("continued", reply.Content);
     }
 
@@ -116,7 +116,7 @@ public sealed class StreamingTests
     {
         var repository = new MemoryRepository();
         var model = new StreamingModel { Fail = true };
-        var service = new ChatService(repository, model, new());
+        var service = ChatFixture.Create(repository, model, new());
         var id = repository.Conversation.Id;
         var request = Guid.NewGuid();
         var received = new List<ModelDelta>();
@@ -138,13 +138,13 @@ public sealed class StreamingTests
     public async Task CancellationAfterDeltaDoesNotPersistAndReleasesGate()
     {
         var repository = new MemoryRepository();
-        var service = new ChatService(repository, new StreamingModel(), new());
+        var service = ChatFixture.Create(repository, new StreamingModel(), new());
         using var cancel = new CancellationTokenSource();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.StreamAsync(repository.Conversation.Id,
             Guid.NewGuid(), "hello", 0, _ => { cancel.Cancel(); return Task.CompletedTask; }, cancel.Token));
         Assert.Empty(repository.Messages);
-        using var lease = GenerationGate.Shared.Enter(repository.Conversation.Id);
-        Assert.Throws<ChatConflictException>(() => GenerationGate.Shared.Enter(repository.Conversation.Id));
+        using var lease = ChatFixture.Gate.Enter(repository.Conversation.Id);
+        Assert.Throws<ChatConflictException>(() => ChatFixture.Gate.Enter(repository.Conversation.Id));
     }
 
     private sealed class StreamingModel : IChatModel
@@ -152,7 +152,7 @@ public sealed class StreamingTests
         public bool Fail { get; set; }
         public Task<IReadOnlyList<string>> ListModelsAsync(CancellationToken ct) => Task.FromResult<IReadOnlyList<string>>(["demo"]);
         public Task<string> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages, CancellationToken ct) => Task.FromResult("reply");
-        public async Task<GenerationReply> StreamAsync(string model, IReadOnlyList<PromptMessage> messages, ChatOptions settings,
+        public async Task<ModelReply> StreamAsync(string model, IReadOnlyList<PromptMessage> messages, InferenceCall settings,
             Func<ModelDelta, Task> onDelta, CancellationToken ct)
         {
             await onDelta(new("partial"));
@@ -162,7 +162,17 @@ public sealed class StreamingTests
         }
     }
 
-    private sealed class MemoryRepository : IChatRepository
+    [Fact]
+    public async Task Optional_turn_scope_observes_cancellation_before_start()
+    {
+        IChatRepository repository = new MemoryRepository();
+        var token = new CancellationToken(true);
+        var error = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => repository.BeginTurnAsync(Guid.Empty, token));
+        Assert.Equal(token, error.CancellationToken);
+        Assert.Null(await repository.BeginTurnAsync(Guid.Empty, default));
+    }
+
+    private sealed class MemoryRepository : ITestConversationRepository
     {
         public Conversation Conversation { get; } = Conversation.Create("test", "demo", "");
         public List<ChatMessage> Messages { get; } = [];

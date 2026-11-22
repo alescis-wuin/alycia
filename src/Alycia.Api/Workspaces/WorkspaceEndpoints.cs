@@ -109,7 +109,7 @@ internal static class WorkspaceEndpoints
             // Log type only; provider exception text may contain sensitive data.
             loggerFactory.CreateLogger("Workspaces.Api").LogError(
                 "Workspace creation database failure: {ErrorType}",
-                exception.GetType().Name);
+                Alycia.Contracts.Diagnostics.FailureType.Name(exception));
             return Respond(context, StatusCodes.Status503ServiceUnavailable,
                 "DEPENDENCY_UNAVAILABLE", "Workspace storage is unavailable.");
         }
@@ -118,7 +118,7 @@ internal static class WorkspaceEndpoints
         {
             loggerFactory.CreateLogger("Workspaces.Api").LogError(
                 "Workspace creation failure: {ErrorType}",
-                exception.GetType().Name);
+                Alycia.Contracts.Diagnostics.FailureType.Name(exception));
             return Respond(context, StatusCodes.Status500InternalServerError,
                 "INTERNAL_ERROR", "Workspace creation failed.");
         }
@@ -153,7 +153,7 @@ internal static class WorkspaceEndpoints
         {
             loggerFactory.CreateLogger("Workspaces.Api").LogError(
                 "Workspace retrieval database failure: {ErrorType}",
-                exception.GetType().Name);
+                Alycia.Contracts.Diagnostics.FailureType.Name(exception));
             return Respond(context, StatusCodes.Status503ServiceUnavailable,
                 "DEPENDENCY_UNAVAILABLE", "Workspace storage is unavailable.");
         }
@@ -162,7 +162,7 @@ internal static class WorkspaceEndpoints
         {
             loggerFactory.CreateLogger("Workspaces.Api").LogError(
                 "Workspace retrieval failure: {ErrorType}",
-                exception.GetType().Name);
+                Alycia.Contracts.Diagnostics.FailureType.Name(exception));
             return Respond(context, StatusCodes.Status500InternalServerError,
                 "INTERNAL_ERROR", "Workspace retrieval failed.");
         }

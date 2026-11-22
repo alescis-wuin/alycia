@@ -1,0 +1,146 @@
+{
+  "base": "bc8515475d73f30842344156f3de3850a67b4c4f",
+  "publicKeyFingerprint": "SHA256:xrQ+Du5Y/hqC1WxEhfZYqrKYe1DUdyxG9H+Ji8m40c0",
+  "phaseCommits": [
+    {
+      "phase": "D00",
+      "native": "c3f846badd3e7d03a3bcdb9584c67b27bc6cee0f",
+      "publication": "6ee4da4143d9fd61727271f132727164fc14b112",
+      "tree": "fcd8e2877b4d06d3e2672ee34f32fabae888145a",
+      "objectText": "tree fcd8e2877b4d06d3e2672ee34f32fabae888145a\nparent bc8515475d73f30842344156f3de3850a67b4c4f\nauthor Codex <codex@openai.com> 1795286134 +0100\ncommitter Codex <codex@openai.com> 1795286134 +0100\ngpgsig -----BEGIN SSH SIGNATURE-----\n U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgP8MmHWajGNUnKE9RVJlmP0A5tZ\n ErI/gan2N+Kjf12/4AAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5\n AAAAQJuR1zo4WPd5ZQUbcFeoEaDIgnZvTOacADFrT3pbgySe415s75zkZknLWq2TUQVYSz\n g4B/OYVK7oavUhvW9mbA4=\n -----END SSH SIGNATURE-----\n\nD00 — Figer la référence develop et les résultats de recette\n"
+    },
+    {
+      "phase": "D01",
+      "native": "1f2fbecf9528cad740a3065c6c5bcb4305dac373",
+      "publication": "ff641acda10e04cfc05afa9882a66fcf82aeb952",
+      "tree": "4e18c3c807f57d0cd02f767f2ae3001f809de2d4",
+      "objectText": "tree 4e18c3c807f57d0cd02f767f2ae3001f809de2d4\nparent c3f846badd3e7d03a3bcdb9584c67b27bc6cee0f\nauthor Codex <codex@openai.com> 1795286229 +0100\ncommitter Codex <codex@openai.com> 1795286229 +0100\ngpgsig -----BEGIN SSH SIGNATURE-----\n U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgP8MmHWajGNUnKE9RVJlmP0A5tZ\n ErI/gan2N+Kjf12/4AAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5\n AAAAQD+HsfIpLYlxNX1EQNxEXiMlKaagnfW3Qlq9iD9TuXtVlni1me+i5tXpGlVkEgKpFo\n Hts40YhhPPhar/xVp1Owk=\n -----END SSH SIGNATURE-----\n\nD01 — Inventorier les symboles compilés et attribuer les données\n"
+    },
+    {
+      "phase": "D02",
+      "native": "1bd5816ff3f6cb803e0470001c8eb04a4f405caf",
+      "publication": "617c1b8dd53232a83c531a36559a1be76298a36a",
+      "tree": "1c7b030e2a6ef8d973e0107af02689cc63d221e4",
+      "objectText": "tree 1c7b030e2a6ef8d973e0107af02689cc63d221e4\nparent 1f2fbecf9528cad740a3065c6c5bcb4305dac373\nauthor Codex <codex@openai.com> 1795286283 +0100\ncommitter Codex <codex@openai.com> 1795286283 +0100\ngpgsig -----BEGIN SSH SIGNATURE-----\n U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgP8MmHWajGNUnKE9RVJlmP0A5tZ\n ErI/gan2N+Kjf12/4AAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5\n AAAAQGHBb/vmXp/wQEh20EU/8LGgmJaSIEfpPFy+m+2zTmkLbWYegCKSr85jVaeSk63kmE\n I0nbvInC9vbYbC+r9aVQo=\n -----END SSH SIGNATURE-----\n\nD02 — Définir les contrats consommateurs et le DAG cible\n"
+    },
+    {
+      "phase": "D03",
+      "native": "578ae2289d17a90be0ec4744cbb9c85a10e84e64",
+      "publication": "024c0cc731f205f661aa67f90b08c2fe686bad2b",
+      "tree": "1fffbb51cc030220e1fd1509be7d58d860172a88",
+      "objectText": "tree 1fffbb51cc030220e1fd1509be7d58d860172a88\nparent 1bd5816ff3f6cb803e0470001c8eb04a4f405caf\nauthor Codex <codex@openai.com> 1795286457 +0100\ncommitter Codex <codex@openai.com> 1795286457 +0100\ngpgsig -----BEGIN SSH SIGNATURE-----\n U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgP8MmHWajGNUnKE9RVJlmP0A5tZ\n ErI/gan2N+Kjf12/4AAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5\n AAAAQCoZm1HbNw/XL/zE8QH4rsd1YsDmzmJu9H0ih213/NKCmJ9TOhjRTqI777sPNmeMM5\n HArIsQek6shRltnqnXgwo=\n -----END SSH SIGNATURE-----\n\nD03 — Contrôler les frontières sur les compilations MSBuild réelles\n"
+    },
+    {
+      "phase": "D04",
+      "native": "3d1c2ad12115c061722a3b1f4f7f84eba131a910",
+      "publication": "b86dea58b5ea5052524cc86b8afd0bf4d6e9b48a",
+      "tree": "ef852e1efc10830dc26715415d493c5e0eded794",
+      "objectText": "tree ef852e1efc10830dc26715415d493c5e0eded794\nparent 578ae2289d17a90be0ec4744cbb9c85a10e84e64\nauthor Codex <codex@openai.com> 1795286688 +0100\ncommitter Codex <codex@openai.com> 1795286688 +0100\ngpgsig -----BEGIN SSH SIGNATURE-----\n U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgP8MmHWajGNUnKE9RVJlmP0A5tZ\n ErI/gan2N+Kjf12/4AAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5\n AAAAQM9IAC59ZllgizLS1SrtUVn+XgOQ8D6Qq8zHDYejeFK7kLW6auN+6byNxlz/Jz9N8+\n rd8p/jXRJJDt42nV5ZLQ4=\n -----END SSH SIGNATURE-----\n\nD04 — Figer les paramètres Ollama avant admission et isoler les défauts\n"
+    },
+    {
+      "phase": "D05",
+      "native": "6c7a7d736c1136354177ae38a4514f98f5d47707",
+      "publication": "84f03b7c36d5923e9422dc8b7e3b3bf20642e52b",
+      "tree": "e8b6063a687de28ee557405c58c99fad916ab398",
+      "objectText": "tree e8b6063a687de28ee557405c58c99fad916ab398\nparent 3d1c2ad12115c061722a3b1f4f7f84eba131a910\nauthor Codex <codex@openai.com> 1795286804 +0100\ncommitter Codex <codex@openai.com> 1795286804 +0100\ngpgsig -----BEGIN SSH SIGNATURE-----\n U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgP8MmHWajGNUnKE9RVJlmP0A5tZ\n ErI/gan2N+Kjf12/4AAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5\n AAAAQN1OtmJdR4FOzmnCapEh+n3fQ+qeQRpOEc3xl9A9cj+dwtOa8PicAvrv+Q/Btn6XXw\n ctMq1fg6csidI23E4gbA8=\n -----END SSH SIGNATURE-----\n\nD05 — Séparer les protocoles fournisseur et les contrats du tour\n"
+    },
+    {
+      "phase": "D06",
+      "native": "c5df853a0fc7024fde163f2df3a3169c6175b0d8",
+      "publication": "3ba4a50680af2f7fd66ad7f0fb7d0b40040f5ff0",
+      "tree": "7341c950a06bae92391cde1aa9304ff9a7ffdd1c",
+      "objectText": "tree 7341c950a06bae92391cde1aa9304ff9a7ffdd1c\nparent 6c7a7d736c1136354177ae38a4514f98f5d47707\nauthor Codex <codex@openai.com> 1795286899 +0100\ncommitter Codex <codex@openai.com> 1795286899 +0100\ngpgsig -----BEGIN SSH SIGNATURE-----\n U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgP8MmHWajGNUnKE9RVJlmP0A5tZ\n ErI/gan2N+Kjf12/4AAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5\n AAAAQKHPPNIxLPuEs3fzD+/nSs0texJygidWQBui1527I1iBY8bFnaCLGPuCoxc5ITcpGq\n 86Un8NDNcMOEm/AqDvwQI=\n -----END SSH SIGNATURE-----\n\nD06 — Enrôler les participants du projet dans une seule session relationnelle\n"
+    },
+    {
+      "phase": "D07",
+      "native": "5851a44ed79982fab5efc672f6c0c0d6cdccd45b",
+      "publication": "5d6b226ff4ac7c445bbc5b8ece75e78d328ddb39",
+      "tree": "825b9bd5a7bdd0dc52e675ddf931673aa8bc0e15",
+      "objectText": "tree 825b9bd5a7bdd0dc52e675ddf931673aa8bc0e15\nparent c5df853a0fc7024fde163f2df3a3169c6175b0d8\nauthor Codex <codex@openai.com> 1795287016 +0100\ncommitter Codex <codex@openai.com> 1795287016 +0100\ngpgsig -----BEGIN SSH SIGNATURE-----\n U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgP8MmHWajGNUnKE9RVJlmP0A5tZ\n ErI/gan2N+Kjf12/4AAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5\n AAAAQLu+z+jR4v037u83MCgF7DO5AWSCQnn6mBx379mS6QcBSnUE55GsC779qIi3H2kHgj\n +Hy95Ks/lC3U9LPeiMLg8=\n -----END SSH SIGNATURE-----\n\nD07 — Confier au module Workspaces les identités de projet sous transaction\n"
+    },
+    {
+      "phase": "D08",
+      "native": "fa68c43215be0b47de4bb614149ba03e2e95e866",
+      "publication": "12a955ade94d99f929999a87d13e47cdefa2483d",
+      "tree": "d6fc27eddbd6cb979f329e3b250efc760117451a",
+      "objectText": "tree d6fc27eddbd6cb979f329e3b250efc760117451a\nparent 5851a44ed79982fab5efc672f6c0c0d6cdccd45b\nauthor Codex <codex@openai.com> 1795287156 +0100\ncommitter Codex <codex@openai.com> 1795287156 +0100\ngpgsig -----BEGIN SSH SIGNATURE-----\n U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgP8MmHWajGNUnKE9RVJlmP0A5tZ\n ErI/gan2N+Kjf12/4AAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5\n AAAAQKgm+J4KYge/nGg+IsSbnmYCbIOMnxjxITv4h1Cv/eh6y7qdOsPmnl1Cvp+HwI2JBX\n YLJMceDAkVz28ysZOtZQs=\n -----END SSH SIGNATURE-----\n\nD08 — Injecter les ports du tour et relire la révision après rollback\n"
+    },
+    {
+      "phase": "D09",
+      "native": "ab236ddd2095064da5c5414137887cebfbaadeaf",
+      "publication": "c96bb4de68e3ebd6bc5bae331ceff05e90d3d35a",
+      "tree": "81a5a9d497240d4156638e40c219f9e7fa988d91",
+      "objectText": "tree 81a5a9d497240d4156638e40c219f9e7fa988d91\nparent fa68c43215be0b47de4bb614149ba03e2e95e866\nauthor Codex <codex@openai.com> 1795287260 +0100\ncommitter Codex <codex@openai.com> 1795287260 +0100\ngpgsig -----BEGIN SSH SIGNATURE-----\n U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgP8MmHWajGNUnKE9RVJlmP0A5tZ\n ErI/gan2N+Kjf12/4AAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5\n AAAAQKqfKEW+CdFBY8om9vcs2swwdUgJGkO926D60qUR5gHec3KHVAMqFcSHEtHyfSg1Hb\n YnnFrLQSayGAZE8UZ3Awk=\n -----END SSH SIGNATURE-----\n\nD09 — Isoler le stockage des originaux et les extracteurs documentaires\n"
+    },
+    {
+      "phase": "D10",
+      "native": "eed09c0be8ab832f43480962eca481e7776f4b08",
+      "publication": "ee2c92ddab306e9cf60b3ef1a2032bfb54af8d70",
+      "tree": "ba7f034406564df0cfd9f20cbf1bd766570b296c",
+      "objectText": "tree ba7f034406564df0cfd9f20cbf1bd766570b296c\nparent ab236ddd2095064da5c5414137887cebfbaadeaf\nauthor Codex <codex@openai.com> 1795287371 +0100\ncommitter Codex <codex@openai.com> 1795287371 +0100\ngpgsig -----BEGIN SSH SIGNATURE-----\n U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgP8MmHWajGNUnKE9RVJlmP0A5tZ\n ErI/gan2N+Kjf12/4AAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5\n AAAAQM9SurOn/zzfSWCvYA8g1Yg3jhWOpVaSwnFCECe018fBIcxMLHyqVhvhwUdPT3/az5\n AddaKxvVRnUSG8B+UcGAs=\n -----END SSH SIGNATURE-----\n\nD10 — Isoler les transports Ollama et injecter le permis physique\n"
+    },
+    {
+      "phase": "D11",
+      "native": "8c0f4ae79e10186a7c52fef31896f97c00f9f00b",
+      "publication": "5284758dbdd73dd95ba78bd765b3b362f1c2a448",
+      "tree": "2066b56c45d5be251957d43ab42d0fb27c44b63e",
+      "objectText": "tree 2066b56c45d5be251957d43ab42d0fb27c44b63e\nparent eed09c0be8ab832f43480962eca481e7776f4b08\nauthor Codex <codex@openai.com> 1795287824 +0100\ncommitter Codex <codex@openai.com> 1795287824 +0100\ngpgsig -----BEGIN SSH SIGNATURE-----\n U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgP8MmHWajGNUnKE9RVJlmP0A5tZ\n ErI/gan2N+Kjf12/4AAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5\n AAAAQFJJOVf8aHLno/uc7wu8PGQ92mO/tRf9ElHuLXXwnzgDlw+VoPD8tFsBieRwyoyM48\n x6+JNMWOlDchNJE9o/OQ8=\n -----END SSH SIGNATURE-----\n\nD11 — Isoler les jobs et vecteurs, paginer la découverte chez leurs propriétaires\n"
+    },
+    {
+      "phase": "D12",
+      "native": "103d0d2681066c5b7086c20ce2e656235e00d319",
+      "publication": "9354e8d9de255e53cafb449ea9a8af8ef5a2f466",
+      "tree": "be6e73417ac5c66e0c0fd0b8337bef4286507475",
+      "objectText": "tree be6e73417ac5c66e0c0fd0b8337bef4286507475\nparent 8c0f4ae79e10186a7c52fef31896f97c00f9f00b\nauthor Codex <codex@openai.com> 1795287936 +0100\ncommitter Codex <codex@openai.com> 1795287936 +0100\ngpgsig -----BEGIN SSH SIGNATURE-----\n U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgP8MmHWajGNUnKE9RVJlmP0A5tZ\n ErI/gan2N+Kjf12/4AAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5\n AAAAQPVwV8lHKdboWCUrUS1aHL33HcbNV+ymUzflldF3d3IFfXPdb6eVELWaqRKjiNAEhz\n 90Q0/LXbJ1G7vPUIKMmQI=\n -----END SSH SIGNATURE-----\n\nD12 — Extraire BM25, la fusion des rangs et le reranker ONNX\n"
+    },
+    {
+      "phase": "D13",
+      "native": "dc39ab51e2346c1051056bac1207aa16b22b0230",
+      "publication": "6adf4d494ef2254908ab493e1c0578089b2d83d1",
+      "tree": "13d4075b4df8d0522f34d925319d3768c7b9ca01",
+      "objectText": "tree 13d4075b4df8d0522f34d925319d3768c7b9ca01\nparent 103d0d2681066c5b7086c20ce2e656235e00d319\nauthor Codex <codex@openai.com> 1795288011 +0100\ncommitter Codex <codex@openai.com> 1795288011 +0100\ngpgsig -----BEGIN SSH SIGNATURE-----\n U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgP8MmHWajGNUnKE9RVJlmP0A5tZ\n ErI/gan2N+Kjf12/4AAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5\n AAAAQHM8PgW1KgP7/iuqZyzw5C64CD95760JjHnqzAuTLEVWqFcVGCyAhn9CeEiooW/rYv\n mOwt4q5vON9hbR9jClCws=\n -----END SSH SIGNATURE-----\n\nD13 — Restreindre la préparation du contexte à un port de lecture\n"
+    },
+    {
+      "phase": "D14",
+      "native": "5b9eeef4bd21d5dbb1519ff818d8b3de23b7a159",
+      "publication": "21ef3487c2f0f284d078f366a556bce7a47e5d15",
+      "tree": "4b9fa48814f81b9d759cddf7bf5afc85914f0ada",
+      "objectText": "tree 4b9fa48814f81b9d759cddf7bf5afc85914f0ada\nparent dc39ab51e2346c1051056bac1207aa16b22b0230\nauthor Codex <codex@openai.com> 1795288075 +0100\ncommitter Codex <codex@openai.com> 1795288075 +0100\ngpgsig -----BEGIN SSH SIGNATURE-----\n U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgP8MmHWajGNUnKE9RVJlmP0A5tZ\n ErI/gan2N+Kjf12/4AAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5\n AAAAQCBwPaFlRielZj4Qh0hTL1O3BSQVSc8aO3hXl0GIEm6VQTiYfP3Uz6MBABsngQOwVX\n NxGf4/8X74GVHnCro71A0=\n -----END SSH SIGNATURE-----\n\nD14 — Rendre le changement mémoire explicite dans la transaction du tour\n"
+    },
+    {
+      "phase": "D15",
+      "native": "7351ad302cabc24ee8f6a48b821e59f861bb36c3",
+      "publication": "040dc331034619fef4bf04fcbf32469e41db97ab",
+      "tree": "8fe209ca151b8b2e10e3237fad996c386553ce59",
+      "objectText": "tree 8fe209ca151b8b2e10e3237fad996c386553ce59\nparent 5b9eeef4bd21d5dbb1519ff818d8b3de23b7a159\nauthor Codex <codex@openai.com> 1795288386 +0100\ncommitter Codex <codex@openai.com> 1795288386 +0100\ngpgsig -----BEGIN SSH SIGNATURE-----\n U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgP8MmHWajGNUnKE9RVJlmP0A5tZ\n ErI/gan2N+Kjf12/4AAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5\n AAAAQL7Br/aNBpIR8+uZHuygvVsjDdL3B0AEFdlPdckXZyp1Yq7KT05e7bVzXYhTtB4SQq\n gyrStn0quLTxL260rOGg8=\n -----END SSH SIGNATURE-----\n\nD15 — Faire exécuter les outils sur des lectures autorisées par les propriétaires\n"
+    },
+    {
+      "phase": "D16",
+      "native": "e0e82244aa4b178dfe0a456c26667dafde92593f",
+      "publication": "54838af27e10e7fff037d4c476de2827521a6d12",
+      "tree": "0f1dd5072a03f8d653781f2086ab1041a5b1ec0f",
+      "objectText": "tree 0f1dd5072a03f8d653781f2086ab1041a5b1ec0f\nparent 7351ad302cabc24ee8f6a48b821e59f861bb36c3\nauthor Codex <codex@openai.com> 1795288504 +0100\ncommitter Codex <codex@openai.com> 1795288504 +0100\ngpgsig -----BEGIN SSH SIGNATURE-----\n U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgP8MmHWajGNUnKE9RVJlmP0A5tZ\n ErI/gan2N+Kjf12/4AAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5\n AAAAQB9hmAl2blELh4jC5R9A1jaTZy1oO+zmJZt6p2zYLPONxrU//v/n2vbazvujXug9PC\n qxYnxa00gC7/YVQD5DaAw=\n -----END SSH SIGNATURE-----\n\nD16 — Fournir des doubles contractuels et une démo locale explicitement activée\n"
+    },
+    {
+      "phase": "D17",
+      "native": "cf8859b6ee85e4bc9d5e30dec4c7b55d817a9c75",
+      "publication": "2566ce926c3ae96bba49afc8a0b302b27261f5d0",
+      "tree": "893d263984b0a3f06bc8aa9e628245b78b3a9e0e",
+      "objectText": "tree 893d263984b0a3f06bc8aa9e628245b78b3a9e0e\nparent e0e82244aa4b178dfe0a456c26667dafde92593f\nauthor Codex <codex@openai.com> 1795288601 +0100\ncommitter Codex <codex@openai.com> 1795288601 +0100\ngpgsig -----BEGIN SSH SIGNATURE-----\n U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgP8MmHWajGNUnKE9RVJlmP0A5tZ\n ErI/gan2N+Kjf12/4AAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5\n AAAAQA7mb+8kuJPXK852UdPPSTSBfKaQ0UfuE0d/CN8Zyy34kIfy4cTjsF61oUDG+GYulX\n lFRGr/khRqUtKQm8EnwwA=\n -----END SSH SIGNATURE-----\n\nD17 — Valider la composition et injecter séparément bail de conversation et priorité\n"
+    },
+    {
+      "phase": "D18",
+      "native": "f7e13afaf5d6fce41880f2086e0cd7e90eb2bd24",
+      "publication": "00e2c8d998cd81d88889d8d5a539ec54cc5c910f",
+      "tree": "b657aa770624d4e37fb4a886c2a652b2e4bbf66c",
+      "objectText": "tree b657aa770624d4e37fb4a886c2a652b2e4bbf66c\nparent cf8859b6ee85e4bc9d5e30dec4c7b55d817a9c75\nauthor Codex <codex@openai.com> 1795288681 +0100\ncommitter Codex <codex@openai.com> 1795288681 +0100\ngpgsig -----BEGIN SSH SIGNATURE-----\n U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgP8MmHWajGNUnKE9RVJlmP0A5tZ\n ErI/gan2N+Kjf12/4AAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5\n AAAAQEQw6YLLAaztnxhdG9/dV0tNAc1clcuZ8SepXt8UTAoumJptrcboBfKybpcVEWJ8BR\n 2ErmVJebLmFq0fi9+EeQM=\n -----END SSH SIGNATURE-----\n\nD18 — Construire séparément les assemblies et refuser les dépendances non autorisées\n"
+    },
+    {
+      "phase": "D19",
+      "native": "b7b4d46fff9572df3954352d76e6627d52862d4c",
+      "publication": "caee0777472d7a4ee9da6f0912d288b65cca05af",
+      "tree": "74eef9d4facd167f974fe10003a46ada8db94413",
+      "objectText": "tree 74eef9d4facd167f974fe10003a46ada8db94413\nparent f7e13afaf5d6fce41880f2086e0cd7e90eb2bd24\nauthor Codex <codex@openai.com> 1795289616 +0100\ncommitter Codex <codex@openai.com> 1795289616 +0100\ngpgsig -----BEGIN SSH SIGNATURE-----\n U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgP8MmHWajGNUnKE9RVJlmP0A5tZ\n ErI/gan2N+Kjf12/4AAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5\n AAAAQD3R5yujTtuf+JAKK6AXcE6aT6GYkMYfneLqXfMMAKNkEuHLT7tiX+1TqADrkAvlP9\n HwkXQasdLK9uC3J+g5wws=\n -----END SSH SIGNATURE-----\n\nD19 — Rejouer la recette, vérifier les contrats et publier le bilan par phase\n"
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 """Logical owners of Chat code. New files in a feature directory inherit its owner."""
 
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 
 CHAT_PROJECTS = {"Alycia.Modules.Chat.Application", "Alycia.Modules.Chat.Infrastructure"}
 
@@ -10,25 +10,21 @@ ROOT_FILES = {
     "Context": {"ContextGuides", "ConversationContext", "FileContext", "ProjectContext", "RecursiveContext",
                 "RecursiveSummarizer", "SlidingContext", "TokenBudget"},
     "Inference": {"GenerationGate", "InferenceWindow"},
-    "Documents": {"AnalysisCheckpoints", "CodeStructure", "DocumentAnalysisService", "FileImport",
+    "Documents": {"AnalysisCheckpoints", "DocumentAnalysisService", "FileImport",
                   "ProjectSourceReader", "StructuredDocuments"},
     "Indexing": {"EmbeddingIndex", "IndexedKnowledge", "SourceIndex"},
     "Retrieval": {"CitationAudit", "ClaimAudit", "SemanticClaimAudit", "EvidenceComposer", "LexicalIndex",
                   "OnnxPassageReranker", "PassageClassification", "ProjectRetrieval", "ProjectRetrievalService",
                   "QueryPlanning", "QueryRouting"},
     "Projects": {"ProjectInventory", "WorkspaceSources"},
-    "Configuration": {"ChatOptions", "ConversationConfiguration", "ConversationSettingsTransfer", "ImportSettingsStore"},
+    "Configuration": {"ChatOptions", "ConversationSettingsTransfer", "ImportSettingsStore"},
     "Persistence": {"ChatDbContext"},
 }
 DIRECTORIES = {"Conversations", "Context", "Inference", "Documents", "Indexing", "Retrieval",
                "Configuration", "Memory", "Tools", "Projects"}
 # Ports/value types co-located with another owner for historical source compatibility.
 TYPE_OWNERS = {
-    ("ChatContracts", "IChatModel"): "Inference", ("ChatContracts", "ChatModelFailure"): "Inference",
-    ("ChatContracts", "ChatModelException"): "Inference", ("ChatContracts", "PromptMessage"): "Inference",
-    ("ChatContracts", "GenerationReply"): "Inference", ("ChatContracts", "ContextWindow"): "Context",
-    ("ProjectRetrieval", "ILocalEmbeddings"): "Inference", ("ProjectRetrieval", "EmbeddingBatch"): "Inference",
-    ("TokenBudget", "ITextTokenCounter"): "Inference", ("TokenBudget", "MeteredChatModel"): "Inference",
+    ("TokenBudget", "MeteredChatModel"): "Inference",
 }
 
 
@@ -39,48 +35,45 @@ def owner(path, symbol=""):
     basename = parts[-1].split(".")[0]
     if (basename, symbol) in TYPE_OWNERS:
         return TYPE_OWNERS[basename, symbol]
-    if basename == "ConversationSettingsService" and parts[2] == "Context":
-        return "Configuration"
     if len(parts) > 3:
         return parts[2] if parts[2] in DIRECTORIES else None
     return next((area for area, names in ROOT_FILES.items() if basename in names), None)
 
-# Direct logical dependencies (including typed ports and records). A target's domain
-# is not permission to use its Infrastructure classes; those are restricted below.
-ALLOWED = {
-    "Configuration": {"Context", "Conversations", "Documents", "Indexing", "Inference", "Memory", "Persistence", "Projects", "Tools"},
-    "Context": {"Configuration", "Conversations", "Indexing", "Inference", "Memory", "Retrieval", "Tools"},
-    "Conversations": {"Configuration", "Context", "Documents", "Inference", "Memory", "Persistence", "Projects", "Retrieval", "Tools"},
-    "Documents": {"Configuration", "Context", "Conversations", "Indexing", "Inference", "Memory", "Persistence", "Projects"},
-    "Indexing": {"Configuration", "Context", "Conversations", "Documents", "Inference", "Memory", "Persistence", "Projects", "Retrieval"},
-    "Inference": {"Configuration", "Context", "Conversations", "Retrieval"},
-    "Memory": {"Configuration", "Context", "Conversations", "Indexing", "Inference", "Persistence", "Retrieval"},
-    "Persistence": set(),
-    "Projects": {"Configuration", "Conversations", "Documents", "Inference", "Persistence"},
-    "Retrieval": {"Configuration", "Context", "Conversations", "Indexing", "Inference", "Memory", "Tools"},
-    "Tools": {"Configuration", "Context", "Conversations", "Documents", "Indexing", "Inference", "Memory", "Persistence", "Projects", "Retrieval"},
+def module_owner(path, symbol):
+    parts = PurePosixPath(path).parts
+    if len(parts) < 3 or parts[0] != "src":
+        return None
+    project = parts[1]
+    if project in CHAT_PROJECTS:
+        logical = owner(path, symbol)
+        return "Workspaces" if logical == "Projects" else logical
+    if project == "Alycia.Modules.Chat.Domain":
+        return {"Attachment": "Documents", "DocumentAnalysis": "Documents", "WorkspaceFileOverride": "Documents",
+                "WorkspaceProfile": "Workspaces", "PromptProfile": "Configuration"}.get(symbol, "Conversations")
+    if project.startswith("Alycia.Modules.") and project != "Alycia.Modules.Testing":
+        return project.split(".")[2]
+    return None
+
+
+# These consumers use request snapshots. Stored settings and tracked chat rows belong at the owning adapter.
+SNAPSHOT_CONSUMERS = {"Context", "Documents", "Indexing", "Inference", "Memory", "Retrieval", "Tools"}
+OWNER_INPUT_TYPES = {
+    "T:Alycia.Contracts.Chat.ChatSettings",
+    "T:Alycia.Modules.Chat.Application.ChatOptions",
+    "T:Alycia.Modules.Chat.Domain.Conversation",
+    "T:Alycia.Modules.Chat.Domain.ChatMessage",
+    "T:Alycia.Modules.Chat.Domain.Attachment",
+    "T:Alycia.Modules.Chat.Domain.WorkspaceProfile",
 }
 
-# Reviewed cross-owner uses within Chat.Infrastructure. Adapters serving different
-# owners may share the existing DbContext. Concrete exceptions do not grant access
-# to other implementations in the same feature; see the architecture ownership table.
-ADAPTERS = {
-    "Configuration": {"FileImport", "FileSummary", "WorkspaceSources"},
-    "Conversations": {"DocumentAnalysisService", "FileStorage", "WorkspaceSources"},
-    "Documents": {"ImportSettingsStore", "EfChatRepository", "WorkspaceSources"},
-    "Indexing": {"CodeStructure", "FileStorage", "ProjectSource", "ProjectSourceReader", "StructuredDocuments",
-                 "ProjectProfiles", "WorkspaceSources"},
-    "Memory": {"KnowledgeStore"},
-    "Projects": {"EfChatRepository", "FileImport", "FileStorage", "FileSummary", "ProjectSourceReader"},
-    "Tools": {"EfChatRepository", "CodeStructure", "ProjectSourceReader", "ProjectIndexService", "WorkspaceSources"},
-}
 
-# These consumers intentionally see a specific port or value and no implementation.
-NARROW_EDGES = {
-    ("Context", "Tools"): {"ITurnTools"},
-    ("Configuration", "Inference"): {"IChatModel", "ITextTokenCounter"},
-    ("Retrieval", "Conversations"): {"IChatRepository"},
-    ("Retrieval", "Tools"): {"ProjectToolResult"},
-    ("Inference", "Conversations"): {"ChatConflictException"},
-    ("Inference", "Retrieval"): {"EvidenceText"},
-}
+# Compiler IDs are individual permissions. New public classes and records never
+# become available implicitly by using the same namespace as an existing port.
+def contract_permissions():
+    from collections import defaultdict
+    result = defaultdict(set)
+    source = Path(__file__).with_name("contract-types.tsv")
+    for row in source.read_text().splitlines()[1:]:
+        project, type_id = row.split("\t")
+        result[project].add(type_id)
+    return result

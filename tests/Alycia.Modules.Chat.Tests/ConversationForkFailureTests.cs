@@ -14,7 +14,7 @@ public sealed class ConversationForkFailureTests
     public Task RejectedInsertDeletesCopiesAndSameScopeCanRetry() => WithSourceAsync(async (options, storage, source) =>
     {
         await using var db = new ChatDbContext(options);
-        var history = new ConversationHistory(db, new(), storage);
+        var history = new ConversationHistory(db, new(), new ArchiveDocuments(db, storage));
         await db.Database.ExecuteSqlRawAsync("""CREATE UNIQUE INDEX fork_reject ON chat.attachments ("Sha256")""");
 
         var failure = await Assert.ThrowsAsync<DbUpdateException>(() => history.ForkAsync(source.Id, source.Revision, null, default));
@@ -34,7 +34,7 @@ public sealed class ConversationForkFailureTests
         await db.Database.ExecuteSqlRawAsync("""
             ALTER TABLE chat.attachments ADD CONSTRAINT reject_fork UNIQUE ("Sha256") DEFERRABLE INITIALLY DEFERRED
             """);
-        var history = new ConversationHistory(db, new(), storage);
+        var history = new ConversationHistory(db, new(), new ArchiveDocuments(db, storage));
         var failure = await Assert.ThrowsAsync<PostgresException>(() => history.ForkAsync(source.Id, source.Revision, null, default));
         Assert.Equal(PostgresErrorCodes.UniqueViolation, failure.SqlState);
         await AssertCompleteAsync(options, storage, source.Id);
@@ -48,7 +48,7 @@ public sealed class ConversationForkFailureTests
         var interrupt = new CancelAfterCopy(storage, cancellation);
         var intercepted = new DbContextOptionsBuilder<ChatDbContext>(options).AddInterceptors(interrupt).Options;
         await using var db = new ChatDbContext(intercepted);
-        var history = new ConversationHistory(db, new(), storage);
+        var history = new ConversationHistory(db, new(), new ArchiveDocuments(db, storage));
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => history.ForkAsync(source.Id, source.Revision, null, cancellation.Token));
 
         await AssertCompleteAsync(options, storage, source.Id);
@@ -65,7 +65,7 @@ public sealed class ConversationForkFailureTests
         await writer.Database.ExecuteSqlRawAsync("LOCK TABLE chat.conversations IN ROW EXCLUSIVE MODE");
         var intercepted = new DbContextOptionsBuilder<ChatDbContext>(options).AddInterceptors(new FailBeforeCommit()).Options;
         await using var db = new ChatDbContext(intercepted);
-        var history = new ConversationHistory(db, new(), storage);
+        var history = new ConversationHistory(db, new(), new ArchiveDocuments(db, storage));
         await Assert.ThrowsAsync<IOException>(() => history.ForkAsync(source.Id, source.Revision, null, default));
 
         await AssertCompleteAsync(options, storage, source.Id);
@@ -78,7 +78,7 @@ public sealed class ConversationForkFailureTests
     {
         var intercepted = new DbContextOptionsBuilder<ChatDbContext>(options).AddInterceptors(new FailAfterCommit()).Options;
         await using var db = new ChatDbContext(intercepted);
-        var history = new ConversationHistory(db, new(), storage);
+        var history = new ConversationHistory(db, new(), new ArchiveDocuments(db, storage));
         await Assert.ThrowsAsync<IOException>(() => history.ForkAsync(source.Id, source.Revision, null, default));
 
         await using var verifier = new ChatDbContext(options);
@@ -148,11 +148,11 @@ public sealed class ConversationForkFailureTests
                 pg => pg.MigrationsHistoryTable("__EFMigrationsHistory", "chat")).Options;
             await using var db = new ChatDbContext(options);
             await db.Database.MigrateAsync();
-            var history = new ConversationHistory(db, new(), storage);
+            var history = new ConversationHistory(db, new(), new ArchiveDocuments(db, storage));
             var archive = new ConversationArchive(1, "Source", "demo", "", "", new(),
                 [new("user", "Question", DateTimeOffset.UnixEpoch), new("assistant", "Réponse", DateTimeOffset.UnixEpoch)]);
             var source = await history.ImportAsync(ConversationTransfer.ExportJson(archive), default);
-            await new FileImport(db, storage).ImportAsync(source.Id, Guid.NewGuid(),
+            await new FileImport(db, storage, ChatFixture.Profiles(db), new ConversationFileChanges(db)).ImportAsync(source.Id, Guid.NewGuid(),
                 [new("dossier/original.txt", new MemoryStream("original"u8.ToArray()))], default);
             await test(options, storage, source);
         }

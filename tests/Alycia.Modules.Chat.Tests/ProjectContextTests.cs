@@ -30,13 +30,13 @@ public sealed class ProjectContextTests
     public void ProjectSourcesRemainEligibleAndExclusionsAlwaysWin()
     {
         var file = File("src/A.cs", "code");
-        Assert.False(ProjectContext.Eligible(file, 50, 55));
-        file.ContextMode = "project";
-        Assert.True(ProjectContext.Eligible(file, 50, 55));
-        file.ContextMode = "excluded";
-        Assert.False(ProjectContext.Eligible(file, 50, 55));
+        Assert.False(file.InContextWindow(50, 55));
+        file = file with { ContextMode = "project" };
+        Assert.True(file.InContextWindow(50, 55));
+        file = file with { ContextMode = "excluded" };
+        Assert.False(file.InContextWindow(50, 55));
         Assert.Empty(ProjectContext.Select([file], "code", 1024).Sources);
     }
 
-    private static Attachment File(string path, string text) => new() { Id = Guid.NewGuid(), Name = path, Text = text, AnchorSequence = 1 };
+    private static Alycia.Contracts.Documents.TurnFile File(string path, string text) => new Attachment() { Id = Guid.NewGuid(), Name = path, Text = text, AnchorSequence = 1 }.ToTurnFile();
 }

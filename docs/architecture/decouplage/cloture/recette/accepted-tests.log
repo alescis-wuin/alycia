@@ -1,0 +1,74 @@
+waiting for server to start.... done
+server started
+Test run for $RECETTE/alycia/tests/Alycia.Client.Avalonia.Tests/bin/Debug/net10.0/Alycia.Client.Avalonia.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+Results File: $RECETTE/logs/accepted-trx/_f78487e89554_2026-11-22_20_19_20_net10.0.trx
+
+Passed!  - Failed:     0, Passed:    63, Skipped:     0, Total:    63, Duration: 3 s - Alycia.Client.Avalonia.Tests.dll (net10.0)
+VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.
+Test run for $RECETTE/alycia/tests/Alycia.Modules.Chat.Tests/bin/Debug/net10.0/Alycia.Modules.Chat.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+Results File: $RECETTE/logs/accepted-trx/_f78487e89554_2026-11-22_20_19_25_net10.0.trx
+
+Passed!  - Failed:     0, Passed:   294, Skipped:     0, Total:   294, Duration: 36 s - Alycia.Modules.Chat.Tests.dll (net10.0)
+VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.
+Test run for $RECETTE/alycia/tests/Alycia.Modules.Configuration.Tests/bin/Debug/net10.0/Alycia.Modules.Configuration.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+Results File: $RECETTE/logs/accepted-trx/_f78487e89554_2026-11-22_20_20_02_net10.0.trx
+
+Passed!  - Failed:     0, Passed:     2, Skipped:     0, Total:     2, Duration: 382 ms - Alycia.Modules.Configuration.Tests.dll (net10.0)
+VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.
+Test run for $RECETTE/alycia/tests/Alycia.Modules.Context.Tests/bin/Debug/net10.0/Alycia.Modules.Context.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+Results File: $RECETTE/logs/accepted-trx/_f78487e89554_2026-11-22_20_20_03_net10.0.trx
+
+Passed!  - Failed:     0, Passed:     3, Skipped:     0, Total:     3, Duration: 47 ms - Alycia.Modules.Context.Tests.dll (net10.0)
+VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.
+Test run for $RECETTE/alycia/tests/Alycia.Modules.Conversations.Tests/bin/Debug/net10.0/Alycia.Modules.Conversations.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+Results File: $RECETTE/logs/accepted-trx/_f78487e89554_2026-11-22_20_20_04_net10.0.trx
+
+Passed!  - Failed:     0, Passed:     1, Skipped:     0, Total:     1, Duration: 15 ms - Alycia.Modules.Conversations.Tests.dll (net10.0)
+VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.
+Test run for $RECETTE/alycia/tests/Alycia.Modules.Documents.Tests/bin/Debug/net10.0/Alycia.Modules.Documents.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+Results File: $RECETTE/logs/accepted-trx/_f78487e89554_2026-11-22_20_20_06_net10.0.trx
+
+Passed!  - Failed:     0, Passed:     2, Skipped:     0, Total:     2, Duration: 44 ms - Alycia.Modules.Documents.Tests.dll (net10.0)
+VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.
+Test run for $RECETTE/alycia/tests/Alycia.Modules.Indexing.Tests/bin/Debug/net10.0/Alycia.Modules.Indexing.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+Results File: $RECETTE/logs/accepted-trx/_f78487e89554_2026-11-22_20_20_07_net10.0.trx
+
+Passed!  - Failed:     0, Passed:     1, Skipped:     0, Total:     1, Duration: 22 ms - Alycia.Modules.Indexing.Tests.dll (net10.0)
+VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.
+Test run for $RECETTE/alycia/tests/Alycia.Modules.Inference.Tests/bin/Debug/net10.0/Alycia.Modules.Inference.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+Results File: $RECETTE/logs/accepted-trx/_f78487e89554_2026-11-22_20_20_08_net10.0.trx
+
+Passed!  - Failed:     0, Passed:    14, Skipped:     0, Total:    14, Duration: 208 ms - Alycia.Modules.Inference.Tests.dll (net10.0)
+VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.
+Test run for $RECETTE/alycia/tests/Alycia.Modules.Memory.Tests/bin/Debug/net10.0/Alycia.Modules.Memory.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+Results File: $RECETTE/logs/accepted-trx/_f78487e89554_2026-11-22_20_20_09_net10.0.trx
+
+Passed!  - Failed:     0, Passed:     1, Skipped:     0, Total:     1, Duration: 282 ms - Alycia.Modules.Memory.Tests.dll (net10.0)
+VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.
+Test run for $RECETTE/alycia/tests/Alycia.Modules.Retrieval.Tests/bin/Debug/net10.0/Alycia.Modules.Retrieval.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+Results File: $RECETTE/logs/accepted-trx/_f78487e89554_2026-11-22_20_20_11_net10.0.trx
+
+Passed!  - Failed:     0, Passed:     4, Skipped:     0, Total:     4, Duration: 78 ms - Alycia.Modules.Retrieval.Tests.dll (net10.0)
+VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.
+Test run for $RECETTE/alycia/tests/Alycia.Modules.Tools.Tests/bin/Debug/net10.0/Alycia.Modules.Tools.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+Results File: $RECETTE/logs/accepted-trx/_f78487e89554_2026-11-22_20_20_12_net10.0.trx
+
+Passed!  - Failed:     0, Passed:     2, Skipped:     0, Total:     2, Duration: 79 ms - Alycia.Modules.Tools.Tests.dll (net10.0)
+VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.
+Test run for $RECETTE/alycia/tests/Alycia.Modules.Workspaces.Tests/bin/Debug/net10.0/Alycia.Modules.Workspaces.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+Results File: $RECETTE/logs/accepted-trx/_f78487e89554_2026-11-22_20_20_13_net10.0.trx
+
+Passed!  - Failed:     0, Passed:    13, Skipped:     0, Total:    13, Duration: 1 s - Alycia.Modules.Workspaces.Tests.dll (net10.0)
+VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.

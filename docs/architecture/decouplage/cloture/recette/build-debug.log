@@ -1,0 +1,41 @@
+  Alycia.Contracts -> $RECETTE/alycia/src/Alycia.Contracts/bin/Debug/net10.0/Alycia.Contracts.dll
+  Alycia.Modules.Memory -> $RECETTE/alycia/src/Alycia.Modules.Memory/bin/Debug/net10.0/Alycia.Modules.Memory.dll
+  Alycia.Modules.Context -> $RECETTE/alycia/src/Alycia.Modules.Context/bin/Debug/net10.0/Alycia.Modules.Context.dll
+  Alycia.Modules.Tools -> $RECETTE/alycia/src/Alycia.Modules.Tools/bin/Debug/net10.0/Alycia.Modules.Tools.dll
+  Alycia.Modules.Inference -> $RECETTE/alycia/src/Alycia.Modules.Inference/bin/Debug/net10.0/Alycia.Modules.Inference.dll
+  Alycia.Modules.Retrieval -> $RECETTE/alycia/src/Alycia.Modules.Retrieval/bin/Debug/net10.0/Alycia.Modules.Retrieval.dll
+  Alycia.Modules.Retrieval.Onnx -> $RECETTE/alycia/src/Alycia.Modules.Retrieval.Onnx/bin/Debug/net10.0/Alycia.Modules.Retrieval.Onnx.dll
+  Alycia.Platform.Persistence -> $RECETTE/alycia/src/Alycia.Platform.Persistence/bin/Debug/net10.0/Alycia.Platform.Persistence.dll
+  Alycia.Modules.Workspaces.Domain -> $RECETTE/alycia/src/Alycia.Modules.Workspaces.Domain/bin/Debug/net10.0/Alycia.Modules.Workspaces.Domain.dll
+  Alycia.Modules.Workspaces.Application -> $RECETTE/alycia/src/Alycia.Modules.Workspaces.Application/bin/Debug/net10.0/Alycia.Modules.Workspaces.Application.dll
+  Alycia.Modules.Workspaces.Infrastructure -> $RECETTE/alycia/src/Alycia.Modules.Workspaces.Infrastructure/bin/Debug/net10.0/Alycia.Modules.Workspaces.Infrastructure.dll
+  Alycia.Modules.Chat.Domain -> $RECETTE/alycia/src/Alycia.Modules.Chat.Domain/bin/Debug/net10.0/Alycia.Modules.Chat.Domain.dll
+  Alycia.Modules.Chat.Application -> $RECETTE/alycia/src/Alycia.Modules.Chat.Application/bin/Debug/net10.0/Alycia.Modules.Chat.Application.dll
+  Alycia.Modules.Chat.Infrastructure -> $RECETTE/alycia/src/Alycia.Modules.Chat.Infrastructure/bin/Debug/net10.0/Alycia.Modules.Chat.Infrastructure.dll
+  Alycia.Modules.Documents -> $RECETTE/alycia/src/Alycia.Modules.Documents/bin/Debug/net10.0/Alycia.Modules.Documents.dll
+  Alycia.Modules.Configuration -> $RECETTE/alycia/src/Alycia.Modules.Configuration/bin/Debug/net10.0/Alycia.Modules.Configuration.dll
+  Alycia.Persistence.Migrations -> $RECETTE/alycia/src/Alycia.Persistence.Migrations/bin/Debug/net10.0/Alycia.Persistence.Migrations.dll
+  Alycia.Modules.Documents.Infrastructure -> $RECETTE/alycia/src/Alycia.Modules.Documents.Infrastructure/bin/Debug/net10.0/Alycia.Modules.Documents.Infrastructure.dll
+  Alycia.Modules.Indexing -> $RECETTE/alycia/src/Alycia.Modules.Indexing/bin/Debug/net10.0/Alycia.Modules.Indexing.dll
+  Alycia.Api -> $RECETTE/alycia/src/Alycia.Api/bin/Debug/net10.0/Alycia.Api.dll
+  Alycia.Client.Avalonia -> $RECETTE/alycia/src/Alycia.Client.Avalonia/bin/Debug/net10.0/Alycia.Client.Avalonia.dll
+  Alycia.Modules.Testing -> $RECETTE/alycia/src/Alycia.Modules.Testing/bin/Debug/net10.0/Alycia.Modules.Testing.dll
+  Alycia.DevHost -> $RECETTE/alycia/src/Alycia.DevHost/bin/Debug/net10.0/Alycia.DevHost.dll
+  Alycia.Client.Avalonia.Tests -> $RECETTE/alycia/tests/Alycia.Client.Avalonia.Tests/bin/Debug/net10.0/Alycia.Client.Avalonia.Tests.dll
+  Alycia.Modules.Chat.Tests -> $RECETTE/alycia/tests/Alycia.Modules.Chat.Tests/bin/Debug/net10.0/Alycia.Modules.Chat.Tests.dll
+  Alycia.Modules.Configuration.Tests -> $RECETTE/alycia/tests/Alycia.Modules.Configuration.Tests/bin/Debug/net10.0/Alycia.Modules.Configuration.Tests.dll
+  Alycia.Modules.Context.Tests -> $RECETTE/alycia/tests/Alycia.Modules.Context.Tests/bin/Debug/net10.0/Alycia.Modules.Context.Tests.dll
+  Alycia.Modules.Conversations.Tests -> $RECETTE/alycia/tests/Alycia.Modules.Conversations.Tests/bin/Debug/net10.0/Alycia.Modules.Conversations.Tests.dll
+  Alycia.Modules.Documents.Tests -> $RECETTE/alycia/tests/Alycia.Modules.Documents.Tests/bin/Debug/net10.0/Alycia.Modules.Documents.Tests.dll
+  Alycia.Modules.Indexing.Tests -> $RECETTE/alycia/tests/Alycia.Modules.Indexing.Tests/bin/Debug/net10.0/Alycia.Modules.Indexing.Tests.dll
+  Alycia.Modules.Inference.Tests -> $RECETTE/alycia/tests/Alycia.Modules.Inference.Tests/bin/Debug/net10.0/Alycia.Modules.Inference.Tests.dll
+  Alycia.Modules.Memory.Tests -> $RECETTE/alycia/tests/Alycia.Modules.Memory.Tests/bin/Debug/net10.0/Alycia.Modules.Memory.Tests.dll
+  Alycia.Modules.Retrieval.Tests -> $RECETTE/alycia/tests/Alycia.Modules.Retrieval.Tests/bin/Debug/net10.0/Alycia.Modules.Retrieval.Tests.dll
+  Alycia.Modules.Tools.Tests -> $RECETTE/alycia/tests/Alycia.Modules.Tools.Tests/bin/Debug/net10.0/Alycia.Modules.Tools.Tests.dll
+  Alycia.Modules.Workspaces.Tests -> $RECETTE/alycia/tests/Alycia.Modules.Workspaces.Tests/bin/Debug/net10.0/Alycia.Modules.Workspaces.Tests.dll
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:33.10

@@ -1,3 +1,4 @@
+using Alycia.Modules.Inference;
 using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
@@ -32,7 +33,7 @@ public sealed class DocumentAnalysisTests
             await database.SaveChangesAsync();
             var source = Encoding.UTF8.GetBytes("public class Sample { }");
             var archive = Zip(("nested.zip", Zip(("src/code.cs", source))), (".env", "SECRET_SHOULD_NOT_LEAK"u8.ToArray()));
-            var importer = new FileImport(database, storage);
+            var importer = new FileImport(database, storage, ChatFixture.Profiles(database), new ConversationFileChanges(database));
             var added = await importer.ImportAsync(conversation.Id, Guid.NewGuid(),
                 [new("project.zip", new MemoryStream(archive), "2025-01-02T03:04:05Z", "2025-02-03T04:05:06Z", "client-os")], default);
             Assert.Equal(4, added.Count);
@@ -42,7 +43,7 @@ public sealed class DocumentAnalysisTests
             Assert.Equal("", code.SourceCreatedAt);
             Assert.Contains("fuseau non fourni", code.MetadataSource);
             var model = new Model();
-            var service = new DocumentAnalysisService(database, model, new(), new ProjectSourceReader(storage));
+            var service = new DocumentAnalysisService(RecursiveSummarizer.Create, database, model, new ProjectSourceReader(storage), ChatFixture.Gate, new AnalysisConversationOwner(database, new(), model), ChatFixture.DocumentScope, new ModelMeterFactory());
             var report = await service.AnalyzeAsync(conversation.Id, conversation.Revision, null, 1024, null, default);
             Assert.Equal(4, report.FileCount);
             Assert.Contains("Source : tree.txt intégral", string.Join("\n", model.Inputs));
@@ -50,7 +51,7 @@ public sealed class DocumentAnalysisTests
             Assert.Contains(code.Name, report.TreeText);
             Assert.Contains("sourceFingerprint", report.ManifestJson);
             Assert.Contains("2025-01-02T03:04:05Z", report.TreeText);
-            var context = await new EfChatRepository(database).ContextFilesAsync(conversation.Id, 1, default);
+            var context = await new ConversationReadModel(database, new TurnDocuments(database, ChatFixture.DocumentScope)).ContextFilesAsync(conversation.Id, 1, default);
             Assert.Equal(2, context.Count);
             Assert.Contains(context, f => f.Id == code.Id);
             Assert.EndsWith(report.SummaryText, Assert.Single(context, f => f.Id == report.Id).Text);
@@ -81,7 +82,7 @@ public sealed class DocumentAnalysisTests
             code.ContextMode = "excluded"; conversation.AttachFiles();
             await database.SaveChangesAsync();
             Assert.All(await service.ListAsync(conversation.Id, default), a => Assert.True(a.IsStale));
-            Assert.Empty(await new EfChatRepository(database).ContextFilesAsync(conversation.Id, 1, default));
+            Assert.Empty(await new ConversationReadModel(database, new TurnDocuments(database, ChatFixture.DocumentScope)).ContextFilesAsync(conversation.Id, 1, default));
 
             var unsafeArchive = Zip(("nested.zip", Zip(("../escape.txt", "no"u8.ToArray()))));
             await Assert.ThrowsAsync<ArgumentException>(() => importer.ImportAsync(conversation.Id, Guid.NewGuid(),
@@ -142,14 +143,28 @@ public sealed class DocumentAnalysisTests
         return output.ToArray();
     }
 
-    private sealed class Model : IChatModel
+    [PostgresFact]
+    public Task InspectingModelWindowKeepsExistingAnalysisCheckpointAddresses() =>
+        ProjectCreationTests.WithDatabaseAsync(async (options, _) =>
+        {
+            await using var database = new ChatDbContext(options);
+            var conversation = Conversation.Create("Analyse", "demo", "");
+            database.Add(conversation);
+            await database.SaveChangesAsync();
+            var adapter = new AnalysisConversationOwner(database, new ChatOptions { ContextTokens = 8192 }, new Model(4096));
+            var preferences = await adapter.PreferencesAsync(conversation.Id, conversation.Revision, default);
+            Assert.Equal(4096, preferences.Summary.ContextTokens);
+            var key = AnalysisCheckpoints.UnitKey(Guid.Parse("009f475f-b5cd-4526-995c-18e732948313"),
+                "sha", "code.cs", "complete", "model:digest", 1024, preferences.Cache);
+            Assert.Equal("D5F4B70F56EE8584A1D4781B3C9EEA0C940CAF7AAE3D6E91F0643D81DF473CF0", key);
+        });
+
+    private sealed class Model(int? contextLimit = null) : IChatModel
     {
         public System.Collections.Concurrent.ConcurrentQueue<string> Inputs { get; } = new();
         public bool Fail;
-        public Task<ChatOptions> PrepareOptionsAsync(string model, ChatOptions options, CancellationToken ct)
-        {
-            var copy = options.Copy(); copy.ModelIdentity = "synthetic:digest-v1"; return Task.FromResult(copy);
-        }
+        public Task<ModelTokenization> InspectAsync(string model, string tokenCounting, CancellationToken ct) =>
+            Task.FromResult(new ModelTokenization("synthetic:digest-v1", ContextLimit: contextLimit));
         public Task<IReadOnlyList<string>> ListModelsAsync(CancellationToken ct) => Task.FromResult<IReadOnlyList<string>>(["demo"]);
         public Task<string> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages, CancellationToken ct)
         {

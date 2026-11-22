@@ -1,0 +1,11 @@
+<Project>
+  <ItemGroup>
+    <Analyzer Include="$(AlyciaArchitectureAnalyzer)" />
+    <CompilerVisibleProperty Include="AlyciaArchitectureOutput" />
+    <CompilerVisibleProperty Include="AlyciaArchitectureRoot" />
+    <CompilerVisibleProperty Include="MSBuildProjectFullPath" />
+  </ItemGroup>
+  <Target Name="AlyciaWriteProjectReferences" BeforeTargets="CoreCompile">
+    <WriteLinesToFile File="$(AlyciaArchitectureOutput)/$(AssemblyName).refs" Lines="@(ProjectReference->'%(FullPath)')" Overwrite="true" />
+  </Target>
+</Project>

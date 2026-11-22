@@ -33,7 +33,7 @@ public sealed class OllamaSchedulingTests(ITestOutputHelper output)
                 await embedding.InferenceStarted.Task.WaitAsync(ct);
                 // Each adapter call reaches its first incomplete await while the only model slot is occupied.
                 var queued = annotations.Select(a => a.RunAsync(ct)).ToArray();
-                using (GenerationGate.Shared.PreferForeground())
+                using (ChatFixture.Foreground.PreferForeground())
                 {
                     var interactive = chat.RunAsync(ct);
                     release.SetResult();
@@ -122,19 +122,19 @@ public sealed class OllamaSchedulingTests(ITestOutputHelper output)
         public async Task RunAsync(CancellationToken ct)
         {
             using var http = new HttpClient(this) { BaseAddress = new Uri("http://127.0.0.1:11434/") };
-            var model = new OllamaChatModel(http, new());
+            var model = ChatFixture.Ollama(http, new());
             var settings = new ChatOptions { CallPurpose = name == "chat" ? "chat" : "annotation", TimeoutSeconds = 5 };
             Submission = Stopwatch.GetTimestamp();
             if (name == "embedding")
-                Assert.Equal(2, (await new OllamaEmbeddings(http).EmbedAsync("vectors", ["a", "b"], ct)).Vectors.Length);
+                Assert.Equal(2, (await new OllamaEmbeddings(http, ChatFixture.Scheduler).EmbedAsync("vectors", ["a", "b"], ct)).Vectors.Length);
             else if (name == "chat")
-                Assert.Equal("ok", (await model.StreamAsync("local", [], settings, delta =>
+                Assert.Equal("ok", (await model.StreamAsync("local", [], settings.InferenceCall(), delta =>
                 {
                     if (delta.Content.Length > 0) Interlocked.CompareExchange(ref FirstDelta, Stopwatch.GetTimestamp(), 0);
                     return Task.CompletedTask;
                 }, ct)).Content);
             else
-                Assert.Equal("ok", await model.GenerateAsync("local", [], settings, ct));
+                Assert.Equal("ok", await model.GenerateAsync("local", [], settings.InferenceCall(), ct));
             Completed = Stopwatch.GetTimestamp();
         }
 

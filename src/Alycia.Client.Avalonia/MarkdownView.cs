@@ -72,6 +72,8 @@ public sealed partial class MarkdownView : StackPanel
         Schedule();
     }
 
+    private static string BlockKind(MdBlock block) => block.GetType().Name;
+
     private static string Raw(MdBlock block, string source)
     {
         int start = Math.Clamp(block.Span.Start, 0, source.Length);
@@ -139,7 +141,7 @@ public sealed partial class MarkdownView : StackPanel
         {
             var block = document[index];
             var raw = Raw(block, source);
-            var key = block.GetType().Name + raw + (raw.Contains('[') || block is FootnoteGroup ? references.ToString(CultureInfo.InvariantCulture) : "");
+            var key = BlockKind(block) + raw + (raw.Contains('[') || block is FootnoteGroup ? references.ToString(CultureInfo.InvariantCulture) : "");
             if (index < _keys.Count && _keys[index] == key) continue;
             var control = Block(block, source, 0);
             if (index < Children.Count) Children[index] = control; else Children.Add(control);

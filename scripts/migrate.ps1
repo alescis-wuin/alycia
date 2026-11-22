@@ -10,7 +10,7 @@ try {
     $pg = $config.services.postgres.environment
     Invoke-Checked dotnet @('tool', 'restore')
     foreach ($module in @('Workspaces', 'Chat')) {
-        $project = "src/Alycia.Modules.$module.Infrastructure"
+        $project = if ($module -eq "Chat") { "src/Alycia.Persistence.Migrations" } else { "src/Alycia.Modules.$module.Infrastructure" }
         $context = "${module}DbContext"
         $sql = Join-Path ([IO.Path]::GetTempPath()) ("alycia-" + [Guid]::NewGuid().ToString('N') + '.sql')
         $remote = '/tmp/' + [IO.Path]::GetFileName($sql)

@@ -4,20 +4,44 @@ WORKDIR /src
 COPY src/Alycia.Modules.Workspaces.Domain/Alycia.Modules.Workspaces.Domain.csproj src/Alycia.Modules.Workspaces.Domain/
 COPY src/Alycia.Modules.Workspaces.Application/Alycia.Modules.Workspaces.Application.csproj src/Alycia.Modules.Workspaces.Application/
 COPY src/Alycia.Modules.Workspaces.Infrastructure/Alycia.Modules.Workspaces.Infrastructure.csproj src/Alycia.Modules.Workspaces.Infrastructure/
+COPY src/Alycia.Platform.Persistence/Alycia.Platform.Persistence.csproj src/Alycia.Platform.Persistence/
+COPY src/Alycia.Modules.Documents/Alycia.Modules.Documents.csproj src/Alycia.Modules.Documents/
+COPY src/Alycia.Modules.Inference/Alycia.Modules.Inference.csproj src/Alycia.Modules.Inference/
+COPY src/Alycia.Modules.Indexing/Alycia.Modules.Indexing.csproj src/Alycia.Modules.Indexing/
+COPY src/Alycia.Modules.Memory/Alycia.Modules.Memory.csproj src/Alycia.Modules.Memory/
+COPY src/Alycia.Modules.Context/Alycia.Modules.Context.csproj src/Alycia.Modules.Context/
+COPY src/Alycia.Modules.Tools/Alycia.Modules.Tools.csproj src/Alycia.Modules.Tools/
+COPY src/Alycia.Modules.Retrieval/Alycia.Modules.Retrieval.csproj src/Alycia.Modules.Retrieval/
+COPY src/Alycia.Modules.Retrieval.Onnx/Alycia.Modules.Retrieval.Onnx.csproj src/Alycia.Modules.Retrieval.Onnx/
 COPY src/Alycia.Contracts/Alycia.Contracts.csproj src/Alycia.Contracts/
 COPY src/Alycia.Modules.Chat.Domain/Alycia.Modules.Chat.Domain.csproj src/Alycia.Modules.Chat.Domain/
 COPY src/Alycia.Modules.Chat.Application/Alycia.Modules.Chat.Application.csproj src/Alycia.Modules.Chat.Application/
 COPY src/Alycia.Modules.Chat.Infrastructure/Alycia.Modules.Chat.Infrastructure.csproj src/Alycia.Modules.Chat.Infrastructure/
+COPY src/Alycia.Modules.Configuration/Alycia.Modules.Configuration.csproj src/Alycia.Modules.Configuration/
+COPY src/Alycia.Persistence.Migrations/Alycia.Persistence.Migrations.csproj src/Alycia.Persistence.Migrations/
+COPY src/Alycia.Modules.Documents.Infrastructure/Alycia.Modules.Documents.Infrastructure.csproj src/Alycia.Modules.Documents.Infrastructure/
 COPY src/Alycia.Api/Alycia.Api.csproj src/Alycia.Api/
 RUN dotnet restore src/Alycia.Api/Alycia.Api.csproj
 
 COPY src/Alycia.Modules.Workspaces.Domain/ src/Alycia.Modules.Workspaces.Domain/
 COPY src/Alycia.Modules.Workspaces.Application/ src/Alycia.Modules.Workspaces.Application/
 COPY src/Alycia.Modules.Workspaces.Infrastructure/ src/Alycia.Modules.Workspaces.Infrastructure/
+COPY src/Alycia.Platform.Persistence/ src/Alycia.Platform.Persistence/
+COPY src/Alycia.Modules.Documents/ src/Alycia.Modules.Documents/
+COPY src/Alycia.Modules.Inference/ src/Alycia.Modules.Inference/
+COPY src/Alycia.Modules.Indexing/ src/Alycia.Modules.Indexing/
+COPY src/Alycia.Modules.Memory/ src/Alycia.Modules.Memory/
+COPY src/Alycia.Modules.Context/ src/Alycia.Modules.Context/
+COPY src/Alycia.Modules.Tools/ src/Alycia.Modules.Tools/
+COPY src/Alycia.Modules.Retrieval/ src/Alycia.Modules.Retrieval/
+COPY src/Alycia.Modules.Retrieval.Onnx/ src/Alycia.Modules.Retrieval.Onnx/
 COPY src/Alycia.Contracts/ src/Alycia.Contracts/
 COPY src/Alycia.Modules.Chat.Domain/ src/Alycia.Modules.Chat.Domain/
 COPY src/Alycia.Modules.Chat.Application/ src/Alycia.Modules.Chat.Application/
 COPY src/Alycia.Modules.Chat.Infrastructure/ src/Alycia.Modules.Chat.Infrastructure/
+COPY src/Alycia.Modules.Configuration/ src/Alycia.Modules.Configuration/
+COPY src/Alycia.Persistence.Migrations/ src/Alycia.Persistence.Migrations/
+COPY src/Alycia.Modules.Documents.Infrastructure/ src/Alycia.Modules.Documents.Infrastructure/
 COPY src/Alycia.Api/ src/Alycia.Api/
 RUN dotnet publish src/Alycia.Api/Alycia.Api.csproj \
     -c Release -o /out --no-restore

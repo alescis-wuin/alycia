@@ -17,7 +17,7 @@ for module in "${modules[@]}"; do
             context=WorkspacesDbContext
             ;;
         chat)
-            project=src/Alycia.Modules.Chat.Infrastructure
+            project=src/Alycia.Persistence.Migrations
             context=ChatDbContext
             ;;
         *)

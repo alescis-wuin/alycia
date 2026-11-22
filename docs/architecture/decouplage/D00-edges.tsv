@@ -1,0 +1,75 @@
+Configuration	Context	SlidingContext
+Configuration	Conversations	ChatConflictException, ConversationNotFoundException, IChatRepository
+Configuration	Documents	FileImport, FileSummary
+Configuration	Indexing	SourceChunk
+Configuration	Inference	IChatModel, ITextTokenCounter
+Configuration	Memory	TemporalRecall
+Configuration	Persistence	ChatDbContext
+Configuration	Projects	WorkspaceSources
+Configuration	Tools	ProjectAgent
+Context	Configuration	ChatOptions, ConversationConfiguration
+Context	Conversations	ChatConflictException, ConversationNotFoundException, IChatRepository
+Context	Indexing	IndexCallBudget, IndexedKnowledge, PassageGuide, SourceChunk
+Context	Inference	ChatModelException, ChatModelFailure, GenerationGate, IChatModel, ITextTokenCounter, MeteredChatModel, PromptMessage
+Context	Memory	IConversationMemory, ITemporalMemory, ITemporalMemoryIndex, MemorySelection, StructuredMemory, TemporalFact, TemporalMemory
+Context	Retrieval	EvidenceComposer, EvidenceText, IProjectRetrieval, ProjectRetrieval, QueryRouting
+Context	Tools	ITurnTools
+Conversations	Configuration	ChatOptions, ConversationConfiguration
+Conversations	Context	ContextWindow, FileContext, ITurnContext, SlidingContext, TokenBudget, TurnContext, TurnContextBudget, TurnContextMode, TurnContextResult
+Conversations	Documents	DocumentAnalysisService, FileStorage
+Conversations	Inference	ChatModelException, GenerationGate, GenerationReply, IChatModel, MeteredChatModel, PromptMessage
+Conversations	Memory	ConversationMemory, IConversationMemory, ITemporalMemory, StructuredMemory
+Conversations	Persistence	ChatDbContext
+Conversations	Projects	InventoryFile, ProjectInventory, WorkspaceSources
+Conversations	Retrieval	CitationAudit, ClaimAudit, EvidenceText, IProjectRetrieval, QueryRouting, SemanticClaimAudit
+Conversations	Tools	IProjectTools, ISnapshotProjectTools, ITurnTools, TurnTools
+Documents	Configuration	ChatOptions, ConversationConfiguration, ImportSettingsStore
+Documents	Context	FileContext, ProjectContext, RecursiveSummarizer, SummarySource
+Documents	Conversations	ChatConflictException, ConversationNotFoundException, ConversationTransfer, EfChatRepository
+Documents	Indexing	IndexCallBudget, SourceChunk
+Documents	Inference	GenerationGate, IChatModel, MeteredChatModel
+Documents	Memory	StructuredMemory
+Documents	Persistence	ChatDbContext
+Documents	Projects	InventoryFile, ProjectInventory, WorkspaceSources
+Indexing	Configuration	ChatOptions, ConversationConfiguration
+Indexing	Context	FileContext, TokenBudget
+Indexing	Conversations	ConversationNotFoundException
+Indexing	Documents	CodeStructure, FileStorage, ProjectSource, ProjectSourceReader, StructuredDocuments
+Indexing	Inference	ChatModelException, ChatModelFailure, EmbeddingBatch, GenerationGate, IChatModel, ILocalEmbeddings, PromptMessage
+Indexing	Memory	ITemporalMemoryIndex, StructuredMemory
+Indexing	Persistence	ChatDbContext
+Indexing	Projects	ProjectProfiles, WorkspaceSources
+Indexing	Retrieval	ProjectRetrieval
+Inference	Configuration	ChatOptions
+Inference	Context	TokenBudget
+Inference	Conversations	ChatConflictException
+Inference	Retrieval	EvidenceText
+Memory	Configuration	ChatOptions, ConversationConfiguration
+Memory	Context	FileContext, PreparedContext, ProjectContext, ProjectExcerpts, TokenBudget
+Memory	Conversations	ChatConflictException, ConversationNotFoundException, IChatRepository
+Memory	Indexing	IIndexedEmbeddings, KnowledgeStore, MemoryVectorMatches, SourceChunk
+Memory	Inference	GenerationGate, PromptMessage
+Memory	Persistence	ChatDbContext
+Memory	Retrieval	EvidenceComposer, EvidenceText, ProjectRetrieval
+Projects	Configuration	ConversationConfiguration
+Projects	Conversations	ChatConflictException, ConversationNotFoundException, EfChatRepository
+Projects	Documents	FileImport, FileStorage, FileSummary, ProjectSourceReader
+Projects	Inference	GenerationGate
+Projects	Persistence	ChatDbContext
+Retrieval	Configuration	ChatOptions, RankingLimits
+Retrieval	Context	FileContext, ProjectContext, ProjectExcerpts, TokenBudget
+Retrieval	Conversations	IChatRepository
+Retrieval	Indexing	IIndexedEmbeddings, IProjectIndex, PassageGuide, ProjectIndexSnapshot, SemanticSearch, SourceChunk, VectorSimilarity
+Retrieval	Inference	ChatModelException, MeteredChatModel
+Retrieval	Memory	ITemporalMemory, StructuredMemory, TemporalRecall
+Retrieval	Tools	ProjectToolResult
+Tools	Configuration	ChatOptions, ConversationConfiguration
+Tools	Context	ContextWindow, FileContext, ProjectContext, RecursiveSummarizer, SummarySource, TokenBudget, TurnContext, TurnContextBudget
+Tools	Conversations	ConversationNotFoundException, EfChatRepository, IChatRepository
+Tools	Documents	CodeStructure, ProjectSourceReader
+Tools	Indexing	IIndexedEmbeddings, IProjectIndex, ProjectIndexService, SemanticSearch, SourceChunk
+Tools	Inference	ChatModelException, ChatModelFailure, GenerationReply, IChatModel, InferenceWindow, PromptMessage
+Tools	Memory	StructuredMemory
+Tools	Persistence	ChatDbContext
+Tools	Projects	WorkspaceSources
+Tools	Retrieval	ClaimAudit, EvidenceText, ProjectRetrieval

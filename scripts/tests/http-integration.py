@@ -15,6 +15,7 @@ import tempfile
 import threading
 import time
 import uuid
+from contextlib import closing
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -612,14 +613,76 @@ def verify_context_quality(call, checks):
         call("DELETE", prefix, expected=204)
 
 
+def verify_originals(call, directory, checks):
+    owner = call("POST", "/conversations", {"title": "Source", "model": "demo"}, expected=201)["id"]
+    outsider = call("POST", "/conversations", {"title": "Voisine", "model": "demo"}, expected=201)["id"]
+    prefix = "/conversations/" + owner
+    data = b"0123456789"
+    body = b'--part\r\nContent-Disposition: form-data; name="files"; filename="note.txt"\r\n\r\n' + data + b"\r\n--part--\r\n"
+    file = call("POST", prefix + "/files/" + str(uuid.uuid4()), raw=body,
+                headers={"Content-Type": "multipart/form-data; boundary=part"})[0]["id"]
+    resource = prefix + "/files/" + file
+    header = {"Range": "bytes=2-5"}
+    assert call("GET", resource, headers=header, expected=206) == b"2345"
+    assert call("GET", "/conversations/" + outsider + "/files/" + file, headers=header, expected=404)
+    original = directory / uuid.UUID(owner).hex / (uuid.UUID(file).hex + ".bin")
+    original.write_bytes(b"abcdefghij")
+    call("GET", resource, headers=header, expected=503)
+    original.write_bytes(data)
+    revision = call("GET", prefix + "/settings")["conversation"]["revision"]
+    call("PATCH", resource, {"revision": revision, "mode": "excluded"})
+    assert call("GET", resource, headers=header, expected=206) == b"2345"
+    checks.append("private_original_survives_context_exclusion")
+
+    project = call("POST", "/projects", {"name": "Portée des originaux"})
+    project_path = "/projects/" + project["id"]
+    member = call("POST", "/conversations", {"title": "Membre", "model": "demo", "workspaceId": project["id"]}, expected=201)["id"]
+    member_path = "/conversations/" + member
+    shared = call("POST", project_path + "/files/" + str(uuid.uuid4()), raw=body,
+                  headers={"Content-Type": "multipart/form-data; boundary=part"})[0]["id"]
+    resource = member_path + "/files/" + shared
+    assert call("GET", resource, headers=header, expected=206) == b"2345"
+    call("PUT", project_path + "/files/" + shared, {"mode": "excluded", "revision": call("GET", project_path)["revision"]})
+    call("GET", resource, headers=header, expected=404)
+    call("PUT", project_path + "/files/" + shared, {"mode": "pinned", "revision": call("GET", project_path)["revision"]})
+    assert call("GET", resource, headers=header, expected=206) == b"2345"
+    call("PUT", member_path + "/project", {"workspaceId": None, "revision": call("GET", member_path + "/settings")["conversation"]["revision"]})
+    call("GET", resource, headers=header, expected=404)
+    checks.append("shared_original_after_membership_revocation")
+    checks.extend(["original_range_bytes", "original_owner_scope", "original_same_size_hash_mismatch", "original_range_after_revocation"])
+
+
+def measured_ollama_turn(port, path, request):
+    headers = {"Content-Type": "application/json"}
+    if token := os.environ.get("ALYCIA_CHAT_ACCESS_TOKEN"):
+        headers["Authorization"] = "Bearer " + token
+    start = time.perf_counter()
+    first_delta = None
+    events = []
+    with closing(http.client.HTTPConnection("127.0.0.1", port, timeout=660)) as connection:
+        connection.request("POST", "/api/chat" + path + "/stream", json.dumps(request), headers)
+        response = connection.getresponse()
+        assert response.status == 200 and "application/x-ndjson" in response.getheader("Content-Type", "")
+        for line in response:
+            if not line.strip():
+                continue
+            event = json.loads(line)
+            if event["type"] == "delta" and first_delta is None:
+                first_delta = time.perf_counter() - start
+            events.append(event)
+    assert first_delta is not None
+    return events, {"firstDeltaMs": round(first_delta * 1000, 2), "turnMs": round((time.perf_counter() - start) * 1000, 2)}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--case", choices=("all", "transport", "tool-summary", "boreale", "indexing", "context-quality", "knowledge"), default="all")
+    parser.add_argument("--case", choices=("all", "transport", "tool-summary", "boreale", "indexing", "context-quality", "knowledge", "originals", "mock", "ollama"), default="all")
     args = parser.parse_args()
     connection = os.environ.get("ALYCIA_CHAT_TEST_CONNECTION")
     if not connection:
         raise SystemExit("ALYCIA_CHAT_TEST_CONNECTION requis (administrateur de test avec CREATEDB).")
-    dll = ROOT / "src/Alycia.Api/bin/Debug/net10.0/Alycia.Api.dll"
+    host = "Alycia.DevHost" if args.case == "mock" else "Alycia.Api"
+    dll = ROOT / f"src/{host}/bin/Debug/net10.0/{host}.dll"
     if not dll.exists():
         raise SystemExit("Exécutez dotnet build Alycia.slnx avant cette recette.")
     database = "alycia_http_test_" + uuid.uuid4().hex
@@ -630,10 +693,23 @@ def main():
     # This scenario exercises the fallback independently of any locally installed weights.
     env.pop("ALYCIA_RERANK_DIRECTORY", None)
     ef = ["dotnet", "tool", "run", "dotnet-ef", "database"]
-    ef_options = ["--project", "src/Alycia.Modules.Chat.Infrastructure", "--context", "ChatDbContext", "--no-build"]
-    provider = ThreadingHTTPServer(("127.0.0.1", 0), Ollama)
-    threading.Thread(target=provider.serve_forever, daemon=True).start()
-    env["ALYCIA_OLLAMA_BASE_URL"] = f"http://127.0.0.1:{provider.server_port}/"
+    ef_options = ["--project", "src/Alycia.Persistence.Migrations", "--context", "ChatDbContext", "--no-build"]
+    provider = None
+    if args.case == "mock":
+        env["ALYCIA_MOCK_INFERENCE"] = "true"
+        env["ALYCIA_OLLAMA_BASE_URL"] = "http://127.0.0.1:1/"
+    elif args.case == "ollama":
+        from urllib.parse import urlsplit
+        base = os.environ["ALYCIA_TEST_OLLAMA_URL"]
+        if urlsplit(base).hostname not in {"127.0.0.1", "::1", "localhost"}:
+            raise ValueError("Serveur Ollama local requis pour la recette.")
+        env["ALYCIA_MOCK_INFERENCE"] = "false"
+        env["ALYCIA_OLLAMA_BASE_URL"] = base
+    else:
+        env["ALYCIA_MOCK_INFERENCE"] = "false"
+        provider = ThreadingHTTPServer(("127.0.0.1", 0), Ollama)
+        threading.Thread(target=provider.serve_forever, daemon=True).start()
+        env["ALYCIA_OLLAMA_BASE_URL"] = f"http://127.0.0.1:{provider.server_port}/"
     backend = None
     created = False
     with tempfile.TemporaryDirectory(prefix="alycia-http-") as directory:
@@ -669,7 +745,35 @@ def main():
                 module = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(module)
                 checks = []
+                timings = {}
                 client = module.create_client(f"http://127.0.0.1:{port}")
+                if args.case == "ollama":
+                    chat_model = os.environ["ALYCIA_TEST_CHAT_MODEL"]
+                    assert chat_model in client("GET", "/models")
+                    conversation = client("POST", "/conversations", {"title": "Recette locale", "model": chat_model}, expected=201)
+                    path = "/conversations/" + conversation["id"]
+                    request = {"requestId": str(uuid.uuid4()), "content": "Reply with the single word Paris.", "revision": conversation["revision"]}
+                    events, timings = measured_ollama_turn(port, path, request)
+                    assert events[-1]["type"] == "done"
+                    assert events[-1]["result"]["messages"][1]["content"].strip()
+                    checks.append("real_ollama_model_selection_and_ndjson_turn")
+                    replay = client("POST", path + "/stream", request)
+                    assert replay[-1]["result"]["replayed"] and len(client("GET", path + "/messages")["messages"]) == 2
+                    checks.append("real_ollama_replay")
+                if args.case == "mock":
+                    assert client("GET", "/models") == ["alycia-mock"]
+                    conversation = client("POST", "/conversations", {"title": "Mock", "model": "alycia-mock"}, expected=201)
+                    path = "/conversations/" + conversation["id"]
+                    request = {"requestId": str(uuid.uuid4()), "content": "Bonjour", "revision": conversation["revision"]}
+                    events = client("POST", path + "/stream", request)
+                    assert events[-1]["type"] == "done" and events[-1]["result"]["messages"][1]["content"] == "Bonjour"
+                    checks.append("devhost_mock_full_chat_stream")
+                    replay = client("POST", path + "/stream", request)
+                    assert replay[-1]["result"]["replayed"] is True
+                    assert len(client("GET", path + "/messages")["messages"]) == 2
+                    checks.append("devhost_mock_idempotent_replay")
+                if args.case == "originals":
+                    verify_originals(client, Path(env["ALYCIA_FILES_DIRECTORY"]), checks)
                 if args.case in ("all", "transport"):
                     verify_model_selection(port)
                     checks.append("model_capabilities_and_existing_conversation_repair")
@@ -699,7 +803,7 @@ def main():
                 if args.case in ("all", "boreale"):
                     verify_project_conflicts(port, client, checks)
                     verify_boreale(client, checks)
-                print(json.dumps({"passed": len(checks), "checks": checks, "provider": "mock",
+                print(json.dumps({**timings, "passed": len(checks), "checks": checks, "provider": "ollama" if args.case == "ollama" else "mock",
                     "database": "isolated PostgreSQL", "test_data_cleaned": True,
                     "continuous_chat_calls": Ollama.chat_calls, "tool_rounds": Ollama.tool_rounds, "bounded_summary_calls": Ollama.summary_calls,
                     "pressure_tool_rounds": Ollama.pressure_rounds, "empty_tool_summaries": Ollama.pressure_summaries}, indent=2))
@@ -718,8 +822,9 @@ def main():
                     except subprocess.TimeoutExpired:
                         backend.kill()
                         backend.wait()
-                provider.shutdown()
-                provider.server_close()
+                if provider is not None:
+                    provider.shutdown()
+                    provider.server_close()
                 if created:
                     subprocess.run(ef + ["drop", "--force"] + ef_options, cwd=ROOT, env=env,
                         check=True, stdout=log, stderr=log, timeout=60)

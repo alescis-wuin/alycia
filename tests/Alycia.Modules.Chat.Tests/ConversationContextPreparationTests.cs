@@ -1,5 +1,9 @@
+using Alycia.Modules.Inference;
+using Alycia.Modules.Retrieval;
+using Alycia.Contracts.Retrieval;
+using Alycia.Contracts.Memory;
+using Alycia.Modules.Chat.Application.Conversations;
 using Alycia.Modules.Chat.Application;
-using Alycia.Modules.Chat.Application.Context;
 using Alycia.Modules.Chat.Domain;
 
 namespace Alycia.Modules.Chat.Tests;
@@ -43,30 +47,90 @@ public sealed class ConversationContextPreparationTests
         using var next = await service.BeginAsync(id, revision, "Question", default);
     }
 
-    private sealed class Fixture : IChatRepository, IChatModel, ITemporalMemory, IProjectRetrieval
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task DefaultsAreCapturedBeforeTheConversationLookup(bool explicitPreparation)
+    {
+        var fixture = new Fixture { Lookup = new(TaskCreationOptions.RunContinuationsAsynchronously) };
+        fixture.Defaults.Temperature = .19;
+        var service = fixture.Service();
+        async Task<ContextPreparationResult> Start()
+        {
+            if (!explicitPreparation) return await service.PreviewAsync(fixture.Owner.Id, "Question", default);
+            using var lease = await service.BeginAsync(fixture.Owner.Id, fixture.Owner.Revision, "Question", default);
+            return await lease.BuildAsync(_ => Task.CompletedTask);
+        }
+
+        var pending = Start();
+        fixture.Defaults.Temperature = 1.91;
+        fixture.Lookup.SetResult();
+        Assert.Equal(.19, (await pending).Options.Temperature);
+        Assert.Equal(1.91, (await Start()).Options.Temperature);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SettingsReadAndUpdateCaptureTheRequestBeforeStorage(bool write)
+    {
+        var fixture = new Fixture { Lookup = new(TaskCreationOptions.RunContinuationsAsynchronously), AllowSettingsWrite = write };
+        var supplied = write ? new ChatOptions() : fixture.Defaults;
+        supplied.Temperature = .31;
+        var service = new ConversationSettingsService(fixture, fixture, fixture.Defaults);
+        async Task<double> Begin()
+        {
+            if (!write) return (await service.GetAsync(fixture.Owner.Id, default)).Options.Temperature;
+            var result = await service.UpdateAsync(fixture.Owner.Id, fixture.Owner.Revision,
+                fixture.Owner.Model, "", "", supplied, default);
+            return ConversationConfiguration.Options(result.SettingsJson, new()).Temperature;
+        }
+        var operation = Begin();
+        supplied.Temperature = 1.67;
+        fixture.Lookup.SetResult();
+        Assert.Equal(.31, await operation);
+        Assert.Equal(1.67, await Begin());
+        Assert.Equal(write ? 2 : 0, fixture.Writes);
+    }
+
+    private sealed class Fixture : ITestConversationRepository, IChatModel, ITemporalMemory, IProjectRetrieval
     {
         public Conversation Owner { get; } = Conversation.Create("Conversation", "demo", "");
+        public ChatOptions Defaults { get; } = new() { RetrievalMode = "legacy", StructuredMemory = false, UseProjectTools = false };
+        public TaskCompletionSource? Lookup { get; init; }
+        public bool AllowSettingsWrite { get; init; }
+        public int Writes { get; private set; }
         public int OptionReads { get; private set; }
-        public ConversationContextPreparation Service() => new(this, this, new TurnTools(), new TurnContext(this),
-            new ConversationMemory(this), this, this, new() { RetrievalMode = "legacy", StructuredMemory = false, UseProjectTools = false });
+        public ConversationContextPreparation Service() => new(this, this, new TurnTools(RecursiveSummarizer.Create), new TurnContext(new ContextMemory(), this, new Alycia.Modules.Context.SlidingHistory()),
+            new ConversationMemory(this, ChatFixture.Gate), new TurnRouting(new QueryPlanner(this), this, this), Defaults, ChatFixture.Gate, new ModelMeterFactory(), model => new QueryBriefRefiner(model));
 
-        public Task<ChatOptions> PrepareOptionsAsync(string model, ChatOptions options, CancellationToken ct)
+        public Task<ModelTokenization> InspectAsync(string model, string tokenCounting, CancellationToken ct)
         {
             OptionReads++;
-            return Task.FromResult(options.Copy());
+            return Task.FromResult(new ModelTokenization(null));
         }
-        public Task<Conversation?> FindAsync(Guid id, CancellationToken ct) => Task.FromResult(id == Owner.Id ? Owner : null);
+        public async Task<Conversation?> FindAsync(Guid id, CancellationToken ct)
+        {
+            if (Lookup is not null) await Lookup.Task.WaitAsync(ct);
+            return id == Owner.Id ? Owner : null;
+        }
         public Task<IReadOnlyList<Attachment>> FilesAsync(Guid id, CancellationToken ct) => Task.FromResult<IReadOnlyList<Attachment>>([]);
         public Task<IReadOnlyList<ChatMessage>> MessagesAsync(Guid id, int limit, int? before, CancellationToken ct) => Task.FromResult<IReadOnlyList<ChatMessage>>([]);
         public Task<IReadOnlyList<Conversation>> ListAsync(CancellationToken ct) => throw new NotSupportedException();
         public Task AddAsync(Conversation conversation, CancellationToken ct) => throw new NotSupportedException();
-        public Task SaveAsync(CancellationToken ct) => throw new NotSupportedException();
+        public Task SaveAsync(CancellationToken ct)
+        {
+            ct.ThrowIfCancellationRequested();
+            if (!AllowSettingsWrite) throw new NotSupportedException();
+            Writes++;
+            return Task.CompletedTask;
+        }
         public Task DeleteAsync(Conversation conversation, CancellationToken ct) => throw new NotSupportedException();
         public Task<IReadOnlyList<ChatMessage>> FindTurnAsync(Guid id, Guid requestId, CancellationToken ct) => throw new NotSupportedException();
         public Task AppendTurnAsync(Conversation conversation, ChatMessage user, ChatMessage assistant, CancellationToken ct) => throw new NotSupportedException();
         public Task<IReadOnlyList<string>> ListModelsAsync(CancellationToken ct) => throw new NotSupportedException();
         public Task<string> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages, CancellationToken ct) => throw new NotSupportedException();
-        public Task<TemporalRecall> RecallAsync(Guid owner, string question, ChatOptions settings, int through, CancellationToken ct) => throw new NotSupportedException();
-        public Task<RetrievalPreparation> PrepareAsync(Guid conversation, string query, ChatOptions settings, CancellationToken ct) => throw new NotSupportedException();
+        public Task<TemporalRecall> RecallAsync(Guid owner, string question, TemporalRecallSettings settings, int through, CancellationToken ct) => throw new NotSupportedException();
+        public Task<RetrievalPreparation> PrepareAsync(Guid conversation, string query, ProjectSearch request, CancellationToken ct) => throw new NotSupportedException();
     }
 }

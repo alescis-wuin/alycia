@@ -1,0 +1,3 @@
+# D05 — Contrats d’inférence et de fenêtre
+
+Les messages du fournisseur, l’erreur typée, les vecteurs et le compteur de jetons résident désormais dans Alycia.Contracts.Inference, sans référence à Chat, à la base ou à un fournisseur. Context possède ContextWindow. Le port historique IChatModel et le résultat enrichi restent du côté consommateur pendant la bascule. Les attributs JSON sont conservés. Les appels existants de la solution ont été recompilés. 52 tests de streaming, fournisseur, configuration et comptage ont réussi. **Partiel** pour les ports d’index et le contrat consommateur de génération qui utilisent encore ChatOptions. Le SHA de sortie est le commit introduisant cette fiche.

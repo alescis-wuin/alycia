@@ -1,0 +1,104 @@
+type	fichier	opération	sites
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddDbContext Alycia.Modules.Chat.Infrastructure.ChatDbContext	32
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddHostedService Alycia.Api.Chat.EmbeddingWorker	108
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddHttpClient Alycia.Contracts.Inference.ILocalEmbeddings, Alycia.Modules.Inference.OllamaEmbeddings	143
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddHttpClient Alycia.Contracts.Inference.ITextGeneration, Alycia.Modules.Inference.OllamaTextGeneration	146
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddHttpClient Alycia.Modules.Chat.Application.IProjectTools, Alycia.Api.Chat.ProjectMcpClient	90
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Contracts.Documents.IAuthorizedToolSources, Alycia.Modules.Chat.Infrastructure.AuthorizedToolSources	87
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Contracts.Documents.IToolConversationPolicy, Alycia.Modules.Chat.Infrastructure.ToolConversationPolicyReader	86
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Contracts.Indexing.IConversationIndexOwners, Alycia.Modules.Chat.Infrastructure.ConversationIndexOwners	102
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Contracts.Indexing.IEmbeddingSimilarityReader	105
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Contracts.Indexing.IHistoryKnowledge	99
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Contracts.Indexing.IProjectIndex, Alycia.Modules.Chat.Infrastructure.ProjectIndexService	96
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Contracts.Indexing.IProjectIndexOwners, Alycia.Modules.Chat.Infrastructure.ProjectIndexOwners	103
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Contracts.Workspaces.IWorkspaceIdentityDirectory, Alycia.Modules.Workspaces.Infrastructure.WorkspaceIdentityDirectory	66
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Modules.Chat.Application.ChatService	56
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Modules.Chat.Application.Context.ConversationSettingsService	50
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Modules.Chat.Application.Context.ITurnContext, Alycia.Modules.Chat.Application.Context.TurnContext	53
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Modules.Chat.Application.ConversationCreation	69
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Modules.Chat.Application.Conversations.ConversationContextPreparation	52
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Modules.Chat.Application.Conversations.ConversationTemporalMemory	76
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Modules.Chat.Application.IChatModel, Alycia.Modules.Chat.Application.ChatGenerationAdapter	137
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Modules.Chat.Application.IChatRepository, Alycia.Modules.Chat.Infrastructure.EfChatRepository	47
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Modules.Chat.Application.IConversationContextReader	48
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Modules.Chat.Application.IConversationHistoryReader	85
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Modules.Chat.Application.IConversationMemory, Alycia.Modules.Chat.Application.ConversationMemory	75
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Modules.Chat.Application.IIndexMaintenance, Alycia.Modules.Chat.Infrastructure.IndexMaintenance	107
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Modules.Chat.Application.IIndexedEmbeddings, Alycia.Modules.Chat.Infrastructure.IndexedEmbeddingSearch	106
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Modules.Chat.Application.IProjectCatalog, Alycia.Modules.Chat.Infrastructure.ProjectCatalog	67
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Modules.Chat.Application.IProjectModelDefaults	68
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Modules.Chat.Application.IProjectRetrieval, Alycia.Modules.Chat.Infrastructure.ProjectRetrievalService	115
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Modules.Chat.Application.ISnapshotProjectTools	89
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Modules.Chat.Application.ITemporalMemory	79
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Modules.Chat.Application.ITemporalMemoryIndex	78
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Modules.Chat.Application.ITurnResponseAudit, Alycia.Modules.Chat.Application.TurnResponseAudit	55
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Modules.Chat.Application.ITurnRouting, Alycia.Modules.Chat.Application.TurnRouting	54
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Modules.Chat.Application.ITurnTools, Alycia.Modules.Chat.Application.TurnTools	84
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Modules.Chat.Application.ProjectToolService	88
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Modules.Chat.Infrastructure.BackgroundEmbeddingIndex	104
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Modules.Chat.Infrastructure.ConversationFileSettings	125
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Modules.Chat.Infrastructure.ConversationFiles	124
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Modules.Chat.Infrastructure.ConversationHistory	49
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Modules.Chat.Infrastructure.DocumentAnalysisService	126
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Modules.Chat.Infrastructure.FileImport	123
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Modules.Chat.Infrastructure.ImportSettingsStore	122
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Modules.Chat.Infrastructure.IndexCatalog	97
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Modules.Chat.Infrastructure.KnowledgeBuilder	100
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Modules.Chat.Infrastructure.KnowledgeStore	98
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Modules.Chat.Infrastructure.ProjectFiles	70
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Modules.Chat.Infrastructure.ProjectSourceReader	127
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Modules.Chat.Infrastructure.PromptCatalog	51
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Modules.Chat.Infrastructure.TemporalMemoryStore	77
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Modules.Indexing.PostgresEmbeddingStore	101
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddScoped Alycia.Platform.Persistence.RelationalSession	65
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddSingleton Alycia.Api.Chat.LocalChatAccess	26
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddSingleton Alycia.Contracts.Inference.IForegroundActivity, Alycia.Modules.Inference.ForegroundActivity	136
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddSingleton Alycia.Contracts.Retrieval.IPassageReranker	114
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddSingleton Alycia.Modules.Chat.Application.GenerationGate	46
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddSingleton Alycia.Modules.Documents.FileStorage	120
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddSingleton Alycia.Modules.Inference.InferenceScheduler	134
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddSingleton Alycia.Modules.Inference.ModelTokenizationCache	135
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddSingleton Alycia.Modules.Retrieval.LexicalIndexCache	113
+DI	src/Alycia.Api/Chat/ChatRegistration.cs	AddTransient Alycia.Modules.Chat.Application.ChatOptions	31
+DI	src/Alycia.Api/Chat/DevelopmentInference.cs	AddSingleton Alycia.Contracts.Inference.ILocalEmbeddings	10
+DI	src/Alycia.Api/Chat/DevelopmentInference.cs	AddSingleton Alycia.Contracts.Inference.ITextGeneration	9
+DI	src/Alycia.Api/Program.cs	AddDbContext Alycia.Modules.Workspaces.Infrastructure.WorkspacesDbContext	114
+DI	src/Alycia.Api/Program.cs	AddScoped Alycia.Modules.Workspaces.Application.CreateWorkspaceService	118
+DI	src/Alycia.Api/Program.cs	AddScoped Alycia.Modules.Workspaces.Application.GetWorkspaceService	119
+DI	src/Alycia.Api/Program.cs	AddScoped Alycia.Modules.Workspaces.Application.IWorkspaceRepository, Alycia.Modules.Workspaces.Infrastructure.EfWorkspaceRepository	117
+DI	src/Alycia.Api/Program.cs	AddSingleton Alycia.Api.Chat.LocalChatAccess	134
+appel source	src/Alycia.Api/Chat/ChatEndpoints.Analysis.cs	File(	13,32,33,34
+appel source	src/Alycia.Api/Chat/ChatEndpoints.History.cs	File(	25,26
+appel source	src/Alycia.Api/Chat/ChatEndpoints.cs	File(	135
+appel source	src/Alycia.Api/Chat/ChatEndpoints.cs	File.	133
+appel source	src/Alycia.Api/Chat/ChatRegistration.cs	FileStorage(	120
+appel source	src/Alycia.Api/Program.cs	File(	40
+appel source	src/Alycia.Client.Avalonia/Appearance.cs	Directory.	34
+appel source	src/Alycia.Client.Avalonia/Appearance.cs	File.	22,23,38,39,41
+appel source	src/Alycia.Client.Avalonia/DraftStore.cs	Directory.	58
+appel source	src/Alycia.Client.Avalonia/DraftStore.cs	File.	23,26,59,64,70
+appel source	src/Alycia.Client.Avalonia/DraftStore.cs	FileStream(	63
+appel source	src/Alycia.Client.Avalonia/Presentation/Documents/DocumentUpload.cs	File.	30
+appel source	src/Alycia.Modules.Chat.Infrastructure/AnalysisCheckpoints.cs	Directory.	21,23,76
+appel source	src/Alycia.Modules.Chat.Infrastructure/AnalysisCheckpoints.cs	File.	51,70,71,80,81,83
+appel source	src/Alycia.Modules.Chat.Infrastructure/ChatDbContext.cs	CreateDbContext	108
+appel source	src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationHistory.cs	.PathFor(	123,124
+appel source	src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationHistory.cs	Directory.	55,56,91
+appel source	src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationHistory.cs	File.	90,123
+appel source	src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationHistory.cs	FileStream(	125
+appel source	src/Alycia.Modules.Chat.Infrastructure/Documents/AttachmentStorage.cs	.PathFor(	8
+appel source	src/Alycia.Modules.Chat.Infrastructure/Documents/ConversationFiles.cs	.PathFor(	18,40
+appel source	src/Alycia.Modules.Chat.Infrastructure/Documents/ConversationFiles.cs	File.	40
+appel source	src/Alycia.Modules.Chat.Infrastructure/FileImport.cs	.PathFor(	58
+appel source	src/Alycia.Modules.Chat.Infrastructure/FileImport.cs	Directory.	51
+appel source	src/Alycia.Modules.Chat.Infrastructure/FileImport.cs	File.	49,60,71,78
+appel source	src/Alycia.Modules.Chat.Infrastructure/Indexing/KnowledgeStore.cs	new ChatDbContext	20
+appel source	src/Alycia.Modules.Chat.Infrastructure/Indexing/ProjectPassageCache.cs	Directory.	15,53
+appel source	src/Alycia.Modules.Chat.Infrastructure/Indexing/ProjectPassageCache.cs	File.	23,26,43,45,47,54
+appel source	src/Alycia.Modules.Chat.Infrastructure/ProjectSourceReader.cs	.PathFor(	15
+appel source	src/Alycia.Modules.Chat.Infrastructure/ProjectSourceReader.cs	File.	15
+appel source	src/Alycia.Modules.Documents/FileStorage.cs	Directory.	13
+appel source	src/Alycia.Modules.Documents/FileStorage.cs	FileStorage(	3
+appel source	src/Alycia.Modules.Retrieval.Onnx/OnnxPassageReranker.cs	File.	65,72,73,80
+appel source	src/Alycia.Modules.Workspaces.Infrastructure/WorkspacesDbContextFactory.cs	CreateDbContext	10
+appel source	src/Alycia.Modules.Workspaces.Infrastructure/WorkspacesDbContextFactory.cs	new WorkspacesDbContext	22

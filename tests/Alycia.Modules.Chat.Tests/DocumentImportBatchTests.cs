@@ -1,7 +1,6 @@
 using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
-using Alycia.Modules.Chat.Infrastructure.Documents;
 using Alycia.Modules.Chat.Infrastructure;
 
 namespace Alycia.Modules.Chat.Tests;

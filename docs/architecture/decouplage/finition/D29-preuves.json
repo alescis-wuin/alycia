@@ -1,0 +1,269 @@
+{
+  "tests": {
+    "alycia.client.avalonia.tests.dll": {
+      "total": 63,
+      "passed": 63,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    "alycia.modules.chat.tests.dll": {
+      "total": 257,
+      "passed": 257,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    "alycia.modules.context.tests.dll": {
+      "total": 1,
+      "passed": 1,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    "alycia.modules.documents.tests.dll": {
+      "total": 1,
+      "passed": 1,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    "alycia.modules.indexing.tests.dll": {
+      "total": 1,
+      "passed": 1,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    "alycia.modules.inference.tests.dll": {
+      "total": 8,
+      "passed": 8,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    "alycia.modules.memory.tests.dll": {
+      "total": 1,
+      "passed": 1,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    "alycia.modules.retrieval.tests.dll": {
+      "total": 1,
+      "passed": 1,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    "alycia.modules.tools.tests.dll": {
+      "total": 1,
+      "passed": 1,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    "alycia.modules.workspaces.tests.dll": {
+      "total": 11,
+      "passed": 11,
+      "failed": 0,
+      "notExecuted": 0
+    }
+  },
+  "baselineTestsPresent": 316,
+  "newTestCases": 29,
+  "httpScenarios": 35,
+  "openApiPaths": 47,
+  "openApiSha256": "d4ff9cb794dca7ccd775a9923d3732c1bf08cbd747c808d4359771426cd53b49",
+  "ragCanonicalSha256": "0811f60b9dd1b5f42b9249e9876172c3a6b716f311fcc403da21e0f5407a4990",
+  "ragOrderedRows": 92,
+  "ragClaims": 16,
+  "ragClassifications": 20,
+  "settingsV1": {
+    "bytes": 2074,
+    "sha256": "b1d22617099059db98ec9a44cefa109927067d1a1ed25182f601e77135a2751b"
+  },
+  "controls": {
+    "baselineTests": true,
+    "allDotnetCasesPassed": true,
+    "orderedHttpScenarios": true,
+    "openApiBytes": true,
+    "orderedRag": true,
+    "configurationV1Bytes": true
+  },
+  "phase": "D29",
+  "decision": "PARTIEL",
+  "candidate": "7b04de23ee1854cfdbe2c4f8d91e3adf204f4f53",
+  "SDK": "10.0.404",
+  "postgres": "17.12",
+  "pgvector": "0.8.0",
+  "testsD20": {
+    "total": 327,
+    "présents": 327,
+    "ajoutés": 18,
+    "résultatsD29": 345,
+    "suitePython": 24,
+    "sha256IdentifiantsD29": "778d9f92fa85b0efc9dc2f918773e674774b9c80417bc62f8d9cd51b4a5cde8b"
+  },
+  "scénariosHTTP": {
+    "all": 35,
+    "originals": 6,
+    "mock": 2,
+    "ollama": 2
+  },
+  "EF": {
+    "schémasIdentiques": true,
+    "contraintes": 34,
+    "tablesApplicatives": 13,
+    "historiquesEF": 2,
+    "modèleEnAttente": {
+      "Chat": false,
+      "Workspaces": false
+    }
+  },
+  "compilateur": {
+    "projetsÉvalués": 31,
+    "référencesMSBuild": 109,
+    "couplesLogiquesChatObservés": 54,
+    "relationsConsommateurPropriétaireType": 145,
+    "sitesEFHorsMigrations": 73,
+    "sitesSQLHorsMigrations": 51,
+    "usagesDynamiquesNonClassés": 0,
+    "projectionsDynamiquesBornées": 2,
+    "règlesTransitoires": 0,
+    "dérogationsInitiales": 47,
+    "initialesObservées": 46,
+    "dérogationsConcrètesADAPTERS": 0
+  },
+  "ports": {
+    "total": 56,
+    "comportementaux": 50,
+    "conformitésProuvées": 14,
+    "ouverts": 36,
+    "exclusionsMotivées": 6
+  },
+  "isolation": {
+    "réussites": [
+      "Alycia.Contracts",
+      "Alycia.Modules.Chat.Domain",
+      "Alycia.Modules.Context",
+      "Alycia.Modules.Context.Tests",
+      "Alycia.Modules.Documents",
+      "Alycia.Modules.Documents.Tests",
+      "Alycia.Modules.Indexing",
+      "Alycia.Modules.Indexing.Tests",
+      "Alycia.Modules.Inference",
+      "Alycia.Modules.Inference.Tests",
+      "Alycia.Modules.Memory",
+      "Alycia.Modules.Memory.Tests",
+      "Alycia.Modules.Retrieval",
+      "Alycia.Modules.Retrieval.Onnx",
+      "Alycia.Modules.Retrieval.Tests",
+      "Alycia.Modules.Testing",
+      "Alycia.Modules.Tools",
+      "Alycia.Modules.Tools.Tests",
+      "Alycia.Modules.Workspaces.Application",
+      "Alycia.Modules.Workspaces.Domain",
+      "Alycia.Modules.Workspaces.Infrastructure",
+      "Alycia.Modules.Workspaces.Tests",
+      "Alycia.Platform.Persistence"
+    ],
+    "commandeStricte": "python3 scripts/build-isolated-modules.py --require-complete",
+    "codeSortieStrict": 1,
+    "compilationsIndépendantesEnÉchec": [
+      "Alycia.Modules.Chat.Application",
+      "Alycia.Modules.Chat.Infrastructure"
+    ],
+    "dépendancesPrésentesPendantCesEssais": "Projets du même domaine Chat, Alycia.Contracts et Alycia.Platform.Persistence"
+  },
+  "publication": {
+    "buildDebug": true,
+    "buildRelease": true,
+    "benchmarkCompilé": true,
+    "apiReleaseInspectée": true,
+    "borealeReleasePubliée": true,
+    "TestingDansApiDLL": false,
+    "TestingDansApiDeps": false,
+    "démarragesMockRefusés": 3,
+    "lint": true
+  },
+  "modèles": {
+    "ollama": {
+      "runtime": "0.40.17",
+      "manifests": {
+        "qwen2.5:0.5b": "a8b0c51577010a279d933d14c2a8ab4b268079d44c5c8830c0a93900f1827c67",
+        "all-minilm:22m": "1b226e2802dbb772b5fc32a58f103ca1804ef7501331012de126ab22f67475ef"
+      },
+      "embeddings": 2,
+      "dimensions": 384,
+      "identicalInputsEqual": true,
+      "loaded": [
+        {
+          "name": "all-minilm:22m",
+          "size_vram": 0
+        }
+      ]
+    },
+    "onnx": {
+      "repo": "Horizon-Labs/multilingual-reranker-small",
+      "revision": "23139fec6f1f448cdf89a5ac2d2c6bf5e8c7b398",
+      "files": {
+        "tokenizer.json": {
+          "size": 34363439,
+          "sha256": "7925f638b5444897efe3b4608eed56c1652f0ed39c2662c8302de1bc264c6088",
+          "gitOid": "77e2efae247749095fed6e896f828eca7537d6df"
+        },
+        "onnx/model_quantized.onnx": {
+          "size": 268407694,
+          "sha256": "f913154682468bfe92d6a7e02ed4e994e548c112fddc74452b573b17c949046e",
+          "gitOid": "84d93440f49b8f1933cc7bbe34f8790b99686785"
+        }
+      }
+    },
+    "exécution": "CPU",
+    "latenceOllamaMs": {
+      "before1": [
+        718.94,
+        2197.12
+      ],
+      "after1": [
+        670.4,
+        1179.12
+      ],
+      "after2": [
+        748.33,
+        1402.03
+      ],
+      "before2": [
+        666.65,
+        1208.42
+      ]
+    }
+  },
+  "environnement": {
+    "kernel": "Linux x86_64",
+    "dockerCLI": false,
+    "podmanCLI": false,
+    "dockerSocket": false,
+    "wayland": false,
+    "x11": false,
+    "gpuDevices": [],
+    "pwsh": false,
+    "sdk": "10.0.404",
+    "osRelease": "Debian GNU/Linux 13 (trixie)"
+  },
+  "nonTestés": [
+    "image Docker et Compose en exécution",
+    "GPU Ollama ou ONNX",
+    "session KDE/Wayland native",
+    "Windows et PowerShell Windows"
+  ],
+  "performances": {
+    "ordre": "D20, D29, D29, D20 pour CPU et Ollama",
+    "répétitionsMicrobenchmarkParChargeEtProcessus": 24,
+    "coûtCompilation": [
+      {
+        "revision": "D20",
+        "seconds": 56.163,
+        "maxRssKiB": 366552
+      },
+      {
+        "revision": "D29",
+        "seconds": 77.751,
+        "maxRssKiB": 391820
+      }
+    ],
+    "mesures": "D29-performances.tsv"
+  }
+}

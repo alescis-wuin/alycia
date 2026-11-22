@@ -15,7 +15,12 @@ public static class BoundedLines
         {
             for (var i = 0; i < length; i++)
             {
-                if (buffer[i] == '\n') { yield return line.ToString(); line.Clear(); }
+                if (buffer[i] == '\n')
+                {
+                    ct.ThrowIfCancellationRequested();
+                    yield return line.ToString();
+                    line.Clear();
+                }
                 else
                 {
                     if (line.Length >= maxLength) throw new InvalidDataException("Ligne du flux trop volumineuse.");
@@ -23,6 +28,7 @@ public static class BoundedLines
                 }
             }
         }
+        ct.ThrowIfCancellationRequested();
         if (line.Length > 0) yield return line.ToString();
     }
 }

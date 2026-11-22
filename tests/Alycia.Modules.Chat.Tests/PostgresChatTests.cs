@@ -49,8 +49,8 @@ public sealed class PostgresChatTests
             var requestId = Guid.NewGuid();
             await using (var database = new ChatDbContext(options))
             {
-                var repository = new EfChatRepository(database);
-                var service = new ChatService(repository, new FakeModel(), new());
+                var repository = new EfChatRepository(database, ChatFixture.Profiles(database));
+                var service = ChatFixture.Create(database, new FakeModel(), new());
                 var conversation = await service.CreateAsync("  Démo  ", "demo", "system", default);
                 id = conversation.Id;
                 Assert.Equal("Démo", conversation.Title);
@@ -63,7 +63,7 @@ public sealed class PostgresChatTests
                 Assert.False(replay.Usage.Complete);
                 Assert.Equal(2, await database.Messages.CountAsync());
                 await Assert.ThrowsAsync<ChatConflictException>(() => service.SendAsync(id, requestId, "different", default));
-                var failed = new ChatService(repository, new FakeModel(fail: true), new());
+                var failed = ChatFixture.Create(database, new FakeModel(fail: true), new());
                 await Assert.ThrowsAsync<ChatModelException>(() => failed.SendAsync(id, Guid.NewGuid(), "fail", default));
                 Assert.Equal(2, await database.Messages.CountAsync());
             }
@@ -71,9 +71,9 @@ public sealed class PostgresChatTests
             // New contexts simulate restart: stored messages are still used as context.
             await using (var database = new ChatDbContext(options))
             {
-                var repository = new EfChatRepository(database);
+                var repository = new EfChatRepository(database, ChatFixture.Profiles(database));
                 var model = new FakeModel();
-                var service = new ChatService(repository, model, new());
+                var service = ChatFixture.Create(database, model, new());
                 await service.SendAsync(id, Guid.NewGuid(), "Encore", default);
                 Assert.Equal(["system", "Bonjour", "Réponse", "Encore"], model.Prompt!.Select(item => item.Content));
                 Assert.Equal(4, (await repository.FindAsync(id, default))!.MessageCount);
@@ -84,25 +84,31 @@ public sealed class PostgresChatTests
             await using (var first = new ChatDbContext(options))
             await using (var second = new ChatDbContext(options))
             {
-                var firstRepo = new EfChatRepository(first);
-                var secondRepo = new EfChatRepository(second);
+                var firstRepo = new EfChatRepository(first, ChatFixture.Profiles(first));
+                var secondRepo = new EfChatRepository(second, ChatFixture.Profiles(second));
                 var a = (await firstRepo.FindAsync(id, default))!;
                 var b = (await secondRepo.FindAsync(id, default))!;
                 a.Rename("Renommée");
                 await firstRepo.SaveAsync(default);
                 // A generation completed against the old revision must roll back both inserts.
                 var staleRequest = Guid.NewGuid();
-                var memory = new ConversationMemory(secondRepo);
-                memory.Apply(b, new(new([], 0, 0), "", 0, "", true, StructuredMemory.Serialize(new(1, 4, "ancienne", []))));
+                var memory = new ConversationMemory(secondRepo, ChatFixture.Gate);
+                memory.Apply(b, new("", 0, "", StructuredMemory.Serialize(new(1, 4, "ancienne", []))));
                 b.CompleteTurn();
                 await Assert.ThrowsAsync<ChatConflictException>(() => secondRepo.AppendTurnAsync(b,
                     new(id, 5, staleRequest, "user", "stale"), new(id, 6, staleRequest, "assistant", "stale"), default));
+                var reloaded = (await secondRepo.FindAsync(id, default))!;
+                Assert.Equal("Renommée", reloaded.Title);
+                Assert.Equal("{}", reloaded.MemoryLedgerJson);
+                Assert.Equal(4, reloaded.MessageCount);
+                Assert.Empty(await secondRepo.FindTurnAsync(id, staleRequest, default));
+                Assert.False(second.ChangeTracker.HasChanges());
             }
 
             await using (var database = new ChatDbContext(options))
             {
                 Assert.Equal(4, await database.Messages.CountAsync());
-                var repository = new EfChatRepository(database);
+                var repository = new EfChatRepository(database, ChatFixture.Profiles(database));
                 var conversation = (await repository.FindAsync(id, default))!;
                 Assert.Equal("Renommée", conversation.Title);
                 Assert.Equal("{}", conversation.MemoryLedgerJson);

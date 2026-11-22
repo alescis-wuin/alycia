@@ -15,7 +15,7 @@ internal sealed class EmbeddingWorker(IServiceScopeFactory scopes, ILogger<Embed
                 await maintenance.RunCycleAsync(stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { return; }
-            catch (Exception error) { logger.LogWarning("Indexation différée : {ErrorType}", error.GetType().Name); }
+            catch (Exception error) { logger.LogWarning("Indexation différée : {ErrorType}", Alycia.Contracts.Diagnostics.FailureType.Name(error)); }
             try { await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken); }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { return; }
         }

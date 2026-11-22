@@ -1,5 +1,19 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Alycia.DevHost/Alycia.DevHost.csproj" />
+    <Project Path="src/Alycia.Modules.Testing/Alycia.Modules.Testing.csproj" />
+    <Project Path="src/Alycia.Modules.Retrieval.Onnx/Alycia.Modules.Retrieval.Onnx.csproj" />
+    <Project Path="src/Alycia.Modules.Retrieval/Alycia.Modules.Retrieval.csproj" />
+    <Project Path="src/Alycia.Modules.Indexing/Alycia.Modules.Indexing.csproj" />
+    <Project Path="src/Alycia.Modules.Memory/Alycia.Modules.Memory.csproj" />
+    <Project Path="src/Alycia.Modules.Context/Alycia.Modules.Context.csproj" />
+    <Project Path="src/Alycia.Modules.Configuration/Alycia.Modules.Configuration.csproj" />
+    <Project Path="src/Alycia.Modules.Tools/Alycia.Modules.Tools.csproj" />
+    <Project Path="src/Alycia.Modules.Inference/Alycia.Modules.Inference.csproj" />
+    <Project Path="src/Alycia.Modules.Documents/Alycia.Modules.Documents.csproj" />
+    <Project Path="src/Alycia.Modules.Documents.Infrastructure/Alycia.Modules.Documents.Infrastructure.csproj" />
+    <Project Path="src/Alycia.Persistence.Migrations/Alycia.Persistence.Migrations.csproj" />
+    <Project Path="src/Alycia.Platform.Persistence/Alycia.Platform.Persistence.csproj" />
     <Project Path="src/Alycia.Api/Alycia.Api.csproj" />
     <Project Path="src/Alycia.Contracts/Alycia.Contracts.csproj" />
     <Project Path="src/Alycia.Client.Avalonia/Alycia.Client.Avalonia.csproj" />
@@ -11,6 +25,15 @@
     <Project Path="src/Alycia.Modules.Chat.Infrastructure/Alycia.Modules.Chat.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Alycia.Modules.Configuration.Tests/Alycia.Modules.Configuration.Tests.csproj" />
+    <Project Path="tests/Alycia.Modules.Context.Tests/Alycia.Modules.Context.Tests.csproj" />
+    <Project Path="tests/Alycia.Modules.Conversations.Tests/Alycia.Modules.Conversations.Tests.csproj" />
+    <Project Path="tests/Alycia.Modules.Tools.Tests/Alycia.Modules.Tools.Tests.csproj" />
+    <Project Path="tests/Alycia.Modules.Documents.Tests/Alycia.Modules.Documents.Tests.csproj" />
+    <Project Path="tests/Alycia.Modules.Indexing.Tests/Alycia.Modules.Indexing.Tests.csproj" />
+    <Project Path="tests/Alycia.Modules.Retrieval.Tests/Alycia.Modules.Retrieval.Tests.csproj" />
+    <Project Path="tests/Alycia.Modules.Memory.Tests/Alycia.Modules.Memory.Tests.csproj" />
+    <Project Path="tests/Alycia.Modules.Inference.Tests/Alycia.Modules.Inference.Tests.csproj" />
     <Project Path="tests/Alycia.Modules.Chat.Tests/Alycia.Modules.Chat.Tests.csproj" />
     <Project Path="tests/Alycia.Client.Avalonia.Tests/Alycia.Client.Avalonia.Tests.csproj" />
     <Project Path="tests/Alycia.Modules.Workspaces.Tests/Alycia.Modules.Workspaces.Tests.csproj" />

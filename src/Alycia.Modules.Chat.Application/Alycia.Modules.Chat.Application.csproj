@@ -7,8 +7,15 @@
   <ItemGroup>
     <ProjectReference Include="../Alycia.Contracts/Alycia.Contracts.csproj" />
     <ProjectReference Include="../Alycia.Modules.Chat.Domain/Alycia.Modules.Chat.Domain.csproj" />
+    <Using Include="Alycia.Contracts.Indexing" />
+    <Using Include="Alycia.Contracts.Retrieval" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="Alycia.Contracts.Chat" />
+    <Using Include="Alycia.Contracts.Tools" />
+    <Using Include="Alycia.Contracts.Inference" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Alycia.Contracts.Context" />
   </ItemGroup>
 </Project>
