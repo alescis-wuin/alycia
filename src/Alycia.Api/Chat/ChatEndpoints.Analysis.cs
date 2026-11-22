@@ -65,7 +65,7 @@ internal static partial class ChatEndpoints
             SelectAnalysis request, DocumentAnalysisService service, CancellationToken ct) =>
         {
             var conversation = await service.SelectAsync(id, analysisId, request.Revision, request.UseInContext, ct);
-            return conversation is null ? Results.NotFound() : Results.Ok(conversation.ToResponse());
+            return conversation is null ? Results.NotFound() : Results.Ok(conversation);
         });
         routes.MapDelete("/conversations/{id:guid}/analyses/{analysisId:guid}", async (Guid id, Guid analysisId,
             int revision, DocumentAnalysisService service, CancellationToken ct) =>

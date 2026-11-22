@@ -1,0 +1,317 @@
+suite	test	résultat
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.BackendHealthProbeTests.CheckAsync_ClassifiesHttpResponses(status: OK, body: "Healthy", expectedAvailability: True, expectedMessage: "Backend available.")	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.BackendHealthProbeTests.CheckAsync_ClassifiesHttpResponses(status: OK, body: "Unexpected", expectedAvailability: False, expectedMessage: "Unexpected backend health response.")	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.BackendHealthProbeTests.CheckAsync_ClassifiesHttpResponses(status: ServiceUnavailable, body: "Unhealthy", expectedAvailability: False, expectedMessage: "Backend returned HTTP 503.")	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.BackendHealthProbeTests.CheckAsync_RejectsInvalidConfiguration(baseUrl: "http://example.com", expectedMessage: "HTTPS is required for non-local connections.")	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.BackendHealthProbeTests.CheckAsync_RejectsInvalidConfiguration(baseUrl: "invalid-url", expectedMessage: "Invalid API base URL.")	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.BackendHealthProbeTests.CheckAsync_ReportsNetworkFailure	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.BackendHealthProbeTests.CheckAsync_ReportsTimeout	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.ChatTests.ChatWindowCreatesRenamesSendsRetainsFailedDraftAndDeletes	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.ChatTests.PreservesRequestIdAndReportsBackendErrors	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.ChatTests.RejectsNonlocalBackendBeforeSendingAnyMessage	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.ChatTests.SendsContainerTokenToValidatedLocalBackend	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.ChatTests.UploadsRelativePathsAsMultipartAndDownloadsOriginalBytes(withMetadata: False)	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.ChatTests.UploadsRelativePathsAsMultipartAndDownloadsOriginalBytes(withMetadata: True)	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.ClientFeaturesTests.ClientRequiresDoneAfterDeltasAndPreservesRevision	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.ClientFeaturesTests.CodeCopyHandlesLongFencesAndPreservesIndentation	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.ClientFeaturesTests.DraftsRemainSeparateAndKeepRequestIdAcrossRestart	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.ClientFeaturesTests.ExcludesGeneratedAndKnownSensitivePaths(path: ".env.production")	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.ClientFeaturesTests.ExcludesGeneratedAndKnownSensitivePaths(path: "project/.git/config")	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.ClientFeaturesTests.ExcludesGeneratedAndKnownSensitivePaths(path: "server.key")	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.ClientFeaturesTests.ExcludesGeneratedAndKnownSensitivePaths(path: "src/node_modules/lib.js")	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.ClientFeaturesTests.PersistedContextWarningAndToolFailureAreVisibleInMessageDetails	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.ConfigurationTransferTests.ExportThenImportUsesTargetRevisionAndCopiesSettingsExactly	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.ConfigurationTransferTests.ImportDoesNotRetryWithAnotherRevisionOrSubstituteAnUnavailableModel(status: BadRequest)	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.ConfigurationTransferTests.ImportDoesNotRetryWithAnotherRevisionOrSubstituteAnUnavailableModel(status: Conflict)	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.ConfigurationTransferTests.InvalidFileNeverSendsAnUpdate	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.ConversationPresentationTests.AConversationOutsideTheFilterIsRetainedOnlyInTheSelectedProject	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.ConversationPresentationTests.EarlierPageKeepsFilesBeforeTheirAnchoredMessagesAndPreservesTheBoundCollection	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.ConversationPresentationTests.LateSettingsForAFilteredConversationCannotSelectItInAnotherProject	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.ConversationPresentationTests.LostAcknowledgementKeepsTheSubmittedIdUntilTheRetryIsConfirmed	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.ConversationPresentationTests.RevisitingTheSameConversationDiscardsItsEarlierHistoryPage(failedRead: False)	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.ConversationPresentationTests.RevisitingTheSameConversationDiscardsItsEarlierHistoryPage(failedRead: True)	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.InspectorWorkflowTests.CitationResolvesOnlyAgainstTheSelectedReplyAndItsRecordedSourceVersion	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.InspectorWorkflowTests.ToolStatusCountsAndEndpointUseTheSameConversation(enabled: False, supported: True, maxCalls: 2, expectedStatus: "Outils désactivés")	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.InspectorWorkflowTests.ToolStatusCountsAndEndpointUseTheSameConversation(enabled: True, supported: False, maxCalls: 2, expectedStatus: "Ce modèle n’annonce pas la capacité tools")	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.InspectorWorkflowTests.ToolStatusCountsAndEndpointUseTheSameConversation(enabled: True, supported: True, maxCalls: 0, expectedStatus: "Sans quota d’appels")	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.InspectorWorkflowTests.ToolStatusCountsAndEndpointUseTheSameConversation(enabled: True, supported: True, maxCalls: 2, expectedStatus: "2 appels par demande")	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.MarkdownLinkTests.OnlyExplicitWebNavigationIsEnabled(url: "data:text/html,test", allowed: False)	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.MarkdownLinkTests.OnlyExplicitWebNavigationIsEnabled(url: "file:///etc/passwd", allowed: False)	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.MarkdownLinkTests.OnlyExplicitWebNavigationIsEnabled(url: "http://localhost:8080", allowed: True)	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.MarkdownLinkTests.OnlyExplicitWebNavigationIsEnabled(url: "https://example.com", allowed: True)	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.MarkdownLinkTests.OnlyExplicitWebNavigationIsEnabled(url: "https://name:password@example.com", allowed: False)	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.MarkdownLinkTests.OnlyExplicitWebNavigationIsEnabled(url: "javascript:alert(1)", allowed: False)	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.MarkdownLinkTests.OnlyExplicitWebNavigationIsEnabled(url: "relative/path", allowed: False)	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.SourcePresentationTests.DocumentBatchStopsAtConflictAndRefreshesTheActualRevision	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.SourcePresentationTests.HistorySourceRequiresMatchingOwnerSequenceAndHash	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.SourcePresentationTests.IndexRefreshSkipsConcurrentReadsAndIgnoresThePreviousScopeEvenWithTheSameId	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.SourcePresentationTests.LateQueueAcknowledgementKeepsTheNewIndexOwner	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.WorkspaceApiClientTests.CreateAsync_MapsApiFailures(status: Conflict, code: "WORKSPACE_NAME_CONFLICT", expected: Conflict)	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.WorkspaceApiClientTests.CreateAsync_MapsApiFailures(status: Forbidden, code: "ACCESS_DENIED", expected: Denied)	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.WorkspaceApiClientTests.CreateAsync_MapsApiFailures(status: ServiceUnavailable, code: "DEPENDENCY_UNAVAILABLE", expected: Unavailable)	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.WorkspaceApiClientTests.CreateAsync_RejectsEmptyNameWithoutHttp(name: "    ")	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.WorkspaceApiClientTests.CreateAsync_RejectsEmptyNameWithoutHttp(name: "")	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.WorkspaceApiClientTests.CreateAsync_RejectsEmptyNameWithoutHttp(name: null)	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.WorkspaceApiClientTests.CreateAsync_RejectsLongNameWithoutHttp	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.WorkspaceApiClientTests.CreateAsync_TrimsNameAndReadsCreatedWorkspace	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.WorkspaceApiClientTests.GetAsync_RejectsInvalidIdWithoutHttp(id: "00000000-0000-0000-0000-000000000000")	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.WorkspaceApiClientTests.GetAsync_RejectsInvalidIdWithoutHttp(id: "invalid")	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.WorkspaceApiClientTests.GetAsync_RejectsInvalidOrInsecureConfiguration(url: "http://example.com")	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.WorkspaceApiClientTests.GetAsync_RejectsInvalidOrInsecureConfiguration(url: "invalid-url")	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.WorkspaceApiClientTests.GetAsync_ReportsNetworkFailure	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.WorkspaceApiClientTests.GetAsync_ReportsTimeout	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.WorkspaceApiClientTests.GetAsync_RetrievesWorkspace	Passed
+alycia.client.avalonia.tests.dll	Alycia.Client.Avalonia.Tests.WorkspaceApiClientTests.GetAsync_SeparatesMissingWorkspaceFromDisabledApi	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.AdaptiveBudgetTests.DiscardedResultsFreeBudgetAndMoreThan24CallsCanComplete	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.AdaptiveBudgetTests.EmbeddingChunksPreserveEveryUnicodeCharacterAndCoordinates	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.AdaptiveBudgetTests.NewSettingsRoundTripWithoutLosingExplicitValues	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.AnalysisCheckpointTests.RestartRetainsValidatedUnitsAndRejectsChangedIdentityScopeAndCorruption	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ArchiveTests.ExportImportPreservesContentsAndTimesWithFreshConversationAndRequestIds	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ArchiveTests.RejectsUnsupportedVersionOrIncompleteOrInvalidTurns	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ArchiveTests.ToolEvidenceSurvivesRestoreAndCannotBeAttachedToUserMessages	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.CitationAuditTests.ImportedMalformedDiagnosticArraysAreNotTrustedByTheUi	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.CitationAuditTests.RecognizesOnlySuppliedPassagesAndDoesNotTreatReferencesAsTruth	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.CitationAuditTests.RefusedToolReadsCannotValidateACitation	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ClaimAuditTests.KnownMarkerAloneNeverEstablishesTheClaim(answer: "Le quota vaut 37. [S000000000000]", status: "not_demonstrated")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ClaimAuditTests.KnownMarkerAloneNeverEstablishesTheClaim(answer: "Le quota vaut 37. [S123456789012]", status: "direct_quote")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ClaimAuditTests.KnownMarkerAloneNeverEstablishesTheClaim(answer: "Le quota vaut 37.", status: "not_demonstrated")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ClaimAuditTests.KnownMarkerAloneNeverEstablishesTheClaim(answer: "Le quota vaut 38. [S123456789012]", status: "uncertain")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ClaimAuditTests.MemorySeparatorsCanGroupVariantsButAssistantCannotResolveThem	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.CodeStructureTests.DistinguishesOverloadsAndPreservesExactSourceRanges	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.CodeStructureTests.LargeMethodsHaveExplicitPartialUnitsAndIncludeTheTail	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.CodeStructureTests.OtherLanguagesKeepLineRangesAndExplicitTextKind	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ConfigurationTests.ConfigurationRoundtripPreservesBudgetsAndRejectsStaleRevision	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ConfigurationTests.PinnedFilesSurviveWindowAndExcludedFilesNeverEnterPrompt	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ConfigurationTests.RejectsIncompleteHistoryBeforeConstructingPrompt	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ConfigurationTests.RejectsInvalidTemperature(temperature: -0.10000000000000001)	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ConfigurationTests.RejectsInvalidTemperature(temperature: 2.1000000000000001)	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ConfigurationTests.RejectsInvalidTemperature(temperature: Infinity)	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ConfigurationTests.RejectsInvalidTemperature(temperature: NaN)	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ConfigurationTests.UnconfiguredConversationsDoNotShareMutableDefaultOptions	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ContextQualityTests.AnaphoraKeepsLiteralAndOnlyResolvesUnambiguousUserMentions	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ContextQualityTests.EffectiveWindowProtectsSchemasOutputAndSafety	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ContextQualityTests.MmrKeepsBothPinsAndOriginalCoordinatesWithinFramedBudget	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ContextQualityTests.ParentIsSearchableButIsNeverAddedToTheOriginalQuote	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ContextQualityTests.PlanStopsAtLimitAndSeparatesUnsearchedFromEmpty	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ContextQualityTests.VerificationDistinguishesEvidenceAndContradictions(answer: "La rétention Orion est de 17 jours [SABCDEF123456]"···, status: "contradicted")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ContextQualityTests.VerificationDistinguishesEvidenceAndContradictions(answer: "La rétention Orion est de 37 jours [S000000000000]"···, status: "insufficient")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ContextQualityTests.VerificationDistinguishesEvidenceAndContradictions(answer: "La rétention Orion est de 37 jours [SABCDEF123456]"···, status: "supported")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ContextQualityTests.VerificationDistinguishesEvidenceAndContradictions(answer: "Quelle est votre préférence ?", status: "not_verifiable")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ConversationContextPreparationTests.AdmissionFailureReleasesTheLeaseAndPreservesValidationOrder	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ConversationContextPreparationTests.LeaseCoversTheTerminalWriteAndPreviewCanRunAlongsideIt	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ConversationForkFailureTests.CancellationBeforeCommitRemovesOnlyFilesCreatedByTheFork	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ConversationForkFailureTests.DeferredConstraintRejectionAtCommitDeletesRolledBackFiles	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ConversationForkFailureTests.InconclusiveCommitKeepsFilesEvenWhenTheChildIsNotVisible	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ConversationForkFailureTests.LostAcknowledgementAfterCommitKeepsEveryReferencedOriginal	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ConversationForkFailureTests.RejectedInsertDeletesCopiesAndSameScopeCanRetry	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ConversationHistoryTests.ForkScopesFilesOverridesAndHistoryAndRemovesIncompleteCopies	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ConversationSettingsTransferTests.AcceptsBomAndKeepsTargetIdentityAndHistoryWhenApplyingSettings	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ConversationSettingsTransferTests.ReadsAndReproducesTheFileExportedByTheFunctionalBaseline	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ConversationSettingsTransferTests.RejectsDuplicateFieldsMalformedJsonAndOversizeFiles	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ConversationSettingsTransferTests.RejectsIncompatibleOrPartialFilesInsteadOfSilentlyUsingDefaults(change: "format")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ConversationSettingsTransferTests.RejectsIncompatibleOrPartialFilesInsteadOfSilentlyUsingDefaults(change: "invalid-budget")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ConversationSettingsTransferTests.RejectsIncompatibleOrPartialFilesInsteadOfSilentlyUsingDefaults(change: "invalid-embedding-batch")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ConversationSettingsTransferTests.RejectsIncompatibleOrPartialFilesInsteadOfSilentlyUsingDefaults(change: "missing-enrichment-option")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ConversationSettingsTransferTests.RejectsIncompatibleOrPartialFilesInsteadOfSilentlyUsingDefaults(change: "missing-option")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ConversationSettingsTransferTests.RejectsIncompatibleOrPartialFilesInsteadOfSilentlyUsingDefaults(change: "null-enrichment")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ConversationSettingsTransferTests.RejectsIncompatibleOrPartialFilesInsteadOfSilentlyUsingDefaults(change: "null-notes")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ConversationSettingsTransferTests.RejectsIncompatibleOrPartialFilesInsteadOfSilentlyUsingDefaults(change: "null-options")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ConversationSettingsTransferTests.RejectsIncompatibleOrPartialFilesInsteadOfSilentlyUsingDefaults(change: "null-query-prefix")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ConversationSettingsTransferTests.RejectsIncompatibleOrPartialFilesInsteadOfSilentlyUsingDefaults(change: "unknown-option")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ConversationSettingsTransferTests.RejectsIncompatibleOrPartialFilesInsteadOfSilentlyUsingDefaults(change: "version")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ConversationSettingsTransferTests.RoundTripKeepsEveryPersistedOptionWithoutRoundingOrRuntimeData	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.DocumentAnalysisTests.NestedArchivesProduceTraceableSummariesAndChangedSourcesInvalidateContext	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.DocumentImportBatchTests.CancelsWhileReadingOriginalBeforeReturningAnyPreparedDocuments	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.DocumentImportBatchTests.DistinguishesCorruptArchiveFromUnextractableDocument	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.DocumentImportBatchTests.KeepsOwnerArchiveHashesAndTimestampsWhenPreparingExcludedAndEligibleSources	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.EmbeddingIndexBoundaryTests.CancellationDuringAReadOnlyVectorLookupReachesTheCaller	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.EmbeddingIndexBoundaryTests.PersistedJobDeterminesWhenItCanResume(state: "completed", elapsedSeconds: 29, due: False)	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.EmbeddingIndexBoundaryTests.PersistedJobDeterminesWhenItCanResume(state: "completed", elapsedSeconds: 30, due: True)	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.EmbeddingIndexBoundaryTests.PersistedJobDeterminesWhenItCanResume(state: "failed", elapsedSeconds: 31, due: False)	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.EmbeddingIndexBoundaryTests.PersistedJobDeterminesWhenItCanResume(state: "partial", elapsedSeconds: 0, due: True)	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.EmbeddingIndexBoundaryTests.PersistedJobDeterminesWhenItCanResume(state: "paused", elapsedSeconds: 31, due: False)	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.EmbeddingIndexBoundaryTests.PersistedJobDeterminesWhenItCanResume(state: "running", elapsedSeconds: 0, due: True)	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.EmbeddingQuerySettingsTests.LookupKeepsItsModelBatchAndVectorSpaceWhenSettingsChange(memory: False)	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.EmbeddingQuerySettingsTests.LookupKeepsItsModelBatchAndVectorSpaceWhenSettingsChange(memory: True)	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.FileTests.CanonicalizesBenignRelativePathsAndPreservesUnicode(source: "./projet/src/./data.json", expected: "projet/src/data.json")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.FileTests.CanonicalizesBenignRelativePathsAndPreservesUnicode(source: ".\\projet\\src\\data.json", expected: "projet/src/data.json")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.FileTests.CanonicalizesBenignRelativePathsAndPreservesUnicode(source: "projet//src/data.json", expected: "projet/src/data.json")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.FileTests.CanonicalizesBenignRelativePathsAndPreservesUnicode(source: "projet/rapport:2026-11-16.json", expected: "projet/rapport:2026-11-16.json")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.FileTests.CanonicalizesBenignRelativePathsAndPreservesUnicode(source: "projet/été \ud83e\udd8a.json", expected: "projet/été \ud83e\udd8a.json")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.FileTests.FilesFollowSlidingWindowAndRespectBudgetAndRoles	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.FileTests.ImportsArchivesPersistsAcrossContextsAndRejectsUnsafeBatchAtomically	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.FileTests.MultipartFileNamesSurviveDotnetSerializationAndAspnetParsing(name: "Projet test/src/paramètres.json")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.FileTests.MultipartFileNamesSurviveDotnetSerializationAndAspnetParsing(name: "archive (1).zip")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.FileTests.MultipartFileNamesSurviveDotnetSerializationAndAspnetParsing(name: "projet/src/data.json")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.FileTests.ReadsUtf8AndDocumentsButNeverImages	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.FileTests.RejectsUnsafePaths(path: "../secret")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.FileTests.RejectsUnsafePaths(path: "/etc/passwd")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.FileTests.RejectsUnsafePaths(path: "C:\\private")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.FileTests.RejectsUnsafePaths(path: "C:relative.txt")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.FileTests.RejectsUnsafePaths(path: "\\\\server\\share\\file.txt")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.FileTests.RejectsUnsafePaths(path: "a/../../secret")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.FileTests.RejectsUnsafePaths(path: "a\0b")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.FileTests.RejectsUnsafePaths(path: "file:///etc/passwd")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.FileTests.RejectsUnsafePaths(path: "safe/./../secret")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.HistoryToolsTests.NoMatchReturnsScanContinuationAndInvalidOffsetsNeverReadAnotherTurn	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.HistoryToolsTests.OldDecisionRemainsSearchableBeyondLedgerLimitAndKeepsBothRoles	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.KnowledgePipelineTests.AnnotationValidationRejectsForeignReferencesAndOverBudgetSummaries	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.KnowledgePipelineTests.FacetsPreserveConstraintsAndAnUnexaminedCandidateKeepsItsRank	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.KnowledgePipelineTests.InteractiveReductionUsesTheEntireSelectedOriginalOrKeepsOnlyTheExcerpt	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.KnowledgePipelineTests.RecursiveAnalysisCheckpointsInsideOneLargeFile	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.KnowledgePipelineTests.ResumesSmallSlicesPublishesWholeTreesAndRespectsScope	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.LocalChatAccessTests.ComposeServiceOriginRequiresAuthenticatedContainerMode	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.LocalChatAccessTests.ContainerModeFailsClosedWithoutConfiguredSecret(token: "")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.LocalChatAccessTests.ContainerModeFailsClosedWithoutConfiguredSecret(token: "short")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.LocalChatAccessTests.ContainerModeFailsClosedWithoutConfiguredSecret(token: null)	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.LocalChatAccessTests.ContainerModeRequiresTokenEvenFromLoopbackAndRejectsBrowserOrigin	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.LocalChatAccessTests.DefaultModeStillRequiresActualLoopbackPeer	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.LocalChatAccessTests.RejectsUnexpectedHostEvenFromLoopback(host: "127.0.0.1.attacker.example")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.LocalChatAccessTests.RejectsUnexpectedHostEvenFromLoopback(host: "192.168.1.10")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.LocalChatAccessTests.RejectsUnexpectedHostEvenFromLoopback(host: "attacker.example")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.LocalChatAccessTests.RemoteOrAmbiguousProviderOriginsAreRejected(url: "http://ollama.example.com:11434/")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.LocalChatAccessTests.RemoteOrAmbiguousProviderOriginsAreRejected(url: "http://ollama:11434/path")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.LocalChatAccessTests.RemoteOrAmbiguousProviderOriginsAreRejected(url: "http://user:password@ollama:11434/")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.LocalChatAccessTests.RemoteOrAmbiguousProviderOriginsAreRejected(url: "https://example.com/")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.OllamaChatModelTests.ActiveInferenceStillTimesOutAndReleasesTheGate(streaming: False)	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.OllamaChatModelTests.ActiveInferenceStillTimesOutAndReleasesTheGate(streaming: True)	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.OllamaChatModelTests.CancellationReachesOllama	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.OllamaChatModelTests.CancellingAnActiveEmbeddingReleasesTheSlotForQueuedChat	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.OllamaChatModelTests.EmptyContentIdentifiesStageAndRetainsMetricsWithoutExposingThinking(purpose: "chat", stage: "la génération")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.OllamaChatModelTests.EmptyContentIdentifiesStageAndRetainsMetricsWithoutExposingThinking(purpose: "memory", stage: "l’extraction de mémoire")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.OllamaChatModelTests.EmptyContentIdentifiesStageAndRetainsMetricsWithoutExposingThinking(purpose: "summary", stage: "le résumé interne")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.OllamaChatModelTests.ExcludesCloudAliasesFromLocalModels	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.OllamaChatModelTests.ExistingEmbeddingConversationIsRejectedBeforeAnyChatRequest(streaming: False)	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.OllamaChatModelTests.ExistingEmbeddingConversationIsRejectedBeforeAnyChatRequest(streaming: True)	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.OllamaChatModelTests.GenerationsAndEmbeddingsShareTheLocalInferenceLimit	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.OllamaChatModelTests.ListsOnlyLocalCompletionModelsUsingCapabilitiesNotNames	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.OllamaChatModelTests.MissingCapabilityMetadataIsNotAssumedToSupportGeneration	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.OllamaChatModelTests.RejectedGenerationIdentifiesTheActualModel(streaming: False)	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.OllamaChatModelTests.RejectedGenerationIdentifiesTheActualModel(streaming: True)	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.OllamaChatModelTests.RejectsMalformedOrIncompleteReply(body: "not json")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.OllamaChatModelTests.RejectsMalformedOrIncompleteReply(body: "{\"done\":false,\"message\":{\"role\":\"assistant\"···)	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.OllamaChatModelTests.RejectsMalformedOrIncompleteReply(body: "{\"done\":true,\"message\":{\"role\":\"assistant\""···)	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.OllamaChatModelTests.RevalidatesCapabilitiesWhenAnAliasChangesAfterListing	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.OllamaChatModelTests.SendsHistoryAndExplicitGenerationBudget	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.OllamaChatModelTests.WaitingForOllamaCanStillBeCancelledWithoutLeakingTheGate	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.OllamaChatModelTests.WaitingForOllamaDoesNotConsumeGenerationTimeout(streaming: False)	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.OllamaChatModelTests.WaitingForOllamaDoesNotConsumeGenerationTimeout(streaming: True)	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.OllamaSchedulingTests.CancellationAtBothQueuesAndProviderFailureLeaveBothPermitsUsable	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.OllamaSchedulingTests.InteractiveStreamCanRunBeforeTheEntireAnnotationBacklog	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.PersistentEmbeddingTests.BatchesResumeWithoutQuotaAndKeepHistoryAndSourcesIsolated	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.PostgresChatTests.MigrationsPersistenceIdempotencyFailureConcurrencyPaginationAndCascade	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ProjectContextTests.FindsRelevantCodeAfterLongHeader	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ProjectContextTests.LargeDocumentationDoesNotHideSourceCodeAndBudgetIsRespected	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ProjectContextTests.ProjectSourcesRemainEligibleAndExclusionsAlwaysWin	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ProjectCreationTests.CompetingCreatorsCommitExactlyOneMatchingWorkspaceAndProfile	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ProjectCreationTests.FailureInProfileInsertRollsBackCanonicalWorkspaceAndAllowsRetry	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ProjectFilesTests.SharedArchiveRespectsScopesRevisionsAndRetainsOriginalsAfterRemoval	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ProjectInventoryTests.FingerprintChangesWhenContentOrExclusionChanges	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ProjectInventoryTests.TreeIsDeterministicAndDoesNotInventMissingDates	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ProjectMcpClientTests.NegotiatesOnceUsesLocalAddressAndPreservesEvidenceAndRevocation(address: "http://0.0.0.0:5020", host: "127.0.0.1", container: True)	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ProjectMcpClientTests.NegotiatesOnceUsesLocalAddressAndPreservesEvidenceAndRevocation(address: "http://[::1]:5020", host: "[::1]", container: False)	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ProjectMcpClientTests.NegotiatesOnceUsesLocalAddressAndPreservesEvidenceAndRevocation(address: "http://[::]:5020", host: "[::1]", container: False)	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ProjectMcpClientTests.NegotiatesOnceUsesLocalAddressAndPreservesEvidenceAndRevocation(address: "http://localhost:5020", host: "localhost", container: False)	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ProjectMcpClientTests.WrongRpcIdPreventsExecution	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ProjectRetrievalTests.CompositeContextKeepsOriginalEvidenceBesideBoundedOrientation	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ProjectRetrievalTests.DiversityOrderingIsStableWithDuplicatesAndFileTies	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ProjectRetrievalTests.ExactSymbolRanksAboveUnrelatedDocumentationAndPackingDeduplicates	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ProjectRetrievalTests.HybridSearchHasNo2048PassageQuota	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ProjectRetrievalTests.HybridSearchUsesOnlyPreparedVectorsAndReportsPendingCoverage	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ProjectRetrievalTests.LexicalCacheInvalidatesChangedContentAndSeparatesConversations	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ProjectRetrievalTests.NoMatchStaysEmptyUnlessExplicitlyPinned	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ProjectRetrievalTests.PartialRangeDoesNotClaimUnreadLines	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ProjectRetrievalTests.SemanticRankingCanRetrieveAParaphraseAndExclusionsAlwaysWin	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ProjectToolStorageTests.MigrationOriginalReadsIsolationExclusionsCoverageAndRevocation	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.RecursiveContextTests.AModelThatDoesNotCompressFailsWithoutReplacingMemory	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.RecursiveContextTests.CancellingReductionDoesNotReplaceTheOriginalHistoryOrMemory	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.RecursiveContextTests.PreviewNeverInvokesTheModelAndSignalsIncompletePreparation	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.RecursiveContextTests.RecursivelyReducesOldHistoryProtectsRecentTurnsAndReusesMemory	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.RecursiveContextTests.RejectsAnImpossibleProtectedBudgetBeforeAnyInference	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.RecursiveContextTests.ReturnsPendingSummariesAndMetersTheirCalls(mode: PrepareMemory)	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.RecursiveContextTests.ReturnsPendingSummariesAndMetersTheirCalls(mode: Send)	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.RecursiveContextTests.SlidingWindowKeepsRecentTurnEligibleGuideAndToolReserve(mode: Preview)	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.RecursiveContextTests.SlidingWindowKeepsRecentTurnEligibleGuideAndToolReserve(mode: Send)	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.RecursiveContextTests.TemporalRecallRetainsItsSourceOutsideTheSlidingWindowWhenSummariesAreDisabled(mode: Preview)	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.RecursiveContextTests.TemporalRecallRetainsItsSourceOutsideTheSlidingWindowWhenSummariesAreDisabled(mode: Send)	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.RecursiveContextTests.UnicodeChunkingKeepsEveryCharacterAndItsByteBound	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.RetrievalDiagnosticsTests.RankingDiagnosticsRoundTripWithoutSourceContentAndRemainBackwardCompatible	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.RoutingAndRerankTests.FacetEmbeddingsRerankerAndDiagnosticsOnlySeeAdmittedSources	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.RoutingAndRerankTests.NativeCpuSessionTruncatesPairsWithLocalTokenizer	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.RoutingAndRerankTests.RoutingUsesIntentAndRespectsToolPermission(question: "Bonjour !", mode: "direct")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.RoutingAndRerankTests.RoutingUsesIntentAndRespectsToolPermission(question: "Compare les deux versions", mode: "explore")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.RoutingAndRerankTests.RoutingUsesIntentAndRespectsToolPermission(question: "Find the method in Plan.cs", mode: "retrieval")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.RoutingAndRerankTests.RoutingUsesIntentAndRespectsToolPermission(question: "Quelle décision avions-nous prise ?", mode: "memory")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.RoutingAndRerankTests.TiesTimeoutAndCallerCancellationPreserveTheRankContract	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.RoutingAndRerankTests.UnavailableNamedReadsDoNotExposeExcludedFiles	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.SlidingContextTests.BudgetEvictsWholeOldTurns	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.SlidingContextTests.DoesNotSkipAnOversizedRecentTurnToIncludeOlderTurns	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.SlidingContextTests.PreservesSystemAndCurrentMessageAndLatestCompleteTurns	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.SlidingContextTests.RejectsOversizedCurrentInputInsteadOfSilentlyTruncating	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.SlidingContextTests.ZeroWindowKeepsOnlySystemAndCurrentInput	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.StreamingTests.ActiveStreamOutlivesTheConfiguredInactivityTimeout	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.StreamingTests.CancellationAfterDeltaDoesNotPersistAndReleasesGate	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.StreamingTests.ContinuousModeDoesNotTreatATruncatedOrUnknownEndAsSuccess(reason: "length")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.StreamingTests.ContinuousModeDoesNotTreatATruncatedOrUnknownEndAsSuccess(reason: "unknown")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.StreamingTests.ContinuousModeDoesNotTreatATruncatedOrUnknownEndAsSuccess(reason: null)	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.StreamingTests.ParserBoundsAnUnterminatedLine	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.StreamingTests.PartialFailureNeverCommitsAndRetryRemainsIdempotent	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.StreamingTests.RejectsMissingCompletionAndInvalidStreams(payload: "not json\n")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.StreamingTests.RejectsMissingCompletionAndInvalidStreams(payload: "{\"done\":true,\"message\":{\"content\":\"\"}}\n")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.StreamingTests.RejectsMissingCompletionAndInvalidStreams(payload: "{\"error\":\"private provider detail\"}\n")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.StreamingTests.RejectsMissingCompletionAndInvalidStreams(payload: "{\"message\":{\"content\":\"partial\"},\"done\":fa"···)	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.StreamingTests.StreamsThinkingSeparatelyAndReportsFinalStatistics	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.StructuredDocumentsTests.FrozenPdfRetainsBothPageCoordinates	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.StructuredDocumentsTests.OfficePreservesRowsCellsFormulasAndSlidePartsWithoutClaimingFullLayout	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.StructuredDocumentsTests.XmlExternalEntitiesAreRejectedAndOutputRemainsBounded	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.StructuredMemoryTests.ExtractsOnlyUnderPressurePreservesProtectedBlockAndReusesQuotedMemory	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.StructuredMemoryTests.InvalidExtractionUsesLabelledOriginalExcerptsAndFailedTurnDoesNotSaveLedger	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.StructuredMemoryTests.PreparedMemoryRetainsItsFormatAndWaitsForTheCallersCommit	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.StructuredMemoryTests.RejectsFabricatedQuotesAndKeepsContradictionsUntilUserCorrection	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.StructuredMemoryTests.ResetChecksTheGateAndRevisionBeforeClearingBothMemoryFormatsTogether	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.StructuredMemoryTests.SmallHistoryNeedsNoExtractionAndCancellationNeverPersistsPartialMemory	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.StructuredMemoryTests.TemporalProjectionRetainsOnlySourceBackedLedgerEvidence	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.TemporalMemoryIntegrationTests.WorkerRebuildsFromOriginalsAndScopesCorrectionsAndHistoricalViews	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.TokenBudgetTests.CountsSummaryAndToolRoundsWithoutReplacingMissingMetricsWithZero	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.TokenBudgetTests.InstalledByteBpeVocabularyCountsMergesAndKeepsConservativeFallbacks	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.TokenBudgetTests.MatchesIndependentHuggingFaceCountsForFrenchCodeAndCjk	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.TokenBudgetTests.ModelMetadataCapsTheRequestedWindowAndAliasChangesInvalidateIt	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ToolCallingTests.AgentCompactsOnlyUnderPressureAndKeepsTheLastCompleteRound	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ToolCallingTests.AgentKeepsSmallToolRoundsWithoutSummaryAndPreservesConversation	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ToolCallingTests.DefaultWindowReservesAllNineToolsAndStillFitsTheProtectedQuestion	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ToolCallingTests.IncompleteOrMalformedCallsNeverBecomeExecutable(response: "{\"message\":{\"tool_calls\":[{\"function\":{\"nam"···)	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ToolCallingTests.IncompleteOrMalformedCallsNeverBecomeExecutable(response: "{\"message\":{\"tool_calls\":[{\"function\":{\"nam"···)	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ToolCallingTests.NativeToolOnlyTurnPreservesThinkingAndStructuredArguments	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ToolCallingTests.ReorderedIdenticalArgumentsDoNotRepeatIoAndStopTheLoop	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ToolCallingTests.ToolLimitAndCancellationStopFurtherExecution	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ToolCallingTests.UnsupportedModelCannotReceiveToolPayload	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ToolSummaryRecoveryTests.ExtractiveFallbackIsBoundedUnicodeAndExplicitAboutOmissions	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ToolSummaryRecoveryTests.NativeEmptySummaryContinuesUnderBudgetAndAllowsRereadingCompactedSources(reason: "length")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ToolSummaryRecoveryTests.NativeEmptySummaryContinuesUnderBudgetAndAllowsRereadingCompactedSources(reason: "stop")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ToolSummaryRecoveryTests.TransportFailuresAndCancellationNeverBecomeAnExtractiveSuccess(failure: "cancel")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ToolSummaryRecoveryTests.TransportFailuresAndCancellationNeverBecomeAnExtractiveSuccess(failure: "incomplete")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.ToolSummaryRecoveryTests.TransportFailuresAndCancellationNeverBecomeAnExtractiveSuccess(failure: "network")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.TurnToolsTests.CancellationAtSourceCheckDoesNotQueryModel	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.TurnToolsTests.ContextChecksOnlyOrdinarySourcesEvenWhenAttached(available: False)	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.TurnToolsTests.ContextChecksOnlyOrdinarySourcesEvenWhenAttached(available: True)	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.TurnToolsTests.PresenceOfActiveToolsAndConsumerSelectsTheGenerationPath(active: False, streaming: False, expected: "sync")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.TurnToolsTests.PresenceOfActiveToolsAndConsumerSelectsTheGenerationPath(active: False, streaming: True, expected: "stream")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.TurnToolsTests.PresenceOfActiveToolsAndConsumerSelectsTheGenerationPath(active: True, streaming: False, expected: "agent")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.TurnToolsTests.PresenceOfActiveToolsAndConsumerSelectsTheGenerationPath(active: True, streaming: True, expected: "agent")	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.TurnToolsTests.RefusalStopsAtFirstFailedConditionWithoutTryingOtherProvider(enabled: False, hasSources: True, supported: True, expectedSourceProbes: 0, expectedModelProbes: 0)	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.TurnToolsTests.RefusalStopsAtFirstFailedConditionWithoutTryingOtherProvider(enabled: True, hasSources: False, supported: True, expectedSourceProbes: 1, expectedModelProbes: 0)	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.TurnToolsTests.RefusalStopsAtFirstFailedConditionWithoutTryingOtherProvider(enabled: True, hasSources: True, supported: False, expectedSourceProbes: 1, expectedModelProbes: 1)	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.TurnToolsTests.SendSelectsSnapshotOnlyForAttachedConversationWithSnapshotProvider(attached: False, hasSnapshot: True)	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.TurnToolsTests.SendSelectsSnapshotOnlyForAttachedConversationWithSnapshotProvider(attached: True, hasSnapshot: False)	Passed
+alycia.modules.chat.tests.dll	Alycia.Modules.Chat.Tests.TurnToolsTests.SendSelectsSnapshotOnlyForAttachedConversationWithSnapshotProvider(attached: True, hasSnapshot: True)	Passed
+alycia.modules.workspaces.tests.dll	Alycia.Modules.Workspaces.Tests.WorkspaceServicesTests.CreateAsync_DoesNotWriteInvalidWorkspace	Passed
+alycia.modules.workspaces.tests.dll	Alycia.Modules.Workspaces.Tests.WorkspaceServicesTests.CreateAsync_RejectsCaseInsensitiveTrimmedDuplicate	Passed
+alycia.modules.workspaces.tests.dll	Alycia.Modules.Workspaces.Tests.WorkspaceServicesTests.GetAsync_ReturnsPersistedWorkspaceOrNull	Passed
+alycia.modules.workspaces.tests.dll	Alycia.Modules.Workspaces.Tests.WorkspaceTests.Constructor_RejectsEmptyId	Passed
+alycia.modules.workspaces.tests.dll	Alycia.Modules.Workspaces.Tests.WorkspaceTests.Constructor_RejectsNonUtcAndDefaultTime	Passed
+alycia.modules.workspaces.tests.dll	Alycia.Modules.Workspaces.Tests.WorkspaceTests.Create_AcceptsExactlyOneHundredCharactersAfterTrimming	Passed
+alycia.modules.workspaces.tests.dll	Alycia.Modules.Workspaces.Tests.WorkspaceTests.Create_RejectsMissingOrBlankName(name: " \t ")	Passed
+alycia.modules.workspaces.tests.dll	Alycia.Modules.Workspaces.Tests.WorkspaceTests.Create_RejectsMissingOrBlankName(name: "")	Passed
+alycia.modules.workspaces.tests.dll	Alycia.Modules.Workspaces.Tests.WorkspaceTests.Create_RejectsMissingOrBlankName(name: null)	Passed
+alycia.modules.workspaces.tests.dll	Alycia.Modules.Workspaces.Tests.WorkspaceTests.Create_RejectsMoreThanOneHundredCharactersAfterTrimming	Passed
+alycia.modules.workspaces.tests.dll	Alycia.Modules.Workspaces.Tests.WorkspaceTests.Create_TrimsNameAndGeneratesNonEmptyIdAndUtcTime	Passed

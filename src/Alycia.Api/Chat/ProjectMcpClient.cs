@@ -2,20 +2,21 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Alycia.Modules.Chat.Application;
-using Alycia.Modules.Chat.Infrastructure;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 
 namespace Alycia.Api.Chat;
 
 // Destination derived from Kestrel, never from the model or a request Host header.
-public sealed class ProjectMcpClient(HttpClient http, IServer server, IConfiguration configuration, ProjectToolService sources) : IProjectTools
+public sealed class ProjectMcpClient(HttpClient http, IServer server, IConfiguration configuration, ISnapshotProjectTools sources) : IProjectTools
 {
     private Guid? _initialized;
     private int _sequence;
     public Task<bool> HasSourcesAsync(Guid conversation, CancellationToken ct) => sources.HasSourcesAsync(conversation, ct);
     public async Task<ProjectToolResult> CallAsync(Guid conversation, string name, JsonElement arguments, int maxResultBytes, CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
+        if (arguments.ValueKind != JsonValueKind.Undefined) arguments = arguments.Clone();
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeout.CancelAfter(TimeSpan.FromSeconds(60));
         try
@@ -32,7 +33,7 @@ public sealed class ProjectMcpClient(HttpClient http, IServer server, IConfigura
                 _initialized = conversation;
             }
             var result = await RpcAsync(conversation, "tools/call", new
-            { name, arguments, _meta = new Dictionary<string, int> { ["io.alycia/maxResultBytes"] = maxResultBytes } }, timeout.Token);
+            { name, arguments, _meta = new Dictionary<string, object> { ["io.alycia/maxResultBytes"] = maxResultBytes, ["io.alycia/resultCode"] = true } }, timeout.Token);
             var text = string.Join("\n", result.GetProperty("content").EnumerateArray().Where(c => c.GetProperty("type").GetString() == "text")
                 .Select(c => c.GetProperty("text").GetString()));
             ToolEvidence? evidence = null;
@@ -44,7 +45,11 @@ public sealed class ProjectMcpClient(HttpClient http, IServer server, IConfigura
                 evidenceItems = batch.Deserialize<ToolEvidence[]>(ProjectToolCatalog.Json);
             if (result.TryGetProperty("_meta", out var historyMeta) && historyMeta.TryGetProperty("io.alycia/history", out var historyJson) && historyJson.ValueKind != JsonValueKind.Null)
                 history = historyJson.Deserialize<HistoryEvidence[]>(ProjectToolCatalog.Json);
-            return new(text, result.TryGetProperty("isError", out var error) && error.GetBoolean(), evidence, evidenceItems, history);
+            var isError = result.TryGetProperty("isError", out var error) && error.GetBoolean();
+            var reply = new ProjectToolResult(text, isError, evidence, evidenceItems, history);
+            return isError && result.TryGetProperty("_meta", out var codes) && codes.TryGetProperty("io.alycia/resultCode", out var code)
+                && code.ValueKind == JsonValueKind.String && Enum.TryParse<ToolRefusal>(code.GetString(), out var refusal) && Enum.IsDefined(refusal)
+                ? reply with { Refusal = refusal } : reply;
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested) { throw new ChatModelException("Le MCP local n’a pas répondu dans le délai prévu."); }
         catch (HttpRequestException) { throw new ChatModelException("Le MCP local est inaccessible. Vérifiez la configuration du backend."); }
@@ -71,7 +76,7 @@ public sealed class ProjectMcpClient(HttpClient http, IServer server, IConfigura
         if (!response.IsSuccessStatusCode) throw new ChatModelException($"Le MCP local a refusé la requête (HTTP {(int)response.StatusCode}).");
         if (notification) return default;
         await using var stream = await response.Content.ReadAsStreamAsync(ct);
-        using var document = JsonDocument.Parse(await FileImport.ReadBoundedAsync(stream, 1024 * 1024, ct));
+        using var document = JsonDocument.Parse(await DocumentContent.ReadBoundedAsync(stream, 1024 * 1024, ct));
         var root = document.RootElement;
         if (root.GetProperty("jsonrpc").GetString() != "2.0" || root.GetProperty("id").GetInt32() != id) throw new ChatModelException("Identifiant MCP invalide.");
         if (root.TryGetProperty("error", out _)) throw new ChatModelException("Le MCP local a signalé une erreur de protocole.");

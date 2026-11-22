@@ -1,3 +1,6 @@
+using Alycia.Modules.Retrieval;
+using Alycia.Contracts.Retrieval;
+using Alycia.Contracts.Indexing;
 using Alycia.Modules.Chat.Application;
 using Alycia.Modules.Chat.Domain;
 using Alycia.Modules.Chat.Infrastructure;
@@ -14,10 +17,10 @@ public class RoutingAndRerankTests
     public void RoutingUsesIntentAndRespectsToolPermission(string question, string mode)
     {
         var settings = new ChatOptions { RoutingMode = "auto", UseProjectTools = false };
-        var route = QueryRouting.Decide(question, settings, [new Attachment { Name = "Plan.cs", ContextMode = "project" }]);
+        var route = QueryPlanner.Decide(question, settings.RoutingMode, settings.UseProjectTools, [new Attachment { Name = "Plan.cs", ContextMode = "project" }.ToTurnFile()]);
         Assert.Equal(mode, route.Mode);
         Assert.False(route.Tools);
-        Assert.True(QueryRouting.Decide("Bonjour", settings, [new Attachment { Name = "memo.md", ContextMode = "pinned" }]).Search);
+        Assert.True(QueryPlanner.Decide("Bonjour", settings.RoutingMode, settings.UseProjectTools, [new Attachment { Name = "memo.md", ContextMode = "pinned" }.ToTurnFile()]).Search);
     }
 
     [Fact]
@@ -27,12 +30,12 @@ public class RoutingAndRerankTests
         var question = "Lis secret.md";
         var other = new Attachment { Name = "public.md", ContextMode = "project" };
         var hidden = new Attachment { Name = "secret.md", ContextMode = "excluded" };
-        var absent = QueryRouting.Decide(question, options, [other]);
+        var absent = QueryPlanner.Decide(question, options.RoutingMode, options.UseProjectTools, [other.ToTurnFile()]);
         Assert.Equal("unavailable", absent.Mode);
         Assert.False(absent.Search);
         Assert.False(absent.Tools);
-        Assert.Equal(absent, QueryRouting.Decide(question, options, [other, hidden]));
-        Assert.True(QueryRouting.Decide("Lis public.md", options, [other, hidden]).Search);
+        Assert.Equal(absent, QueryPlanner.Decide(question, options.RoutingMode, options.UseProjectTools, [other.ToTurnFile(), hidden.ToTurnFile()]));
+        Assert.True(QueryPlanner.Decide("Lis public.md", options.RoutingMode, options.UseProjectTools, [other.ToTurnFile(), hidden.ToTurnFile()]).Search);
     }
 
     [Fact]
@@ -41,18 +44,18 @@ public class RoutingAndRerankTests
         var corpus = new[] { "nord.cs", "est.cs", "sud.cs" }.Select(path => new SourceChunk(Guid.NewGuid(),
             path, "sha", "Orion", "text", 0, path.Length, 1, 1, path, [], true)).ToArray();
         var id = Guid.NewGuid();
-        var baseline = (await new ProjectRetrievalService(new FixtureIndex(corpus)).PrepareAsync(id, "Orion", new(), default)).Chunks;
+        var baseline = (await ChatFixture.Retrieval(new FixtureIndex(corpus)).PrepareAsync(id, "Orion", new ChatOptions().ProjectSearch(), default)).Chunks;
         var options = new ChatOptions { RerankEnabled = true, RerankCandidateLimit = 2, RerankTimeoutMs = 50 };
-        var stable = await new ProjectRetrievalService(new FixtureIndex(corpus), reranker: new FakeReranker(false))
-            .PrepareAsync(id, "Orion", options, default);
-        Assert.Equal(baseline.Select(ProjectRetrieval.Reference), stable.Chunks.Select(ProjectRetrieval.Reference));
+        var stable = await ChatFixture.Retrieval(new FixtureIndex(corpus), reranker: new FakeReranker(false))
+            .PrepareAsync(id, "Orion", options.ProjectSearch(), default);
+        Assert.Equal(baseline.Select(SourceCoordinates.Reference), stable.Chunks.Select(SourceCoordinates.Reference));
         Assert.Equal(2, stable.Report.Rerank!.Scores!.Count);
-        var delayed = new ProjectRetrievalService(new FixtureIndex(corpus), reranker: new FakeReranker(true));
-        var fallback = await delayed.PrepareAsync(id, "Orion", options, default);
+        var delayed = ChatFixture.Retrieval(new FixtureIndex(corpus), reranker: new FakeReranker(true));
+        var fallback = await delayed.PrepareAsync(id, "Orion", options.ProjectSearch(), default);
         Assert.Equal("timeout", fallback.Report.Rerank!.State);
-        Assert.Equal(baseline.Select(ProjectRetrieval.Reference), fallback.Chunks.Select(ProjectRetrieval.Reference));
+        Assert.Equal(baseline.Select(SourceCoordinates.Reference), fallback.Chunks.Select(SourceCoordinates.Reference));
         using var cancelled = new CancellationTokenSource(); cancelled.Cancel();
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => delayed.PrepareAsync(id, "Orion", options, cancelled.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => delayed.PrepareAsync(id, "Orion", options.ProjectSearch(), cancelled.Token));
     }
     [Fact]
     public async Task FacetEmbeddingsRerankerAndDiagnosticsOnlySeeAdmittedSources()
@@ -66,7 +69,7 @@ public class RoutingAndRerankTests
             Text = "Orion private"
         };
         var provider = new RecordingRanker();
-        var service = new ProjectRetrievalService(new FixtureIndex([excluded, visible]), provider, reranker: provider);
+        var service = ChatFixture.Retrieval(new FixtureIndex([excluded, visible]), provider, reranker: provider);
         var options = new ChatOptions
         {
             RetrievalMode = "hybrid",
@@ -76,13 +79,13 @@ public class RoutingAndRerankTests
             PinnedSourceIds = new HashSet<Guid> { excluded.FileId },
             SearchPlan = new("Orion", [new("Orion", "lexical"), new("alternative", "semantic")], [], false)
         };
-        var result = await service.PrepareAsync(Guid.NewGuid(), "Orion", options, default);
+        var result = await service.PrepareAsync(Guid.NewGuid(), "Orion", options.ProjectSearch(), default);
         Assert.Equal(new[] { "Orion", "alternative" }, provider.Searches.Select(item => item.Query));
         Assert.All(provider.Searches, search => Assert.Equal(visible.FileId, Assert.Single(search.Ids)));
         Assert.Equal(visible.FileId, Assert.Single(provider.Reranked));
         Assert.Equal(visible, Assert.Single(result.Chunks));
         var decision = Assert.Single(result.Report.Decisions!);
-        Assert.Equal(ProjectRetrieval.Reference(visible), decision.Reference);
+        Assert.Equal(SourceCoordinates.Reference(visible), decision.Reference);
         Assert.Equal(new[] { 0, 1 }, decision.Queries!.Select(hit => hit.Query));
     }
 
@@ -90,7 +93,7 @@ public class RoutingAndRerankTests
     {
         public List<(string Query, Guid[] Ids)> Searches { get; } = [];
         public Guid[] Reranked { get; private set; } = [];
-        public Task<SemanticSearch> SearchAsync(Guid id, string query, ChatOptions settings, IReadOnlyList<SourceChunk> chunks, CancellationToken ct)
+        public Task<SemanticSearch> SearchAsync(Guid id, string query, EmbeddingQuery settings, IReadOnlyList<SourceChunk> chunks, CancellationToken ct)
         {
             Searches.Add((query, chunks.Select(chunk => chunk.FileId).ToArray()));
             return Task.FromResult(new SemanticSearch(Enumerable.Repeat(1.0, chunks.Count).ToArray(), chunks.Count, []));

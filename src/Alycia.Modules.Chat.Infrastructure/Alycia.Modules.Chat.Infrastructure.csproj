@@ -5,10 +5,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" />
-    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.23.2" />
-    <PackageReference Include="Tokenizers.HuggingFace" Version="3.23.1" />
-    <PackageReference Include="PdfPig" Version="0.1.15" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.14" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.14" />
@@ -16,12 +12,20 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <Using Include="Alycia.Contracts.Documents" />
+    <Using Include="Alycia.Contracts.Indexing" />
+    <Using Include="Alycia.Contracts.Retrieval" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="../Alycia.Platform.Persistence/Alycia.Platform.Persistence.csproj" />
     <ProjectReference Include="../Alycia.Modules.Chat.Application/Alycia.Modules.Chat.Application.csproj" />
-    <ProjectReference Include="../Alycia.Modules.Workspaces.Domain/Alycia.Modules.Workspaces.Domain.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="Alycia.Contracts.Chat" />
+    <Using Include="Alycia.Contracts.Tools" />
+    <Using Include="Alycia.Contracts.Inference" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Alycia.Contracts.Context" />
   </ItemGroup>
 </Project>

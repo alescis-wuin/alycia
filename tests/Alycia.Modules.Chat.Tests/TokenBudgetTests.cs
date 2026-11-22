@@ -1,3 +1,4 @@
+using Alycia.Modules.Inference;
 using System.Text;
 using System.Text.Json;
 using Alycia.Modules.Chat.Application;
@@ -12,7 +13,7 @@ public sealed class TokenBudgetTests
     {
         var handler = new Metadata();
         using var http = new HttpClient(handler) { BaseAddress = new("http://127.0.0.1:11434/") };
-        var model = new OllamaChatModel(http, new());
+        var model = ChatFixture.Ollama(http, new());
         var options = new ChatOptions { ContextTokens = 32768, TokenCounting = "conservative" };
         Assert.Equal(4096, (await model.PrepareOptionsAsync(handler.Name, options, default)).ContextTokens);
         Assert.Equal(32768, options.ContextTokens);
@@ -64,8 +65,8 @@ public sealed class TokenBudgetTests
         Assert.Equal(Encoding.UTF8.GetByteCount("hello 🌍"), counter.Count("hello 🌍"));
         Assert.Equal(Encoding.UTF8.GetByteCount("été"), counter.Count("été"));
         Assert.Null(QwenTokenCounter.FromMetadata(JsonSerializer.SerializeToElement(new { })));
-        Assert.Equal(33, TokenBudget.Count("hello", new() { TokenCounter = counter }));
-        Assert.True(TokenBudget.Count("hello", new()) >= 5);
+        Assert.Equal(33, PromptTokens.Count("hello", counter));
+        Assert.True(PromptTokens.Count("hello", null) >= 5);
     }
 
     [Fact]
@@ -73,9 +74,9 @@ public sealed class TokenBudgetTests
     {
         var meter = new MeteredChatModel(new Measured());
         var settings = new ChatOptions { CallPurpose = "summary" };
-        await meter.GenerateAsync("demo", [], settings, default);
-        await meter.StreamWithToolsAsync("demo", [], new(), _ => Task.CompletedTask, default);
-        var usage = meter.Snapshot(new());
+        await meter.GenerateAsync("demo", [], settings.InferenceCall(), default);
+        await meter.StreamWithToolsAsync("demo", [], new ChatOptions().InferenceCall(), _ => Task.CompletedTask, default);
+        var usage = meter.Snapshot(null, null);
         Assert.Equal(["summary", "tools"], usage.Calls.Select(c => c.Purpose));
         Assert.Equal(20, usage.InputTokens);
         Assert.Equal(4, usage.OutputTokens);
@@ -84,18 +85,18 @@ public sealed class TokenBudgetTests
         Assert.NotNull(usage.Calls[1].FirstContentMilliseconds);
         Assert.InRange(usage.Calls[1].FirstContentMilliseconds!.Value, 0, usage.Calls[1].ElapsedMilliseconds + 1);
         var unknown = new MeteredChatModel(new Measured(missing: true));
-        await unknown.GenerateAsync("demo", [], settings, default);
-        Assert.Null(unknown.Snapshot(settings).InputTokens);
-        Assert.False(unknown.Snapshot(settings).Complete);
+        await unknown.GenerateAsync("demo", [], settings.InferenceCall(), default);
+        Assert.Null(unknown.Snapshot(settings.ModelIdentity, settings.TokenCounter).InputTokens);
+        Assert.False(unknown.Snapshot(settings.ModelIdentity, settings.TokenCounter).Complete);
     }
 
     private sealed class Measured(bool missing = false) : IChatModel
     {
         public Task<IReadOnlyList<string>> ListModelsAsync(CancellationToken ct) => Task.FromResult<IReadOnlyList<string>>([]);
         public Task<string> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages, CancellationToken ct) => Task.FromResult("résumé");
-        public Task<GenerationReply> GenerateReplyAsync(string model, IReadOnlyList<PromptMessage> messages, ChatOptions options, CancellationToken ct) =>
-            Task.FromResult(new GenerationReply("résumé", missing ? null : new(10, 2, 100, 50, "stop")));
-        public async Task<GenerationReply> StreamWithToolsAsync(string model, IReadOnlyList<PromptMessage> messages, ChatOptions options, Func<ModelDelta, Task> delta, CancellationToken ct)
+        public Task<ModelReply> GenerateReplyAsync(string model, IReadOnlyList<PromptMessage> messages, InferenceCall options, CancellationToken ct) =>
+            Task.FromResult(new ModelReply("résumé", missing ? null : new(10, 2, 100, 50, "stop")));
+        public async Task<ModelReply> StreamWithToolsAsync(string model, IReadOnlyList<PromptMessage> messages, InferenceCall options, Func<ModelDelta, Task> delta, CancellationToken ct)
         {
             await delta(new("", Status: "préparation"));
             await delta(new("résumé"));

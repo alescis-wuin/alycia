@@ -1,3 +1,7 @@
+using System.Data.Common;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using Alycia.Contracts.Workspaces;
+using Alycia.Platform.Persistence;
 using Alycia.Modules.Chat.Application;
 using Alycia.Modules.Chat.Infrastructure;
 using Alycia.Modules.Workspaces.Infrastructure;
@@ -8,6 +12,13 @@ namespace Alycia.Modules.Chat.Tests;
 
 public sealed class ProjectCreationTests
 {
+    internal static ProjectCatalog Catalog(ChatDbContext database)
+    {
+        var session = new RelationalSession(database.Database);
+        var identities = new WorkspaceIdentityDirectory(session);
+        return new(session, identities, new WorkspaceProfileStore(session, identities), new ProjectNoteOrigins(database));
+    }
+
     [PostgresFact]
     public Task CompetingCreatorsCommitExactlyOneMatchingWorkspaceAndProfile() =>
         WithDatabaseAsync(async (options, workspaces) =>
@@ -20,7 +31,7 @@ public sealed class ProjectCreationTests
             {
                 try
                 {
-                    return await new ProjectCatalog(db).CreateAsync(name, default);
+                    return await Catalog(db).CreateAsync(name, default);
                 }
                 catch (ArgumentException error)
                 {
@@ -81,7 +92,7 @@ public sealed class ProjectCreationTests
             try
             {
                 await using var failing = new ChatDbContext(options);
-                var error = await Assert.ThrowsAsync<DbUpdateException>(() => new ProjectCatalog(failing).CreateAsync(name, default));
+                var error = await Assert.ThrowsAsync<DbUpdateException>(() => Catalog(failing).CreateAsync(name, default));
                 var cause = Assert.IsType<PostgresException>(error.InnerException);
                 Assert.Equal("test_profile_insert_after_workspace", cause.MessageText);
                 Assert.Equal(0, await workspaces.Workspaces.CountAsync());
@@ -95,12 +106,88 @@ public sealed class ProjectCreationTests
                     """);
             }
 
-            var retry = await new ProjectCatalog(audit).CreateAsync(name, default);
+            var retry = await Catalog(audit).CreateAsync(name, default);
             Assert.Equal(retry.Id, (await workspaces.Workspaces.AsNoTracking().SingleAsync()).Id);
             Assert.Equal(retry.Id, (await audit.WorkspaceProfiles.AsNoTracking().SingleAsync()).Id);
         });
 
-    private static async Task WithDatabaseAsync(Func<DbContextOptions<ChatDbContext>, WorkspacesDbContext, Task> run)
+    [PostgresFact]
+    public Task DiscoveryReadsEachOwnerOnceAcrossPageBoundaries() =>
+        WithDatabaseAsync(async (options, _) =>
+        {
+            await using var db = new ChatDbContext(options);
+            var owners = Enumerable.Range(0, 129).Select(n =>
+                Alycia.Modules.Chat.Domain.Conversation.Create("C" + n, "local", "")).ToArray();
+            db.Conversations.AddRange(owners);
+            await db.SaveChangesAsync();
+            var read = new ConversationIndexOwners(new(db.Database));
+            var first = await read.PageAsync(null, 128, default);
+            Assert.Equal(128, first.Length);
+            var last = Assert.Single(await read.PageAsync(first[^1].Id, 128, default));
+            Assert.Empty(await read.PageAsync(last.Id, 128, default));
+            Assert.Equal(owners.Select(o => o.Id).Order(), first.Select(o => o.Id).Append(last.Id).Order());
+
+            var catalog = Catalog(db);
+            var a = await catalog.CreateAsync("Page A", default);
+            var b = await catalog.CreateAsync("Page B", default);
+            var profile = await catalog.GetAsync(b.Id, false, default);
+            await catalog.UpdateAsync(b.Id, profile.Revision, profile.Instructions, profile.DefaultModel, true, default);
+            var active = ChatFixture.Profiles(db);
+            var item = Assert.Single(await active.ActivePageAsync(null, 1, default));
+            Assert.Equal(a.Id, item.Id);
+            Assert.Empty(await active.ActivePageAsync(item.Id, 1, default));
+        });
+
+    [PostgresFact]
+    public Task Lost_commit_acknowledgement_leaves_one_recoverable_identity_and_profile() =>
+        WithDatabaseAsync(async (options, _) =>
+        {
+            var fault = new DbContextOptionsBuilder<ChatDbContext>(options).AddInterceptors(new LoseAcknowledgement()).Options;
+            await using var failing = new ChatDbContext(fault);
+            await Assert.ThrowsAsync<IOException>(() => Catalog(failing).CreateAsync("Persisted", default));
+            await using var fresh = new ChatDbContext(options);
+            var catalog = Catalog(fresh);
+            var created = Assert.Single(await catalog.ListAsync(default));
+            Assert.Equal("Persisted", created.Name);
+            Assert.Equal(0, (await catalog.GetAsync(created.Id, false, default)).Revision);
+            await Assert.ThrowsAsync<ArgumentException>(() => catalog.CreateAsync("PERSISTED", default));
+            Assert.Single(await catalog.ListAsync(default));
+        });
+
+    private sealed class LoseAcknowledgement : DbTransactionInterceptor
+    {
+        public override Task TransactionCommittedAsync(DbTransaction transaction, TransactionEndEventData eventData,
+            CancellationToken cancellationToken = default) => throw new IOException("Accusé de commit perdu.");
+    }
+
+    [PostgresFact]
+    public Task Competing_profile_writes_preserve_one_revision_and_note_provenance() =>
+        WithDatabaseAsync(async (options, _) =>
+        {
+            await using var a = new ChatDbContext(options);
+            await using var b = new ChatDbContext(options);
+            var project = await Catalog(a).CreateAsync("Notes", default);
+            var other = await Catalog(b).CreateAsync("Voisin", default);
+            var owner = Alycia.Modules.Chat.Domain.Conversation.Create("C", "local", "");
+            owner.AssignWorkspace(project.Id);
+            a.Add(owner);
+            await a.SaveChangesAsync();
+            await Assert.ThrowsAsync<ArgumentException>(() => Catalog(b).ChangeNoteAsync(other.Id, null, 0, "hors portée", owner.Id, null, false, default));
+            await Assert.ThrowsAsync<ArgumentException>(() => Catalog(b).ChangeNoteAsync(project.Id, null, 0, "absent", owner.Id, 1, false, default));
+            var recorded = await Catalog(a).ChangeNoteAsync(project.Id, null, 0, "décision", owner.Id, null, false, default);
+            Assert.Equal(owner.Id, Assert.Single(recorded.Notes).OriginConversationId);
+            async Task<bool> Write(ChatDbContext db, string instructions)
+            {
+                try { await Catalog(db).UpdateAsync(project.Id, 1, instructions, "local", false, default); return true; }
+                catch (ChatConflictException) { return false; }
+            }
+            Assert.Single(await Task.WhenAll(Write(a, "A"), Write(b, "B")), success => success);
+            var saved = await Catalog(b).GetAsync(project.Id, false, default);
+            Assert.Equal(2, saved.Revision);
+            Assert.Equal("décision", Assert.Single(saved.Notes).Text);
+        });
+
+    internal static async Task WithDatabaseAsync(Func<DbContextOptions<ChatDbContext>, WorkspacesDbContext, Task> run)
     {
         var connection = Environment.GetEnvironmentVariable("ALYCIA_CHAT_TEST_CONNECTION")!;
         var name = "alycia_projects_test_" + Guid.NewGuid().ToString("N");

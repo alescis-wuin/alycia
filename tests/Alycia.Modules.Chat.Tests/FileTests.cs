@@ -89,7 +89,7 @@ public sealed class FileTests
         var old = new Attachment { Id = Guid.NewGuid(), Name = "old.txt", Text = "old content", AnchorSequence = 1 };
         var current = new Attachment { Id = Guid.NewGuid(), Name = "new.txt", Text = new string('é', 10000), AnchorSequence = 3, CreatedAtUtc = DateTimeOffset.UtcNow };
         var options = new ChatOptions { MaxHistoryTurns = 0 };
-        var result = FileContext.Build("system", history, "question", options, [old, current], 3);
+        var result = FileContext.Build(new Alycia.Modules.Context.SlidingHistory(), "system", history.Select(m => m.ToHistory()).ToArray(), "question", options.Context(), [old.ToTurnFile(), current.ToTurnFile()], 3);
         Assert.Equal("system", result.Messages[0].Content);
         Assert.Equal("user", result.Messages[^1].Role);
         Assert.DoesNotContain("old content", result.Messages[^1].Content);
@@ -97,12 +97,12 @@ public sealed class FileTests
         Assert.Equal(1, result.FilesIncluded);
         Assert.True(result.Messages.Sum(m => SlidingContext.EstimateTokens(m.Content))
             <= options.ContextTokens - options.MaxOutputTokens - options.SafetyTokens);
-        var next = FileContext.Build("system", [], "later", options, [current], 5);
+        var next = FileContext.Build(new Alycia.Modules.Context.SlidingHistory(), "system", [], "later", options.Context(), [current.ToTurnFile()], 5);
         Assert.Equal(0, next.FilesIncluded);
         Assert.DoesNotContain("new.txt", next.Messages[^1].Content);
         options.MaxHistoryTurns = 1;
         var recent = new[] { new ChatMessage(id, 5, request, "user", new string('a', 1700)), new ChatMessage(id, 6, request, "assistant", new string('b', 1700)) };
-        var expired = FileContext.Build("system", recent, "later", options, [old], 7);
+        var expired = FileContext.Build(new Alycia.Modules.Context.SlidingHistory(), "system", recent.Select(m => m.ToHistory()).ToArray(), "later", options.Context(), [old.ToTurnFile()], 7);
         Assert.Equal(2, expired.HistoryMessagesIncluded);
         Assert.Equal(0, expired.FilesIncluded);
     }
@@ -130,7 +130,7 @@ public sealed class FileTests
                 db.Conversations.Add(conversation);
                 await db.SaveChangesAsync();
                 conversationId = conversation.Id;
-                var importer = new FileImport(db, storage);
+                var importer = new FileImport(db, storage, ChatFixture.Profiles(db), new ConversationFileChanges(db));
                 var batch = Guid.NewGuid();
                 var data = Zip("./folder/./note.txt", "persistent source", windowsDirectory: true);
                 var added = await importer.ImportAsync(conversationId, batch, [new("bundle.zip", new MemoryStream(data))], default);
@@ -164,10 +164,10 @@ public sealed class FileTests
                 Assert.Equal("persistent source", file.Text);
                 Assert.True(File.Exists(storage.PathFor(conversationId, fileId)));
                 var model = new CaptureModel();
-                await new ChatService(new EfChatRepository(db), model, new()).SendAsync(conversationId, Guid.NewGuid(), "résume", default);
+                await ChatFixture.Create(db, model, new()).SendAsync(conversationId, Guid.NewGuid(), "résume", default);
                 Assert.Contains("persistent source", model.Prompt![^1].Content);
                 var conversation = await db.Conversations.SingleAsync();
-                await new EfChatRepository(db).DeleteAsync(conversation, default);
+                await new EfChatRepository(db, ChatFixture.Profiles(db)).DeleteAsync(conversation, default);
                 Assert.Empty(await db.Attachments.ToListAsync());
                 storage.DeleteConversation(conversationId);
                 Assert.False(Directory.Exists(storage.DirectoryFor(conversationId)));

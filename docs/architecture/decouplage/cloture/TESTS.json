@@ -1,0 +1,111 @@
+{
+  "commitApplicatif": "a778092475eb0dc28682a5e9284b56a0bc379ad6",
+  "arbre": "75a97fd3b98f77ebe2f90779f67dda956d086b8e",
+  "dotnet": {
+    "passed": 400,
+    "failed": 0,
+    "skipped": 0,
+    "byAssembly": {
+      "alycia.client.avalonia.tests": 63,
+      "alycia.modules.chat.tests": 294,
+      "alycia.modules.configuration.tests": 2,
+      "alycia.modules.context.tests": 3,
+      "alycia.modules.conversations.tests": 1,
+      "alycia.modules.documents.tests": 2,
+      "alycia.modules.indexing.tests": 1,
+      "alycia.modules.inference.tests": 14,
+      "alycia.modules.memory.tests": 1,
+      "alycia.modules.retrieval.tests": 4,
+      "alycia.modules.tools.tests": 2,
+      "alycia.modules.workspaces.tests": 13
+    },
+    "trx": "recette/trx.zip"
+  },
+  "python": {
+    "passed": 31,
+    "failed": 0,
+    "skipped": 0,
+    "logs": [
+      "recette/python-suite-final.log",
+      "recette/python-guard-final.log"
+    ]
+  },
+  "http": {
+    "all": 35,
+    "originals": 6,
+    "mock": 2,
+    "ollama": 2
+  },
+  "rag": {
+    "rows": 92,
+    "failedThresholds": []
+  },
+  "isolations": [
+    "Alycia.Contracts",
+    "Alycia.Modules.Chat.Application",
+    "Alycia.Modules.Chat.Domain",
+    "Alycia.Modules.Chat.Infrastructure",
+    "Alycia.Modules.Configuration",
+    "Alycia.Modules.Configuration.Tests",
+    "Alycia.Modules.Context",
+    "Alycia.Modules.Context.Tests",
+    "Alycia.Modules.Conversations.Tests",
+    "Alycia.Modules.Documents",
+    "Alycia.Modules.Documents.Infrastructure",
+    "Alycia.Modules.Documents.Tests",
+    "Alycia.Modules.Indexing",
+    "Alycia.Modules.Indexing.Tests",
+    "Alycia.Modules.Inference",
+    "Alycia.Modules.Inference.Tests",
+    "Alycia.Modules.Memory",
+    "Alycia.Modules.Memory.Tests",
+    "Alycia.Modules.Retrieval",
+    "Alycia.Modules.Retrieval.Onnx",
+    "Alycia.Modules.Retrieval.Tests",
+    "Alycia.Modules.Testing",
+    "Alycia.Modules.Tools",
+    "Alycia.Modules.Tools.Tests",
+    "Alycia.Modules.Workspaces.Application",
+    "Alycia.Modules.Workspaces.Domain",
+    "Alycia.Modules.Workspaces.Infrastructure",
+    "Alycia.Modules.Workspaces.Tests",
+    "Alycia.Persistence.Migrations",
+    "Alycia.Platform.Persistence"
+  ],
+  "architecture": {
+    "projets": 36,
+    "ports": 65,
+    "comportementaux": 59,
+    "conformes": 59,
+    "exclus": 6,
+    "ouverts": 0,
+    "interdits": 0,
+    "cycles": 0,
+    "transitions": 0
+  },
+  "g3": {
+    "casPostgreSQL": 6,
+    "log": "recette/publication.log",
+    "ordre": "recette/ordre-commits.tsv"
+  },
+  "environment": {
+    "cpu": "AMD EPYC 9V74 80-Core Processor",
+    "processors": 9,
+    "kernel": "6.18.57",
+    "distribution": "Debian GNU/Linux 13 (trixie)",
+    "dotnet": "10.0.404",
+    "runtime": ".NET 10.0.15",
+    "python": "3.12.14",
+    "postgres": "17.12",
+    "pgvector": "0.8.0",
+    "ollama": {
+      "version": "0.40.17"
+    },
+    "devices": {
+      "/dev/nvidia0": false,
+      "/dev/dri": false,
+      "/dev/kvm": false,
+      "/var/run/docker.sock": false
+    }
+  }
+}

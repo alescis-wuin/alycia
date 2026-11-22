@@ -94,11 +94,15 @@ internal static partial class ChatEndpoints
                             if (size.ValueKind != JsonValueKind.Number || !size.TryGetInt32(out budget) || budget is < 1024 or > 131072) return Error(-32602, "Budget invalide.");
                         }
                         var result = await tools.CallAsync(id, name.GetString()!, input, budget, ct);
+                        var metadata = new Dictionary<string, object?> { ["io.alycia/evidence"] = result.Evidence, ["io.alycia/evidenceItems"] = result.EvidenceItems, ["io.alycia/history"] = result.History };
+                        if (result.Refusal is { } refusal && meta.ValueKind == JsonValueKind.Object
+                            && meta.TryGetProperty("io.alycia/resultCode", out var requestedCode) && requestedCode.ValueKind == JsonValueKind.True)
+                            metadata["io.alycia/resultCode"] = refusal.ToString();
                         return Result(new
                         {
                             content = new[] { new { type = "text", text = result.Text } },
                             isError = result.IsError,
-                            _meta = new Dictionary<string, object?> { ["io.alycia/evidence"] = result.Evidence, ["io.alycia/evidenceItems"] = result.EvidenceItems, ["io.alycia/history"] = result.History }
+                            _meta = metadata
                         });
                     default: return Error(-32601, "Méthode non prise en charge.");
                 }

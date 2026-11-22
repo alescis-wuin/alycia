@@ -12,6 +12,20 @@
     <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageReference Include="Serilog.Formatting.Compact" Version="3.0.0" />
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+    <Using Include="Alycia.Modules.Documents" />
+    <Using Include="Alycia.Contracts.Documents" />
+    <Using Include="Alycia.Modules.Inference" />
+    <ProjectReference Include="../Alycia.Modules.Memory/Alycia.Modules.Memory.csproj" />
+    <ProjectReference Include="../Alycia.Modules.Context/Alycia.Modules.Context.csproj" />
+    <ProjectReference Include="../Alycia.Modules.Tools/Alycia.Modules.Tools.csproj" />
+    <ProjectReference Include="../Alycia.Modules.Inference/Alycia.Modules.Inference.csproj" />
+    <Using Include="Alycia.Contracts.Indexing" />
+    <Using Include="Alycia.Modules.Indexing" />
+    <Using Include="Alycia.Modules.Retrieval" />
+    <ProjectReference Include="../Alycia.Modules.Retrieval/Alycia.Modules.Retrieval.csproj" />
+    <Using Include="Alycia.Contracts.Retrieval" />
+    <Using Include="Alycia.Modules.Retrieval.Onnx" />
+    <ProjectReference Include="../Alycia.Modules.Retrieval.Onnx/Alycia.Modules.Retrieval.Onnx.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -20,5 +34,36 @@
   </ItemGroup>
   <ItemGroup>
     <Using Include="Alycia.Contracts.Chat" />
+    <Using Include="Alycia.Contracts.Tools" />
+    <Using Include="Alycia.Contracts.Inference" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Alycia.Modules.Context" />
+    <Using Include="Alycia.Modules.Memory" />
+    <Using Include="Alycia.Modules.Tools" />
+    <Using Include="Alycia.Contracts.Context" />
+    <Using Include="Alycia.Contracts.Memory" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Alycia.Persistence.Migrations" />
+    <Using Include="Alycia.Modules.Documents.Infrastructure" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Alycia.Persistence.Migrations/Alycia.Persistence.Migrations.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Alycia.Modules.Documents.Infrastructure/Alycia.Modules.Documents.Infrastructure.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Alycia.Modules.Documents/Alycia.Modules.Documents.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Alycia.Modules.Indexing/Alycia.Modules.Indexing.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Alycia.Modules.Configuration/Alycia.Modules.Configuration.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Alycia.Modules.Configuration" />
   </ItemGroup>
 </Project>

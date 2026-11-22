@@ -1,3 +1,4 @@
+using Alycia.Modules.Inference;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -15,12 +16,12 @@ public sealed class ToolSummaryRecoveryTests
     {
         var handler = new Provider(reason);
         using var http = Client(handler);
-        var model = new MeteredChatModel(new OllamaChatModel(http, new()));
+        var model = new MeteredChatModel(ChatFixture.Ollama(http, new()));
         var sources = new Sources();
         var original = Context();
         var events = new List<ModelDelta>();
         var options = new ChatOptions();
-        var result = await ProjectAgent.RunAsync(model, sources, Guid.NewGuid(), "demo", original, options,
+        var result = await ProjectAgent.RunAsync(RecursiveSummarizer.Create, model, sources, Guid.NewGuid(), "demo", original.ToolPrompt(), options.ToolGeneration(),
             delta => { events.Add(delta); return Task.CompletedTask; }, default);
 
         Assert.Equal("Réponse finale", result.Content);
@@ -37,7 +38,7 @@ public sealed class ToolSummaryRecoveryTests
             Assert.Equal(original.Messages.Skip(1), input.Skip(1).Take(5));
         });
         Assert.Equal("SYSTEM", original.Messages[0].Content);
-        var usage = model.Snapshot(options);
+        var usage = model.Snapshot(options.ModelIdentity, options.TokenCounter);
         Assert.True(usage.Complete);
         var summary = Assert.Single(usage.Calls, c => c.Purpose == "summary");
         Assert.Equal(256, summary.Stats!.OutputTokens);
@@ -58,7 +59,7 @@ public sealed class ToolSummaryRecoveryTests
         using var http = Client(handler);
         var sources = new Sources();
         var events = new List<ModelDelta>();
-        Task Run() => ProjectAgent.RunAsync(new OllamaChatModel(http, new()), sources, Guid.NewGuid(), "demo", Context(), new(),
+        Task Run() => ProjectAgent.RunAsync(RecursiveSummarizer.Create, ChatFixture.Ollama(http, new()), sources, Guid.NewGuid(), "demo", Context().ToolPrompt(), new ChatOptions().ToolGeneration(),
             delta => { events.Add(delta); return Task.CompletedTask; }, cancel.Token);
         if (failure == "cancel") await Assert.ThrowsAnyAsync<OperationCanceledException>(Run);
         else

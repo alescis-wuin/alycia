@@ -1,3 +1,5 @@
+using Alycia.Modules.Workspaces.Domain;
+using Alycia.Modules.Workspaces.Infrastructure;
 using System.IO.Compression;
 using Alycia.Modules.Chat.Application;
 using Alycia.Modules.Chat.Domain;
@@ -38,8 +40,8 @@ public sealed class ProjectFilesTests
             using (var writer = new StreamWriter(zip.CreateEntry("preuve.txt").Open()))
                 writer.Write("Source : échantillon.");
             archive.Position = 0;
-            var importer = new FileImport(db, storage);
-            var files = new ProjectFiles(db, importer, storage, new(storage));
+            var importer = new FileImport(db, storage, ChatFixture.Profiles(db), new ConversationFileChanges(db));
+            var files = new ProjectFiles(db, importer, new(storage), ChatFixture.Profiles(db), new ConversationFileChanges(db), ChatFixture.DocumentScope);
             var original = await importer.ImportAsync(chat.Id, Guid.NewGuid(), [new("lot.zip", archive)], default);
             var archiveId = original.Single(f => f.ArchiveId is null).Id;
             var shared = await files.ShareAsync(chat.Id, archiveId, default);
@@ -54,9 +56,13 @@ public sealed class ProjectFilesTests
             Assert.Equal(new SourcePreview(child.Name, child.Sha256, "échantillon", 9, 20, true), preview);
             await Assert.ThrowsAsync<ArgumentException>(() => files.PreviewAsync(project.Id, true, child.Id, "ancienne", null, null, default));
 
+            await db.Entry(project).ReloadAsync();
+            Assert.Equal(1, project.Revision);
             var revision = project.Revision;
             await Assert.ThrowsAsync<ChatConflictException>(() => files.SetModeAsync(project.Id, child.Id, "pinned", revision - 1, default));
             Assert.Equal("pinned", (await files.SetModeAsync(project.Id, child.Id, "pinned", revision, default)).ContextMode);
+            await db.Entry(project).ReloadAsync();
+            Assert.Equal(revision + 1, project.Revision);
             db.WorkspaceFileOverrides.Add(new() { ConversationId = chat.Id, FileId = child.Id, Mode = "excluded" });
             await db.SaveChangesAsync();
             await Assert.ThrowsAsync<ArgumentException>(() => files.PreviewAsync(chat.Id, false, child.Id, null, null, null, default));

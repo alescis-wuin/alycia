@@ -1,0 +1,223 @@
+{
+  "base": {
+    "sha": "58182f2a7492b04f1f0b4c1518017a675519b376",
+    "tree": "0ee1762c69f9e425d1c97f1765fc26ae98302eb8",
+    "parents": [
+      "e3db8a9565d4bfbcf9efb538d9465bd65a709871"
+    ],
+    "verified": true,
+    "reason": "valid"
+  },
+  "signedHistory": [
+    {
+      "sha": "9dde05bcef90d99e760d346664bfda1f32427e62",
+      "tree": "fcbcb89536f824057666fbed662e86fe7d495e9a",
+      "verified": true,
+      "reason": "valid"
+    },
+    {
+      "sha": "94aef29a32a4a709a76f3aaa76b3b2141d8a02f4",
+      "tree": "2a49c20ee21316437c316aed7c362cd384d107bf",
+      "verified": true,
+      "reason": "valid"
+    },
+    {
+      "sha": "55f5985868e248a829222ef70072bcfbef28178d",
+      "tree": "c1e32c5bfdca1d8ad332a9ce9f0ddea8aa290e81",
+      "verified": true,
+      "reason": "valid"
+    },
+    {
+      "sha": "d9241dbdc06adbedd0c0f7c152038d525fd1869a",
+      "tree": "47a02b3528b60474942a21ff2fc08e679f1ab573",
+      "verified": true,
+      "reason": "valid"
+    },
+    {
+      "sha": "ec1fb67089bb62f0047c14ecc4fdc7f229454fe4",
+      "tree": "352efef9de325b05d363ce27003c67eed9e63eb9",
+      "verified": true,
+      "reason": "valid"
+    },
+    {
+      "sha": "6ecb9b695de65a185c46e1e8cbdedfa25a0ccc26",
+      "tree": "aa2ad783b50b9bf59bcd7ecd7d1412ca7e91fb6d",
+      "verified": true,
+      "reason": "valid"
+    },
+    {
+      "sha": "4233dbb172e86ff27cc6d7c622d4bbece2e2449d",
+      "tree": "8c634949e642f4cc964252c57cbe633e43018e65",
+      "verified": true,
+      "reason": "valid"
+    },
+    {
+      "sha": "1897ea272621194e954aa3c1042776088eea355a",
+      "tree": "756dc637b2393b5b89ca6962e892249c95c84241",
+      "verified": true,
+      "reason": "valid"
+    },
+    {
+      "sha": "c33765fe3008ebe0626f165755b0f7037ed4f1d4",
+      "tree": "067073a420a3da0a00fa6923d24e76c8be139dfa",
+      "verified": true,
+      "reason": "valid"
+    },
+    {
+      "sha": "c1ce33739a2855c32dda35717f6d29f985fbbf16",
+      "tree": "f0d3b5dc372d06215e77c2bffac27ba2d0a1cf25",
+      "verified": true,
+      "reason": "valid"
+    },
+    {
+      "sha": "b51b4fef5ca66a8e7dee170b242204b2c0cd1d72",
+      "tree": "64666ba7a1162797cab6a0126e2250b0e8fb5791",
+      "verified": true,
+      "reason": "valid"
+    },
+    {
+      "sha": "669f70e0c27c5b2ea1f0303580c7a51664d47abc",
+      "tree": "bb780e7331d0f2c5a7fe865370f58de4c82a298c",
+      "verified": true,
+      "reason": "valid"
+    },
+    {
+      "sha": "b9d3f552da2967dba72ede8f57329b33a10f99e2",
+      "tree": "96fecc99068e40f0a6c2ecba6665dd3dd202d4e8",
+      "verified": true,
+      "reason": "valid"
+    },
+    {
+      "sha": "3ef46c82e6badd85d45aa415accbcdc9fa7e3a30",
+      "tree": "b8f51e615db8454dffbed33c701bcdd14059b94a",
+      "verified": true,
+      "reason": "valid"
+    },
+    {
+      "sha": "f5961d969cfebd0f9d1fe0c14d700d7c016ca769",
+      "tree": "d22773a861e8bbc7c0c512beb920c3a3e2e76319",
+      "verified": true,
+      "reason": "valid"
+    },
+    {
+      "sha": "13f0711e9628167f2cccbca6417707cb18d5c32f",
+      "tree": "4ac2585809b2e5b2b8d41a1b0faaf338df1e12ad",
+      "verified": true,
+      "reason": "valid"
+    },
+    {
+      "sha": "a4690b693028b5b53d5e2bf19800c8e04b85ed12",
+      "tree": "80b42fc2ae8540393a5f34256c5e5c7da62e0a62",
+      "verified": true,
+      "reason": "valid"
+    },
+    {
+      "sha": "89164e19f56b848fc5a0209d90d9dcc249345bbd",
+      "tree": "56b2d0106b27219bab0679754bdfb0417ee3869e",
+      "verified": true,
+      "reason": "valid"
+    },
+    {
+      "sha": "048f443c00d363256b7c4bda327af6857c66e7a9",
+      "tree": "a12e774fafb9c976e908988c697174af77a7962a",
+      "verified": true,
+      "reason": "valid"
+    },
+    {
+      "sha": "7ba9f524064e452357970ab411013ff2e6a6c2aa",
+      "tree": "9575cb2d3d2a427e251fe446c399d12068a1f80d",
+      "verified": true,
+      "reason": "valid"
+    },
+    {
+      "sha": "42a99a9780fd317003c89ea701f1d25e1abc3bef",
+      "tree": "ad0fda7fbd078665ca63d756fa8de31249039dfc",
+      "verified": true,
+      "reason": "valid"
+    },
+    {
+      "sha": "2efbe48c461fbf2f9007a7c1a6efec31405f6b34",
+      "tree": "99386d2a9fac1edff19ab0e9024a4e864a24046d",
+      "verified": true,
+      "reason": "valid"
+    },
+    {
+      "sha": "393ce41957e3d1c9a24fcf36bd1ae202d60511a2",
+      "tree": "acf4d4ed73f832efac9c3a6d722d14810d952c27",
+      "verified": true,
+      "reason": "valid"
+    },
+    {
+      "sha": "96f6e649c03ff7c3cf80dd0826ed5ba944c7350c",
+      "tree": "bb1ae1b8d5430bc3d6e79f4014e5c8cddb1fceda",
+      "verified": true,
+      "reason": "valid"
+    },
+    {
+      "sha": "8ea569683adc952421c803db1bf221e3dcdde5a2",
+      "tree": "b6a98e99cd1fa2d6b0ec2fa8b7485d3b2804fac5",
+      "verified": true,
+      "reason": "valid"
+    },
+    {
+      "sha": "421579204a1608b20ebf248fd84d196655e3a7dd",
+      "tree": "78a63ce141aa8e179e547ed4a43bd3ba17ff4043",
+      "verified": true,
+      "reason": "valid"
+    },
+    {
+      "sha": "ed18de320c94a2f7968d26f9bb01fe8d845917df",
+      "tree": "c1fa53884066a0dfd043c71b5a35db1af7e44879",
+      "verified": true,
+      "reason": "valid"
+    },
+    {
+      "sha": "a68fc3e87f647d97861f162d16b5c7c6be848585",
+      "tree": "557bac1405c9dbb7d74a46017de9b403f3841dac",
+      "verified": true,
+      "reason": "valid"
+    },
+    {
+      "sha": "a75ad6e81bc837d9f762e86c90fd975e87c0c076",
+      "tree": "41f58b4ce91aa56c45ff964ea24e6bcda2d2ab11",
+      "verified": true,
+      "reason": "valid"
+    },
+    {
+      "sha": "40e7e9d2db35d6bc577e05974a1937e6d5ee2e95",
+      "tree": "8588ca9b814aed29dc36c883dae7335af935e9d8",
+      "verified": true,
+      "reason": "valid"
+    },
+    {
+      "sha": "e3db8a9565d4bfbcf9efb538d9465bd65a709871",
+      "tree": "40318e47fd527b5f7f1778c9728fbc0e56d2a6ce",
+      "verified": true,
+      "reason": "valid"
+    },
+    {
+      "sha": "58182f2a7492b04f1f0b4c1518017a675519b376",
+      "tree": "0ee1762c69f9e425d1c97f1765fc26ae98302eb8",
+      "verified": true,
+      "reason": "valid"
+    }
+  ],
+  "priorPullRequests": [
+    {
+      "number": 50,
+      "state": "open",
+      "draft": true,
+      "head": "7b04de23ee1854cfdbe2c4f8d91e3adf204f4f53",
+      "base": "develop",
+      "merged": false
+    },
+    {
+      "number": 51,
+      "state": "open",
+      "draft": true,
+      "head": "905ada4ff12e79813b129c87a583982c15feaa5e",
+      "base": "alycia-decouplage-modulaire-20261121",
+      "merged": false
+    }
+  ]
+}

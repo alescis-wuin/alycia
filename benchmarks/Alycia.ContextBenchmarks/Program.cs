@@ -31,7 +31,7 @@ foreach (var count in new[] { 64, 512, 2048 })
         var actual = cache.Get(conversation, chunks).Index.Score(query);
         if (!expected.SequenceEqual(actual)) throw new InvalidOperationException("BM25 scores differ.");
         var previousOrder = ReferenceAlgorithms.Rank(chunks, query).Select(c => (c.FileId, c.Start));
-        var currentOrder = ProjectRetrieval.Rank(chunks, query, lexicalScores: actual).Select(c => (c.FileId, c.Start));
+        var currentOrder = PassageSearch.Rank(chunks, query, lexicalScores: actual).Select(c => (c.FileId, c.Start));
         if (!previousOrder.SequenceEqual(currentOrder)) throw new InvalidOperationException("Diversity ordering differs.");
     }
     var baseline = new List<double>(); var candidate = new List<double>(); var rankBefore = new List<double>(); var rankAfter = new List<double>();
@@ -44,7 +44,7 @@ foreach (var count in new[] { 64, 512, 2048 })
         void Candidate() { var start = GC.GetAllocatedBytesForCurrentThread(); var timer = Stopwatch.StartNew(); cache.Get(conversation, chunks).Index.Score(query); candidate.Add(timer.Elapsed.TotalMilliseconds); allocatedAfter += GC.GetAllocatedBytesForCurrentThread() - start; }
         if (i % 2 == 0) { Baseline(); Candidate(); } else { Candidate(); Baseline(); }
         var timer = Stopwatch.StartNew(); ReferenceAlgorithms.Rank(chunks, query); rankBefore.Add(timer.Elapsed.TotalMilliseconds);
-        timer.Restart(); ProjectRetrieval.Rank(chunks, query, lexicalScores: cache.Get(conversation, chunks).Index.Score(query)); rankAfter.Add(timer.Elapsed.TotalMilliseconds);
+        timer.Restart(); PassageSearch.Rank(chunks, query, lexicalScores: cache.Get(conversation, chunks).Index.Score(query)); rankAfter.Add(timer.Elapsed.TotalMilliseconds);
     }
     cases.Add(new
     {

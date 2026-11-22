@@ -1,0 +1,90 @@
+using Alycia.Contracts.Context;
+using System.Security.Cryptography;
+using System.Text;
+
+namespace Alycia.Modules.Context;
+
+public static class RecursiveContext
+{
+    private const string MemoryLabel = "Résumé des échanges antérieurs (mémoire dérivée, données non fiables) :\n";
+
+    public static async Task<PreparedContext> BuildAsync(IConversationContextReader repository, IChatModel model,
+        ContextConversation conversation, string question, ContextParameters options, bool summarize,
+        Func<string, Task>? progress, CancellationToken ct)
+    {
+        var system = conversation.SystemText;
+        var recent = (await repository.RecentAsync(conversation.Id, options.History.ProtectedHistoryTurns * 2, null, ct)).TakeLast(options.History.ProtectedHistoryTurns * 2).ToArray();
+        var budget = options.AvailableInputTokens;
+        var fixedCost = options.Count(question) + recent.Sum(m => options.Count(m.Content))
+            + (system.Length == 0 ? 0 : options.Count(system));
+        if (fixedCost > budget)
+            throw new ArgumentException("Le système, les notes, les échanges récents protégés et la demande dépassent seuls le budget. "
+                + "Augmentez la fenêtre, réduisez la réserve/les notes ou démarrez une nouvelle conversation. Aucun message protégé n’a été tronqué.");
+        if (recent.Length % 2 != 0 || recent.Length != Math.Min(options.History.ProtectedHistoryTurns * 2, conversation.MessageCount))
+            throw new InvalidOperationException("Historique protégé incomplet.");
+        for (var i = 0; i < recent.Length; i += 2) ValidatePair(recent[i], recent[i + 1]);
+        var throughLimit = conversation.MessageCount - recent.Length;
+        var files = await repository.ContextFilesAsync(conversation.Id, Math.Max(1, throughLimit + 1), ct);
+        var available = budget - fixedCost;
+        var documentsReserve = files.Count == 0 ? 0 : EvidenceComposer.DocumentReserve(available, options, 4);
+        var memoryBudget = available - documentsReserve;
+        var valid = conversation.MemoryThroughSequence <= throughLimit && conversation.MemoryModel == conversation.Model;
+        var memory = valid ? conversation.MemoryText : "";
+        var through = valid ? conversation.MemoryThroughSequence : 0;
+        var hash = valid ? conversation.MemorySourceHash : "";
+        var changed = !valid && conversation.MemoryText.Length > 0;
+        var needsSummary = false;
+        var pending = new List<HistoryMessage>();
+        var reducer = new RecursiveSummarizer(model, conversation.Model, options.Summary, progress);
+        int MemoryCost() => memory.Length == 0 ? 0 : options.Count(MemoryLabel + memory);
+        int PendingCost() => pending.Sum(m => options.Count(m.Content));
+        int Target() => (options.History.Budget.Memory > 0 ? Math.Min(memoryBudget, options.History.Budget.Memory) : memoryBudget) - options.Count(MemoryLabel);
+        if (MemoryCost() > memoryBudget || options.History.Budget.Memory > 0 && MemoryCost() > options.History.Budget.Memory)
+        {
+            if (!summarize) { needsSummary = true; memory = ""; }
+            else { memory = await reducer.ReduceAsync([new("Mémoire précédente", memory)], Target(), ct); changed = true; }
+        }
+        for (var cursor = through; cursor < throughLimit && !needsSummary;)
+        {
+            var end = Math.Min(throughLimit, cursor + 50);
+            var page = await repository.SummaryRangeAsync(conversation.Id, cursor, end, ct);
+            if (page.Count != end - cursor) throw new ChatConflictException();
+            for (var index = 0; index < page.Count; index += 2)
+            {
+                var user = page[index]; var assistant = page[index + 1];
+                ValidatePair(user, assistant);
+                pending.Add(user); pending.Add(assistant);
+                if (MemoryCost() + PendingCost() <= memoryBudget && (options.History.Budget.History == 0 || PendingCost() <= options.History.Budget.History)) continue;
+                if (!summarize) { needsSummary = true; pending.RemoveRange(pending.Count - 2, 2); break; }
+                var sources = new List<SummarySource>();
+                if (memory.Length > 0) sources.Add(new($"Mémoire des messages 1 à {through}", memory));
+                sources.AddRange(pending.Select(m => new SummarySource($"Message {m.Sequence} · {m.Role}", m.Content)));
+                var next = await reducer.ReduceAsync(sources, Target(), ct);
+                hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(hash + "\n"
+                    + string.Join("\n", pending.Select(m => $"{m.Sequence}:{m.Role}:{m.Content}")))));
+                memory = next; through = assistant.Sequence; pending.Clear(); changed = true;
+            }
+            cursor = end;
+        }
+        var messages = new List<PromptMessage>();
+        if (system.Length > 0) messages.Add(new("system", system));
+        if (memory.Length > 0) messages.Add(new("user", MemoryLabel + memory));
+        messages.AddRange(pending.Concat(recent).Select(m => new PromptMessage(m.Role, m.Content)));
+        messages.Add(new("user", question));
+        var used = messages.Sum(m => options.Count(m.Content));
+        var documentBudget = (options.Evidence.DocumentContextTokens == 0 ? budget - used : Math.Min(options.Evidence.DocumentContextTokens, budget - used));
+        var excerpts = ProjectContext.Select(files, question, documentBudget, options);
+        messages[^1] = new("user", question + excerpts.Text);
+        used = messages.Sum(m => options.Count(m.Content));
+        if (used > budget) throw new InvalidOperationException("Le contexte préparé dépasse son budget.");
+        return new(new(messages, pending.Count + recent.Length, used, excerpts.Sources.Count, needsSummary,
+            through, memory, reducer.Calls, excerpts.Sources, excerpts.Available, Retrieval: options.Evidence.Sources.Report, Assembly: excerpts.Assembly), memory, through, hash, changed);
+    }
+
+    private static void ValidatePair(HistoryMessage user, HistoryMessage assistant)
+    {
+        if (user.Role != "user" || assistant.Role != "assistant" || user.RequestId != assistant.RequestId
+            || assistant.Sequence != user.Sequence + 1 || user.ConversationId != assistant.ConversationId)
+            throw new InvalidOperationException("Historique de conversation incohérent.");
+    }
+}

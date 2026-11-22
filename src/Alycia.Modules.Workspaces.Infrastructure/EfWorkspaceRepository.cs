@@ -29,6 +29,7 @@ public sealed class EfWorkspaceRepository(WorkspacesDbContext dbContext)
         Workspace workspace,
         CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         dbContext.Workspaces.Add(workspace);
 
         try
@@ -40,8 +41,14 @@ public sealed class EfWorkspaceRepository(WorkspacesDbContext dbContext)
             error.SqlState == PostgresErrorCodes.UniqueViolation &&
             error.ConstraintName == "ux_workspaces_name")
         {
+            dbContext.Entry(workspace).State = EntityState.Detached;
             // Handles both pre-existing names and concurrent inserts.
             throw new WorkspaceNameConflictException();
+        }
+        catch
+        {
+            dbContext.Entry(workspace).State = EntityState.Detached;
+            throw;
         }
     }
 }

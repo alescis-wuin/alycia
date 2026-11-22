@@ -60,7 +60,7 @@ internal static partial class ChatEndpoints
             catch (Exception exception)
             {
                 // Never log prompts, generated text, connection strings or provider messages.
-                app.Logger.LogError("Chat request failed: {ErrorType}", exception.GetType().Name);
+                app.Logger.LogError("Chat request failed: {ErrorType}", Alycia.Contracts.Diagnostics.FailureType.Name(exception));
                 return exception is DbException or DbUpdateException or TimeoutException
                     ? Error(http, 503, "STORAGE_UNAVAILABLE", "PostgreSQL est indisponible ou le schéma manque. Vérifiez la connexion et lancez make migrate.")
                     : Error(http, 500, "INTERNAL_ERROR", "L’opération a échoué. Consultez les journaux du backend.");
@@ -82,11 +82,9 @@ internal static partial class ChatEndpoints
         routes.MapGet("/conversations", async (IChatRepository repository, CancellationToken ct) =>
             Results.Ok((await repository.ListAsync(ct)).Select(c => c.ToResponse())));
 
-        routes.MapPost("/conversations", async (CreateConversation request, ChatService service, IProjectCatalog projects, CancellationToken ct) =>
+        routes.MapPost("/conversations", async (CreateConversation request, ConversationCreation creation, CancellationToken ct) =>
         {
-            var defaultModel = request.WorkspaceId is Guid projectId ? await projects.ActiveDefaultModelAsync(projectId, ct) : null;
-            var model = string.IsNullOrWhiteSpace(request.Model) ? defaultModel : request.Model;
-            var conversation = await service.CreateAsync(request.Title, model, request.SystemPrompt, ct, request.WorkspaceId);
+            var conversation = await creation.CreateAsync(request.Title, request.Model, request.SystemPrompt, request.WorkspaceId, ct);
             return Results.Created($"/api/chat/conversations/{conversation.Id}", conversation.ToResponse());
         });
 
@@ -128,13 +126,19 @@ internal static partial class ChatEndpoints
             HttpRequest request, FileImport importer, CancellationToken ct) => UploadFilesAsync(id, batchId, request, importer, false, ct));
 
         routes.MapGet("/conversations/{id:guid}/files/{fileId:guid}", async (Guid id, Guid fileId,
-            ConversationFiles documents, HttpContext http, CancellationToken ct) =>
+            IConversationOriginals documents, HttpContext http, CancellationToken ct) =>
         {
-            var file = await documents.DownloadAsync(id, fileId, ct);
-            if (file is null) return Error(http, 404, "FILE_NOT_FOUND", "Fichier introuvable.");
-            if (!File.Exists(file.Value.Path)) return Error(http, 503, "FILE_UNAVAILABLE", "Le volume de fichiers est indisponible.");
-            http.Response.Headers["X-Content-Type-Options"] = "nosniff";
-            return Results.File(file.Value.Path, "application/octet-stream", file.Value.Name, enableRangeProcessing: true);
+            try
+            {
+                var file = await documents.DownloadAsync(id, fileId, ct);
+                if (file is null) return Error(http, 404, "FILE_NOT_FOUND", "Fichier introuvable.");
+                http.Response.Headers["X-Content-Type-Options"] = "nosniff";
+                return Results.File(file.Content, "application/octet-stream", file.Name, file.LastModified, enableRangeProcessing: true);
+            }
+            catch (OriginalUnavailableException error)
+            {
+                return Error(http, 503, "FILE_UNAVAILABLE", error.Message);
+            }
         });
         routes.MapDelete("/conversations/{id:guid}/files/{fileId:guid}", async (Guid id, Guid fileId,
             ConversationFiles documents, HttpContext http, CancellationToken ct) =>

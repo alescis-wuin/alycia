@@ -1,0 +1,155 @@
+catégorie	chemin	ligne	opération ou relation
+E	src/Alycia.Modules.Chat.Infrastructure/Conversations/AnalysisConversationOwner.cs	11	DbContext / Alycia.Modules.Chat.Domain.Conversation / Alycia.Modules.Chat.Domain.Conversation
+E	src/Alycia.Modules.Chat.Infrastructure/Conversations/AnalysisConversationOwner.cs	21	DbContext / Alycia.Modules.Chat.Domain.Conversation / Alycia.Modules.Chat.Domain.Conversation
+E	src/Alycia.Modules.Chat.Infrastructure/Conversations/AnalysisConversationOwner.cs	31	DbContext / Alycia.Modules.Chat.Domain.Conversation / Alycia.Modules.Chat.Domain.Conversation
+E	src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationFileChanges.cs	10	DbContext / Alycia.Modules.Chat.Domain.Conversation / Alycia.Modules.Chat.Domain.Conversation
+E	src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationFileChanges.cs	16	DbContext / Alycia.Modules.Chat.Domain.Conversation / Alycia.Modules.Chat.Domain.Conversation
+E	src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationHistory.cs	103	DbContext / Alycia.Modules.Chat.Domain.ChatMessage / Alycia.Modules.Chat.Domain.ChatMessage
+E	src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationHistory.cs	18	DbContext / Alycia.Modules.Chat.Domain.Conversation / Alycia.Modules.Chat.Domain.Conversation
+E	src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationHistory.cs	19	DbContext / Alycia.Modules.Chat.Domain.ChatMessage / Alycia.Modules.Chat.Domain.ChatMessage
+E	src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationHistory.cs	31	DbContext / Alycia.Modules.Chat.Domain.Conversation / Alycia.Modules.Chat.Domain.Conversation
+E	src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationHistory.cs	32	DbContext / Alycia.Modules.Chat.Domain.ChatMessage / Alycia.Modules.Chat.Domain.ChatMessage
+E	src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationHistory.cs	39	DbContext / Alycia.Modules.Chat.Domain.Conversation / Alycia.Modules.Chat.Domain.Conversation
+E	src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationHistory.cs	59	DbContext / Alycia.Modules.Chat.Domain.Conversation / Alycia.Modules.Chat.Domain.Conversation
+E	src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationHistory.cs	60	DbContext / Alycia.Modules.Chat.Domain.ChatMessage / Alycia.Modules.Chat.Domain.ChatMessage
+E	src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationHistory.cs	71	DbContext / Alycia.Modules.Chat.Domain.Conversation / Alycia.Modules.Chat.Domain.Conversation
+E	src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationHistory.cs	72	DbContext / Alycia.Modules.Chat.Domain.ChatMessage / Alycia.Modules.Chat.Domain.ChatMessage
+E	src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationHistory.cs	88	DbContext / Alycia.Modules.Chat.Domain.Conversation / Alycia.Modules.Chat.Domain.Conversation
+E	src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationHistory.cs	99	DbContext / Alycia.Modules.Chat.Domain.Conversation / Alycia.Modules.Chat.Domain.Conversation
+E	src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationMembership.cs	17	DbContext / Alycia.Modules.Chat.Domain.Conversation / Alycia.Modules.Chat.Domain.Conversation
+E	src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationReadModel.cs	19	DbContext / Alycia.Modules.Chat.Domain.Conversation / Alycia.Modules.Chat.Domain.Conversation
+E	src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationReadModel.cs	25	DbContext / Alycia.Modules.Chat.Domain.ChatMessage / Alycia.Modules.Chat.Domain.ChatMessage
+E	src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationReadModel.cs	44	DbContext / Alycia.Modules.Chat.Domain.ChatMessage / Alycia.Modules.Chat.Domain.ChatMessage
+E	src/Alycia.Modules.Chat.Infrastructure/Conversations/TemporalHistorySources.cs	18	DbContext / Alycia.Modules.Chat.Domain.Conversation / Alycia.Modules.Chat.Domain.Conversation
+E	src/Alycia.Modules.Chat.Infrastructure/Conversations/TemporalHistorySources.cs	30	DbContext / Alycia.Modules.Chat.Domain.ChatMessage / Alycia.Modules.Chat.Domain.ChatMessage
+E	src/Alycia.Modules.Chat.Infrastructure/Conversations/TemporalHistorySources.cs	37	DbContext / Alycia.Modules.Chat.Domain.ChatMessage / Alycia.Modules.Chat.Domain.ChatMessage
+E	src/Alycia.Modules.Chat.Infrastructure/Conversations/ToolConversationPolicyReader.cs	12	DbContext / Alycia.Modules.Chat.Domain.Conversation / Alycia.Modules.Chat.Domain.Conversation
+E	src/Alycia.Modules.Chat.Infrastructure/Conversations/ToolConversationPolicyReader.cs	19	DbContext / Alycia.Modules.Chat.Domain.ChatMessage / Alycia.Modules.Chat.Domain.ChatMessage
+E	src/Alycia.Modules.Chat.Infrastructure/EfChatRepository.cs	108	DbContext / Alycia.Modules.Chat.Domain.ChatMessage / Alycia.Modules.Chat.Domain.ChatMessage
+E	src/Alycia.Modules.Chat.Infrastructure/EfChatRepository.cs	15	DbContext / Alycia.Modules.Chat.Domain.Conversation / Alycia.Modules.Chat.Domain.Conversation
+E	src/Alycia.Modules.Chat.Infrastructure/EfChatRepository.cs	52	DbContext / Alycia.Modules.Chat.Domain.Conversation / Alycia.Modules.Chat.Domain.Conversation
+E	src/Alycia.Modules.Chat.Infrastructure/EfChatRepository.cs	57	DbContext / Alycia.Modules.Chat.Domain.Conversation / Alycia.Modules.Chat.Domain.Conversation
+E	src/Alycia.Modules.Chat.Infrastructure/EfChatRepository.cs	69	DbContext / Alycia.Modules.Chat.Domain.Conversation / Alycia.Modules.Chat.Domain.Conversation
+E	src/Alycia.Modules.Chat.Infrastructure/EfChatRepository.cs	79	DbContext / Alycia.Modules.Chat.Domain.Conversation / Alycia.Modules.Chat.Domain.Conversation
+E	src/Alycia.Modules.Chat.Infrastructure/EfChatRepository.cs	94	DbContext / Alycia.Modules.Chat.Domain.ChatMessage / Alycia.Modules.Chat.Domain.ChatMessage
+E	src/Alycia.Modules.Configuration/PromptCatalog.cs	18	DbContext / Alycia.Modules.Configuration.PromptProfile / Alycia.Modules.Configuration.PromptProfile
+E	src/Alycia.Modules.Configuration/PromptCatalog.cs	19	DbContext / Alycia.Modules.Configuration.PromptProfile / Alycia.Modules.Configuration.PromptProfile
+E	src/Alycia.Modules.Configuration/PromptCatalog.cs	26	DbContext / Alycia.Modules.Configuration.PromptProfile / Alycia.Modules.Configuration.PromptProfile
+E	src/Alycia.Modules.Configuration/PromptCatalog.cs	35	DbContext / Alycia.Modules.Configuration.PromptProfile / Alycia.Modules.Configuration.PromptProfile
+E	src/Alycia.Modules.Configuration/PromptCatalog.cs	8	DbContext / Alycia.Modules.Configuration.PromptProfile / Alycia.Modules.Configuration.PromptProfile
+E	src/Alycia.Modules.Documents.Infrastructure/ArchiveDocuments.cs	24	DbContext / Alycia.Modules.Documents.Attachment / Alycia.Modules.Documents.Attachment
+E	src/Alycia.Modules.Documents.Infrastructure/ArchiveDocuments.cs	36	DbContext / Alycia.Modules.Documents.WorkspaceFileOverride / Alycia.Modules.Documents.WorkspaceFileOverride
+E	src/Alycia.Modules.Documents.Infrastructure/ArchiveDocuments.cs	40	DbContext / Alycia.Modules.Documents.Attachment / Alycia.Modules.Documents.Attachment
+E	src/Alycia.Modules.Documents.Infrastructure/ArchiveDocuments.cs	41	DbContext / Alycia.Modules.Documents.WorkspaceFileOverride / Alycia.Modules.Documents.WorkspaceFileOverride
+E	src/Alycia.Modules.Documents.Infrastructure/ArchiveDocuments.cs	46	DbContext / Alycia.Modules.Documents.Attachment / Alycia.Modules.Documents.Attachment
+E	src/Alycia.Modules.Documents.Infrastructure/ArchiveDocuments.cs	47	DbContext / Alycia.Modules.Documents.WorkspaceFileOverride / Alycia.Modules.Documents.WorkspaceFileOverride
+E	src/Alycia.Modules.Documents.Infrastructure/ArchiveDocuments.cs	8	DbContext / Alycia.Modules.Documents.Attachment / Alycia.Modules.Documents.Attachment
+E	src/Alycia.Modules.Documents.Infrastructure/ConversationFileSettings.cs	20	DbContext / Alycia.Modules.Documents.Attachment / Alycia.Modules.Documents.Attachment
+E	src/Alycia.Modules.Documents.Infrastructure/ConversationFileSettings.cs	23	DbContext / Alycia.Modules.Documents.WorkspaceFileOverride / Alycia.Modules.Documents.WorkspaceFileOverride
+E	src/Alycia.Modules.Documents.Infrastructure/ConversationFileSettings.cs	24	DbContext / Alycia.Modules.Documents.WorkspaceFileOverride / Alycia.Modules.Documents.WorkspaceFileOverride
+E	src/Alycia.Modules.Documents.Infrastructure/ConversationFileSettings.cs	30	DbContext / Alycia.Modules.Documents.Attachment / Alycia.Modules.Documents.Attachment
+E	src/Alycia.Modules.Documents.Infrastructure/ConversationFiles.cs	17	DbContext / Alycia.Modules.Documents.Attachment / Alycia.Modules.Documents.Attachment
+E	src/Alycia.Modules.Documents.Infrastructure/ConversationFiles.cs	27	DbContext / Alycia.Modules.Documents.Attachment / Alycia.Modules.Documents.Attachment
+E	src/Alycia.Modules.Documents.Infrastructure/ConversationFiles.cs	9	DbContext / Alycia.Modules.Documents.Attachment / Alycia.Modules.Documents.Attachment
+E	src/Alycia.Modules.Documents.Infrastructure/DocumentAnalysisService.Management.cs	17	DbContext / Alycia.Modules.Documents.DocumentAnalysis / Alycia.Modules.Documents.DocumentAnalysis
+E	src/Alycia.Modules.Documents.Infrastructure/DocumentAnalysisService.Management.cs	30	DbContext / Alycia.Modules.Documents.DocumentAnalysis / Alycia.Modules.Documents.DocumentAnalysis
+E	src/Alycia.Modules.Documents.Infrastructure/DocumentAnalysisService.Management.cs	37	DbContext / Alycia.Modules.Documents.DocumentAnalysis / Alycia.Modules.Documents.DocumentAnalysis
+E	src/Alycia.Modules.Documents.Infrastructure/DocumentAnalysisService.Management.cs	50	DbContext / Alycia.Modules.Documents.DocumentAnalysis / Alycia.Modules.Documents.DocumentAnalysis
+E	src/Alycia.Modules.Documents.Infrastructure/DocumentAnalysisService.Management.cs	52	DbContext / Alycia.Modules.Documents.DocumentAnalysis / Alycia.Modules.Documents.DocumentAnalysis
+E	src/Alycia.Modules.Documents.Infrastructure/DocumentAnalysisService.Management.cs	77	DbContext / Alycia.Modules.Documents.DocumentAnalysis / Alycia.Modules.Documents.DocumentAnalysis
+E	src/Alycia.Modules.Documents.Infrastructure/DocumentAnalysisService.cs	18	DbContext / Alycia.Modules.Documents.DocumentAnalysis / Alycia.Modules.Documents.DocumentAnalysis
+E	src/Alycia.Modules.Documents.Infrastructure/DocumentAnalysisService.cs	203	DbContext / Alycia.Modules.Documents.DocumentAnalysis / Alycia.Modules.Documents.DocumentAnalysis
+E	src/Alycia.Modules.Documents.Infrastructure/DocumentAnalysisService.cs	205	DbContext / Alycia.Modules.Documents.DocumentAnalysis / Alycia.Modules.Documents.DocumentAnalysis
+E	src/Alycia.Modules.Documents.Infrastructure/DocumentAnalysisService.cs	26	DbContext / Alycia.Modules.Documents.DocumentAnalysis / Alycia.Modules.Documents.DocumentAnalysis
+E	src/Alycia.Modules.Documents.Infrastructure/DocumentMembershipOverrides.cs	8	DbContext / Alycia.Modules.Documents.WorkspaceFileOverride / Alycia.Modules.Documents.WorkspaceFileOverride
+E	src/Alycia.Modules.Documents.Infrastructure/DocumentScope.cs	13	DbContext / Alycia.Modules.Documents.Attachment / Alycia.Modules.Documents.Attachment
+E	src/Alycia.Modules.Documents.Infrastructure/DocumentScope.cs	19	DbContext / Alycia.Modules.Documents.Attachment / Alycia.Modules.Documents.Attachment
+E	src/Alycia.Modules.Documents.Infrastructure/DocumentScope.cs	46	DbContext / Alycia.Modules.Documents.Attachment / Alycia.Modules.Documents.Attachment
+E	src/Alycia.Modules.Documents.Infrastructure/DocumentScope.cs	48	DbContext / Alycia.Modules.Documents.WorkspaceFileOverride / Alycia.Modules.Documents.WorkspaceFileOverride
+E	src/Alycia.Modules.Documents.Infrastructure/DocumentScope.cs	60	DbContext / Alycia.Modules.Documents.Attachment / Alycia.Modules.Documents.Attachment
+E	src/Alycia.Modules.Documents.Infrastructure/FileImport.cs	30	DbContext / Alycia.Modules.Documents.Attachment / Alycia.Modules.Documents.Attachment
+E	src/Alycia.Modules.Documents.Infrastructure/FileImport.cs	31	DbContext / Alycia.Modules.Documents.Attachment / Alycia.Modules.Documents.Attachment
+E	src/Alycia.Modules.Documents.Infrastructure/FileImport.cs	59	DbContext / Alycia.Modules.Documents.Attachment / Alycia.Modules.Documents.Attachment
+E	src/Alycia.Modules.Documents.Infrastructure/IndexSourceDocumentsAdapter.cs	49	DbContext / Alycia.Modules.Documents.Attachment / Alycia.Modules.Documents.Attachment
+E	src/Alycia.Modules.Documents.Infrastructure/ProjectFiles.cs	14	DbContext / Alycia.Modules.Documents.Attachment / Alycia.Modules.Documents.Attachment
+E	src/Alycia.Modules.Documents.Infrastructure/ProjectFiles.cs	20	DbContext / Alycia.Modules.Documents.Attachment / Alycia.Modules.Documents.Attachment
+E	src/Alycia.Modules.Documents.Infrastructure/ProjectFiles.cs	29	DbContext / Alycia.Modules.Documents.Attachment / Alycia.Modules.Documents.Attachment
+E	src/Alycia.Modules.Documents.Infrastructure/ProjectFiles.cs	38	DbContext / Alycia.Modules.Documents.Attachment / Alycia.Modules.Documents.Attachment
+E	src/Alycia.Modules.Documents.Infrastructure/ProjectFiles.cs	54	DbContext / Alycia.Modules.Documents.Attachment / Alycia.Modules.Documents.Attachment
+E	src/Alycia.Modules.Documents.Infrastructure/ProjectFiles.cs	65	DbContext / Alycia.Modules.Documents.Attachment / Alycia.Modules.Documents.Attachment
+E	src/Alycia.Modules.Documents.Infrastructure/ProjectFiles.cs	76	DbContext / Alycia.Modules.Documents.WorkspaceFileOverride / Alycia.Modules.Documents.WorkspaceFileOverride
+E	src/Alycia.Modules.Documents.Infrastructure/ProjectFiles.cs	78	DbContext / Alycia.Modules.Documents.WorkspaceFileOverride / Alycia.Modules.Documents.WorkspaceFileOverride
+E	src/Alycia.Modules.Documents.Infrastructure/TurnDocuments.cs	22	DbContext / Alycia.Modules.Documents.DocumentAnalysis / Alycia.Modules.Documents.DocumentAnalysis
+E	src/Alycia.Modules.Workspaces.Infrastructure/EfWorkspaceRepository.cs	16	WorkspacesDbContext / Workspaces / Workspace
+E	src/Alycia.Modules.Workspaces.Infrastructure/EfWorkspaceRepository.cs	24	WorkspacesDbContext / Workspaces / Workspace
+E	src/Alycia.Modules.Workspaces.Infrastructure/EfWorkspaceRepository.cs	33	WorkspacesDbContext / Workspaces / Workspace
+E	src/Alycia.Modules.Workspaces.Infrastructure/EfWorkspaceRepository.cs	44	DbContext / Alycia.Modules.Workspaces.Domain.Workspace / Alycia.Modules.Workspaces.Domain.Workspace
+E	src/Alycia.Modules.Workspaces.Infrastructure/EfWorkspaceRepository.cs	50	DbContext / Alycia.Modules.Workspaces.Domain.Workspace / Alycia.Modules.Workspaces.Domain.Workspace
+H	src/Alycia.Modules.Workspaces.Infrastructure/WorkspacesDbContext.cs	9	DbContext / Alycia.Modules.Workspaces.Domain.Workspace / Alycia.Modules.Workspaces.Domain.Workspace
+H	src/Alycia.Persistence.Migrations/ChatDbContext.cs	12	DbContext / Alycia.Modules.Workspaces.Domain.WorkspaceProfile / Alycia.Modules.Workspaces.Domain.WorkspaceProfile
+H	src/Alycia.Persistence.Migrations/ChatDbContext.cs	13	DbContext / Alycia.Modules.Documents.WorkspaceFileOverride / Alycia.Modules.Documents.WorkspaceFileOverride
+H	src/Alycia.Persistence.Migrations/ChatDbContext.cs	14	DbContext / Alycia.Modules.Documents.DocumentAnalysis / Alycia.Modules.Documents.DocumentAnalysis
+H	src/Alycia.Persistence.Migrations/ChatDbContext.cs	15	DbContext / Alycia.Modules.Documents.Attachment / Alycia.Modules.Documents.Attachment
+H	src/Alycia.Persistence.Migrations/ChatDbContext.cs	16	DbContext / Alycia.Modules.Chat.Domain.Conversation / Alycia.Modules.Chat.Domain.Conversation
+H	src/Alycia.Persistence.Migrations/ChatDbContext.cs	17	DbContext / Alycia.Modules.Chat.Domain.ChatMessage / Alycia.Modules.Chat.Domain.ChatMessage
+H	src/Alycia.Persistence.Migrations/ChatDbContext.cs	18	DbContext / Alycia.Modules.Configuration.PromptProfile / Alycia.Modules.Configuration.PromptProfile
+S	src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationHistory.cs	57	chat.conversations
+S	src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationHistory.cs	87	chat.conversations
+S	src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationIndexOwners.cs	20	chat.conversations
+S	src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationIndexOwners.cs	31	chat.conversations
+S	src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationIndexOwners.cs	32	chat.conversations
+S	src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationIndexOwners.cs	45	chat.conversations
+S	src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationIndexOwners.cs	69	chat.messages
+S	src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationIndexOwners.cs	70	chat.messages
+S	src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationMembership.cs	36	chat.conversations
+S	src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationMembership.cs	38	chat.messages
+S	src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationWorkspaceLookup.cs	15	chat.conversations
+S	src/Alycia.Modules.Chat.Infrastructure/Conversations/ConversationWorkspaceLookup.cs	17	chat.conversations
+S	src/Alycia.Modules.Configuration/ImportSettingsStore.cs	13	chat.import_settings
+S	src/Alycia.Modules.Configuration/ImportSettingsStore.cs	23	chat.import_settings
+S	src/Alycia.Modules.Documents.Infrastructure/DocumentScope.cs	35	chat.attachments
+S	src/Alycia.Modules.Documents.Infrastructure/DocumentScope.cs	35	chat.workspace_file_overrides
+S	src/Alycia.Modules.Indexing/KnowledgeStore.cs	102	chat.knowledge_units
+S	src/Alycia.Modules.Indexing/KnowledgeStore.cs	114	chat.knowledge_units
+S	src/Alycia.Modules.Indexing/KnowledgeStore.cs	129	chat.knowledge_units
+S	src/Alycia.Modules.Indexing/KnowledgeStore.cs	22	chat.knowledge_units
+S	src/Alycia.Modules.Indexing/KnowledgeStore.cs	36	chat.knowledge_units
+S	src/Alycia.Modules.Indexing/KnowledgeStore.cs	45	chat.knowledge_units
+S	src/Alycia.Modules.Indexing/KnowledgeStore.cs	66	chat.knowledge_units
+S	src/Alycia.Modules.Indexing/KnowledgeStore.cs	76	chat.knowledge_units
+S	src/Alycia.Modules.Indexing/KnowledgeStore.cs	89	chat.knowledge_units
+S	src/Alycia.Modules.Indexing/PostgresEmbeddingStore.Publication.cs	38	chat.embedding_jobs
+S	src/Alycia.Modules.Indexing/PostgresEmbeddingStore.Publication.cs	67	chat.embedding_jobs
+S	src/Alycia.Modules.Indexing/PostgresEmbeddingStore.cs	103	chat.embedding_jobs
+S	src/Alycia.Modules.Indexing/PostgresEmbeddingStore.cs	117	chat.embedding_jobs
+S	src/Alycia.Modules.Indexing/PostgresEmbeddingStore.cs	126	chat.embedding_jobs
+S	src/Alycia.Modules.Indexing/PostgresEmbeddingStore.cs	135	chat.embedding_jobs
+S	src/Alycia.Modules.Indexing/PostgresEmbeddingStore.cs	150	chat.embedding_jobs
+S	src/Alycia.Modules.Indexing/PostgresEmbeddingStore.cs	186	chat.embedding_vectors
+S	src/Alycia.Modules.Indexing/PostgresEmbeddingStore.cs	197	chat.embedding_vectors
+S	src/Alycia.Modules.Indexing/PostgresEmbeddingStore.cs	234	chat.embedding_vectors
+S	src/Alycia.Modules.Indexing/PostgresEmbeddingStore.cs	256	chat.embedding_vectors
+S	src/Alycia.Modules.Indexing/PostgresEmbeddingStore.cs	306	chat.embedding_vectors
+S	src/Alycia.Modules.Indexing/PostgresEmbeddingStore.cs	56	chat.embedding_jobs
+S	src/Alycia.Modules.Indexing/PostgresEmbeddingStore.cs	74	chat.embedding_jobs
+S	src/Alycia.Modules.Memory/MemoryVectorEligibility.cs	15	chat.temporal_memory
+S	src/Alycia.Modules.Memory/TemporalFactStorage.cs	13	chat.temporal_memory
+S	src/Alycia.Modules.Memory/TemporalFactStorage.cs	19	chat.temporal_memory
+S	src/Alycia.Modules.Memory/TemporalFactStorage.cs	27	chat.temporal_memory
+S	src/Alycia.Modules.Memory/TemporalFactStorage.cs	41	chat.temporal_memory
+S	src/Alycia.Modules.Memory/TemporalFactStorage.cs	43	chat.temporal_memory
+S	src/Alycia.Modules.Memory/TemporalFactStorage.cs	48	chat.temporal_memory
+S	src/Alycia.Modules.Memory/TemporalFactStorage.cs	52	chat.temporal_memory
+S	src/Alycia.Modules.Memory/TemporalFactStorage.cs	57	chat.temporal_memory
+S	src/Alycia.Modules.Memory/TemporalFactStorage.cs	59	chat.temporal_memory
+S	src/Alycia.Modules.Workspaces.Infrastructure/WorkspaceIdentityDirectory.cs	15	workspaces.workspaces
+S	src/Alycia.Modules.Workspaces.Infrastructure/WorkspaceIdentityDirectory.cs	27	workspaces.workspaces
+S	src/Alycia.Modules.Workspaces.Infrastructure/WorkspaceIdentityDirectory.cs	39	workspaces.workspaces
+S	src/Alycia.Modules.Workspaces.Infrastructure/WorkspaceProfileStore.cs	114	chat.workspace_profiles
+S	src/Alycia.Modules.Workspaces.Infrastructure/WorkspaceProfileStore.cs	134	chat.workspace_profiles
+S	src/Alycia.Modules.Workspaces.Infrastructure/WorkspaceProfileStore.cs	24	chat.workspace_profiles
+S	src/Alycia.Modules.Workspaces.Infrastructure/WorkspaceProfileStore.cs	25	chat.workspace_profiles
+S	src/Alycia.Modules.Workspaces.Infrastructure/WorkspaceProfileStore.cs	55	chat.workspace_profiles
+S	src/Alycia.Modules.Workspaces.Infrastructure/WorkspaceProfileStore.cs	68	chat.workspace_profiles
+S	src/Alycia.Modules.Workspaces.Infrastructure/WorkspaceProfileStore.cs	82	chat.workspace_profiles
+S	src/Alycia.Modules.Workspaces.Infrastructure/WorkspaceProfileStore.cs	96	chat.workspace_profiles

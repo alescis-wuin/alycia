@@ -1,3 +1,5 @@
+using Alycia.Contracts.Retrieval;
+using Alycia.Contracts.Indexing;
 using Alycia.Modules.Chat.Application;
 using Alycia.Modules.Chat.Domain;
 using Alycia.Modules.Chat.Infrastructure;
@@ -11,11 +13,11 @@ public sealed class ProjectRetrievalTests
     {
         var c = Chunk("data.txt", "data", "orion quota");
         var file = new Attachment { Id = c.FileId, Name = c.Path, Text = c.Text, Sha256 = c.Sha256, ContextMode = "project" };
-        var ranked = ProjectRetrieval.Rank([c], "badminton Neptune");
+        var ranked = PassageSearch.Rank([c], "badminton Neptune");
         Assert.Empty(ranked);
-        Assert.Empty(ProjectRetrieval.Pack(ranked, [file], 1000, new()).Sources);
+        Assert.Empty(PassageContext.Pack(ranked, [file.ToTurnFile()], 1000, new ChatOptions().Context()).Sources);
         file.ContextMode = "pinned";
-        Assert.Equal("épinglé explicitement", Assert.Single(ProjectRetrieval.Pack(ranked, [file], 1000, new()).Sources).Reason);
+        Assert.Equal("épinglé explicitement", Assert.Single(PassageContext.Pack(ranked, [file.ToTurnFile()], 1000, new ChatOptions().Context()).Sources).Reason);
     }
 
     [Fact]
@@ -24,10 +26,10 @@ public sealed class ProjectRetrievalTests
         var c = Chunk("code.cs", "Store", "orion quota 37");
         var file = new Attachment { Id = c.FileId, Name = c.Path, Text = c.Text, Sha256 = c.Sha256, ContextMode = "project" };
         var summary = new Attachment { Id = Guid.NewGuid(), Name = "Synthèse", Text = new string('x', 5000), Sha256 = "derived", ContextMode = "pinned", Status = "derived_summary" };
-        var result = ProjectRetrieval.Pack([c], [file, summary], 2000, new());
+        var result = PassageContext.Pack([c], [file.ToTurnFile(), summary.ToTurnFile()], 2000, new ChatOptions().Context());
         Assert.Contains(result.Sources, s => s.Id == file.Id);
         Assert.InRange(result.Sources.Single(s => s.Id == summary.Id).Utf8Bytes, 1, 500);
-        Assert.True(TokenBudget.Count(result.Text, new()) <= 2000);
+        Assert.True(PromptTokens.Count(result.Text, null) <= 2000);
     }
 
     private static SourceChunk Chunk(string path, string symbol, string text) => new(Guid.NewGuid(), path, "hash", symbol, "method", 0, text.Length, 1, 1, text, [], true);
@@ -37,23 +39,23 @@ public sealed class ProjectRetrievalTests
         var implementation = Chunk("src/Store.cs", "Store.ReadAsync()", "return await database.ReadAsync(id);");
         var docs = Chunk("README.md", "Introduction", "Alycia est une application de conversation locale.");
         var copy = implementation with { FileId = Guid.NewGuid(), Path = "copy.cs" };
-        var ranked = ProjectRetrieval.Rank([docs, implementation, copy], "Où est implémenté Store.ReadAsync ?");
+        var ranked = PassageSearch.Rank([docs, implementation, copy], "Où est implémenté Store.ReadAsync ?");
         Assert.NotEqual(docs.FileId, ranked[0].FileId);
         var files = ranked.Select(c => new Attachment { Id = c.FileId, Name = c.Path, Sha256 = c.Sha256, Text = c.Text, ContextMode = "project" }).ToArray();
-        var packed = ProjectRetrieval.Pack(ranked, files, 1500, new());
+        var packed = PassageContext.Pack(ranked, files.Select(f => f.ToTurnFile()).ToArray(), 1500, new ChatOptions().Context());
         Assert.Single(packed.Sources, c => c.Path.EndsWith(".cs"));
         Assert.All(packed.Sources, s => Assert.NotNull(s.Reference));
-        Assert.True(TokenBudget.Count(packed.Text, new()) <= 1500);
+        Assert.True(PromptTokens.Count(packed.Text, null) <= 1500);
     }
     [Fact]
     public void SemanticRankingCanRetrieveAParaphraseAndExclusionsAlwaysWin()
     {
         var answer = Chunk("src/A.cs", "Purge", "remove obsolete records");
         var other = Chunk("src/B.cs", "Color", "render red button");
-        var ranked = ProjectRetrieval.Rank([other, answer], "Supprimer les anciennes données", [.01, .99]);
+        var ranked = PassageSearch.Rank([other, answer], "Supprimer les anciennes données", [.01, .99]);
         Assert.Equal(answer, ranked[0]);
         var files = new[] { new Attachment { Id = answer.FileId, Name = answer.Path, Sha256 = answer.Sha256, Text = answer.Text, ContextMode = "excluded" } };
-        Assert.Empty(ProjectRetrieval.Pack(ranked, files, 1000, new()).Sources);
+        Assert.Empty(PassageContext.Pack(ranked, files.Select(f => f.ToTurnFile()).ToArray(), 1000, new ChatOptions().Context()).Sources);
     }
     [Fact]
     public void PartialRangeDoesNotClaimUnreadLines()
@@ -61,7 +63,7 @@ public sealed class ProjectRetrievalTests
         var text = string.Join('\n', Enumerable.Range(0, 100).Select(i => "source line " + i));
         var c = Chunk("src/A.txt", "data", text) with { EndLine = 100 };
         var files = new[] { new Attachment { Id = c.FileId, Name = c.Path, Sha256 = c.Sha256, Text = text, ContextMode = "project" } };
-        var result = ProjectRetrieval.Pack([c], files, 600, new());
+        var result = PassageContext.Pack([c], files.Select(f => f.ToTurnFile()).ToArray(), 600, new ChatOptions().Context());
         Assert.Single(result.Sources);
         Assert.True(result.Sources[0].Partial);
         Assert.True(result.Sources[0].EndLine < 100);
@@ -71,15 +73,15 @@ public sealed class ProjectRetrievalTests
     public async Task HybridSearchUsesOnlyPreparedVectorsAndReportsPendingCoverage()
     {
         var semantic = new PreparedEmbeddings();
-        var service = new ProjectRetrievalService(new Index(), semantic);
+        var service = ChatFixture.Retrieval(new Index(), semantic);
         var options = new ChatOptions { RetrievalMode = "hybrid", EmbeddingModel = "embed" };
-        var first = await service.PrepareAsync(Guid.NewGuid(), "database", options, default);
+        var first = await service.PrepareAsync(Guid.NewGuid(), "database", options.ProjectSearch(), default);
         Assert.Equal(1, semantic.Calls);
         Assert.Equal(1, first.Report.Cache!.VectorMisses);
         Assert.Contains(first.Report.Omissions, s => s.Contains("0/1"));
         Assert.Single(first.Chunks); // BM25 still works while the background job is pending.
         semantic.Ready = true;
-        var second = await service.PrepareAsync(Guid.NewGuid(), "paraphrase", options, default);
+        var second = await service.PrepareAsync(Guid.NewGuid(), "paraphrase", options.ProjectSearch(), default);
         Assert.Single(second.Chunks);
         Assert.Equal(1, second.Report.Cache!.VectorHits);
         Assert.Empty(second.Report.Omissions);
@@ -112,15 +114,15 @@ public sealed class ProjectRetrievalTests
         var b = Chunk("B.cs", "Store", "store beta");
         var c = a with { Start = 20, End = 31, Text = "store gamma" };
         var copy = b with { FileId = Guid.NewGuid(), Path = "Z.cs" };
-        var ranked = ProjectRetrieval.Rank([c, copy, b, a], "store", lexicalScores: [10, 9, 9, 10]);
+        var ranked = PassageSearch.Rank([c, copy, b, a], "store", lexicalScores: [10, 9, 9, 10]);
         Assert.Equal(new[] { a, b, c }, ranked);
     }
 
     [Fact]
     public async Task HybridSearchHasNo2048PassageQuota()
     {
-        var service = new ProjectRetrievalService(new LargeIndex(), new PreparedEmbeddings { Ready = true });
-        var result = await service.PrepareAsync(Guid.NewGuid(), "database", new() { RetrievalMode = "hybrid", EmbeddingModel = "embed" }, default);
+        var service = ChatFixture.Retrieval(new LargeIndex(), new PreparedEmbeddings { Ready = true });
+        var result = await service.PrepareAsync(Guid.NewGuid(), "database", new ChatOptions { RetrievalMode = "hybrid", EmbeddingModel = "embed" }.ProjectSearch(), default);
         Assert.Equal(3000, result.Report.CandidateChunks);
         Assert.Equal(3000, result.Report.Cache!.VectorHits);
     }
@@ -133,7 +135,7 @@ public sealed class ProjectRetrievalTests
     private sealed class PreparedEmbeddings : IIndexedEmbeddings
     {
         public int Calls; public bool Ready;
-        public Task<SemanticSearch> SearchAsync(Guid id, string query, ChatOptions settings, IReadOnlyList<SourceChunk> chunks, CancellationToken ct)
+        public Task<SemanticSearch> SearchAsync(Guid id, string query, EmbeddingQuery settings, IReadOnlyList<SourceChunk> chunks, CancellationToken ct)
         {
             Calls++;
             return Task.FromResult(new SemanticSearch(chunks.Select(_ => Ready ? .9 : 0).ToArray(), Ready ? chunks.Count : 0, []));

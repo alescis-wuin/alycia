@@ -1,31 +1,48 @@
+using Alycia.Modules.Testing;
 using System.Text.Json;
 using Alycia.Modules.Chat.Application;
-using Alycia.Modules.Chat.Domain;
+using Alycia.Contracts.Tools;
 
 namespace Alycia.Modules.Chat.Tests;
 
 public sealed class TurnToolsTests
 {
+    [Fact]
+    public async Task Tool_selection_binds_snapshot_and_ordinary_access_to_the_current_owner()
+    {
+        foreach (var simulated in new[] { false, true })
+        {
+            var scope = new ToolTurnScope(Guid.NewGuid(), Guid.NewGuid(), "demo");
+            var ordinary = new Sources(false);
+            var snapshot = new Sources(true);
+            ITurnTools adapter = simulated ? new FixtureTurnTools(ordinary, snapshot) : new TurnTools(RecursiveSummarizer.Create, ordinary, snapshot);
+            Assert.Same(snapshot, await adapter.SelectAsync(scope, true, new Model(true), default));
+            Assert.False(await adapter.AvailableForContextAsync(scope, true, new Model(true), default));
+            Assert.Null(await adapter.SelectAsync(scope with { WorkspaceId = null }, true, new Model(true), default));
+            Assert.Null(await adapter.SelectAsync(scope, true, new Model(false), default));
+            Assert.All(snapshot.Probes.Concat(ordinary.Probes), owner => Assert.Equal(scope.ConversationId, owner));
+        }
+    }
+
     [Theory]
     [InlineData(false, true)]
     [InlineData(true, true)]
     [InlineData(true, false)]
     public async Task SendSelectsSnapshotOnlyForAttachedConversationWithSnapshotProvider(bool attached, bool hasSnapshot)
     {
-        var conversation = Conversation.Create("Test", "demo", "");
-        if (attached) conversation.AssignWorkspace(Guid.NewGuid());
+        var scope = new ToolTurnScope(Guid.NewGuid(), attached ? Guid.NewGuid() : null, "demo");
         var ordinary = new Sources(true);
         var snapshot = hasSnapshot ? new Sources(true) : null;
         var model = new Model(true);
 
-        var selected = await new TurnTools(ordinary, snapshot).SelectAsync(conversation, new(), model, default);
+        var selected = await new TurnTools(RecursiveSummarizer.Create, ordinary, snapshot).SelectAsync(scope, true, model, default);
 
         var expected = attached && hasSnapshot ? snapshot! : ordinary;
         Assert.Same(expected, selected);
-        Assert.Equal([conversation.Id], expected.Probes);
+        Assert.Equal([scope.ConversationId], expected.Probes);
         if (!ReferenceEquals(ordinary, expected)) Assert.Empty(ordinary.Probes);
         if (snapshot is not null && !ReferenceEquals(snapshot, expected)) Assert.Empty(snapshot.Probes);
-        Assert.Equal([conversation.Model], model.Probes);
+        Assert.Equal([scope.Model], model.Probes);
     }
 
     [Theory]
@@ -35,13 +52,12 @@ public sealed class TurnToolsTests
     public async Task RefusalStopsAtFirstFailedConditionWithoutTryingOtherProvider(bool enabled, bool hasSources,
         bool supported, int expectedSourceProbes, int expectedModelProbes)
     {
-        var conversation = Conversation.Create("Test", "demo", "");
-        conversation.AssignWorkspace(Guid.NewGuid());
+        var scope = new ToolTurnScope(Guid.NewGuid(), Guid.NewGuid(), "demo");
         var ordinary = new Sources(true);
         var snapshot = new Sources(hasSources);
         var model = new Model(supported);
 
-        var selected = await new TurnTools(ordinary, snapshot).SelectAsync(conversation, new() { UseProjectTools = enabled }, model, default);
+        var selected = await new TurnTools(RecursiveSummarizer.Create, ordinary, snapshot).SelectAsync(scope, enabled, model, default);
 
         Assert.Null(selected);
         Assert.Equal(expectedSourceProbes, snapshot.Probes.Count);
@@ -54,28 +70,27 @@ public sealed class TurnToolsTests
     [InlineData(false)]
     public async Task ContextChecksOnlyOrdinarySourcesEvenWhenAttached(bool available)
     {
-        var conversation = Conversation.Create("Test", "demo", "");
-        conversation.AssignWorkspace(Guid.NewGuid());
+        var scope = new ToolTurnScope(Guid.NewGuid(), Guid.NewGuid(), "demo");
         var ordinary = new Sources(available);
         var snapshot = new Sources(!available);
 
-        var result = await new TurnTools(ordinary, snapshot).AvailableForContextAsync(conversation, new(), new Model(true), default);
+        var result = await new TurnTools(RecursiveSummarizer.Create, ordinary, snapshot).AvailableForContextAsync(scope, true, new Model(true), default);
 
         Assert.Equal(available, result);
-        Assert.Equal([conversation.Id], ordinary.Probes);
+        Assert.Equal([scope.ConversationId], ordinary.Probes);
         Assert.Empty(snapshot.Probes);
     }
 
     [Fact]
     public async Task CancellationAtSourceCheckDoesNotQueryModel()
     {
-        var conversation = Conversation.Create("Test", "demo", "");
+        var scope = new ToolTurnScope(Guid.NewGuid(), null, "demo");
         var model = new Model(true);
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
         var error = await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            new TurnTools(new Sources(true)).SelectAsync(conversation, new(), model, cancellation.Token));
+            new TurnTools(RecursiveSummarizer.Create, new Sources(true)).SelectAsync(scope, true, model, cancellation.Token));
 
         Assert.Equal(cancellation.Token, error.CancellationToken);
         Assert.Empty(model.Probes);
@@ -88,7 +103,7 @@ public sealed class TurnToolsTests
     [InlineData(true, true, "agent")]
     public async Task PresenceOfActiveToolsAndConsumerSelectsTheGenerationPath(bool active, bool streaming, string expected)
     {
-        var conversation = Conversation.Create("Test", "demo", "");
+        var scope = new ToolTurnScope(Guid.NewGuid(), null, "demo");
         var window = new ContextWindow([new("user", "Bonjour")], 0, 10);
         var deltas = new List<string>();
         Task OnDelta(ModelDelta delta)
@@ -97,8 +112,8 @@ public sealed class TurnToolsTests
             return Task.CompletedTask;
         }
 
-        var reply = await new TurnTools().GenerateAsync(new Model(true), active ? new Sources(true) : null,
-            conversation, window, new(), streaming ? OnDelta : null, default);
+        var reply = await new TurnTools(RecursiveSummarizer.Create).GenerateAsync(new Model(true), active ? new Sources(true) : null,
+            scope, window.ToolPrompt(), new ChatOptions().ToolGeneration(), streaming ? OnDelta : null, default);
 
         Assert.Equal(expected, reply.Content);
         if (streaming) Assert.Equal([expected], deltas);
@@ -129,16 +144,16 @@ public sealed class TurnToolsTests
 
         public Task<IReadOnlyList<string>> ListModelsAsync(CancellationToken ct) => throw new NotSupportedException();
         public Task<string> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages, CancellationToken ct) => throw new NotSupportedException();
-        public Task<string> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages, ChatOptions settings, CancellationToken ct) =>
+        public Task<string> GenerateAsync(string model, IReadOnlyList<PromptMessage> messages, InferenceCall settings, CancellationToken ct) =>
             Task.FromResult("sync");
-        public async Task<GenerationReply> StreamAsync(string model, IReadOnlyList<PromptMessage> messages, ChatOptions settings,
+        public async Task<ModelReply> StreamAsync(string model, IReadOnlyList<PromptMessage> messages, InferenceCall settings,
             Func<ModelDelta, Task> onDelta, CancellationToken ct)
         {
             await onDelta(new("stream"));
             return new("stream");
         }
 
-        public async Task<GenerationReply> StreamWithToolsAsync(string model, IReadOnlyList<PromptMessage> messages, ChatOptions settings,
+        public async Task<ModelReply> StreamWithToolsAsync(string model, IReadOnlyList<PromptMessage> messages, InferenceCall settings,
             Func<ModelDelta, Task> onDelta, CancellationToken ct)
         {
             await onDelta(new("agent"));

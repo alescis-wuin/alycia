@@ -13,12 +13,13 @@ public static class ToolWindowBudget
 
     public static int SafetyTokens(IToolWindowSettings settings, Func<string, int> count, int protectedTokens = 0)
     {
+        var window = ToolWindowParameters.Capture(settings);
         var overhead = count(JsonSerializer.Serialize(ProjectToolCatalog.OllamaTools(), ProjectToolCatalog.Json)) + count(Instruction);
-        var available = settings.ContextTokens - settings.MaxOutputTokens - settings.SafetyTokens - overhead - protectedTokens;
-        var outputs = settings.ToolContextTokens == 0
-            ? Math.Clamp(available, 1100, Math.Max(2048, settings.ContextTokens / 4)) : settings.ToolContextTokens;
-        var safety = settings.SafetyTokens + overhead + outputs;
-        if (safety + settings.MaxOutputTokens >= settings.ContextTokens)
+        var available = window.ContextTokens - window.MaxOutputTokens - window.SafetyTokens - overhead - protectedTokens;
+        var outputs = window.ToolContextTokens == 0
+            ? Math.Clamp(available, 1100, Math.Max(2048, window.ContextTokens / 4)) : window.ToolContextTokens;
+        var safety = window.SafetyTokens + overhead + outputs;
+        if (safety + window.MaxOutputTokens >= window.ContextTokens)
             throw new ArgumentException("Fenêtre trop petite pour les outils. Utilisez au moins 8192 tokens ou désactivez les outils dans Réglages.");
         return safety;
     }

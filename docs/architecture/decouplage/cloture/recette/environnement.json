@@ -1,0 +1,20 @@
+{
+  "cpu": "AMD EPYC 9V74 80-Core Processor",
+  "processors": 9,
+  "kernel": "6.18.57",
+  "distribution": "Debian GNU/Linux 13 (trixie)",
+  "dotnet": "10.0.404",
+  "runtime": ".NET 10.0.15",
+  "python": "3.12.14",
+  "postgres": "17.12",
+  "pgvector": "0.8.0",
+  "ollama": {
+    "version": "0.40.17"
+  },
+  "devices": {
+    "/dev/nvidia0": false,
+    "/dev/dri": false,
+    "/dev/kvm": false,
+    "/var/run/docker.sock": false
+  }
+}

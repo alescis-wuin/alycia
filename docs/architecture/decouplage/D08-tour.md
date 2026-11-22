@@ -1,0 +1,5 @@
+# D08 — Orchestration et reprise du tour
+
+ChatService requiert ses ports de contexte, de routage, d’outils, d’audit et de mémoire. Son constructeur de commodité qui fabriquait les implémentations a été retiré ; les usages du dépôt concernés étaient sept appels de tests, désormais composés explicitement. L’API continue à fournir les services scoped de production.
+
+Un essai PostgreSQL a reproduit une lecture obsolète après échec de révision : le même DbContext renvoyait « Démo » après le renommage effectivement validé à « Renommée ». Le dépôt détache désormais les participants du tour échoué. Le scope de snapshot invalide aussi les entités suivies si le commit reste sans confirmation. Aucun nouvel essai de COMMIT, aucune compensation SQL ou suppression de fichier n’est effectué dans ce chemin. Après correction, les 20 tests PostgresChat, Streaming et StructuredMemory ont réussi. Le test vérifie titre, ledger, compteur, absence de la paire rejetée et propreté du suivi EF. **Partiel** pour l’indépendance totale du snapshot de persistance et les dépendances de diagnostics.

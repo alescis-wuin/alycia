@@ -1,3 +1,4 @@
+using Alycia.Modules.Workspaces.Domain;
 using System.IO.Compression;
 using Alycia.Modules.Chat.Application;
 using Alycia.Modules.Chat.Domain;
@@ -25,8 +26,8 @@ public sealed class ConversationHistoryTests
                 pg => pg.MigrationsHistoryTable("__EFMigrationsHistory", "chat")).Options;
             await using var db = new ChatDbContext(options);
             await db.Database.MigrateAsync();
-            var history = new ConversationHistory(db, new(), storage);
-            var importer = new FileImport(db, storage);
+            var history = new ConversationHistory(db, new(), new ArchiveDocuments(db, storage));
+            var importer = new FileImport(db, storage, ChatFixture.Profiles(db), new ConversationFileChanges(db));
             var project = new WorkspaceProfile { Id = Guid.NewGuid() };
             db.WorkspaceProfiles.Add(project);
             var date = new DateTimeOffset(2026, 1, 2, 12, 0, 0, TimeSpan.Zero);
@@ -47,7 +48,7 @@ public sealed class ConversationHistoryTests
             db.WorkspaceFileOverrides.Add(new() { ConversationId = source.Id, FileId = shared.Id, Mode = "excluded" });
             var turn = Guid.NewGuid();
             source.CompleteTurn();
-            await new EfChatRepository(db).AppendTurnAsync(source, new(source.Id, 3, turn, "user", "Ensuite"),
+            await new EfChatRepository(db, ChatFixture.Profiles(db)).AppendTurnAsync(source, new(source.Id, 3, turn, "user", "Ensuite"),
                 new(source.Id, 4, turn, "assistant", "Suite"), default);
             await importer.ImportAsync(source.Id, Guid.NewGuid(), [new("tardif.txt", new MemoryStream("après"u8.ToArray()))], default);
 

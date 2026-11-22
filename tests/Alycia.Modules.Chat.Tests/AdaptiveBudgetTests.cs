@@ -10,8 +10,8 @@ public sealed class AdaptiveBudgetTests
     {
         var model = new ReadingModel(); var tools = new ReadingTools();
         var settings = new ChatOptions { ContextTokens = 32768, ToolContextTokens = 1800, ToolResultBytes = 2048 };
-        var result = await ProjectAgent.RunAsync(model, tools, Guid.NewGuid(), "local",
-            new([new("system", "SYSTEM"), new("user", "QUESTION")], 0, 64), settings, null, default);
+        var result = await ProjectAgent.RunAsync(RecursiveSummarizer.Create, model, tools, Guid.NewGuid(), "local",
+            new ContextWindow([new("system", "SYSTEM"), new("user", "QUESTION")], 0, 64).ToolPrompt(), settings.ToolGeneration(), null, default);
         Assert.Equal("Terminé", result.Content);
         Assert.Equal(30, tools.Calls);
         Assert.Equal(30, result.Tools!.Count);
@@ -70,10 +70,10 @@ public sealed class AdaptiveBudgetTests
         public Task<IReadOnlyList<string>> ListModelsAsync(CancellationToken ct) => Task.FromResult<IReadOnlyList<string>>(["local"]);
         public Task<string> GenerateAsync(string name, IReadOnlyList<PromptMessage> messages, CancellationToken ct)
         { Summaries++; return Task.FromResult("Résumé des sources précédentes."); }
-        public Task<GenerationReply> StreamWithToolsAsync(string name, IReadOnlyList<PromptMessage> messages, ChatOptions settings, Func<ModelDelta, Task> delta, CancellationToken ct)
+        public Task<ModelReply> StreamWithToolsAsync(string name, IReadOnlyList<PromptMessage> messages, InferenceCall settings, Func<ModelDelta, Task> delta, CancellationToken ct)
         {
             Inputs.Add(messages);
-            return Task.FromResult(Inputs.Count > 30 ? new GenerationReply("Terminé") : new GenerationReply("", ToolCalls:
+            return Task.FromResult(Inputs.Count > 30 ? new ModelReply("Terminé") : new ModelReply("", ToolCalls:
                 [new(new("project_read", JsonSerializer.SerializeToElement(new { fileId = Guid.NewGuid() })))]));
         }
     }

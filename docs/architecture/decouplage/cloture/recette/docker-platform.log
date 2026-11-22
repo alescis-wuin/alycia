@@ -1,0 +1,8 @@
+Docker version 28.5.2, build ecc6942
+Docker Compose version v2.40.3
+compose_config_exit=0
+user_namespace_exit=0
+    Path:     $RECETTE/runtime/dockerconfig/cli-plugins/docker-compose
+
+Server:
+permission denied while trying to connect to the Docker daemon socket at unix:///var/run/docker.sock: Get "http://%2Fvar%2Frun%2Fdocker.sock/v1.51/info": dial unix /var/run/docker.sock: socket: operation not permitted

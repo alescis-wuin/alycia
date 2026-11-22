@@ -1,3 +1,4 @@
+using Alycia.Modules.Inference;
 using System.Text;
 using System.Text.Json;
 using Alycia.Modules.Chat.Application;
@@ -32,7 +33,7 @@ public sealed class ProjectToolStorageTests
             var other = Conversation.Create("Autre", "demo", "");
             db.Conversations.AddRange(conversation, other); await db.SaveChangesAsync();
             var original = "🙂\n" + new string('x', 200100) + "\nclass HiddenAtEnd { int Value => 42; int ValueOf() => Value; }\n";
-            var added = await new FileImport(db, storage).ImportAsync(conversation.Id, Guid.NewGuid(),
+            var added = await new FileImport(db, storage, ChatFixture.Profiles(db), new ConversationFileChanges(db)).ImportAsync(conversation.Id, Guid.NewGuid(),
                 [new("src/A.cs", new MemoryStream(Encoding.UTF8.GetBytes(original))), new(".env", new MemoryStream("SECRET_NEVER_READ"u8.ToArray()))], default);
             // Seed through the current importer, then exercise the upgrade from the old schema.
             // No current EF conversation mapping is used while the new column is absent.
@@ -49,9 +50,9 @@ public sealed class ProjectToolStorageTests
             Assert.Equal(original, await File.ReadAllTextAsync(storage.PathFor(file)));
             Assert.Equal("project", file.ContextMode); Assert.Equal("excluded", excluded.ContextMode);
             Assert.DoesNotContain("HiddenAtEnd", file.Text);
-            Assert.Single(await new EfChatRepository(db).ContextFilesAsync(conversation.Id, 99, default));
+            Assert.Single(await new ConversationReadModel(db, new TurnDocuments(db, ChatFixture.DocumentScope)).ContextFilesAsync(conversation.Id, 99, default));
             var reader = new ProjectSourceReader(storage);
-            var index = new ProjectIndexService(db, storage, reader);
+            var index = new ProjectIndexService(new ConversationIndexOwners(new(db.Database)), new PassageCacheDirectory(storage.Root), ChatFixture.IndexFiles(db, reader), ChatFixture.LiveFiles(db));
             var indexed = await index.BuildAsync(conversation.Id, default);
             Assert.Equal(1, indexed.IndexedFiles);
             Assert.Contains(indexed.Chunks, c => c.Symbol.Contains("HiddenAtEnd"));
@@ -64,8 +65,8 @@ public sealed class ProjectToolStorageTests
             var repaired = await index.BuildAsync(conversation.Id, default);
             Assert.Equal(0, repaired.ReusedFiles);
             Assert.Contains(repaired.Chunks, c => c.Symbol.Contains("HiddenAtEnd"));
-            var selected = ProjectRetrieval.Rank(indexed.Chunks, "HiddenAtEnd Value");
-            var context = FileContext.Build("system", [], "HiddenAtEnd Value", new() { SourceCandidates = selected }, [file], 1);
+            var selected = PassageSearch.Rank(indexed.Chunks, "HiddenAtEnd Value");
+            var context = FileContext.Build(new Alycia.Modules.Context.SlidingHistory(), "system", [], "HiddenAtEnd Value", new ChatOptions() { SourceCandidates = selected }.Context(), [file.ToTurnFile()], 1);
             Assert.Contains("HiddenAtEnd", context.Messages[^1].Content);
             Assert.Contains(context.Sources!, s => s.Start > 200000 && s.Reference is not null);
             Assert.Empty((await index.BuildAsync(other.Id, default)).Chunks);
@@ -73,7 +74,10 @@ public sealed class ProjectToolStorageTests
             Assert.Empty((await index.BuildAsync(conversation.Id, default)).Chunks);
             file.ContextMode = "project"; await db.SaveChangesAsync();
             Assert.Equal(0, (await index.BuildAsync(conversation.Id, default)).ReusedFiles);
-            var tools = new ProjectToolService(db, reader, new());
+            var history = new ConversationReadModel(db, new TurnDocuments(db, ChatFixture.DocumentScope));
+            var policy = new ToolConversationPolicyReader(db, new());
+            var sources = new AuthorizedToolSources(db, reader, policy, ChatFixture.LiveFiles(db), ChatFixture.DocumentScope);
+            var tools = new ProjectToolService(new PassageScoring(), sources, new Alycia.Modules.Tools.SourceCommands(sources), policy, history, new ProjectIndexService(new ConversationIndexOwners(new(db.Database)), new PassageCacheDirectory(storage.Root), ChatFixture.IndexFiles(db, reader), ChatFixture.LiveFiles(db), IndexParameters.Default));
             Task<ProjectToolResult> Call(string tool, object args, Guid? scope = null, int budget = 2048) =>
                 tools.CallAsync(scope ?? conversation.Id, tool, JsonSerializer.SerializeToElement(args), budget, default);
             var found = await Call("project_search", new { query = "hiddenatend" });
@@ -113,7 +117,7 @@ public sealed class ProjectToolStorageTests
             using var pageJson = JsonDocument.Parse(page.Text);
             Assert.Equal(1, pageJson.RootElement.GetProperty("nextOffset").GetInt32());
             var model = new SummaryModel();
-            var report = await new DocumentAnalysisService(db, model, new(), reader).AnalyzeAsync(conversation.Id, conversation.Revision, null, 1024, null, default);
+            var report = await new DocumentAnalysisService(RecursiveSummarizer.Create, db, model, reader, ChatFixture.Gate, new AnalysisConversationOwner(db, new(), model), ChatFixture.DocumentScope, new ModelMeterFactory()).AnalyzeAsync(conversation.Id, conversation.Revision, null, 1024, null, default);
             Assert.Contains(model.Inputs, s => s.Contains("HiddenAtEnd"));
             Assert.DoesNotContain(model.Inputs, s => s.Contains("SECRET_NEVER_READ"));
             Assert.InRange(Encoding.UTF8.GetByteCount(report.SummaryText), 1, 1024);
@@ -125,6 +129,15 @@ public sealed class ProjectToolStorageTests
             Assert.Equal(original.Length, manifest.RootElement.GetProperty("fileSummaries").EnumerateArray()
                 .Single(f => f.GetProperty("path").GetString() == "src/A.cs").GetProperty("charactersRead").GetInt32());
             Assert.False((await Call("project_read", new { fileId = file.Id, offset })).IsError);
+            await using (var snapshot = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.RepeatableRead))
+            {
+                Assert.False((await Call("project_read", new { fileId = file.Id, offset })).IsError);
+                await using var fresh = new ChatDbContext(options);
+                await fresh.Attachments.Where(f => f.Id == file.Id).ExecuteUpdateAsync(set => set.SetProperty(f => f.ContextMode, "excluded"));
+                Assert.True((await Call("project_read", new { fileId = file.Id, offset })).IsError);
+                await snapshot.RollbackAsync();
+                await fresh.Attachments.Where(f => f.Id == file.Id).ExecuteUpdateAsync(set => set.SetProperty(f => f.ContextMode, "project"));
+            }
             conversation.Configure("demo", "system", "", ConversationConfiguration.Serialize(new() { UseProjectTools = false }));
             await db.SaveChangesAsync();
             Assert.True((await Call("project_read", new { fileId = file.Id })).IsError);

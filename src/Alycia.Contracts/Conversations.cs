@@ -10,3 +10,7 @@ public sealed record MessageResponse(Guid ConversationId, int Sequence, Guid Req
 
 public sealed record TurnResponse(IReadOnlyList<MessageResponse> Messages, int? HistoryMessagesIncluded,
     bool Replayed, int FilesIncluded, int? EstimatedInputTokens, GenerationStats? Stats, GenerationUsage? Usage);
+
+public sealed class ChatConflictException() : Exception("La conversation a changé. Rechargez-la puis réessayez.");
+
+public sealed class ConversationNotFoundException() : Exception("Conversation introuvable.");

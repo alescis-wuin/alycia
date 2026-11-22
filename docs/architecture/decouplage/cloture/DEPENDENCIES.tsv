@@ -1,0 +1,1139 @@
+graphe	source	destination	base signée	candidat
+MSBuild	Alycia.Api	Alycia.Contracts	présent	présent
+MSBuild	Alycia.Api	Alycia.Modules.Chat.Application	présent	présent
+MSBuild	Alycia.Api	Alycia.Modules.Chat.Domain	présent	présent
+MSBuild	Alycia.Api	Alycia.Modules.Chat.Infrastructure	présent	présent
+MSBuild	Alycia.Api	Alycia.Modules.Configuration	absent	présent
+MSBuild	Alycia.Api	Alycia.Modules.Context	présent	présent
+MSBuild	Alycia.Api	Alycia.Modules.Documents	présent	présent
+MSBuild	Alycia.Api	Alycia.Modules.Documents.Infrastructure	absent	présent
+MSBuild	Alycia.Api	Alycia.Modules.Indexing	présent	présent
+MSBuild	Alycia.Api	Alycia.Modules.Inference	présent	présent
+MSBuild	Alycia.Api	Alycia.Modules.Memory	présent	présent
+MSBuild	Alycia.Api	Alycia.Modules.Retrieval	présent	présent
+MSBuild	Alycia.Api	Alycia.Modules.Retrieval.Onnx	présent	présent
+MSBuild	Alycia.Api	Alycia.Modules.Tools	présent	présent
+MSBuild	Alycia.Api	Alycia.Modules.Workspaces.Application	présent	présent
+MSBuild	Alycia.Api	Alycia.Modules.Workspaces.Domain	présent	présent
+MSBuild	Alycia.Api	Alycia.Modules.Workspaces.Infrastructure	présent	présent
+MSBuild	Alycia.Api	Alycia.Persistence.Migrations	absent	présent
+MSBuild	Alycia.Api	Alycia.Platform.Persistence	présent	présent
+MSBuild	Alycia.Client.Avalonia	Alycia.Contracts	présent	présent
+MSBuild	Alycia.Client.Avalonia.Tests	Alycia.Client.Avalonia	présent	présent
+MSBuild	Alycia.Client.Avalonia.Tests	Alycia.Contracts	présent	présent
+MSBuild	Alycia.ContextBenchmarks	Alycia.Contracts	présent	présent
+MSBuild	Alycia.ContextBenchmarks	Alycia.Modules.Chat.Application	présent	présent
+MSBuild	Alycia.ContextBenchmarks	Alycia.Modules.Chat.Domain	présent	présent
+MSBuild	Alycia.ContextBenchmarks	Alycia.Modules.Chat.Infrastructure	présent	présent
+MSBuild	Alycia.ContextBenchmarks	Alycia.Modules.Configuration	absent	présent
+MSBuild	Alycia.ContextBenchmarks	Alycia.Modules.Context	absent	présent
+MSBuild	Alycia.ContextBenchmarks	Alycia.Modules.Documents	présent	présent
+MSBuild	Alycia.ContextBenchmarks	Alycia.Modules.Documents.Infrastructure	absent	présent
+MSBuild	Alycia.ContextBenchmarks	Alycia.Modules.Indexing	présent	présent
+MSBuild	Alycia.ContextBenchmarks	Alycia.Modules.Inference	absent	présent
+MSBuild	Alycia.ContextBenchmarks	Alycia.Modules.Memory	absent	présent
+MSBuild	Alycia.ContextBenchmarks	Alycia.Modules.Retrieval	présent	présent
+MSBuild	Alycia.ContextBenchmarks	Alycia.Modules.Retrieval.Onnx	présent	présent
+MSBuild	Alycia.ContextBenchmarks	Alycia.Modules.Tools	absent	présent
+MSBuild	Alycia.ContextBenchmarks	Alycia.Modules.Workspaces.Domain	absent	présent
+MSBuild	Alycia.ContextBenchmarks	Alycia.Persistence.Migrations	absent	présent
+MSBuild	Alycia.ContextBenchmarks	Alycia.Platform.Persistence	présent	présent
+MSBuild	Alycia.DevHost	Alycia.Api	présent	présent
+MSBuild	Alycia.DevHost	Alycia.Contracts	présent	présent
+MSBuild	Alycia.DevHost	Alycia.Modules.Chat.Application	présent	présent
+MSBuild	Alycia.DevHost	Alycia.Modules.Chat.Domain	présent	présent
+MSBuild	Alycia.DevHost	Alycia.Modules.Chat.Infrastructure	présent	présent
+MSBuild	Alycia.DevHost	Alycia.Modules.Configuration	absent	présent
+MSBuild	Alycia.DevHost	Alycia.Modules.Context	présent	présent
+MSBuild	Alycia.DevHost	Alycia.Modules.Documents	présent	présent
+MSBuild	Alycia.DevHost	Alycia.Modules.Documents.Infrastructure	absent	présent
+MSBuild	Alycia.DevHost	Alycia.Modules.Indexing	présent	présent
+MSBuild	Alycia.DevHost	Alycia.Modules.Inference	présent	présent
+MSBuild	Alycia.DevHost	Alycia.Modules.Memory	présent	présent
+MSBuild	Alycia.DevHost	Alycia.Modules.Retrieval	présent	présent
+MSBuild	Alycia.DevHost	Alycia.Modules.Retrieval.Onnx	présent	présent
+MSBuild	Alycia.DevHost	Alycia.Modules.Testing	présent	présent
+MSBuild	Alycia.DevHost	Alycia.Modules.Tools	présent	présent
+MSBuild	Alycia.DevHost	Alycia.Modules.Workspaces.Application	présent	présent
+MSBuild	Alycia.DevHost	Alycia.Modules.Workspaces.Domain	présent	présent
+MSBuild	Alycia.DevHost	Alycia.Modules.Workspaces.Infrastructure	présent	présent
+MSBuild	Alycia.DevHost	Alycia.Persistence.Migrations	absent	présent
+MSBuild	Alycia.DevHost	Alycia.Platform.Persistence	présent	présent
+MSBuild	Alycia.Modules.Chat.Application	Alycia.Contracts	présent	présent
+MSBuild	Alycia.Modules.Chat.Application	Alycia.Modules.Chat.Domain	présent	présent
+MSBuild	Alycia.Modules.Chat.Application	Alycia.Modules.Retrieval	présent	absent
+MSBuild	Alycia.Modules.Chat.Infrastructure	Alycia.Contracts	présent	présent
+MSBuild	Alycia.Modules.Chat.Infrastructure	Alycia.Modules.Chat.Application	présent	présent
+MSBuild	Alycia.Modules.Chat.Infrastructure	Alycia.Modules.Chat.Domain	présent	présent
+MSBuild	Alycia.Modules.Chat.Infrastructure	Alycia.Modules.Documents	présent	absent
+MSBuild	Alycia.Modules.Chat.Infrastructure	Alycia.Modules.Indexing	présent	absent
+MSBuild	Alycia.Modules.Chat.Infrastructure	Alycia.Modules.Retrieval	présent	absent
+MSBuild	Alycia.Modules.Chat.Infrastructure	Alycia.Platform.Persistence	présent	présent
+MSBuild	Alycia.Modules.Chat.Tests	Alycia.Api	présent	présent
+MSBuild	Alycia.Modules.Chat.Tests	Alycia.Contracts	présent	présent
+MSBuild	Alycia.Modules.Chat.Tests	Alycia.Modules.Chat.Application	présent	présent
+MSBuild	Alycia.Modules.Chat.Tests	Alycia.Modules.Chat.Domain	présent	présent
+MSBuild	Alycia.Modules.Chat.Tests	Alycia.Modules.Chat.Infrastructure	présent	présent
+MSBuild	Alycia.Modules.Chat.Tests	Alycia.Modules.Configuration	absent	présent
+MSBuild	Alycia.Modules.Chat.Tests	Alycia.Modules.Context	présent	présent
+MSBuild	Alycia.Modules.Chat.Tests	Alycia.Modules.Documents	présent	présent
+MSBuild	Alycia.Modules.Chat.Tests	Alycia.Modules.Documents.Infrastructure	absent	présent
+MSBuild	Alycia.Modules.Chat.Tests	Alycia.Modules.Indexing	présent	présent
+MSBuild	Alycia.Modules.Chat.Tests	Alycia.Modules.Inference	présent	présent
+MSBuild	Alycia.Modules.Chat.Tests	Alycia.Modules.Memory	présent	présent
+MSBuild	Alycia.Modules.Chat.Tests	Alycia.Modules.Retrieval	présent	présent
+MSBuild	Alycia.Modules.Chat.Tests	Alycia.Modules.Retrieval.Onnx	présent	présent
+MSBuild	Alycia.Modules.Chat.Tests	Alycia.Modules.Testing	présent	présent
+MSBuild	Alycia.Modules.Chat.Tests	Alycia.Modules.Tools	présent	présent
+MSBuild	Alycia.Modules.Chat.Tests	Alycia.Modules.Workspaces.Application	présent	présent
+MSBuild	Alycia.Modules.Chat.Tests	Alycia.Modules.Workspaces.Domain	présent	présent
+MSBuild	Alycia.Modules.Chat.Tests	Alycia.Modules.Workspaces.Infrastructure	présent	présent
+MSBuild	Alycia.Modules.Chat.Tests	Alycia.Persistence.Migrations	absent	présent
+MSBuild	Alycia.Modules.Chat.Tests	Alycia.Platform.Persistence	présent	présent
+MSBuild	Alycia.Modules.Configuration	Alycia.Contracts	absent	présent
+MSBuild	Alycia.Modules.Configuration.Tests	Alycia.Contracts	absent	présent
+MSBuild	Alycia.Modules.Configuration.Tests	Alycia.Modules.Configuration	absent	présent
+MSBuild	Alycia.Modules.Context	Alycia.Contracts	présent	présent
+MSBuild	Alycia.Modules.Context.Tests	Alycia.Contracts	présent	présent
+MSBuild	Alycia.Modules.Context.Tests	Alycia.Modules.Context	présent	présent
+MSBuild	Alycia.Modules.Context.Tests	Alycia.Modules.Testing	absent	présent
+MSBuild	Alycia.Modules.Conversations.Tests	Alycia.Contracts	absent	présent
+MSBuild	Alycia.Modules.Conversations.Tests	Alycia.Modules.Chat.Application	absent	présent
+MSBuild	Alycia.Modules.Conversations.Tests	Alycia.Modules.Chat.Domain	absent	présent
+MSBuild	Alycia.Modules.Conversations.Tests	Alycia.Modules.Chat.Infrastructure	absent	présent
+MSBuild	Alycia.Modules.Conversations.Tests	Alycia.Modules.Testing	absent	présent
+MSBuild	Alycia.Modules.Conversations.Tests	Alycia.Platform.Persistence	absent	présent
+MSBuild	Alycia.Modules.Documents	Alycia.Contracts	présent	présent
+MSBuild	Alycia.Modules.Documents.Infrastructure	Alycia.Contracts	absent	présent
+MSBuild	Alycia.Modules.Documents.Infrastructure	Alycia.Modules.Documents	absent	présent
+MSBuild	Alycia.Modules.Documents.Infrastructure	Alycia.Platform.Persistence	absent	présent
+MSBuild	Alycia.Modules.Documents.Tests	Alycia.Contracts	présent	présent
+MSBuild	Alycia.Modules.Documents.Tests	Alycia.Modules.Documents	présent	présent
+MSBuild	Alycia.Modules.Documents.Tests	Alycia.Modules.Documents.Infrastructure	absent	présent
+MSBuild	Alycia.Modules.Documents.Tests	Alycia.Platform.Persistence	absent	présent
+MSBuild	Alycia.Modules.Indexing	Alycia.Contracts	présent	présent
+MSBuild	Alycia.Modules.Indexing.Tests	Alycia.Contracts	présent	présent
+MSBuild	Alycia.Modules.Indexing.Tests	Alycia.Modules.Indexing	présent	présent
+MSBuild	Alycia.Modules.Indexing.Tests	Alycia.Modules.Testing	présent	présent
+MSBuild	Alycia.Modules.Inference	Alycia.Contracts	présent	présent
+MSBuild	Alycia.Modules.Inference.Tests	Alycia.Contracts	présent	présent
+MSBuild	Alycia.Modules.Inference.Tests	Alycia.Modules.Inference	présent	présent
+MSBuild	Alycia.Modules.Inference.Tests	Alycia.Modules.Testing	présent	présent
+MSBuild	Alycia.Modules.Memory	Alycia.Contracts	présent	présent
+MSBuild	Alycia.Modules.Memory.Tests	Alycia.Contracts	présent	présent
+MSBuild	Alycia.Modules.Memory.Tests	Alycia.Modules.Memory	présent	présent
+MSBuild	Alycia.Modules.Memory.Tests	Alycia.Modules.Testing	présent	présent
+MSBuild	Alycia.Modules.Retrieval	Alycia.Contracts	présent	présent
+MSBuild	Alycia.Modules.Retrieval.Onnx	Alycia.Contracts	présent	présent
+MSBuild	Alycia.Modules.Retrieval.Tests	Alycia.Contracts	présent	présent
+MSBuild	Alycia.Modules.Retrieval.Tests	Alycia.Modules.Retrieval	présent	présent
+MSBuild	Alycia.Modules.Retrieval.Tests	Alycia.Modules.Retrieval.Onnx	absent	présent
+MSBuild	Alycia.Modules.Retrieval.Tests	Alycia.Modules.Testing	présent	présent
+MSBuild	Alycia.Modules.Testing	Alycia.Contracts	présent	présent
+MSBuild	Alycia.Modules.Tools	Alycia.Contracts	présent	présent
+MSBuild	Alycia.Modules.Tools.Tests	Alycia.Contracts	présent	présent
+MSBuild	Alycia.Modules.Tools.Tests	Alycia.Modules.Testing	présent	présent
+MSBuild	Alycia.Modules.Tools.Tests	Alycia.Modules.Tools	présent	présent
+MSBuild	Alycia.Modules.Workspaces.Application	Alycia.Modules.Workspaces.Domain	présent	présent
+MSBuild	Alycia.Modules.Workspaces.Infrastructure	Alycia.Contracts	présent	présent
+MSBuild	Alycia.Modules.Workspaces.Infrastructure	Alycia.Modules.Workspaces.Application	présent	présent
+MSBuild	Alycia.Modules.Workspaces.Infrastructure	Alycia.Modules.Workspaces.Domain	présent	présent
+MSBuild	Alycia.Modules.Workspaces.Infrastructure	Alycia.Platform.Persistence	présent	présent
+MSBuild	Alycia.Modules.Workspaces.Tests	Alycia.Contracts	absent	présent
+MSBuild	Alycia.Modules.Workspaces.Tests	Alycia.Modules.Workspaces.Application	présent	présent
+MSBuild	Alycia.Modules.Workspaces.Tests	Alycia.Modules.Workspaces.Domain	présent	présent
+MSBuild	Alycia.Modules.Workspaces.Tests	Alycia.Modules.Workspaces.Infrastructure	absent	présent
+MSBuild	Alycia.Modules.Workspaces.Tests	Alycia.Platform.Persistence	absent	présent
+MSBuild	Alycia.Persistence.Migrations	Alycia.Contracts	absent	présent
+MSBuild	Alycia.Persistence.Migrations	Alycia.Modules.Chat.Domain	absent	présent
+MSBuild	Alycia.Persistence.Migrations	Alycia.Modules.Configuration	absent	présent
+MSBuild	Alycia.Persistence.Migrations	Alycia.Modules.Documents	absent	présent
+MSBuild	Alycia.Persistence.Migrations	Alycia.Modules.Workspaces.Domain	absent	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Chat.ChatConflictException	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Chat.ChatSettings	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Chat.ConversationNotFoundException	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Chat.ConversationSummary	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Chat.HistoryEvidence	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Chat.ImportLimits	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Chat.IndexedNote	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Chat.MessageResponse	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Chat.ModelDelta	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Chat.ProjectTool	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Chat.ProjectToolCatalog	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Chat.ToolEvidence	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Chat.TurnResponse	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Context.CreateSummaryReducer	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Context.IConversationContextReader	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Context.ISlidingHistory	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Context.ITurnContext	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Diagnostics.FailureType	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Documents.DownloadedOriginal	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Documents.IAnalysisConversation	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Documents.IArchiveDocuments	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Documents.IAuthorizedToolSources	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Documents.IConversationFileChanges	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Documents.IConversationLease	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Documents.IConversationOriginals	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Documents.IDocumentMembershipOverrides	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Documents.IImportLimitsReader	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Documents.ILiveIndexFileAccess	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Documents.IToolConversationPolicy	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Documents.ITurnDocuments	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Documents.IncomingFile	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Documents.OriginalUnavailableException	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Indexing.IConversationIndexOwners	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Indexing.IEmbeddingSimilarityReader	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Indexing.IHistoryKnowledge	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Indexing.IIndexMaintenance	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Indexing.IIndexSourceDocuments	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Indexing.IIndexedEmbeddings	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Indexing.IProjectIndex	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Indexing.IProjectIndexOwners	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Indexing.IndexParameters	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Indexing.ProjectIndexSnapshot	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Indexing.SourceChunk	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Inference.ChatModelException	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Inference.IChatModel	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Inference.IForegroundActivity	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Inference.ILocalEmbeddings	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Inference.IModelMeterFactory	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Inference.ITextGeneration	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Memory.IContextMemory	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Memory.ITemporalFactStorage	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Memory.ITemporalHistorySources	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Memory.ITemporalMemory	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Memory.ITemporalMemoryIndex	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Memory.TemporalFact	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Retrieval.CreateQueryBriefRefiner	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Retrieval.IPassageReranker	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Retrieval.IPassageScoring	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Retrieval.IProjectRetrieval	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Retrieval.IQueryPlanner	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Retrieval.IQuerySources	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Retrieval.IRetrievalPipeline	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Retrieval.ITurnResponseAudit	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Retrieval.ITurnRouter	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Tools.IProjectTools	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Tools.ISnapshotProjectTools	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Tools.ISourceCommands	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Tools.IToolHistoryReader	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Tools.ITurnTools	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Tools.ProjectToolResult	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Tools.ToolRefusal	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Workspaces.IProjectCatalog	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Workspaces.IProjectModelDefaults	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Workspaces.IProjectNoteOrigins	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Workspaces.IWorkspaceIdentityDirectory	non recensé	présent
+Port ou type de contrat	Alycia.Api	T:Alycia.Contracts.Workspaces.IWorkspaceProfiles	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.BoundedLines	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.ChatArchiveLimits	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.ChatJson	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.ChatSettings	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.CitationReport	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.ClaimFinding	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.ClaimReport	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.ClassificationReport	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.ContextWindowView	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.ConversationSettingsFile`1	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.ConversationSummary	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.EmbeddingProgress	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.EnrichmentOptions	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.EvidenceAssembly	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.EvidenceDecision	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.GenerationStats	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.GenerationUsage	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.HistoryEvidence	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.ImportLimits	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.ImportPolicy	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.IndexedNote	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.MemoryEntry	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.MemoryLedger	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.MemoryReport	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.MemoryTransfer	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.ModelCallUsage	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.ModelDelta	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.PassageJudgment	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.PreviewMessage	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.QueryRoute	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.RerankReport	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.ResearchGoal	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.ResearchReport	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.ResolvedReferent	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.RetrievalCacheReport	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.RetrievalDecision	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.RetrievalReport	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.SearchQueryPlan	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.SearchTerm	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.SettingsFileCodec`1	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.SettingsInput	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.SourceExcerpt	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.SourceFileType	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.SuppliedSource	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.TemporalReport	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.ToolEvidence	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.ToolObservation	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.ToolWindowBudget	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.TurnDiagnostics	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.UnitLabels	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.UsedGuide	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.VerificationFollowup	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Chat.WorkspaceNoteView	non recensé	présent
+Port ou type de contrat	Alycia.Client.Avalonia	T:Alycia.Contracts.Diagnostics.FailureType	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.ChatJson	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.ChatSettings	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.CitationReport	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.ClaimFinding	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.ClaimReport	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.ClassificationReport	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.ConversationSettingsFile`1	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.ConversationSummary	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.EnrichmentOptions	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.EvidenceAssembly	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.EvidenceDecision	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.GenerationStats	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.GenerationUsage	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.HistoryEvidence	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.IGenerationSettings	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.IIndexSettings	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.IToolWindowSettings	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.ImportLimits	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.MemoryBudgetLimits	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.MemoryEntry	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.MemoryLedger	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.MemoryReport	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.MemoryTransfer	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.MessageResponse	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.ModelCallUsage	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.ModelDelta	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.ModelToolCall	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.PassageJudgment	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.PreparedMemoryChange	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.PreviewMessage	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.ProjectTool	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.ProjectToolCatalog	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.QueryBrief	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.QueryHit	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.QueryRoute	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.QuestionFacet	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.RerankReport	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.ResearchGoal	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.ResearchReport	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.ResolvedReferent	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.RetrievalCacheReport	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.RetrievalDecision	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.RetrievalReport	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.SearchQueryPlan	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.SearchTerm	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.SettingsFileCodec`1	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.SettingsInput	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.SourceExcerpt	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.SourceFileType	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.SuppliedSource	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.TemporalObservation	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.TemporalReport	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.ToolEvidence	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.ToolFunction	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.ToolObservation	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.ToolWindowBudget	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.ToolWindowParameters	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.TurnDiagnostics	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.UnitLabels	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.UsedGuide	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Chat.VerificationFollowup	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Context.ContextConversation	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Context.ContextParameters	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Context.ContextWindow	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Context.EvidenceParameters	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Context.GuideParameters	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Context.HistoryBudget	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Context.HistoryMessage	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Context.HistoryParameters	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Context.HistorySelection	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Context.ISummaryReducer	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Context.ITurnHistory	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Context.PreparedContext	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Context.SummaryParameters	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Context.SummarySource	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Context.TurnContextBudget	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Context.TurnContextMode	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Context.TurnContextResult	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Context.WindowMessage	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Documents.AnalysisCacheProfile	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Documents.AnalysisConversation	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Documents.AnalysisPreferences	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Documents.AuthorizedToolSource	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Documents.ConversationFileState	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Documents.DownloadedOriginal	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Documents.IDocumentFork	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Documents.ToolConversationPolicy	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Documents.ToolSourceEntry	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Documents.TurnFile	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Indexing.ConversationIndexOwner	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Indexing.EmbeddingQuery	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Indexing.IProjectIndex	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Indexing.IndexFileCursor	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Indexing.IndexHistoryMessage	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Indexing.IndexParameters	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Indexing.IndexSourceFile	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Indexing.IndexedOriginal	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Indexing.LexicalTerms	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Indexing.MemoryVectorMatches	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Indexing.MemoryVectorSource	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Indexing.PassageGuide	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Indexing.ProjectIndexOwner	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Indexing.ProjectIndexSnapshot	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Indexing.SourceChunk	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Indexing.SourceCoordinates	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Inference.ChatModelException	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Inference.ChatModelFailure	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Inference.EmbeddingBatch	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Inference.GenerationParameters	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Inference.IChatModel	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Inference.IModelMeter	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Inference.ITextTokenCounter	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Inference.InferenceCall	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Inference.ModelCallBudget	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Inference.ModelReply	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Inference.ModelTokenization	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Inference.PromptMessage	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Inference.PromptSnapshot	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Inference.PromptTokens	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Memory.MemorySelection	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Memory.TemporalFact	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Memory.TemporalMessage	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Memory.TemporalOwner	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Memory.TemporalRecall	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Memory.TemporalRecallSettings	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Retrieval.BriefGeneration	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Retrieval.ClaimVerification	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Retrieval.EvidenceText	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Retrieval.IQueryBriefRefiner	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Retrieval.PassageRankingSettings	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Retrieval.PassageSimilarities	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Retrieval.PlannedQuery	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Retrieval.ProjectSearch	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Retrieval.QueryHistoryItem	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Retrieval.RerankScores	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Retrieval.RetrievalPreparation	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Retrieval.RetrievalRequest	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Retrieval.ReviewedReply	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Retrieval.RoutedTurn	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Retrieval.RoutingRequest	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Retrieval.RoutingRules	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Retrieval.RoutingState	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Retrieval.SearchSnapshots	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Retrieval.SemanticSearch	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Tools.GenerationReply	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Tools.IProjectTools	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Tools.ProjectToolResult	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Tools.ToolGeneration	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Tools.ToolPrompt	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Tools.ToolRefusal	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Tools.ToolSourceHint	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Tools.ToolTurnScope	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Workspaces.IProjectModelDefaults	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Workspaces.ProjectEntry	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Workspaces.ProjectNote	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Workspaces.ProjectProfile	non recensé	présent
+Port ou type de contrat	Alycia.Contracts	T:Alycia.Contracts.Workspaces.WorkspaceIdentity	non recensé	présent
+Port ou type de contrat	Alycia.DevHost	T:Alycia.Contracts.Chat.ModelDelta	non recensé	présent
+Port ou type de contrat	Alycia.DevHost	T:Alycia.Contracts.Inference.GenerationParameters	non recensé	présent
+Port ou type de contrat	Alycia.DevHost	T:Alycia.Contracts.Inference.ILocalEmbeddings	non recensé	présent
+Port ou type de contrat	Alycia.DevHost	T:Alycia.Contracts.Inference.ITextGeneration	non recensé	présent
+Port ou type de contrat	Alycia.DevHost	T:Alycia.Contracts.Inference.ModelReply	non recensé	présent
+Port ou type de contrat	Alycia.DevHost	T:Alycia.Contracts.Inference.PromptMessage	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Chat.ChatArchiveLimits	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Chat.ChatConflictException	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Chat.ChatJson	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Chat.ChatSettings	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Chat.ConversationNotFoundException	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Chat.ConversationSettingsFile`1	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Chat.ConversationSummary	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Chat.EnrichmentOptions	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Chat.GenerationStats	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Chat.GenerationUsage	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Chat.MemoryBudgetLimits	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Chat.ModelCallUsage	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Chat.ModelDelta	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Chat.PreparedMemoryChange	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Chat.ProjectToolCatalog	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Chat.QueryBrief	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Chat.QueryRoute	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Chat.QuestionFacet	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Chat.RetrievalReport	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Chat.SearchQueryPlan	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Chat.SearchTerm	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Chat.SettingsFileCodec`1	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Chat.SettingsInput	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Chat.StoredConversationSettings	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Chat.ToolObservation	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Chat.ToolWindowBudget	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Chat.TurnDiagnostics	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Context.ContextConversation	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Context.ContextParameters	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Context.ContextWindow	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Context.EvidenceParameters	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Context.GuideParameters	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Context.HistoryParameters	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Context.ITurnContext	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Context.PreparedContext	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Context.SummaryParameters	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Context.TurnContextBudget	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Context.TurnContextMode	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Context.TurnContextResult	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Documents.IConversationLease	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Indexing.EmbeddingQuery	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Indexing.SourceChunk	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Inference.IChatModel	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Inference.IForegroundActivity	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Inference.IModelMeter	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Inference.IModelMeterFactory	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Inference.ITextTokenCounter	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Inference.InferenceCall	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Inference.ModelTokenization	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Inference.PromptMessage	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Inference.PromptTokens	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Memory.ITemporalMemory	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Memory.ITemporalMemoryIndex	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Memory.TemporalFact	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Memory.TemporalRecall	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Memory.TemporalRecallSettings	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Retrieval.BriefGeneration	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Retrieval.ClaimVerification	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Retrieval.CreateQueryBriefRefiner	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Retrieval.IProjectRetrieval	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Retrieval.IQueryBriefRefiner	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Retrieval.IQueryPlanner	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Retrieval.ITurnResponseAudit	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Retrieval.ITurnRouter	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Retrieval.PassageRankingSettings	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Retrieval.PlannedQuery	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Retrieval.ProjectSearch	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Retrieval.RetrievalPreparation	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Retrieval.RetrievalRequest	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Retrieval.ReviewedReply	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Retrieval.RoutedTurn	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Retrieval.RoutingRequest	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Retrieval.RoutingRules	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Retrieval.RoutingState	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Retrieval.SearchSnapshots	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Tools.GenerationReply	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Tools.IProjectTools	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Tools.ITurnTools	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Tools.ToolGeneration	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Tools.ToolTurnScope	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Application	T:Alycia.Contracts.Workspaces.IProjectModelDefaults	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Infrastructure	T:Alycia.Contracts.Chat.ChatConflictException	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Infrastructure	T:Alycia.Contracts.Chat.ChatSettings	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Infrastructure	T:Alycia.Contracts.Chat.ConversationNotFoundException	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Infrastructure	T:Alycia.Contracts.Chat.ConversationSummary	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Infrastructure	T:Alycia.Contracts.Chat.EnrichmentOptions	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Infrastructure	T:Alycia.Contracts.Chat.ProjectToolCatalog	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Infrastructure	T:Alycia.Contracts.Chat.StoredConversationSettings	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Infrastructure	T:Alycia.Contracts.Context.HistoryMessage	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Infrastructure	T:Alycia.Contracts.Context.IConversationContextReader	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Infrastructure	T:Alycia.Contracts.Documents.AnalysisCacheProfile	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Infrastructure	T:Alycia.Contracts.Documents.AnalysisConversation	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Infrastructure	T:Alycia.Contracts.Documents.AnalysisPreferences	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Infrastructure	T:Alycia.Contracts.Documents.ConversationFileState	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Infrastructure	T:Alycia.Contracts.Documents.IAnalysisConversation	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Infrastructure	T:Alycia.Contracts.Documents.IArchiveDocuments	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Infrastructure	T:Alycia.Contracts.Documents.IConversationFileChanges	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Infrastructure	T:Alycia.Contracts.Documents.IConversationWorkspaceLookup	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Infrastructure	T:Alycia.Contracts.Documents.IDocumentFork	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Infrastructure	T:Alycia.Contracts.Documents.IDocumentMembershipOverrides	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Infrastructure	T:Alycia.Contracts.Documents.IToolConversationPolicy	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Infrastructure	T:Alycia.Contracts.Documents.ITurnDocuments	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Infrastructure	T:Alycia.Contracts.Documents.ToolConversationPolicy	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Infrastructure	T:Alycia.Contracts.Documents.TurnFile	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Infrastructure	T:Alycia.Contracts.Indexing.ConversationIndexOwner	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Infrastructure	T:Alycia.Contracts.Indexing.IConversationIndexOwners	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Infrastructure	T:Alycia.Contracts.Indexing.IndexHistoryMessage	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Infrastructure	T:Alycia.Contracts.Indexing.IndexParameters	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Infrastructure	T:Alycia.Contracts.Inference.IChatModel	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Infrastructure	T:Alycia.Contracts.Memory.ITemporalHistorySources	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Infrastructure	T:Alycia.Contracts.Memory.TemporalMessage	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Infrastructure	T:Alycia.Contracts.Memory.TemporalOwner	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Infrastructure	T:Alycia.Contracts.Retrieval.IQuerySources	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Infrastructure	T:Alycia.Contracts.Retrieval.QueryHistoryItem	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Infrastructure	T:Alycia.Contracts.Tools.IToolHistoryReader	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Infrastructure	T:Alycia.Contracts.Workspaces.IProjectNoteOrigins	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Infrastructure	T:Alycia.Contracts.Workspaces.IWorkspaceProfiles	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Infrastructure	T:Alycia.Contracts.Workspaces.ProjectNote	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Chat.Infrastructure	T:Alycia.Contracts.Workspaces.ProjectProfile	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Configuration	T:Alycia.Contracts.Chat.ImportLimits	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Configuration	T:Alycia.Contracts.Chat.ProjectToolCatalog	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Configuration	T:Alycia.Contracts.Chat.SettingsInput	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Configuration	T:Alycia.Contracts.Documents.IImportLimitsReader	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Chat.ChatConflictException	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Chat.ClassificationReport	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Chat.EnrichmentOptions	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Chat.EvidenceAssembly	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Chat.EvidenceDecision	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Chat.HistoryEvidence	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Chat.MemoryBudgetLimits	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Chat.MemoryEntry	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Chat.MemoryLedger	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Chat.MemoryReport	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Chat.MemoryTransfer	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Chat.PassageJudgment	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Chat.ProjectToolCatalog	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Chat.QueryRoute	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Chat.RerankReport	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Chat.RetrievalDecision	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Chat.RetrievalReport	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Chat.SettingsInput	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Chat.SourceExcerpt	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Chat.SourceFileType	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Chat.TemporalObservation	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Chat.TemporalReport	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Chat.UsedGuide	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Context.ContextConversation	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Context.ContextParameters	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Context.ContextWindow	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Context.EvidenceParameters	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Context.GuideParameters	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Context.HistoryBudget	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Context.HistoryMessage	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Context.HistoryParameters	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Context.HistorySelection	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Context.IConversationContextReader	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Context.ISlidingHistory	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Context.ISummaryReducer	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Context.ITurnContext	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Context.ITurnHistory	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Context.PreparedContext	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Context.SummaryParameters	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Context.SummarySource	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Context.TurnContextBudget	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Context.TurnContextMode	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Context.TurnContextResult	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Context.WindowMessage	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Documents.TurnFile	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Documents.Utf8Text	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Indexing.KnowledgeCacheKey	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Indexing.LexicalTerms	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Indexing.PassageGuide	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Indexing.SourceChunk	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Indexing.SourceCoordinates	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Inference.ChatModelException	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Inference.ChatModelFailure	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Inference.GenerationParameters	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Inference.IChatModel	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Inference.IModelMeter	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Inference.InferenceCall	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Inference.ModelCallBudget	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Inference.PromptMessage	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Inference.PromptTokens	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Memory.IContextMemory	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Memory.MemorySelection	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Memory.TemporalFact	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Memory.TemporalRecall	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Retrieval.EvidenceText	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Retrieval.PlannedQuery	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Retrieval.ProjectExcerpts	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Context	T:Alycia.Contracts.Retrieval.RoutingState	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents	T:Alycia.Contracts.Chat.ImportLimits	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents	T:Alycia.Contracts.Documents.IncomingFile	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents	T:Alycia.Contracts.Documents.InventoryFile	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents	T:Alycia.Contracts.Documents.Utf8Text	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents	T:Alycia.Contracts.Indexing.IndexedOriginal	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents	T:Alycia.Contracts.Indexing.SourceChunk	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Chat.ChatConflictException	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Chat.ChatJson	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Chat.ConversationNotFoundException	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Chat.ConversationSummary	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Chat.ImportLimits	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Chat.ImportPolicy	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Chat.MemoryTransfer	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Chat.ProjectToolCatalog	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Chat.SourceFileType	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Context.CreateSummaryReducer	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Context.ISummaryReducer	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Context.SummaryParameters	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Context.SummarySource	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Documents.AnalysisCacheProfile	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Documents.AnalysisConversation	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Documents.AnalysisPreferences	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Documents.AuthorizedToolSource	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Documents.ConversationFileState	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Documents.DownloadedOriginal	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Documents.IAnalysisConversation	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Documents.IArchiveDocuments	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Documents.IAuthorizedToolSources	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Documents.IConversationFileChanges	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Documents.IConversationLease	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Documents.IConversationOriginals	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Documents.IConversationWorkspaceLookup	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Documents.IDocumentFork	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Documents.IDocumentMembershipOverrides	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Documents.IImportLimitsReader	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Documents.ILiveIndexFileAccess	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Documents.IToolConversationPolicy	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Documents.ITurnDocuments	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Documents.IncomingFile	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Documents.InventoryFile	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Documents.OriginalUnavailableException	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Documents.ToolConversationPolicy	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Documents.ToolSourceEntry	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Documents.TurnFile	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Indexing.IIndexSourceDocuments	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Indexing.IndexFileCursor	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Indexing.IndexSourceFile	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Indexing.IndexedOriginal	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Indexing.SourceChunk	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Inference.IChatModel	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Inference.IModelMeter	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Inference.IModelMeterFactory	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Inference.ModelCallBudget	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Workspaces.IWorkspaceProfiles	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Documents.Infrastructure	T:Alycia.Contracts.Workspaces.ProjectProfile	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Chat.ConversationNotFoundException	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Chat.EmbeddingProgress	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Chat.EnrichmentOptions	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Chat.IIndexSettings	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Chat.IndexedNote	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Chat.MemoryTransfer	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Chat.ModelCallUsage	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Chat.ProjectToolCatalog	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Chat.UnitLabels	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Context.HistoryMessage	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Documents.ILiveIndexFileAccess	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Documents.Utf8Text	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Indexing.ConversationIndexOwner	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Indexing.EmbeddingQuery	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Indexing.IConversationIndexOwners	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Indexing.IEmbeddingSimilarityReader	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Indexing.IHistoryKnowledge	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Indexing.IIndexMaintenance	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Indexing.IIndexSourceDocuments	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Indexing.IIndexedEmbeddings	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Indexing.IMemoryVectorEligibility	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Indexing.IProjectIndex	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Indexing.IProjectIndexOwners	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Indexing.IndexFileCursor	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Indexing.IndexHistoryMessage	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Indexing.IndexParameters	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Indexing.IndexSourceFile	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Indexing.IndexedOriginal	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Indexing.KnowledgeCacheKey	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Indexing.LexicalTerms	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Indexing.MemoryVectorMatches	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Indexing.MemoryVectorSource	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Indexing.PassageGuide	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Indexing.ProjectIndexOwner	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Indexing.ProjectIndexSnapshot	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Indexing.SourceChunk	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Indexing.SourceCoordinates	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Indexing.VectorScores	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Inference.ChatModelException	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Inference.ChatModelFailure	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Inference.EmbeddingBatch	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Inference.GenerationParameters	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Inference.IChatModel	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Inference.IForegroundActivity	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Inference.ILocalEmbeddings	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Inference.ITextTokenCounter	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Inference.InferenceCall	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Inference.ModelCallBudget	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Inference.ModelTokenization	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Inference.PromptMessage	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Inference.PromptTokens	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Memory.ITemporalMemoryIndex	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Retrieval.IPassageScoring	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Retrieval.SearchSnapshots	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Retrieval.SemanticSearch	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Workspaces.IWorkspaceProfiles	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Indexing	T:Alycia.Contracts.Workspaces.ProjectProfile	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Inference	T:Alycia.Contracts.Chat.BoundedLines	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Inference	T:Alycia.Contracts.Chat.GenerationStats	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Inference	T:Alycia.Contracts.Chat.GenerationUsage	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Inference	T:Alycia.Contracts.Chat.IGenerationSettings	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Inference	T:Alycia.Contracts.Chat.ModelCallUsage	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Inference	T:Alycia.Contracts.Chat.ModelDelta	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Inference	T:Alycia.Contracts.Chat.ModelToolCall	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Inference	T:Alycia.Contracts.Chat.ProjectToolCatalog	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Inference	T:Alycia.Contracts.Chat.QueryBrief	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Inference	T:Alycia.Contracts.Chat.ToolFunction	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Inference	T:Alycia.Contracts.Inference.ChatModelException	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Inference	T:Alycia.Contracts.Inference.ChatModelFailure	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Inference	T:Alycia.Contracts.Inference.EmbeddingBatch	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Inference	T:Alycia.Contracts.Inference.GenerationParameters	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Inference	T:Alycia.Contracts.Inference.IChatModel	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Inference	T:Alycia.Contracts.Inference.IForegroundActivity	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Inference	T:Alycia.Contracts.Inference.ILocalEmbeddings	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Inference	T:Alycia.Contracts.Inference.IModelMeter	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Inference	T:Alycia.Contracts.Inference.IModelMeterFactory	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Inference	T:Alycia.Contracts.Inference.ITextGeneration	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Inference	T:Alycia.Contracts.Inference.ITextTokenCounter	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Inference	T:Alycia.Contracts.Inference.InferenceCall	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Inference	T:Alycia.Contracts.Inference.ModelReply	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Inference	T:Alycia.Contracts.Inference.ModelTokenization	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Inference	T:Alycia.Contracts.Inference.PromptMessage	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Inference	T:Alycia.Contracts.Inference.PromptSnapshot	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Inference	T:Alycia.Contracts.Inference.PromptTokens	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Inference	T:Alycia.Contracts.Retrieval.BriefGeneration	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Inference	T:Alycia.Contracts.Retrieval.IQueryBriefRefiner	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Inference	T:Alycia.Contracts.Retrieval.SearchSnapshots	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Memory	T:Alycia.Contracts.Chat.ChatJson	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Memory	T:Alycia.Contracts.Chat.MemoryEntry	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Memory	T:Alycia.Contracts.Chat.MemoryLedger	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Memory	T:Alycia.Contracts.Chat.MemoryReport	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Memory	T:Alycia.Contracts.Chat.MemoryTransfer	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Memory	T:Alycia.Contracts.Chat.ProjectToolCatalog	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Memory	T:Alycia.Contracts.Context.HistoryMessage	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Memory	T:Alycia.Contracts.Documents.Utf8Text	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Memory	T:Alycia.Contracts.Indexing.IHistoryKnowledge	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Memory	T:Alycia.Contracts.Indexing.IIndexedEmbeddings	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Memory	T:Alycia.Contracts.Indexing.IMemoryVectorEligibility	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Memory	T:Alycia.Contracts.Indexing.LexicalTerms	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Memory	T:Alycia.Contracts.Indexing.MemoryVectorMatches	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Memory	T:Alycia.Contracts.Indexing.MemoryVectorSource	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Memory	T:Alycia.Contracts.Indexing.SourceChunk	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Memory	T:Alycia.Contracts.Inference.ITextTokenCounter	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Memory	T:Alycia.Contracts.Inference.PromptTokens	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Memory	T:Alycia.Contracts.Memory.IContextMemory	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Memory	T:Alycia.Contracts.Memory.ITemporalFactStorage	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Memory	T:Alycia.Contracts.Memory.ITemporalHistorySources	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Memory	T:Alycia.Contracts.Memory.ITemporalMemory	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Memory	T:Alycia.Contracts.Memory.ITemporalMemoryIndex	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Memory	T:Alycia.Contracts.Memory.MemorySelection	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Memory	T:Alycia.Contracts.Memory.TemporalFact	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Memory	T:Alycia.Contracts.Memory.TemporalMessage	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Memory	T:Alycia.Contracts.Memory.TemporalOwner	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Memory	T:Alycia.Contracts.Memory.TemporalRecall	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Memory	T:Alycia.Contracts.Memory.TemporalRecallSettings	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Memory	T:Alycia.Contracts.Retrieval.IPassageScoring	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Chat.CitationReport	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Chat.ClaimFinding	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Chat.ClaimReport	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Chat.ClassificationReport	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Chat.HistoryEvidence	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Chat.MemoryTransfer	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Chat.ModelCallUsage	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Chat.ModelDelta	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Chat.PassageJudgment	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Chat.QueryBrief	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Chat.QueryHit	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Chat.QueryRoute	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Chat.QuestionFacet	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Chat.RerankReport	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Chat.ResolvedReferent	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Chat.RetrievalCacheReport	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Chat.RetrievalDecision	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Chat.RetrievalReport	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Chat.SearchQueryPlan	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Chat.SearchTerm	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Chat.SourceExcerpt	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Chat.SuppliedSource	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Chat.TemporalReport	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Chat.ToolEvidence	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Chat.ToolObservation	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Chat.VerificationFollowup	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Context.ContextWindow	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Documents.TurnFile	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Documents.Utf8Text	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Indexing.IIndexedEmbeddings	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Indexing.IProjectIndex	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Indexing.LexicalTerms	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Indexing.PassageGuide	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Indexing.ProjectIndexSnapshot	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Indexing.SourceChunk	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Indexing.SourceCoordinates	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Indexing.VectorScores	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Inference.ChatModelException	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Inference.IModelMeter	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Retrieval.ClaimVerification	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Retrieval.EvidenceText	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Retrieval.IPassageReranker	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Retrieval.IPassageScoring	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Retrieval.IProjectRetrieval	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Retrieval.IQueryBriefRefiner	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Retrieval.IQueryPlanner	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Retrieval.IQuerySources	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Retrieval.IRetrievalPipeline	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Retrieval.ITurnResponseAudit	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Retrieval.PassageRankingSettings	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Retrieval.PassageSimilarities	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Retrieval.PlannedQuery	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Retrieval.ProjectSearch	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Retrieval.QueryHistoryItem	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Retrieval.RerankScores	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Retrieval.RetrievalPreparation	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Retrieval.RetrievalRequest	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Retrieval.ReviewedReply	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Retrieval.RoutingRules	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Retrieval.SearchSnapshots	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Retrieval.SemanticSearch	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Retrieval.VerificationResult	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval	T:Alycia.Contracts.Tools.GenerationReply	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval.Onnx	T:Alycia.Contracts.Indexing.SourceChunk	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval.Onnx	T:Alycia.Contracts.Retrieval.IPassageReranker	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Retrieval.Onnx	T:Alycia.Contracts.Retrieval.RerankScores	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Chat.ChatConflictException	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Chat.ChatSettings	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Chat.CitationReport	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Chat.ClaimReport	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Chat.ConversationNotFoundException	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Chat.ConversationSummary	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Chat.GenerationStats	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Chat.GenerationUsage	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Chat.HistoryEvidence	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Chat.ImportLimits	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Chat.MemoryBudgetLimits	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Chat.MemoryEntry	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Chat.MemoryLedger	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Chat.MemoryReport	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Chat.MemoryTransfer	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Chat.ModelCallUsage	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Chat.ModelDelta	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Chat.QueryBrief	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Chat.QueryRoute	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Chat.RetrievalReport	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Chat.SourceExcerpt	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Chat.SuppliedSource	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Chat.TemporalReport	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Chat.VerificationFollowup	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Context.ContextConversation	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Context.ContextParameters	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Context.ContextWindow	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Context.EvidenceParameters	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Context.HistoryBudget	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Context.HistoryMessage	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Context.HistoryParameters	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Context.HistorySelection	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Context.IConversationContextReader	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Context.ISlidingHistory	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Context.ISummaryReducer	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Context.ITurnContext	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Context.ITurnHistory	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Context.PreparedContext	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Context.SummarySource	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Context.TurnContextBudget	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Context.TurnContextMode	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Context.TurnContextResult	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Context.WindowMessage	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Documents.AnalysisConversation	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Documents.AnalysisPreferences	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Documents.AuthorizedToolSource	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Documents.ConversationFileState	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Documents.DownloadedOriginal	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Documents.IAnalysisConversation	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Documents.IArchiveDocuments	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Documents.IAuthorizedToolSources	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Documents.IConversationFileChanges	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Documents.IConversationLease	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Documents.IConversationOriginals	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Documents.IConversationWorkspaceLookup	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Documents.IDocumentFork	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Documents.IDocumentMembershipOverrides	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Documents.IImportLimitsReader	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Documents.ILiveIndexFileAccess	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Documents.IToolConversationPolicy	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Documents.ITurnDocuments	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Documents.OriginalUnavailableException	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Documents.ToolConversationPolicy	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Documents.ToolSourceEntry	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Documents.TurnFile	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Indexing.ConversationIndexOwner	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Indexing.EmbeddingQuery	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Indexing.IConversationIndexOwners	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Indexing.IEmbeddingSimilarityReader	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Indexing.IHistoryKnowledge	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Indexing.IIndexMaintenance	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Indexing.IIndexSourceDocuments	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Indexing.IIndexedEmbeddings	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Indexing.IMemoryVectorEligibility	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Indexing.IProjectIndex	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Indexing.IProjectIndexOwners	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Indexing.IndexFileCursor	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Indexing.IndexHistoryMessage	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Indexing.IndexSourceFile	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Indexing.IndexedOriginal	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Indexing.LexicalTerms	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Indexing.MemoryVectorMatches	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Indexing.MemoryVectorSource	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Indexing.ProjectIndexOwner	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Indexing.ProjectIndexSnapshot	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Indexing.SourceChunk	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Indexing.VectorScores	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Inference.ChatModelException	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Inference.EmbeddingBatch	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Inference.GenerationParameters	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Inference.IChatModel	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Inference.ILocalEmbeddings	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Inference.IModelMeter	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Inference.IModelMeterFactory	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Inference.ITextGeneration	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Inference.ITextTokenCounter	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Inference.InferenceCall	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Inference.ModelReply	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Inference.ModelTokenization	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Inference.PromptMessage	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Inference.PromptSnapshot	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Inference.PromptTokens	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Memory.IContextMemory	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Memory.ITemporalFactStorage	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Memory.ITemporalHistorySources	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Memory.ITemporalMemory	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Memory.ITemporalMemoryIndex	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Memory.MemorySelection	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Memory.TemporalFact	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Memory.TemporalMessage	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Memory.TemporalOwner	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Memory.TemporalRecall	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Memory.TemporalRecallSettings	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Retrieval.BriefGeneration	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Retrieval.ClaimVerification	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Retrieval.IPassageReranker	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Retrieval.IPassageScoring	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Retrieval.IProjectRetrieval	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Retrieval.IQueryBriefRefiner	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Retrieval.IQueryPlanner	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Retrieval.IQuerySources	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Retrieval.IRetrievalPipeline	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Retrieval.ITurnResponseAudit	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Retrieval.ITurnRouter	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Retrieval.PassageRankingSettings	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Retrieval.PassageSimilarities	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Retrieval.PlannedQuery	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Retrieval.ProjectSearch	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Retrieval.QueryHistoryItem	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Retrieval.RerankScores	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Retrieval.RetrievalPreparation	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Retrieval.RetrievalRequest	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Retrieval.ReviewedReply	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Retrieval.RoutedTurn	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Retrieval.RoutingRequest	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Retrieval.RoutingRules	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Retrieval.RoutingState	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Retrieval.SearchSnapshots	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Retrieval.SemanticSearch	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Tools.GenerationReply	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Tools.IProjectTools	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Tools.ISnapshotProjectTools	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Tools.ISourceCommands	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Tools.IToolHistoryReader	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Tools.ITurnTools	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Tools.ProjectToolResult	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Tools.ToolArguments	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Tools.ToolGeneration	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Tools.ToolPrompt	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Tools.ToolRefusal	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Tools.ToolTurnScope	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Workspaces.IProjectCatalog	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Workspaces.IProjectModelDefaults	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Workspaces.IProjectNoteOrigins	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Workspaces.IWorkspaceIdentityDirectory	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Workspaces.IWorkspaceProfiles	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Workspaces.ProjectEntry	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Workspaces.ProjectNote	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Workspaces.ProjectProfile	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Testing	T:Alycia.Contracts.Workspaces.WorkspaceIdentity	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Chat.ConversationNotFoundException	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Chat.HistoryEvidence	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Chat.MemoryTransfer	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Chat.ModelDelta	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Chat.ModelToolCall	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Chat.ProjectToolCatalog	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Chat.ResearchGoal	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Chat.ResearchReport	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Chat.SourceFileType	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Chat.ToolEvidence	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Chat.ToolFunction	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Chat.ToolObservation	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Chat.ToolWindowBudget	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Context.CreateSummaryReducer	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Context.HistoryMessage	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Context.ISummaryReducer	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Context.ITurnHistory	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Context.SummaryParameters	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Context.SummarySource	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Documents.AuthorizedToolSource	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Documents.IAuthorizedToolSources	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Documents.IToolConversationPolicy	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Documents.ToolConversationPolicy	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Documents.ToolSourceEntry	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Documents.Utf8Text	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Indexing.EmbeddingQuery	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Indexing.IIndexedEmbeddings	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Indexing.IProjectIndex	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Indexing.ProjectIndexSnapshot	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Indexing.SourceChunk	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Indexing.SourceCoordinates	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Inference.ChatModelException	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Inference.ChatModelFailure	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Inference.GenerationParameters	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Inference.IChatModel	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Inference.InferenceCall	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Inference.ModelReply	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Inference.PromptMessage	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Inference.PromptTokens	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Retrieval.EvidenceText	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Retrieval.IPassageScoring	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Retrieval.SemanticSearch	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Tools.GenerationReply	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Tools.IProjectTools	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Tools.ISnapshotProjectTools	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Tools.ISourceCommands	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Tools.IToolHistoryReader	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Tools.ITurnTools	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Tools.ProjectToolResult	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Tools.ToolArguments	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Tools.ToolGeneration	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Tools.ToolPrompt	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Tools.ToolRefusal	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Tools.ToolSourceHint	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Tools	T:Alycia.Contracts.Tools.ToolTurnScope	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Workspaces.Infrastructure	T:Alycia.Contracts.Chat.ChatConflictException	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Workspaces.Infrastructure	T:Alycia.Contracts.Indexing.IProjectIndexOwners	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Workspaces.Infrastructure	T:Alycia.Contracts.Indexing.ProjectIndexOwner	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Workspaces.Infrastructure	T:Alycia.Contracts.Workspaces.IProjectCatalog	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Workspaces.Infrastructure	T:Alycia.Contracts.Workspaces.IProjectNoteOrigins	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Workspaces.Infrastructure	T:Alycia.Contracts.Workspaces.IWorkspaceIdentityDirectory	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Workspaces.Infrastructure	T:Alycia.Contracts.Workspaces.IWorkspaceProfiles	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Workspaces.Infrastructure	T:Alycia.Contracts.Workspaces.ProjectEntry	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Workspaces.Infrastructure	T:Alycia.Contracts.Workspaces.ProjectNote	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Workspaces.Infrastructure	T:Alycia.Contracts.Workspaces.ProjectProfile	non recensé	présent
+Port ou type de contrat	Alycia.Modules.Workspaces.Infrastructure	T:Alycia.Contracts.Workspaces.WorkspaceIdentity	non recensé	présent
+Roslyn inter-propriétaires	Configuration	Persistence / Alycia.Modules.Chat.Infrastructure.ChatDbContext	présent	absent
+Roslyn inter-propriétaires	Context	Memory / Alycia.Modules.Chat.Application.MemorySelection	présent	absent
+Roslyn inter-propriétaires	Context	Memory / Alycia.Modules.Chat.Application.StructuredMemory	présent	absent
+Roslyn inter-propriétaires	Context	Memory / Alycia.Modules.Chat.Application.TemporalMemory	présent	absent
+Roslyn inter-propriétaires	Context	Retrieval / Alycia.Modules.Chat.Application.EvidenceComposer	présent	absent
+Roslyn inter-propriétaires	Context	Retrieval / Alycia.Modules.Chat.Application.ProjectRetrieval	présent	absent
+Roslyn inter-propriétaires	Conversations	Configuration / Alycia.Modules.Chat.Application.ChatOptions	présent	absent
+Roslyn inter-propriétaires	Conversations	Configuration / Alycia.Modules.Chat.Application.ModelConfiguration	présent	absent
+Roslyn inter-propriétaires	Conversations	Context / Alycia.Modules.Chat.Application.Context.ITurnContext	présent	absent
+Roslyn inter-propriétaires	Conversations	Context / Alycia.Modules.Chat.Application.Context.TurnContextBudget	présent	absent
+Roslyn inter-propriétaires	Conversations	Context / Alycia.Modules.Chat.Application.Context.TurnContextMode	présent	absent
+Roslyn inter-propriétaires	Conversations	Context / Alycia.Modules.Chat.Application.Context.TurnContextResult	présent	absent
+Roslyn inter-propriétaires	Conversations	Context / Alycia.Modules.Chat.Application.ContextWindow	présent	absent
+Roslyn inter-propriétaires	Conversations	Context / Alycia.Modules.Chat.Application.PreparedContext	présent	absent
+Roslyn inter-propriétaires	Conversations	Context / Alycia.Modules.Chat.Application.SlidingContext	présent	absent
+Roslyn inter-propriétaires	Conversations	Inference / Alycia.Modules.Chat.Application.QueryBriefRefiner	présent	absent
+Roslyn inter-propriétaires	Conversations	Persistence / Alycia.Modules.Chat.Infrastructure.ChatDbContext	présent	absent
+Roslyn inter-propriétaires	Conversations	Retrieval / Alycia.Modules.Retrieval.CitationAudit	présent	absent
+Roslyn inter-propriétaires	Conversations	Retrieval / Alycia.Modules.Retrieval.ClaimAudit	présent	absent
+Roslyn inter-propriétaires	Conversations	Retrieval / Alycia.Modules.Retrieval.SemanticClaimAudit	présent	absent
+Roslyn inter-propriétaires	Conversations	Tools / Alycia.Modules.Chat.Application.ITurnTools	présent	absent
+Roslyn inter-propriétaires	Documents	Context / Alycia.Modules.Chat.Application.RecursiveSummarizer	présent	absent
+Roslyn inter-propriétaires	Documents	Context / Alycia.Modules.Chat.Application.SummarySource	présent	absent
+Roslyn inter-propriétaires	Documents	Conversations / Alycia.Modules.Chat.Application.GenerationGate	présent	absent
+Roslyn inter-propriétaires	Documents	Persistence / Alycia.Modules.Chat.Infrastructure.ChatDbContext	présent	absent
+Roslyn inter-propriétaires	Indexing	Documents / Alycia.Modules.Documents.FileStorage	présent	absent
+Roslyn inter-propriétaires	Indexing	Documents / Alycia.Modules.Documents.StructuredDocuments	présent	absent
+Roslyn inter-propriétaires	Indexing	Persistence / Alycia.Modules.Chat.Infrastructure.ChatDbContext	présent	absent
+Roslyn inter-propriétaires	Indexing	Retrieval / Alycia.Modules.Chat.Application.ProjectRetrieval	présent	absent
+Roslyn inter-propriétaires	Memory	Retrieval / Alycia.Modules.Chat.Application.ProjectRetrieval	présent	absent
+Roslyn inter-propriétaires	Persistence	Configuration / Alycia.Modules.Chat.Domain.PromptProfile	présent	absent
+Roslyn inter-propriétaires	Persistence	Conversations / Alycia.Modules.Chat.Domain.ChatMessage	présent	absent
+Roslyn inter-propriétaires	Persistence	Conversations / Alycia.Modules.Chat.Domain.Conversation	présent	absent
+Roslyn inter-propriétaires	Persistence	Documents / Alycia.Modules.Chat.Domain.Attachment	présent	absent
+Roslyn inter-propriétaires	Persistence	Documents / Alycia.Modules.Chat.Domain.DocumentAnalysis	présent	absent
+Roslyn inter-propriétaires	Persistence	Documents / Alycia.Modules.Chat.Domain.WorkspaceFileOverride	présent	absent
+Roslyn inter-propriétaires	Persistence	Workspaces / Alycia.Modules.Chat.Domain.WorkspaceProfile	présent	absent
+Roslyn inter-propriétaires	Tools	Context / Alycia.Modules.Chat.Application.RecursiveSummarizer	présent	absent
+Roslyn inter-propriétaires	Tools	Context / Alycia.Modules.Chat.Application.SummarySource	présent	absent
+Roslyn inter-propriétaires	Tools	Retrieval / Alycia.Modules.Chat.Application.ProjectRetrieval	présent	absent

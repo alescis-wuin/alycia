@@ -1,3 +1,4 @@
+using Alycia.Modules.Retrieval;
 using System.Text;
 using System.Text.Json;
 using Alycia.Modules.Chat.Application;
@@ -10,7 +11,7 @@ public sealed class HistoryToolsTests
     [Fact]
     public async Task OldDecisionRemainsSearchableBeyondLedgerLimitAndKeepsBothRoles()
     {
-        var repository = new Repository(300); var tools = new HistoryTools(repository);
+        var repository = new Repository(300); var tools = new HistoryTools(new PassageScoring(), repository);
         var result = await tools.CallAsync(repository.Conversation.Id, "history_search", JsonSerializer.SerializeToElement(new { query = "orion" }), 8192, default);
         Assert.Contains("/srv/orion", result.Text);
         Assert.Contains(result.History!, h => h.Sequence == 1 && h.Role == "user");
@@ -28,7 +29,7 @@ public sealed class HistoryToolsTests
     [Fact]
     public async Task NoMatchReturnsScanContinuationAndInvalidOffsetsNeverReadAnotherTurn()
     {
-        var repository = new Repository(2100); var tools = new HistoryTools(repository);
+        var repository = new Repository(2100); var tools = new HistoryTools(new PassageScoring(), repository);
         var result = await tools.CallAsync(repository.Conversation.Id, "history_search", JsonSerializer.SerializeToElement(new { query = "neptune" }), 2048, default);
         using var json = JsonDocument.Parse(result.Text);
         Assert.Equal(HistoryTools.MaxScanMessages, json.RootElement.GetProperty("scannedMessages").GetInt32());
@@ -39,7 +40,7 @@ public sealed class HistoryToolsTests
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => tools.CallAsync(repository.Conversation.Id, "history_search", JsonSerializer.SerializeToElement(new { query = "orion" }), 2048, cancellation.Token));
     }
 
-    private sealed class Repository : IChatRepository
+    private sealed class Repository : ITestConversationRepository
     {
         public Conversation Conversation { get; } = Conversation.Create("history", "demo", "");
         public List<ChatMessage> Messages { get; } = [];
