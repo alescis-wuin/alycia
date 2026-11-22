@@ -71,8 +71,8 @@
 
 | Deliverable | Expected outcome | Proposed location |
 |---|---|---|
-| D1 — Domain and use cases | `Workspace`, invariants, creation/retrieval through Application services and `IWorkspaceRepository` | `src/Alycia.Modules.Workspaces.Domain/`, `src/Alycia.Modules.Workspaces.Application/` |
-| D2 — Persistence | `WorkspacesDbContext`, `EfWorkspaceRepository`, mappings, explicit migrations, `make migrate`, constraints | `src/Alycia.Modules.Workspaces.Infrastructure/`, `Makefile` and minimal support if needed |
+| D1 — Domain and use cases | `Workspace`, invariants, creation/retrieval through Application services and `IWorkspaceRepository` | `modules/workspaces/src/Alycia.Modules.Workspaces.Domain/`, `modules/workspaces/src/Alycia.Modules.Workspaces.Application/` |
+| D2 — Persistence | `WorkspacesDbContext`, `EfWorkspaceRepository`, mappings, explicit migrations, `make migrate`, constraints | `modules/workspaces/src/Alycia.Modules.Workspaces.Infrastructure/`, `Makefile` and minimal support if needed |
 | D3 — API and security | Actually authorized routes, JSON envelope, errors and correlation | `src/Alycia.Api/`, contracts if needed |
 | D4 — Avalonia flow | Minimal screen/action, state transitions and retry | `src/Alycia.Client.Avalonia/` |
 | D5 — Tests, evidence, docs | Domain/persistence tests, complete flow, README, SMART/END | `tests/`, `README.md`, `docs/Alycia-Sprint-6-*.md` |

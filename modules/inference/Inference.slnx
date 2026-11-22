@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="src/Alycia.Modules.Inference/Alycia.Modules.Inference.csproj" />
+  <Project Path="testing/Alycia.Modules.Inference.Mocks/Alycia.Modules.Inference.Mocks.csproj" />
+  <Project Path="tests/Alycia.Modules.Inference.Tests/Alycia.Modules.Inference.Tests.csproj" />
+</Solution>

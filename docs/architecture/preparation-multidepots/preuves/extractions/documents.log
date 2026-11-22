@@ -1,0 +1,24 @@
+dotnet restore /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/documents-w2x7zf6v/documents/Documents.slnx --locked-mode --configfile /workspace/scratch/d996445e2691/tooling/tmp/alycia-module-run-yr121b00/NuGet.Config -m:1
+  Determining projects to restore...
+  Restored /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/documents-w2x7zf6v/documents/testing/Alycia.Modules.Documents.Mocks/Alycia.Modules.Documents.Mocks.csproj (in 187 ms).
+  Restored /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/documents-w2x7zf6v/documents/src/Alycia.Modules.Documents/Alycia.Modules.Documents.csproj (in 542 ms).
+  Restored /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/documents-w2x7zf6v/documents/src/Alycia.Modules.Documents.Infrastructure/Alycia.Modules.Documents.Infrastructure.csproj (in 544 ms).
+  Restored /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/documents-w2x7zf6v/documents/tests/Alycia.Modules.Documents.Tests/Alycia.Modules.Documents.Tests.csproj (in 545 ms).
+dotnet build /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/documents-w2x7zf6v/documents/Documents.slnx -c Release --no-restore -m:1 -v:q
+
+
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:07.68
+dotnet test /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/documents-w2x7zf6v/documents/Documents.slnx -c Release --no-build --no-restore -m:1 --logger trx --results-directory /workspace/scratch/d996445e2691/tooling/tmp/alycia-module-run-yr121b00
+Test run for /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/documents-w2x7zf6v/documents/tests/Alycia.Modules.Documents.Tests/bin/Release/net10.0/Alycia.Modules.Documents.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+Results File: /workspace/scratch/d996445e2691/tooling/tmp/alycia-module-run-yr121b00/_c9ce3e8ec5f9_2026-11-22_23_15_05_net10.0.trx
+
+Passed!  - Failed:     0, Passed:    13, Skipped:     0, Total:    13, Duration: 456 ms - Alycia.Modules.Documents.Tests.dll (net10.0)
+VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.
+PASS Documents: 4 projects, 13 passed, 0 skipped
+  The package Alycia.Modules.Documents.Mocks.0.1.0 is missing a readme. Go to https://aka.ms/nuget/authoring-best-practices/readme to learn why package readmes are important.
+  Successfully created package '/workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/repacked/Alycia.Modules.Documents.Mocks.0.1.0.nupkg'.
+PASS independent package Alycia.Modules.Documents.Mocks.0.1.0.nupkg

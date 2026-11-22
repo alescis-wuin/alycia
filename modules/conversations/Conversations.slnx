@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="src/Alycia.Modules.Chat.Application/Alycia.Modules.Chat.Application.csproj" />
+  <Project Path="src/Alycia.Modules.Chat.Domain/Alycia.Modules.Chat.Domain.csproj" />
+  <Project Path="src/Alycia.Modules.Chat.Infrastructure/Alycia.Modules.Chat.Infrastructure.csproj" />
+  <Project Path="testing/Alycia.Modules.Conversations.Mocks/Alycia.Modules.Conversations.Mocks.csproj" />
+  <Project Path="testing/Alycia.Modules.Conversations.RepositoryFixtures/Alycia.Modules.Conversations.RepositoryFixtures.csproj" />
+  <Project Path="tests/Alycia.Modules.Conversations.Tests/Alycia.Modules.Conversations.Tests.csproj" />
+</Solution>

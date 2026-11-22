@@ -7,10 +7,10 @@
     <Using Include="Alycia.Contracts.Indexing" />
     <Using Include="Alycia.Modules.Indexing" />
     <Using Include="Alycia.Modules.Retrieval" />
-    <ProjectReference Include="../../src/Alycia.Modules.Retrieval/Alycia.Modules.Retrieval.csproj" />
+    <ProjectReference Include="../../modules/retrieval/src/Alycia.Modules.Retrieval/Alycia.Modules.Retrieval.csproj" />
     <Using Include="Alycia.Contracts.Retrieval" />
     <Using Include="Alycia.Modules.Retrieval.Onnx" />
-    <ProjectReference Include="../../src/Alycia.Modules.Retrieval.Onnx/Alycia.Modules.Retrieval.Onnx.csproj" />
+    <ProjectReference Include="../../modules/retrieval/src/Alycia.Modules.Retrieval.Onnx/Alycia.Modules.Retrieval.Onnx.csproj" />
   </ItemGroup>
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -25,8 +25,8 @@
     <Using Include="Xunit" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="../../src/Alycia.Modules.Chat.Infrastructure/Alycia.Modules.Chat.Infrastructure.csproj" />
-    <ProjectReference Include="../../src/Alycia.Modules.Testing/Alycia.Modules.Testing.csproj" />
+    <ProjectReference Include="../../modules/conversations/src/Alycia.Modules.Chat.Infrastructure/Alycia.Modules.Chat.Infrastructure.csproj" />
+
     <ProjectReference Include="../../src/Alycia.Api/Alycia.Api.csproj" />
   </ItemGroup>
   <ItemGroup>
@@ -49,27 +49,40 @@
     <ProjectReference Include="../../src/Alycia.Persistence.Migrations/Alycia.Persistence.Migrations.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="../../src/Alycia.Modules.Documents.Infrastructure/Alycia.Modules.Documents.Infrastructure.csproj" />
+    <ProjectReference Include="../../modules/documents/src/Alycia.Modules.Documents.Infrastructure/Alycia.Modules.Documents.Infrastructure.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="../../src/Alycia.Modules.Documents/Alycia.Modules.Documents.csproj" />
+    <ProjectReference Include="../../modules/documents/src/Alycia.Modules.Documents/Alycia.Modules.Documents.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="../../src/Alycia.Modules.Indexing/Alycia.Modules.Indexing.csproj" />
+    <ProjectReference Include="../../modules/indexing/src/Alycia.Modules.Indexing/Alycia.Modules.Indexing.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="../../src/Alycia.Modules.Context/Alycia.Modules.Context.csproj" />
+    <ProjectReference Include="../../modules/context/src/Alycia.Modules.Context/Alycia.Modules.Context.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="../../src/Alycia.Modules.Memory/Alycia.Modules.Memory.csproj" />
+    <ProjectReference Include="../../modules/memory/src/Alycia.Modules.Memory/Alycia.Modules.Memory.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="../../src/Alycia.Modules.Tools/Alycia.Modules.Tools.csproj" />
+    <ProjectReference Include="../../modules/tools/src/Alycia.Modules.Tools/Alycia.Modules.Tools.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="../../src/Alycia.Modules.Configuration/Alycia.Modules.Configuration.csproj" />
+    <ProjectReference Include="../../modules/configuration/src/Alycia.Modules.Configuration/Alycia.Modules.Configuration.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="Alycia.Modules.Configuration" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../modules/configuration/testing/Alycia.Modules.Configuration.Mocks/Alycia.Modules.Configuration.Mocks.csproj" />
+    <ProjectReference Include="../../modules/context/testing/Alycia.Modules.Context.Mocks/Alycia.Modules.Context.Mocks.csproj" />
+    <ProjectReference Include="../../modules/conversations/testing/Alycia.Modules.Conversations.Mocks/Alycia.Modules.Conversations.Mocks.csproj" />
+    <ProjectReference Include="../../modules/documents/testing/Alycia.Modules.Documents.Mocks/Alycia.Modules.Documents.Mocks.csproj" />
+    <ProjectReference Include="../../modules/indexing/testing/Alycia.Modules.Indexing.Mocks/Alycia.Modules.Indexing.Mocks.csproj" />
+    <ProjectReference Include="../../modules/inference/testing/Alycia.Modules.Inference.Mocks/Alycia.Modules.Inference.Mocks.csproj" />
+    <ProjectReference Include="../../modules/memory/testing/Alycia.Modules.Memory.Mocks/Alycia.Modules.Memory.Mocks.csproj" />
+    <ProjectReference Include="../../modules/retrieval/testing/Alycia.Modules.Retrieval.Mocks/Alycia.Modules.Retrieval.Mocks.csproj" />
+    <ProjectReference Include="../../modules/tools/testing/Alycia.Modules.Tools.Mocks/Alycia.Modules.Tools.Mocks.csproj" />
+    <ProjectReference Include="../../modules/workspaces/testing/Alycia.Modules.Workspaces.Mocks/Alycia.Modules.Workspaces.Mocks.csproj" />
+    <ProjectReference Include="../../modules/conversations/testing/Alycia.Modules.Conversations.RepositoryFixtures/Alycia.Modules.Conversations.RepositoryFixtures.csproj" />
   </ItemGroup>
 </Project>

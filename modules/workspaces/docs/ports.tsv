@@ -1,0 +1,8 @@
+port	rôle dans ce domaine	statut	fixture du maître ou du domaine
+Alycia.Contracts.Indexing.IProjectIndexOwners	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/OwnerContractTests.cs
+Alycia.Contracts.Workspaces.IProjectCatalog	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/ProjectProfileContractTests.cs
+Alycia.Contracts.Workspaces.IProjectModelDefaults	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/OwnerContractTests.cs
+Alycia.Contracts.Workspaces.IProjectNoteOrigins	propriété fonctionnelle	VALIDÉ	tests/Alycia.Modules.Chat.Tests/ProjectProfileContractTests.cs
+Alycia.Contracts.Workspaces.IWorkspaceIdentityDirectory	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/OwnerContractTests.cs
+Alycia.Contracts.Workspaces.IWorkspaceProfiles	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/ProjectProfileContractTests.cs
+Alycia.Modules.Workspaces.Application.IWorkspaceRepository	propriété fonctionnelle, déclaration, adaptateur, double	VALIDÉ	modules/workspaces/tests/Alycia.Modules.Workspaces.Tests/RepositoryContractTests.cs

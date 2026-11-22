@@ -3,12 +3,15 @@ import argparse
 import csv
 from pathlib import Path
 
+from layout import assembly, layer, parts as layout_parts, projects as project_paths, implementation_group, owned_sources
 from module_rules import owner
 
 
 def classify(path, symbol):
-    parts = Path(path).parts
+    parts = layout_parts(path)
     project = parts[1]
+    if path.startswith("modules/"):
+        return Path(path).parts[1], {"src": "production", "tests": "conformité", "testing": "fixture"}[parts[0]]
     if parts[0] == "tests":
         return "Tests", "conformité"
     if parts[0] == "benchmarks":
@@ -17,6 +20,8 @@ def classify(path, symbol):
         return project, "généré"
     if "Migrations" in parts:
         return project, "historique EF"
+    if project in {"Alycia.DevHost", "Alycia.Persistence.Migrations"}:
+        return "Maître", "composition de développement" if project == "Alycia.DevHost" else "intégration EF"
     if project == "Alycia.Api":
         return "API", "composition" if "Registration" in path or path.endswith("/Program.cs") else "transport"
     if project == "Alycia.Contracts":
@@ -46,7 +51,7 @@ def collect(input_dir, output_dir):
         with file.open() as stream:
             for row in csv.reader(stream, delimiter="\t", quoting=csv.QUOTE_NONE):
                 kind, path = row[:2]
-                if Path(path).parts[0] not in {"src", "tests", "benchmarks"} or "/obj/" in path:
+                if layer(path) not in {"src", "tests", "testing", "benchmarks"} or "/obj/" in path:
                     continue
                 if kind == "D":
                     _, _, line, category, access, identifier = row
@@ -56,7 +61,7 @@ def collect(input_dir, output_dir):
                     if ".WorkspaceFileOverride" in identifier:
                         target = "Documents"
                     declarations.append((path, int(line), category, access, identifier, file.stem, target, role))
-                elif kind in ("E", "S", "Y", "L", "C") and path.startswith("src/") and "/obj/" not in path:
+                elif kind in ("E", "S", "Y", "L", "C") and layer(path) == "src" and "/obj/" not in path:
                     accesses.append((path, int(row[2]), kind, " | ".join(row[3:])))
     output_dir.mkdir(parents=True, exist_ok=True)
     for name, columns, data in [

@@ -8,14 +8,16 @@ try {
     if (-not $container) { throw 'PostgreSQL is not running. Start it with demo.ps1 -Action Api.' }
     $config = (Invoke-Compose @('config', '--format', 'json') -Capture) -join "`n" | ConvertFrom-Json
     $pg = $config.services.postgres.environment
+    if (Get-Command python -ErrorAction SilentlyContinue) { Invoke-Checked python @('scripts/modules.py','bootstrap-packages') }
+    else { Invoke-Checked py @('-3','scripts/modules.py','bootstrap-packages') }
     Invoke-Checked dotnet @('tool', 'restore')
     foreach ($module in @('Workspaces', 'Chat')) {
-        $project = if ($module -eq "Chat") { "src/Alycia.Persistence.Migrations" } else { "src/Alycia.Modules.$module.Infrastructure" }
+        $project = if ($module -eq "Chat") { "src/Alycia.Persistence.Migrations" } else { "modules/workspaces/src/Alycia.Modules.Workspaces.Infrastructure" }
         $context = "${module}DbContext"
         $sql = Join-Path ([IO.Path]::GetTempPath()) ("alycia-" + [Guid]::NewGuid().ToString('N') + '.sql')
         $remote = '/tmp/' + [IO.Path]::GetFileName($sql)
         try {
-            Invoke-Checked dotnet @('restore', $project)
+            Invoke-Checked dotnet @('restore', $project, '--locked-mode', '--configfile', 'NuGet.Config')
             Invoke-Checked dotnet @('tool', 'run', 'dotnet-ef', 'migrations', 'script', '--idempotent',
                 '--project', $project, '--startup-project', $project, '--context', $context, '--output', $sql)
             if (-not (Test-Path $sql) -or (Get-Item $sql).Length -eq 0) { throw "Empty SQL for $module." }

@@ -1,0 +1,35 @@
+schema	relation	constraint_name	definition
+chat	__EFMigrationsHistory	PK___EFMigrationsHistory	"PRIMARY KEY (""MigrationId"")"
+chat	attachments	FK_attachments_conversations_ConversationId	"FOREIGN KEY (""ConversationId"") REFERENCES chat.conversations(""Id"") ON DELETE CASCADE"
+chat	attachments	FK_attachments_workspace_profiles_WorkspaceId	"FOREIGN KEY (""WorkspaceId"") REFERENCES chat.workspace_profiles(""Id"") ON DELETE RESTRICT"
+chat	attachments	PK_attachments	"PRIMARY KEY (""Id"")"
+chat	attachments	ck_attachment_owner	"CHECK (num_nonnulls(""ConversationId"", ""WorkspaceId"") = 1)"
+chat	conversations	FK_conversations_workspace_profiles_WorkspaceId	"FOREIGN KEY (""WorkspaceId"") REFERENCES chat.workspace_profiles(""Id"") ON DELETE RESTRICT"
+chat	conversations	PK_conversations	"PRIMARY KEY (""Id"")"
+chat	document_analyses	FK_document_analyses_conversations_ConversationId	"FOREIGN KEY (""ConversationId"") REFERENCES chat.conversations(""Id"") ON DELETE CASCADE"
+chat	document_analyses	PK_document_analyses	"PRIMARY KEY (""Id"")"
+chat	embedding_jobs	embedding_jobs_pkey	PRIMARY KEY (owner_id, is_project)
+chat	embedding_vectors	embedding_vectors_check	CHECK (num_nonnulls(file_id, conversation_id) = 1)
+chat	embedding_vectors	embedding_vectors_conversation_id_fkey	"FOREIGN KEY (conversation_id) REFERENCES chat.conversations(""Id"") ON DELETE CASCADE"
+chat	embedding_vectors	embedding_vectors_file_id_fkey	"FOREIGN KEY (file_id) REFERENCES chat.attachments(""Id"") ON DELETE CASCADE"
+chat	embedding_vectors	embedding_vectors_pkey	PRIMARY KEY (identity, key)
+chat	import_settings	import_settings_id_check	CHECK (id = 1)
+chat	import_settings	import_settings_pkey	PRIMARY KEY (id)
+chat	knowledge_units	knowledge_units_check	CHECK (num_nonnulls(file_id, conversation_id) = 1)
+chat	knowledge_units	knowledge_units_conversation_id_fkey	"FOREIGN KEY (conversation_id) REFERENCES chat.conversations(""Id"") ON DELETE CASCADE"
+chat	knowledge_units	knowledge_units_file_id_fkey	"FOREIGN KEY (file_id) REFERENCES chat.attachments(""Id"") ON DELETE CASCADE"
+chat	knowledge_units	knowledge_units_pkey	PRIMARY KEY (key)
+chat	messages	FK_messages_conversations_ConversationId	"FOREIGN KEY (""ConversationId"") REFERENCES chat.conversations(""Id"") ON DELETE CASCADE"
+chat	messages	PK_messages	"PRIMARY KEY (""ConversationId"", ""Sequence"")"
+chat	prompt_profiles	PK_prompt_profiles	"PRIMARY KEY (""Id"")"
+chat	temporal_memory	temporal_memory_owner_fkey	"FOREIGN KEY (owner) REFERENCES chat.conversations(""Id"") ON DELETE CASCADE"
+chat	temporal_memory	temporal_memory_pkey	PRIMARY KEY (owner, sequence)
+chat	workspace_file_overrides	FK_workspace_file_overrides_attachments_FileId	"FOREIGN KEY (""FileId"") REFERENCES chat.attachments(""Id"") ON DELETE CASCADE"
+chat	workspace_file_overrides	FK_workspace_file_overrides_conversations_ConversationId	"FOREIGN KEY (""ConversationId"") REFERENCES chat.conversations(""Id"") ON DELETE CASCADE"
+chat	workspace_file_overrides	PK_workspace_file_overrides	"PRIMARY KEY (""ConversationId"", ""FileId"")"
+chat	workspace_profiles	PK_workspace_profiles	"PRIMARY KEY (""Id"")"
+workspaces	__EFMigrationsHistory	PK___EFMigrationsHistory	"PRIMARY KEY (""MigrationId"")"
+workspaces	workspaces	PK_workspaces	PRIMARY KEY (id)
+workspaces	workspaces	ck_workspaces_id_nonempty	CHECK (id <> '00000000-0000-0000-0000-000000000000'::uuid)
+workspaces	workspaces	ck_workspaces_name_length	CHECK (char_length(name::text) >= 1 AND char_length(name::text) <= 100)
+workspaces	workspaces	ck_workspaces_name_trimmed	CHECK (name::text = btrim(name::text))

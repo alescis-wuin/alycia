@@ -1,0 +1,8 @@
+id	version	sha256
+Alycia.Contracts	0.1.0	0a8d50de587e6c719b09d1c2f27897a58add1ad16609021e0c0aac8f9e3bf4e5
+Alycia.Modules.Conversations.Mocks	0.1.0	65c56443867b5d9e3253f70d27c9a1024b21d4c034a7743534860f28ce806fa5
+Alycia.Modules.Documents.Mocks	0.1.0	716d739f18005b96ad186c3b3f4195fbde62ec5a97871560ae35f17b89808697
+Alycia.Modules.Indexing.Mocks	0.1.0	86959b3e1fafef3e8c36d1dc2595ec5e3d5556dd80617d5569994155f995de7b
+Alycia.Modules.Inference.Mocks	0.1.0	219864ba2142142268ade6818d0f84e4c256398fa338fbacbf880e8e6db5fe5f
+Alycia.Modules.Retrieval.Mocks	0.1.0	4a324024ba8e99fff42a19d787d3803727f5ef1e961cf3d5848940757643882d
+Alycia.Platform.Persistence	0.1.0	77f25678090532d4fa5e1ac0689735c2bebf39f3d6971e8a076bf320cd43cb1f

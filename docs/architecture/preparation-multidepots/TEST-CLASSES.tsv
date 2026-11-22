@@ -1,0 +1,12 @@
+class	old	new
+Alycia.Modules.Chat.Tests.ArchiveTests	alycia.modules.chat.tests.dll	alycia.modules.conversations.tests.dll
+Alycia.Modules.Chat.Tests.BriefSnapshotTests	alycia.modules.chat.tests.dll	alycia.modules.inference.tests.dll
+Alycia.Modules.Chat.Tests.CitationAuditTests	alycia.modules.chat.tests.dll	alycia.modules.retrieval.tests.dll
+Alycia.Modules.Chat.Tests.CodeStructureTests	alycia.modules.chat.tests.dll	alycia.modules.documents.tests.dll
+Alycia.Modules.Chat.Tests.ConversationSettingsTransferTests	alycia.modules.chat.tests.dll	alycia.modules.conversations.tests.dll
+Alycia.Modules.Chat.Tests.DocumentImportBatchTests	alycia.modules.chat.tests.dll	alycia.modules.documents.tests.dll
+Alycia.Modules.Chat.Tests.ProjectInventoryTests	alycia.modules.chat.tests.dll	alycia.modules.documents.tests.dll
+Alycia.Modules.Chat.Tests.RerankerContractTests	alycia.modules.chat.tests.dll	alycia.modules.retrieval.tests.dll
+Alycia.Modules.Chat.Tests.RetrievalDiagnosticsTests	alycia.modules.chat.tests.dll	alycia.contracts.tests.dll
+Alycia.Modules.Chat.Tests.StructuredDocumentsTests	alycia.modules.chat.tests.dll	alycia.modules.documents.tests.dll
+Alycia.Modules.Chat.Tests.TurnSnapshotTests	alycia.modules.chat.tests.dll	alycia.modules.conversations.tests.dll

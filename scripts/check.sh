@@ -11,16 +11,20 @@ if [[ "${1:-}" == "--integration" && -z "${ALYCIA_CHAT_TEST_CONNECTION:-}" ]]; t
 fi
 run_dir=$(mktemp -d "${TMPDIR:-/tmp}/alycia-check-XXXXXXXX")
 trap 'rm -rf -- "$run_dir"' EXIT
+isolation=(--require-complete)
+if [[ "${1:-}" != "--integration" && ( -z "${ALYCIA_CHAT_TEST_CONNECTION:-}" || -z "${ALYCIA_RERANK_DIRECTORY:-}" ) ]]; then
+    isolation+=(--build-only)
+fi
+python3 scripts/build-isolated-modules.py "${isolation[@]}"
 python3 scripts/check-modules.py --all-projects --capture "$run_dir/architecture"
-python3 scripts/build-isolated-modules.py --require-complete
-dotnet restore Alycia.slnx --disable-parallel -m:1
+dotnet restore Alycia.slnx --locked-mode --configfile NuGet.Config --disable-parallel -m:1
 dotnet tool restore
 dotnet build Alycia.slnx --no-restore -m:1 -p:UseSharedCompilation=false
 bash scripts/quality.sh lint
 dotnet tool run dotnet-ef migrations has-pending-model-changes \
     --project src/Alycia.Persistence.Migrations --context ChatDbContext --no-build
 dotnet tool run dotnet-ef migrations has-pending-model-changes \
-    --project src/Alycia.Modules.Workspaces.Infrastructure --context WorkspacesDbContext --no-build
+    --project modules/workspaces/src/Alycia.Modules.Workspaces.Infrastructure --context WorkspacesDbContext --no-build
 dotnet test Alycia.slnx --no-build --no-restore -m:1 \
     --logger trx --results-directory "$run_dir/tests"
 mkdir -p artifacts/tests

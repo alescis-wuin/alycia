@@ -11,21 +11,26 @@ try {
     $capture = Join-Path $runDir 'architecture'
     $results = Join-Path $runDir 'tests'
     $python = Get-Command python -ErrorAction SilentlyContinue
-    if ($python) {
-        Invoke-Checked $python.Source @('scripts/check-modules.py', '--all-projects', '--capture', $capture)
-        Invoke-Checked $python.Source @('scripts/build-isolated-modules.py', '--require-complete')
-    } else {
-        Invoke-Checked py @('-3', 'scripts/check-modules.py', '--all-projects', '--capture', $capture)
-        Invoke-Checked py @('-3', 'scripts/build-isolated-modules.py', '--require-complete')
+    $isolation = @('scripts/build-isolated-modules.py','--require-complete')
+    if (-not $Integration -and (-not $env:ALYCIA_CHAT_TEST_CONNECTION -or -not $env:ALYCIA_RERANK_DIRECTORY)) {
+        $isolation += '--build-only'
     }
-    Invoke-Checked dotnet @('restore', 'Alycia.slnx', '--disable-parallel', '-m:1')
+    $guard = @('scripts/check-modules.py','--all-projects','--capture',$capture)
+    if ($python) {
+        Invoke-Checked $python.Source $isolation
+        Invoke-Checked $python.Source $guard
+    } else {
+        Invoke-Checked py (@('-3') + $isolation)
+        Invoke-Checked py (@('-3') + $guard)
+    }
+    Invoke-Checked dotnet @('restore', 'Alycia.slnx', '--locked-mode', '--configfile', 'NuGet.Config', '--disable-parallel', '-m:1')
     Invoke-Checked dotnet @('tool', 'restore')
     Invoke-Checked dotnet @('build', 'Alycia.slnx', '--no-restore', '-m:1', '-p:UseSharedCompilation=false')
     & (Join-Path $PSScriptRoot 'quality.ps1') -Mode lint
     Invoke-Checked dotnet @('tool', 'run', 'dotnet-ef', 'migrations', 'has-pending-model-changes',
         '--project', 'src/Alycia.Persistence.Migrations', '--context', 'ChatDbContext', '--no-build')
     Invoke-Checked dotnet @('tool', 'run', 'dotnet-ef', 'migrations', 'has-pending-model-changes',
-        '--project', 'src/Alycia.Modules.Workspaces.Infrastructure', '--context', 'WorkspacesDbContext', '--no-build')
+        '--project', 'modules/workspaces/src/Alycia.Modules.Workspaces.Infrastructure', '--context', 'WorkspacesDbContext', '--no-build')
     Invoke-Checked dotnet @('test', 'Alycia.slnx', '--no-build', '--no-restore', '-m:1',
         '--logger', 'trx', '--results-directory', $results)
     New-Item -ItemType Directory -Force 'artifacts/tests' | Out-Null

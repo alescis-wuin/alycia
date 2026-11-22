@@ -10,10 +10,12 @@ if [[ -z "$(docker compose ps --status running -q postgres)" ]]; then
     exit 1
 fi
 
+python3 scripts/modules.py bootstrap-packages
+
 for module in "${modules[@]}"; do
     case "$module" in
         workspaces)
-            project=src/Alycia.Modules.Workspaces.Infrastructure
+            project=modules/workspaces/src/Alycia.Modules.Workspaces.Infrastructure
             context=WorkspacesDbContext
             ;;
         chat)
@@ -27,7 +29,7 @@ for module in "${modules[@]}"; do
     esac
 
     # dotnet-ef reads project metadata before its build; fresh checkouts have no assets file.
-    dotnet restore "$project"
+    dotnet restore "$project" --locked-mode --configfile NuGet.Config
 
     migration_sql=$(mktemp)
     trap 'rm -f "$migration_sql"' EXIT

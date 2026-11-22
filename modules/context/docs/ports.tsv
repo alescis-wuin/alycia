@@ -1,0 +1,5 @@
+port	rôle dans ce domaine	statut	fixture du maître ou du domaine
+Alycia.Contracts.Context.ISlidingHistory	propriété fonctionnelle, adaptateur, double	VALIDÉ	modules/context/tests/Alycia.Modules.Context.Tests/HistorySelectionContractTests.cs
+Alycia.Contracts.Context.ISummaryReducer	propriété fonctionnelle, adaptateur, double	VALIDÉ	modules/context/tests/Alycia.Modules.Context.Tests/SummaryContractTests.cs
+Alycia.Contracts.Context.ITurnContext	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/TurnOutputContractTests.cs
+Alycia.Contracts.Context.ITurnHistory	propriété fonctionnelle	VALIDÉ	tests/Alycia.Modules.Chat.Tests/TurnReadContractTests.cs

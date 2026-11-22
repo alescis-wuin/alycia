@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Alycia.Contracts" Version="[0.1.0]" />
+    <ProjectReference Include="../Alycia.Modules.Chat.Domain/Alycia.Modules.Chat.Domain.csproj" />
+    <Using Include="Alycia.Contracts.Indexing" />
+    <Using Include="Alycia.Contracts.Retrieval" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Alycia.Contracts.Chat" />
+    <Using Include="Alycia.Contracts.Tools" />
+    <Using Include="Alycia.Contracts.Inference" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Alycia.Contracts.Context" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>true</IsPackable>
+    <PackageId>Alycia.Modules.Inference.Mocks</PackageId>
+    <Version>0.1.0</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <Authors>Alycia</Authors>
+    <Description>Alycia.Modules.Inference.Mocks pour l’assemblage local d’Alycia.</Description>
+    <RepositoryUrl>https://github.com/alescis-wuin/alycia</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseFile>PACKAGE-LICENSE.txt</PackageLicenseFile>
+    <Deterministic>true</Deterministic>
+    <DeterministicTimestamp>2000-01-01T00:00:00Z</DeterministicTimestamp>
+    <EnableSourceControlManagerQueries>false</EnableSourceControlManagerQueries>
+    <EnableSourceLink>false</EnableSourceLink>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <PathMap>$(MSBuildProjectDirectory)=/_/Alycia.Modules.Inference.Mocks</PathMap>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Alycia.Contracts" Version="[0.1.0]" />
+    <Using Include="Alycia.Contracts.Chat" />
+    <Using Include="Alycia.Contracts.Inference" />
+    <Using Include="Alycia.Contracts.Indexing" />
+    <Using Include="Alycia.Contracts.Retrieval" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="../../PACKAGE-LICENSE.txt" Pack="true" PackagePath="/" />
+  </ItemGroup>
+</Project>
