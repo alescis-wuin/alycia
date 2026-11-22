@@ -136,6 +136,44 @@ public sealed class TextGenerationContractTests
         Assert.Equal("initial", call.GetProperty("arguments").GetProperty("path").GetString());
     }
 
+    [Fact]
+    public async Task Queued_embedding_preserves_the_text_and_row_count_supplied_by_the_caller()
+    {
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        var transport = new BlockingEmbeddings();
+        using var http = new HttpClient(transport) { BaseAddress = new Uri("http://localhost/") };
+        var adapter = new OllamaEmbeddings(http, new InferenceScheduler());
+        var first = adapter.EmbedAsync("fixture", ["active"], deadline.Token);
+        await transport.Entered.Task.WaitAsync(deadline.Token);
+        var rows = new List<string> { "initial" };
+        var queued = adapter.EmbedAsync("fixture", rows, deadline.Token);
+        rows[0] = "modified";
+        rows.Add("extra");
+        transport.Release.SetResult();
+        await first;
+        var result = await queued;
+        Assert.Equal(["initial"], transport.Seen);
+        Assert.Single(result.Vectors);
+    }
+
+    private sealed class BlockingEmbeddings : HttpMessageHandler
+    {
+        public TaskCompletionSource Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public string[] Seen { get; private set; } = [];
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+        {
+            using var json = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(ct));
+            Seen = json.RootElement.GetProperty("input").Deserialize<string[]>()!;
+            if (Entered.TrySetResult()) await Release.Task.WaitAsync(ct);
+            var vectors = Seen.Select(_ => new[] { .5 }).ToArray();
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(JsonSerializer.Serialize(new { embeddings = vectors }))
+            };
+        }
+    }
+
     private sealed class ProviderTransport(Task? gate = null, Action<string>? observe = null) : HttpMessageHandler
     {
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)

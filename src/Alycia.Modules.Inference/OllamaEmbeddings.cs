@@ -28,15 +28,17 @@ public sealed class OllamaEmbeddings(HttpClient http, InferenceScheduler schedul
     }
     public async Task<EmbeddingBatch> EmbedAsync(string model, IReadOnlyList<string> input, CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
+        var rows = input.ToArray();
         using var inference = await scheduler.AcquireAsync(TimeSpan.FromSeconds(180), ct);
         try
         {
-            using var response = await http.PostAsJsonAsync("api/embed", new { model, input, truncate = false }, inference.Token);
+            using var response = await http.PostAsJsonAsync("api/embed", new { model, input = rows, truncate = false }, inference.Token);
             if (!response.IsSuccessStatusCode) throw new ChatModelException("Embeddings refusés : vérifiez le modèle local, sa fenêtre ou choisissez la recherche lexicale.");
             using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(inference.Token));
             var root = document.RootElement;
             var vectors = root.GetProperty("embeddings").Deserialize<float[][]>()!;
-            if (vectors is null || vectors.Length != input.Count || vectors.Any(v => v is null || v.Length is < 1 or > 8192
+            if (vectors is null || vectors.Length != rows.Length || vectors.Any(v => v is null || v.Length is < 1 or > 8192
                     || v.Any(x => !float.IsFinite(x))) || vectors.Any(v => v.Length != vectors[0].Length)) throw new ChatModelException("Vecteurs locaux invalides.");
             int? count = root.TryGetProperty("prompt_eval_count", out var p) ? p.GetInt32() : null;
             long? duration = root.TryGetProperty("total_duration", out var d) ? d.GetInt64() : null;
