@@ -8,5 +8,5 @@ public sealed class ProjectRetrievalService(IRetrievalPipeline pipeline, IIndexe
         pipeline.PrepareAsync(conversation, query, request.Passages, semantic is null ? null :
             (term, chunks, token) => semantic.SearchAsync(conversation, term, request.Embeddings, chunks, token), ct);
 
-    public static double Cosine(float[] a, float[] b) => VectorSimilarity.Cosine(a, b);
+    public static double Cosine(float[] a, float[] b) => VectorScores.Cosine(a, b);
 }

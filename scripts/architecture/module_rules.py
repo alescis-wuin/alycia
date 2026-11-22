@@ -17,7 +17,7 @@ ROOT_FILES = {
                   "OnnxPassageReranker", "PassageClassification", "ProjectRetrieval", "ProjectRetrievalService",
                   "QueryPlanning", "QueryRouting"},
     "Projects": {"ProjectInventory", "WorkspaceSources"},
-    "Configuration": {"ChatOptions", "ConversationConfiguration", "ConversationSettingsTransfer", "ImportSettingsStore"},
+    "Configuration": {"ChatOptions", "ConversationSettingsTransfer", "ImportSettingsStore"},
     "Persistence": {"ChatDbContext"},
 }
 DIRECTORIES = {"Conversations", "Context", "Inference", "Documents", "Indexing", "Retrieval",
@@ -38,6 +38,22 @@ def owner(path, symbol=""):
     if len(parts) > 3:
         return parts[2] if parts[2] in DIRECTORIES else None
     return next((area for area, names in ROOT_FILES.items() if basename in names), None)
+
+def module_owner(path, symbol):
+    parts = PurePosixPath(path).parts
+    if len(parts) < 3 or parts[0] != "src":
+        return None
+    project = parts[1]
+    if project in CHAT_PROJECTS:
+        logical = owner(path, symbol)
+        return "Workspaces" if logical == "Projects" else logical
+    if project == "Alycia.Modules.Chat.Domain":
+        return {"Attachment": "Documents", "DocumentAnalysis": "Documents", "WorkspaceFileOverride": "Documents",
+                "WorkspaceProfile": "Workspaces", "PromptProfile": "Configuration"}.get(symbol, "Conversations")
+    if project.startswith("Alycia.Modules.") and project != "Alycia.Modules.Testing":
+        return project.split(".")[2]
+    return None
+
 
 # Direct logical dependencies (including typed ports and records). A target's domain
 # is not permission to use its Infrastructure classes; those are restricted below.

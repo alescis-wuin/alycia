@@ -7,7 +7,7 @@ from collections import defaultdict
 from pathlib import Path
 import xml.etree.ElementTree as ET
 
-from module_rules import owner
+from module_rules import module_owner
 
 ROOT = Path(__file__).resolve().parents[2]
 LOCATION = ROOT / "docs/architecture/decouplage/finition"
@@ -32,22 +32,6 @@ PAIRS = {
     "IPassageReranker": "Verified_weights_and_the_recorded_adapter_preserve_positions_identity_and_cancellation",
     "IMemoryVectorEligibility": "Eligibility_obeys_owner_sequence_date_and_cancellation_in_both_adapters",
 }
-
-
-def area(path, typename):
-    parts = Path(path).parts
-    if len(parts) < 3 or parts[0] != "src":
-        return None
-    project = parts[1]
-    logical = owner(path, typename)
-    if logical:
-        return "Workspaces" if logical == "Projects" else logical
-    if project == "Alycia.Modules.Chat.Domain":
-        return {"Attachment": "Documents", "DocumentAnalysis": "Documents", "WorkspaceFileOverride": "Documents",
-                "WorkspaceProfile": "Workspaces", "PromptProfile": "Configuration"}.get(typename, "Conversations")
-    if project.startswith("Alycia.Modules.") and project != "Alycia.Modules.Testing":
-        return project.split(".")[2]
-    return None
 
 
 def write(path, header, rows):
@@ -103,7 +87,7 @@ def main():
             raise ValueError("Conformité non vérifiée: " + port + " (" + proof + ")")
         status = "VALIDÉ" if ran else ("EXCLU" if category != "comportemental" else "OUVERT")
         detail = initial["raison"] if status == "EXCLU" else (proof or "Suite commune et double à démontrer")
-        module = initial["propriétaire"] if initial else (exporter.OWNERS.get(name) or area(path, name) or Path(path).parent.name)
+        module = initial["propriétaire"] if initial else (exporter.OWNERS.get(name) or module_owner(path, name) or Path(path).parent.name)
         contracts.append(["Workspaces" if module == "Projects" else module,
                           port, "D20" if initial else "ajouté", category, status, path, " | ".join(sorted(groups["src"])),
                           " | ".join(sorted(groups["double"])), detail])
@@ -143,9 +127,9 @@ def main():
     edges = defaultdict(set)
     for r in rows:
         if r[0] != "R" or "/obj/" in r[1] or "/Migrations/" in r[1]: continue
-        source = area(r[1], r[3])
+        source = module_owner(r[1], r[3])
         target_path = declared.get((r[4], r[5]))
-        target = area(target_path, r[6]) if target_path else None
+        target = module_owner(target_path, r[6]) if target_path else None
         if source and target and source != target:
             edges[(source, target, r[5][2:], "interface" if r[5][2:] in ports else "type hors Contracts")].add(r[1] + ":" + r[2])
     write(args.out / "D29-usages.tsv", ["source","destination","type","genre","sites Roslyn"], [
