@@ -159,9 +159,16 @@ public sealed class PostgresEmbeddingStore(string connectionString, IMemoryVecto
 
     public async Task<Dictionary<string, float[]>> ReadAsync(string identity, IReadOnlyList<string> keys, CancellationToken ct)
     {
-        var values = new Dictionary<string, float[]>(StringComparer.Ordinal);
-        if (keys.Count == 0) return values;
+        if (keys.Count == 0) return new(StringComparer.Ordinal);
+        var submitted = keys.ToArray();
         await using var connection = await OpenAsync(ct);
+        return await ReadAsync(connection, identity, submitted, ct);
+    }
+
+    private static async Task<Dictionary<string, float[]>> ReadAsync(NpgsqlConnection connection, string identity,
+        string[] keys, CancellationToken ct)
+    {
+        var values = new Dictionary<string, float[]>(StringComparer.Ordinal);
         foreach (var batch in keys.Chunk(256))
         {
             await using var command = new NpgsqlCommand("SELECT key, embedding FROM chat.embedding_vectors WHERE identity = $1 AND key = ANY($2)", connection);
@@ -174,7 +181,9 @@ public sealed class PostgresEmbeddingStore(string connectionString, IMemoryVecto
 
     public async Task WriteAsync(string identity, SourceChunk chunk, float[] vector, Guid? conversation, int sequence, CancellationToken ct)
     {
-        if (vector.Length is < 1 or > 8192 || vector.Any(v => !float.IsFinite(v))) throw new ChatModelException("Vecteur invalide.");
+        if (vector.Length is < 1 or > 8192) throw new ChatModelException("Vecteur invalide.");
+        var coordinates = vector.ToArray();
+        if (coordinates.Any(v => !float.IsFinite(v))) throw new ChatModelException("Vecteur invalide.");
         await using var connection = await OpenAsync(ct);
         await using var command = new NpgsqlCommand("""
             INSERT INTO chat.embedding_vectors(identity, key, file_id, conversation_id, sequence, start_offset, end_offset, content_hash, embedding)
@@ -185,13 +194,14 @@ public sealed class PostgresEmbeddingStore(string connectionString, IMemoryVecto
         command.Parameters.Add(new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Uuid, Value = conversation is null ? chunk.FileId : DBNull.Value });
         command.Parameters.Add(new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Uuid, Value = conversation is Guid id ? id : DBNull.Value });
         command.Parameters.AddWithValue(sequence); command.Parameters.AddWithValue(chunk.Start); command.Parameters.AddWithValue(chunk.End);
-        command.Parameters.AddWithValue(chunk.Sha256); command.Parameters.AddWithValue(vector);
+        command.Parameters.AddWithValue(chunk.Sha256); command.Parameters.AddWithValue(coordinates);
         await command.ExecuteNonQueryAsync(ct);
     }
 
     public async Task<Dictionary<int, double>> MemorySimilaritiesAsync(Guid owner, string identity, int through, DateTimeOffset before,
         float[] query, CancellationToken ct)
     {
+        var coordinates = query.ToArray();
         await using var connection = await OpenAsync(ct);
         await using var ext = new NpgsqlCommand("SELECT EXISTS(SELECT 1 FROM pg_extension WHERE extname='vector')", connection);
         var pgvector = await ext.ExecuteScalarAsync(ct) is true;
@@ -215,7 +225,7 @@ public sealed class PostgresEmbeddingStore(string connectionString, IMemoryVecto
             cmd.Parameters.AddWithValue(identity);
             cmd.Parameters.AddWithValue(page.Select(p => p.Sequence).ToArray());
             cmd.Parameters.AddWithValue(page.Select(p => p.Sha256).ToArray());
-            cmd.Parameters.AddWithValue(query);
+            cmd.Parameters.AddWithValue(coordinates);
             await using var reader = await cmd.ExecuteReaderAsync(ct);
             while (await reader.ReadAsync(ct))
                 if (!reader.IsDBNull(1)) best.Add((reader.GetInt32(0), reader.GetDouble(1)));
@@ -226,13 +236,15 @@ public sealed class PostgresEmbeddingStore(string connectionString, IMemoryVecto
 
     public async Task<Dictionary<string, double>> SimilaritiesAsync(string identity, string[] keys, float[] query, CancellationToken ct)
     {
+        var eligible = keys.ToArray();
+        var coordinates = query.ToArray();
         await using var connection = await OpenAsync(ct);
         await using var extension = new NpgsqlCommand("SELECT EXISTS(SELECT 1 FROM pg_extension WHERE extname = 'vector')", connection);
         if (await extension.ExecuteScalarAsync(ct) is not true)
-            return (await ReadAsync(identity, keys, ct)).Where(v => v.Value.Length == query.Length)
-                .ToDictionary(v => v.Key, v => VectorSimilarity.Cosine(query, v.Value));
+            return (await ReadAsync(connection, identity, eligible, ct)).Where(v => v.Value.Length == coordinates.Length)
+                .ToDictionary(v => v.Key, v => VectorSimilarity.Cosine(coordinates, v.Value));
         var scores = new Dictionary<string, double>();
-        foreach (var batch in keys.Chunk(256))
+        foreach (var batch in eligible.Chunk(256))
         {
             // Exact search with membership filtering before ranking. No approximate-index omissions.
             await using var command = new NpgsqlCommand("""
@@ -240,7 +252,7 @@ public sealed class PostgresEmbeddingStore(string connectionString, IMemoryVecto
                 FROM chat.embedding_vectors WHERE identity = $1 AND key = ANY($2) AND cardinality(embedding) = $4
                 """, connection);
             command.Parameters.AddWithValue(identity); command.Parameters.AddWithValue(batch);
-            command.Parameters.AddWithValue(query); command.Parameters.AddWithValue(query.Length);
+            command.Parameters.AddWithValue(coordinates); command.Parameters.AddWithValue(coordinates.Length);
             await using var reader = await command.ExecuteReaderAsync(ct);
             while (await reader.ReadAsync(ct)) if (!reader.IsDBNull(1)) scores[reader.GetString(0)] = reader.GetDouble(1);
         }
