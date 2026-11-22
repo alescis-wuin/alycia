@@ -1,0 +1,178 @@
+classe initiale	méthode	destination	justification	domaines concrets observés avant déplacement
+AdaptiveBudgetTests	DiscardedResultsFreeBudgetAndMoreThan24CallsCanComplete	master	Intégration des implémentations context, conversations, tools	context | conversations | tools
+AdaptiveBudgetTests	EmbeddingChunksPreserveEveryUnicodeCharacterAndCoordinates	indexing	Comportement propriétaire de indexing	indexing
+AdaptiveBudgetTests	NewSettingsRoundTripWithoutLosingExplicitValues	conversations	Comportement propriétaire de conversations	conversations
+AnalysisCheckpointTests	RestartRetainsValidatedUnitsAndRejectsChangedIdentityScopeAndCorruption	documents	Exerce le code de documents avec les données des contrats publics.	conversations | documents
+ArchiveAnalysisContractTests	Analysis_reads_committed_revisions_and_forks_detach_only_their_own_originals	master	Intégration des implémentations conversations, documents, master, workspaces	conversations | documents | master | workspaces
+ClaimAuditTests	KnownMarkerAloneNeverEstablishesTheClaim	retrieval	Comportement propriétaire de retrieval	retrieval
+ClaimAuditTests	MemorySeparatorsCanGroupVariantsButAssistantCannotResolveThem	memory	Comportement propriétaire de memory	memory
+ConfigurationTests	ConfigurationRoundtripPreservesBudgetsAndRejectsStaleRevision	conversations	Comportement propriétaire de conversations	conversations
+ConfigurationTests	PinnedFilesSurviveWindowAndExcludedFilesNeverEnterPrompt	context	Exerce le code de context avec les données des contrats publics.	context | conversations | documents
+ConfigurationTests	RejectsIncompleteHistoryBeforeConstructingPrompt	context	Exerce le code de context avec les données des contrats publics.	context | conversations
+ConfigurationTests	RejectsInvalidTemperature	conversations	Comportement propriétaire de conversations	conversations
+ConfigurationTests	UnconfiguredConversationsDoNotShareMutableDefaultOptions	conversations	Comportement propriétaire de conversations	conversations
+ContextQualityTests	AnaphoraKeepsLiteralAndOnlyResolvesUnambiguousUserMentions	retrieval	Comportement propriétaire de retrieval	conversations | retrieval
+ContextQualityTests	EffectiveWindowProtectsSchemasOutputAndSafety	inference	Exerce le code de inference avec les données des contrats publics.	conversations | inference
+ContextQualityTests	MmrKeepsBothPinsAndOriginalCoordinatesWithinFramedBudget	context	Exerce le code de context avec les données des contrats publics.	context | conversations | documents
+ContextQualityTests	ParentIsSearchableButIsNeverAddedToTheOriginalQuote	master	Intégration des implémentations conversations, documents, indexing	conversations | documents | indexing
+ContextQualityTests	PlanStopsAtLimitAndSeparatesUnsearchedFromEmpty	master	Intégration des implémentations context, conversations, retrieval, tools	context | conversations | retrieval | tools
+ContextQualityTests	VerificationDistinguishesEvidenceAndContradictions	retrieval	Comportement propriétaire de retrieval	retrieval
+ConversationContextPreparationTests	AdmissionFailureReleasesTheLeaseAndPreservesValidationOrder	master	Intégration des implémentations context, conversations, documents, inference, memory, retrieval, tools	context | conversations | documents | inference | memory | retrieval | tools
+ConversationContextPreparationTests	DefaultsAreCapturedBeforeTheConversationLookup	master	Intégration des implémentations context, conversations, documents, inference, memory, retrieval, tools	context | conversations | documents | inference | memory | retrieval | tools
+ConversationContextPreparationTests	LeaseCoversTheTerminalWriteAndPreviewCanRunAlongsideIt	master	Intégration des implémentations context, conversations, documents, inference, memory, retrieval, tools	context | conversations | documents | inference | memory | retrieval | tools
+ConversationContextPreparationTests	SettingsReadAndUpdateCaptureTheRequestBeforeStorage	master	Intégration des implémentations context, conversations, documents, inference, memory, retrieval, tools	context | conversations | documents | inference | memory | retrieval | tools
+ConversationForkFailureTests	CancellationBeforeCommitRemovesOnlyFilesCreatedByTheFork	master	Intégration des implémentations conversations, documents, master, workspaces	conversations | documents | master | workspaces
+ConversationForkFailureTests	DeferredConstraintRejectionAtCommitDeletesRolledBackFiles	master	Intégration des implémentations conversations, documents, master, workspaces	conversations | documents | master | workspaces
+ConversationForkFailureTests	InconclusiveCommitKeepsFilesEvenWhenTheChildIsNotVisible	master	Intégration des implémentations conversations, documents, master, workspaces	conversations | documents | master | workspaces
+ConversationForkFailureTests	LostAcknowledgementAfterCommitKeepsEveryReferencedOriginal	master	Intégration des implémentations conversations, documents, master, workspaces	conversations | documents | master | workspaces
+ConversationForkFailureTests	RejectedInsertDeletesCopiesAndSameScopeCanRetry	master	Intégration des implémentations conversations, documents, master, workspaces	conversations | documents | master | workspaces
+ConversationHistoryTests	ForkScopesFilesOverridesAndHistoryAndRemovesIncompleteCopies	master	Intégration des implémentations conversations, documents, master, workspaces	conversations | documents | master | workspaces
+ConversationPortsContractTests	Conversation_ports_rollback_the_pair_and_commit_memory_at_the_expected_revision	master	Intégration des implémentations conversations, master, workspaces	conversations | master | workspaces
+DefaultPortCancellationTests	Cancelled_fallback_generation_does_not_emit_a_delta	contracts	Comportement propriétaire de contracts	Contrats publics
+DefaultPortCancellationTests	Optional_ports_propagate_the_original_cancellation	contracts	Comportement propriétaire de contracts	Contrats publics
+DocumentAnalysisTests	InspectingModelWindowKeepsExistingAnalysisCheckpointAddresses	master	Intégration des implémentations conversations, documents, master, workspaces	conversations | documents | master | workspaces
+DocumentAnalysisTests	NestedArchivesProduceTraceableSummariesAndChangedSourcesInvalidateContext	master	Intégration des implémentations context, conversations, documents, inference, master, workspaces	context | conversations | documents | inference | master | workspaces
+DocumentScopeTests	A_membership_change_and_document_replacement_cannot_mix_two_snapshots	master	Intégration des implémentations conversations, documents, master, workspaces	conversations | documents | master | workspaces
+EmbeddingIndexBoundaryTests	CancellationDuringAReadOnlyVectorLookupReachesTheCaller	indexing	Comportement propriétaire de indexing	conversations | indexing
+EmbeddingIndexBoundaryTests	PersistedJobDeterminesWhenItCanResume	indexing	Comportement propriétaire de indexing	indexing
+EmbeddingQuerySettingsTests	LookupKeepsItsModelBatchAndVectorSpaceWhenSettingsChange	indexing	Comportement propriétaire de indexing	conversations | indexing
+FileTests	CanonicalizesBenignRelativePathsAndPreservesUnicode	documents	Comportement propriétaire de documents	documents
+FileTests	FilesFollowSlidingWindowAndRespectBudgetAndRoles	context	Exerce le code de context avec les données des contrats publics.	context | conversations | documents
+FileTests	ImportsArchivesPersistsAcrossContextsAndRejectsUnsafeBatchAtomically	master	Intégration des implémentations context, conversations, documents, inference, master, memory, retrieval, tools, workspaces	context | conversations | documents | inference | master | memory | retrieval | tools | workspaces
+FileTests	MultipartFileNamesSurviveDotnetSerializationAndAspnetParsing	master	Transport ou assemblage applicatif	documents
+FileTests	ReadsUtf8AndDocumentsButNeverImages	documents	Comportement propriétaire de documents	documents
+FileTests	RejectsUnsafePaths	documents	Comportement propriétaire de documents	documents
+HistoryToolsTests	NoMatchReturnsScanContinuationAndInvalidOffsetsNeverReadAnotherTurn	master	Intégration des implémentations conversations, documents, retrieval, tools	conversations | documents | retrieval | tools
+HistoryToolsTests	OldDecisionRemainsSearchableBeyondLedgerLimitAndKeepsBothRoles	master	Intégration des implémentations conversations, documents, retrieval, tools	conversations | documents | retrieval | tools
+IndexDocumentContractTests	Document_index_pages_preserve_cursor_scope_digest_and_exclusion	master	Intégration des implémentations conversations, documents, master, workspaces	conversations | documents | master | workspaces
+IndexPublicationTests	Temporal_vector_pages_keep_the_top_32_and_reject_wrong_hashes_dates_and_owners	master	Intégration des implémentations conversations, documents, indexing, master, memory, workspaces	conversations | documents | indexing | master | memory | workspaces
+KnowledgePipelineTests	AnnotationValidationRejectsForeignReferencesAndOverBudgetSummaries	indexing	Comportement propriétaire de indexing	conversations | indexing
+KnowledgePipelineTests	FacetsPreserveConstraintsAndAnUnexaminedCandidateKeepsItsRank	retrieval	Exerce le code de retrieval avec les données des contrats publics.	conversations | memory | retrieval
+KnowledgePipelineTests	InteractiveReductionUsesTheEntireSelectedOriginalOrKeepsOnlyTheExcerpt	master	Intégration des implémentations context, conversations, inference, memory	context | conversations | inference | memory
+KnowledgePipelineTests	RecursiveAnalysisCheckpointsInsideOneLargeFile	context	Exerce le code de context avec les données des contrats publics.	context | conversations | memory
+KnowledgePipelineTests	ResumesSmallSlicesPublishesWholeTreesAndRespectsScope	master	Intégration des implémentations conversations, documents, indexing, inference, master, memory, retrieval, workspaces	conversations | documents | indexing | inference | master | memory | retrieval | workspaces
+LocalChatAccessTests	ComposeServiceOriginRequiresAuthenticatedContainerMode	master	Transport ou assemblage applicatif	master
+LocalChatAccessTests	ContainerModeFailsClosedWithoutConfiguredSecret	master	Transport ou assemblage applicatif	master
+LocalChatAccessTests	ContainerModeRequiresTokenEvenFromLoopbackAndRejectsBrowserOrigin	master	Transport ou assemblage applicatif	master
+LocalChatAccessTests	DefaultModeStillRequiresActualLoopbackPeer	master	Transport ou assemblage applicatif	master
+LocalChatAccessTests	RejectsUnexpectedHostEvenFromLoopback	master	Transport ou assemblage applicatif	master
+LocalChatAccessTests	RemoteOrAmbiguousProviderOriginsAreRejected	master	Transport ou assemblage applicatif	master
+OllamaChatModelTests	ActiveInferenceStillTimesOutAndReleasesTheGate	inference	Comportement propriétaire de inference	conversations | inference
+OllamaChatModelTests	CancellationReachesOllama	inference	Comportement propriétaire de inference	conversations | inference
+OllamaChatModelTests	CancellingAnActiveEmbeddingReleasesTheSlotForQueuedChat	inference	Comportement propriétaire de inference	conversations | inference
+OllamaChatModelTests	EmptyContentIdentifiesStageAndRetainsMetricsWithoutExposingThinking	inference	Comportement propriétaire de inference	conversations | inference
+OllamaChatModelTests	ExcludesCloudAliasesFromLocalModels	inference	Comportement propriétaire de inference	conversations | inference
+OllamaChatModelTests	ExistingEmbeddingConversationIsRejectedBeforeAnyChatRequest	inference	Comportement propriétaire de inference	conversations | inference
+OllamaChatModelTests	GenerationsAndEmbeddingsShareTheLocalInferenceLimit	inference	Comportement propriétaire de inference	conversations | inference
+OllamaChatModelTests	InFlightCallKeepsItsOriginalSettings	inference	Comportement propriétaire de inference	conversations | inference
+OllamaChatModelTests	ListsOnlyLocalCompletionModelsUsingCapabilitiesNotNames	inference	Comportement propriétaire de inference	conversations | inference
+OllamaChatModelTests	MissingCapabilityMetadataIsNotAssumedToSupportGeneration	inference	Comportement propriétaire de inference	conversations | inference
+OllamaChatModelTests	RejectedGenerationIdentifiesTheActualModel	inference	Comportement propriétaire de inference	conversations | inference
+OllamaChatModelTests	RejectsMalformedOrIncompleteReply	inference	Comportement propriétaire de inference	conversations | inference
+OllamaChatModelTests	RevalidatesCapabilitiesWhenAnAliasChangesAfterListing	inference	Comportement propriétaire de inference	conversations | inference
+OllamaChatModelTests	SendsHistoryAndExplicitGenerationBudget	inference	Comportement propriétaire de inference	conversations | inference
+OllamaChatModelTests	WaitingForOllamaCanStillBeCancelledWithoutLeakingTheGate	inference	Comportement propriétaire de inference	conversations | inference
+OllamaChatModelTests	WaitingForOllamaDoesNotConsumeGenerationTimeout	inference	Comportement propriétaire de inference	conversations | inference
+OllamaSchedulingTests	CancellationAtBothQueuesAndProviderFailureLeaveBothPermitsUsable	inference	Comportement propriétaire de inference	conversations | inference
+OllamaSchedulingTests	InteractiveStreamCanRunBeforeTheEntireAnnotationBacklog	inference	Comportement propriétaire de inference	conversations | inference
+OriginalsContractTests	Original_readers_and_revision_staging_distinguish_missing_private_unavailable_and_foreign	master	Intégration des implémentations conversations, documents, master, workspaces	conversations | documents | master | workspaces
+OwnerContractTests	Conversation_pages_and_tool_policies_agree_on_scope_cursors_and_cancellation	master	Intégration des implémentations conversations, master, workspaces	conversations | master | workspaces
+OwnerContractTests	Document_tools_live_permissions_and_index_use_the_same_scope_on_both_adapters	master	Intégration des implémentations conversations, documents, indexing, master, workspaces	conversations | documents | indexing | master | workspaces
+OwnerContractTests	Import_limits_preserve_defaults_overrides_and_cancellation_in_both_adapters	configuration	Contrat côté adaptateur réel et double dans une base PostgreSQL jetable.	configuration | master | workspaces
+OwnerContractTests	Workspace_identity_and_active_pages_share_the_same_behavior_with_their_doubles	master	Intégration des implémentations conversations, master, workspaces	conversations | master | workspaces
+PendingStorageInputTests	Array_fallback_uses_the_submitted_keys_and_query_with_one_connection	master	Intégration des implémentations conversations, documents, indexing, master, memory, workspaces	conversations | documents | indexing | master | memory | workspaces
+PendingStorageInputTests	Queued_fact_write_and_lookup_keep_the_supplied_topics	memory	Exerce le code de memory avec les données des contrats publics.	conversations | master | memory | workspaces
+PendingStorageInputTests	Queued_vector_write_keeps_the_validated_coordinates	master	Intégration des implémentations conversations, documents, indexing, master, memory, workspaces	conversations | documents | indexing | master | memory | workspaces
+PersistentEmbeddingTests	BatchesResumeWithoutQuotaAndKeepHistoryAndSourcesIsolated	master	Intégration des implémentations configuration, conversations, documents, indexing, inference, master, memory, workspaces	configuration | conversations | documents | indexing | inference | master | memory | workspaces
+PostgresChatTests	MigrationsPersistenceIdempotencyFailureConcurrencyPaginationAndCascade	master	Intégration des implémentations context, conversations, documents, inference, master, memory, retrieval, tools, workspaces	context | conversations | documents | inference | master | memory | retrieval | tools | workspaces
+ProjectContextTests	FindsRelevantCodeAfterLongHeader	context	Exerce le code de context avec les données des contrats publics.	context | documents
+ProjectContextTests	LargeDocumentationDoesNotHideSourceCodeAndBudgetIsRespected	context	Exerce le code de context avec les données des contrats publics.	context | documents
+ProjectContextTests	ProjectSourcesRemainEligibleAndExclusionsAlwaysWin	context	Exerce le code de context avec les données des contrats publics.	context | documents
+ProjectCreationTests	CompetingCreatorsCommitExactlyOneMatchingWorkspaceAndProfile	master	Intégration des implémentations conversations, master, workspaces	conversations | master | workspaces
+ProjectCreationTests	Competing_profile_writes_preserve_one_revision_and_note_provenance	master	Intégration des implémentations conversations, master, workspaces	conversations | master | workspaces
+ProjectCreationTests	DiscoveryReadsEachOwnerOnceAcrossPageBoundaries	master	Intégration des implémentations conversations, master, workspaces	conversations | master | workspaces
+ProjectCreationTests	FailureInProfileInsertRollsBackCanonicalWorkspaceAndAllowsRetry	master	Intégration des implémentations conversations, master, workspaces	conversations | master | workspaces
+ProjectCreationTests	Lost_commit_acknowledgement_leaves_one_recoverable_identity_and_profile	master	Intégration des implémentations conversations, master, workspaces	conversations | master | workspaces
+ProjectFilesTests	SharedArchiveRespectsScopesRevisionsAndRetainsOriginalsAfterRemoval	master	Intégration des implémentations conversations, documents, master, workspaces	conversations | documents | master | workspaces
+ProjectMcpClientTests	NegotiatesOnceUsesLocalAddressAndPreservesEvidenceAndRevocation	master	Transport ou assemblage applicatif	master
+ProjectMcpClientTests	WrongRpcIdPreventsExecution	master	Transport ou assemblage applicatif	master
+ProjectProfileContractTests	Catalog_profiles_and_note_origins_enforce_revisions_archives_and_provenance	master	Intégration des implémentations conversations, master, workspaces	conversations | master | workspaces
+ProjectRetrievalTests	CompositeContextKeepsOriginalEvidenceBesideBoundedOrientation	context	Exerce le code de context avec les données des contrats publics.	context | conversations | documents
+ProjectRetrievalTests	DiversityOrderingIsStableWithDuplicatesAndFileTies	retrieval	Comportement propriétaire de retrieval	retrieval
+ProjectRetrievalTests	ExactSymbolRanksAboveUnrelatedDocumentationAndPackingDeduplicates	master	Intégration des implémentations context, conversations, documents, retrieval	context | conversations | documents | retrieval
+ProjectRetrievalTests	HybridSearchHasNo2048PassageQuota	retrieval	Comportement propriétaire de retrieval	conversations | retrieval
+ProjectRetrievalTests	HybridSearchUsesOnlyPreparedVectorsAndReportsPendingCoverage	retrieval	Comportement propriétaire de retrieval	conversations | retrieval
+ProjectRetrievalTests	LexicalCacheInvalidatesChangedContentAndSeparatesConversations	retrieval	Comportement propriétaire de retrieval	retrieval
+ProjectRetrievalTests	NoMatchStaysEmptyUnlessExplicitlyPinned	master	Intégration des implémentations context, conversations, documents, retrieval	context | conversations | documents | retrieval
+ProjectRetrievalTests	PartialRangeDoesNotClaimUnreadLines	context	Exerce le code de context avec les données des contrats publics.	context | conversations | documents
+ProjectRetrievalTests	SemanticRankingCanRetrieveAParaphraseAndExclusionsAlwaysWin	master	Intégration des implémentations context, conversations, documents, retrieval	context | conversations | documents | retrieval
+ProjectToolStorageTests	MigrationOriginalReadsIsolationExclusionsCoverageAndRevocation	master	Intégration des implémentations context, conversations, documents, indexing, inference, master, retrieval, tools, workspaces	context | conversations | documents | indexing | inference | master | retrieval | tools | workspaces
+RecursiveContextTests	AModelThatDoesNotCompressFailsWithoutReplacingMemory	context	Comportement propriétaire de context	context | conversations | documents
+RecursiveContextTests	CancellingReductionDoesNotReplaceTheOriginalHistoryOrMemory	context	Comportement propriétaire de context	context | conversations | documents
+RecursiveContextTests	PreviewNeverInvokesTheModelAndSignalsIncompletePreparation	master	Intégration des implémentations context, conversations, documents, inference, memory	context | conversations | documents | inference | memory
+RecursiveContextTests	RecursivelyReducesOldHistoryProtectsRecentTurnsAndReusesMemory	context	Comportement propriétaire de context	context | conversations | documents
+RecursiveContextTests	RejectsAnImpossibleProtectedBudgetBeforeAnyInference	context	Comportement propriétaire de context	context | conversations | documents
+RecursiveContextTests	ReturnsPendingSummariesAndMetersTheirCalls	master	Intégration des implémentations context, conversations, documents, inference, memory	context | conversations | documents | inference | memory
+RecursiveContextTests	SlidingWindowKeepsRecentTurnEligibleGuideAndToolReserve	master	Intégration des implémentations context, conversations, documents, inference, memory	context | conversations | documents | inference | memory
+RecursiveContextTests	TemporalRecallRetainsItsSourceOutsideTheSlidingWindowWhenSummariesAreDisabled	master	Intégration des implémentations context, conversations, documents, inference, memory	context | conversations | documents | inference | memory
+RecursiveContextTests	UnicodeChunkingKeepsEveryCharacterAndItsByteBound	contracts	Comportement propriétaire de contracts	Contrats publics
+RoutingAndRerankTests	FacetEmbeddingsRerankerAndDiagnosticsOnlySeeAdmittedSources	retrieval	Comportement propriétaire de retrieval	conversations | retrieval
+RoutingAndRerankTests	NativeCpuSessionTruncatesPairsWithLocalTokenizer	retrieval	Comportement propriétaire de retrieval	retrieval
+RoutingAndRerankTests	RoutingUsesIntentAndRespectsToolPermission	retrieval	Exerce le code de retrieval avec les données des contrats publics.	conversations | documents | retrieval
+RoutingAndRerankTests	TiesTimeoutAndCallerCancellationPreserveTheRankContract	retrieval	Comportement propriétaire de retrieval	conversations | retrieval
+RoutingAndRerankTests	UnavailableNamedReadsDoNotExposeExcludedFiles	retrieval	Exerce le code de retrieval avec les données des contrats publics.	conversations | documents | retrieval
+RoutingContractTests	Planning_and_retrieval_respect_the_same_owners_pins_and_semantic_callback_scope	master	Intégration des implémentations conversations, retrieval	conversations | retrieval
+SlidingContextTests	BudgetEvictsWholeOldTurns	context	Comportement propriétaire de context	context | conversations
+SlidingContextTests	DoesNotSkipAnOversizedRecentTurnToIncludeOlderTurns	context	Comportement propriétaire de context	context | conversations
+SlidingContextTests	PreservesSystemAndCurrentMessageAndLatestCompleteTurns	context	Comportement propriétaire de context	context | conversations
+SlidingContextTests	RejectsOversizedCurrentInputInsteadOfSilentlyTruncating	context	Comportement propriétaire de context	context | conversations
+SlidingContextTests	ZeroWindowKeepsOnlySystemAndCurrentInput	context	Comportement propriétaire de context	context | conversations
+StreamingTests	ActiveStreamOutlivesTheConfiguredInactivityTimeout	inference	Comportement propriétaire de inference	conversations | inference
+StreamingTests	CancellationAfterDeltaDoesNotPersistAndReleasesGate	master	Intégration des implémentations context, conversations, documents, inference, memory, retrieval, tools	context | conversations | documents | inference | memory | retrieval | tools
+StreamingTests	ContinuousModeDoesNotTreatATruncatedOrUnknownEndAsSuccess	inference	Comportement propriétaire de inference	conversations | inference
+StreamingTests	Optional_turn_scope_observes_cancellation_before_start	conversations	Exerce le code de conversations avec les données des contrats publics.	conversations | documents
+StreamingTests	ParserBoundsAnUnterminatedLine	contracts	Comportement propriétaire de contracts	Contrats publics
+StreamingTests	PartialFailureNeverCommitsAndRetryRemainsIdempotent	master	Intégration des implémentations context, conversations, documents, inference, memory, retrieval, tools	context | conversations | documents | inference | memory | retrieval | tools
+StreamingTests	RejectsMissingCompletionAndInvalidStreams	inference	Comportement propriétaire de inference	conversations | inference
+StreamingTests	StreamsThinkingSeparatelyAndReportsFinalStatistics	inference	Comportement propriétaire de inference	conversations | inference
+StructuredMemoryTests	ExtractsOnlyUnderPressurePreservesProtectedBlockAndReusesQuotedMemory	master	Intégration des implémentations context, conversations, documents, memory	context | conversations | documents | memory
+StructuredMemoryTests	InvalidExtractionUsesLabelledOriginalExcerptsAndFailedTurnDoesNotSaveLedger	master	Intégration des implémentations context, conversations, documents, inference, memory, retrieval, tools	context | conversations | documents | inference | memory | retrieval | tools
+StructuredMemoryTests	PreparedMemoryRetainsItsFormatAndWaitsForTheCallersCommit	conversations	Exerce le code de conversations avec les données des contrats publics.	conversations | documents | memory
+StructuredMemoryTests	RejectsFabricatedQuotesAndKeepsContradictionsUntilUserCorrection	memory	Comportement propriétaire de memory	conversations | memory
+StructuredMemoryTests	ResetChecksTheGateAndRevisionBeforeClearingBothMemoryFormatsTogether	conversations	Exerce le code de conversations avec les données des contrats publics.	conversations | documents | memory
+StructuredMemoryTests	SmallHistoryNeedsNoExtractionAndCancellationNeverPersistsPartialMemory	master	Intégration des implémentations context, conversations, documents, memory	context | conversations | documents | memory
+StructuredMemoryTests	TemporalProjectionRetainsOnlySourceBackedLedgerEvidence	memory	Comportement propriétaire de memory	conversations | memory
+TemporalFactsContractTests	Fact_storage_preserves_first_observation_orders_exports_and_bounds_search_by_owner_and_date	memory	Contrat côté adaptateur réel et double dans une base PostgreSQL jetable.	conversations | master | memory | workspaces
+TemporalMemoryIntegrationTests	A_missing_checkpoint_is_repaired_after_a_full_32_message_slice	master	Intégration des implémentations conversations, master, memory, retrieval, workspaces	conversations | master | memory | retrieval | workspaces
+TemporalMemoryIntegrationTests	WorkerRebuildsFromOriginalsAndScopesCorrectionsAndHistoricalViews	master	Intégration des implémentations context, conversations, documents, indexing, inference, master, memory, retrieval, workspaces	context | conversations | documents | indexing | inference | master | memory | retrieval | workspaces
+TokenBudgetTests	CountsSummaryAndToolRoundsWithoutReplacingMissingMetricsWithZero	inference	Comportement propriétaire de inference	conversations | inference
+TokenBudgetTests	InstalledByteBpeVocabularyCountsMergesAndKeepsConservativeFallbacks	inference	Comportement propriétaire de inference	inference
+TokenBudgetTests	MatchesIndependentHuggingFaceCountsForFrenchCodeAndCjk	inference	Comportement propriétaire de inference	inference
+TokenBudgetTests	ModelMetadataCapsTheRequestedWindowAndAliasChangesInvalidateIt	master	Intégration des implémentations conversations, inference	conversations | inference
+ToolCallingTests	AgentCompactsOnlyUnderPressureAndKeepsTheLastCompleteRound	master	Intégration des implémentations context, conversations, tools	context | conversations | tools
+ToolCallingTests	AgentKeepsSmallToolRoundsWithoutSummaryAndPreservesConversation	master	Intégration des implémentations context, conversations, tools	context | conversations | tools
+ToolCallingTests	DefaultWindowReservesAllNineToolsAndStillFitsTheProtectedQuestion	context	Exerce le code de context avec les données des contrats publics.	context | conversations
+ToolCallingTests	IncompleteOrMalformedCallsNeverBecomeExecutable	inference	Comportement propriétaire de inference	conversations | inference
+ToolCallingTests	NativeToolOnlyTurnPreservesThinkingAndStructuredArguments	inference	Comportement propriétaire de inference	conversations | inference
+ToolCallingTests	ReorderedIdenticalArgumentsDoNotRepeatIoAndStopTheLoop	master	Intégration des implémentations context, conversations, tools	context | conversations | tools
+ToolCallingTests	RunningAgentKeepsTheCallLimitCapturedBeforeTheFirstTool	master	Intégration des implémentations context, conversations, tools	context | conversations | tools
+ToolCallingTests	ToolLimitAndCancellationStopFurtherExecution	master	Intégration des implémentations context, conversations, tools	context | conversations | tools
+ToolCallingTests	UnsupportedModelCannotReceiveToolPayload	inference	Comportement propriétaire de inference	conversations | inference
+ToolSummaryRecoveryTests	ExtractiveFallbackIsBoundedUnicodeAndExplicitAboutOmissions	tools	Comportement propriétaire de tools	tools
+ToolSummaryRecoveryTests	NativeEmptySummaryContinuesUnderBudgetAndAllowsRereadingCompactedSources	master	Intégration des implémentations context, conversations, inference, tools	context | conversations | inference | tools
+ToolSummaryRecoveryTests	TransportFailuresAndCancellationNeverBecomeAnExtractiveSuccess	master	Intégration des implémentations context, conversations, inference, tools	context | conversations | inference | tools
+TurnOutputContractTests	Context_memory_reports_only_verbatim_quotes_and_provenance_with_bounded_recall	memory	Comportement propriétaire de memory	memory
+TurnOutputContractTests	Context_tools_and_audit_preserve_the_prompt_stream_refusals_and_cancellation	master	Intégration des implémentations context, conversations, memory, retrieval, tools	context | conversations | memory | retrieval | tools
+TurnReadContractTests	Scoped_history_and_documents_share_paging_visibility_immutability_and_cancellation	master	Intégration des implémentations conversations, documents, master, workspaces	conversations | documents | master | workspaces
+TurnToolsTests	CancellationAtSourceCheckDoesNotQueryModel	tools	Comportement propriétaire de tools	context | tools
+TurnToolsTests	ContextChecksOnlyOrdinarySourcesEvenWhenAttached	tools	Comportement propriétaire de tools	context | tools
+TurnToolsTests	PresenceOfActiveToolsAndConsumerSelectsTheGenerationPath	master	Intégration des implémentations context, conversations, tools	context | conversations | tools
+TurnToolsTests	RefusalStopsAtFirstFailedConditionWithoutTryingOtherProvider	tools	Comportement propriétaire de tools	context | tools
+TurnToolsTests	SendSelectsSnapshotOnlyForAttachedConversationWithSnapshotProvider	tools	Comportement propriétaire de tools	context | tools
+TurnToolsTests	Tool_selection_binds_snapshot_and_ordinary_access_to_the_current_owner	tools	Comportement propriétaire de tools	context | tools
+VectorPublicationConcurrencyTests	A_lost_server_commit_reply_is_confirmed_without_a_second_insert	master	Intégration des implémentations conversations, documents, indexing, master, memory, workspaces	conversations | documents | indexing | master | memory | workspaces
+VectorPublicationConcurrencyTests	A_rejected_commit_rolls_back_the_whole_batch_and_can_be_retried	master	Intégration des implémentations conversations, documents, indexing, master, memory, workspaces	conversations | documents | indexing | master | memory | workspaces
+VectorPublicationConcurrencyTests	Every_file_is_checked_and_revoked_or_foreign_vectors_are_unreadable	master	Intégration des implémentations conversations, documents, indexing, master, memory, workspaces	conversations | documents | indexing | master | memory | workspaces
+VectorPublicationConcurrencyTests	Overrides_membership_and_workspace_archiving_revoke_even_previously_cached_file_keys	master	Intégration des implémentations conversations, documents, indexing, master, memory, workspaces	conversations | documents | indexing | master | memory | workspaces
+VectorPublicationConcurrencyTests	Revocation_cannot_commit_between_the_eligibility_check_and_vector_commit	master	Intégration des implémentations conversations, documents, indexing, master, memory, workspaces	conversations | documents | indexing | master | memory | workspaces
+VectorPublicationConcurrencyTests	Similarity_adapters_check_owner_model_dimension_and_historical_cutoffs	master	Intégration des implémentations conversations, documents, indexing, master, memory, workspaces	conversations | documents | indexing | master | memory | workspaces

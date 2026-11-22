@@ -43,6 +43,12 @@ def check(out):
         (out / "schema.tsv").write_bytes(catalogue)
         if catalogue.splitlines() != (BASE / "schema.tsv").read_bytes().splitlines():
             raise ValueError("PostgreSQL catalogue differs from signed reference")
+        details = subprocess.check_output(["psql", "-Xq", "-v", "ON_ERROR_STOP=1", "-d", database,
+            "-f", str(ROOT / "scripts/architecture/schema-details.sql")], env=env)
+        (out / "schema-details.tsv").write_bytes(details)
+        reference = ROOT / "docs/architecture/preparation-multidepots/SCHEMA-REFERENCE.tsv"
+        if details.splitlines() != reference.read_bytes().splitlines():
+            raise ValueError("PostgreSQL columns or indexes differ from the signed base")
         print("PASS both EF models, both histories, catalogue SHA-256", hashlib.sha256(catalogue).hexdigest())
     finally:
         subprocess.run(["dropdb", database], env=env, check=True)

@@ -21,41 +21,6 @@ public sealed class AdaptiveBudgetTests
         Assert.All(model.Inputs, input => Assert.Contains(input, m => m.Content == "QUESTION"));
     }
 
-    [Fact]
-    public void EmbeddingChunksPreserveEveryUnicodeCharacterAndCoordinates()
-    {
-        var text = string.Concat(Enumerable.Repeat("é🙂漢字\n", 2000));
-        var chunk = new SourceChunk(Guid.NewGuid(), "a.txt", "sha", "text", "text", 10, 10 + text.Length, 4, 2004, text, [], true);
-        var parts = EmbeddingChunks.Split(chunk, 129).ToArray();
-        Assert.Equal(text, string.Concat(parts.Select(p => p.Text)));
-        Assert.All(parts, p => { Assert.False(char.IsLowSurrogate(p.Text[0])); Assert.False(char.IsHighSurrogate(p.Text[^1])); });
-        Assert.Equal(chunk.Start, parts[0].Start); Assert.Equal(chunk.End, parts[^1].End);
-        Assert.Equal(parts.Length, parts.Select(EmbeddingChunks.Key).Distinct().Count());
-        Assert.NotEqual(EmbeddingChunks.Key(parts[0]), EmbeddingChunks.Key(parts[0] with { Sha256 = "new" }));
-    }
-
-    [Fact]
-    public void NewSettingsRoundTripWithoutLosingExplicitValues()
-    {
-        var options = new ChatOptions
-        {
-            ToolMaxCalls = 300,
-            ToolContextTokens = 4096,
-            ToolResultBytes = 131072,
-            ToolTimeoutSeconds = 3600,
-            DocumentContextTokens = 2048,
-            EmbeddingBatchSize = 2,
-            EmbeddingChunkCharacters = 512,
-            EmbedHistory = false,
-            IndexMaxCharacters = 0
-        };
-        var json = ConversationConfiguration.Serialize(options);
-        var copy = JsonSerializer.Deserialize<ChatOptions>(json, ProjectToolCatalog.Json)!;
-        Assert.Equal(json, ConversationConfiguration.Serialize(copy));
-        Assert.Equal(0, new ChatOptions().ToolMaxCalls);
-        Assert.Equal(0, new ChatOptions().IndexMaxCharacters);
-    }
-
     private sealed class ReadingTools : IProjectTools
     {
         public int Calls;

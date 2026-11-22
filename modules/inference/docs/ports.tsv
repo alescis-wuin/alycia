@@ -5,5 +5,5 @@ Alycia.Contracts.Inference.ILocalEmbeddings	propriété fonctionnelle, adaptateu
 Alycia.Contracts.Inference.IModelMeter	propriété fonctionnelle, adaptateur, double	VALIDÉ	modules/inference/tests/Alycia.Modules.Inference.Tests/TextGenerationContractTests.cs
 Alycia.Contracts.Inference.IModelMeterFactory	propriété fonctionnelle, adaptateur, double	VALIDÉ	modules/inference/tests/Alycia.Modules.Inference.Tests/TextGenerationContractTests.cs
 Alycia.Contracts.Inference.ITextGeneration	propriété fonctionnelle, adaptateur, double	VALIDÉ	modules/inference/tests/Alycia.Modules.Inference.Tests/TextGenerationContractTests.cs
-Alycia.Contracts.Inference.ITextTokenCounter	propriété fonctionnelle, adaptateur	EXCLU	tests/Alycia.Modules.Chat.Tests/TokenBudgetTests.cs
-Alycia.Contracts.Retrieval.IQueryBriefRefiner	adaptateur, double	VALIDÉ	modules/inference/tests/Alycia.Modules.Inference.Tests/BriefContractTests.cs
+Alycia.Contracts.Inference.ITextTokenCounter	propriété fonctionnelle, adaptateur	EXCLU	modules/inference/tests/Alycia.Modules.Inference.Tests/TokenBudgetTests.cs
+Alycia.Contracts.Retrieval.IQueryBriefRefiner	propriété fonctionnelle, adaptateur, double	VALIDÉ	modules/inference/tests/Alycia.Modules.Inference.Tests/BriefContractTests.cs

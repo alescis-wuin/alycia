@@ -1,6 +1,5 @@
 using System.Text;
-using Alycia.Modules.Chat.Application;
-using Alycia.Modules.Chat.Domain;
+using Alycia.Modules.Context;
 
 namespace Alycia.Modules.Chat.Tests;
 
@@ -38,5 +37,5 @@ public sealed class ProjectContextTests
         Assert.Empty(ProjectContext.Select([file], "code", 1024).Sources);
     }
 
-    private static Alycia.Contracts.Documents.TurnFile File(string path, string text) => new Attachment() { Id = Guid.NewGuid(), Name = path, Text = text, AnchorSequence = 1 }.ToTurnFile();
+    private static Alycia.Contracts.Documents.TurnFile File(string path, string text) => ContextTestInputs.File() with { Id = Guid.NewGuid(), Name = path, Text = text, AnchorSequence = 1 };
 }

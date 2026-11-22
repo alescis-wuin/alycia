@@ -4,7 +4,16 @@ Le maître possède la composition DI, l’API, Boréale, le DevHost, les intég
 
 ## Préparer le build
 
-Installer Git, Python 3.10 ou ultérieur et le SDK .NET 10.0.404. La version exacte sert à reconstruire les mêmes paquets et leurs empreintes. Exécuter depuis la racine.
+Installer Git et Python 3.10 ou ultérieur. Sous Linux glibc, le lanceur Bash utilise le SDK 10.0.404 déjà disponible ou vérifie le SHA-512 de l’archive Microsoft avant de l’installer dans `$XDG_DATA_HOME/alycia/dotnet` (par défaut `~/.local/share/alycia/dotnet`). Il requiert Bash, curl, tar, sha512sum et flock. Les dépendances système de .NET doivent être présentes. Choisir un autre répertoire avec `ALYCIA_SDK_HOME` ou une archive locale avec `ALYCIA_SDK_ARCHIVE`. Les empreintes x64 et arm64 sont dans `scripts/sdk-linux.sha512`. Le lanceur fonctionne depuis un terminal Bash ou fish.
+
+```sh
+bash scripts/with-sdk.sh dotnet --version
+bash scripts/with-sdk.sh python3 scripts/modules.py bootstrap-packages
+bash scripts/with-sdk.sh python3 scripts/modules.py check-extraction
+bash scripts/with-sdk.sh python3 scripts/modules.py check-master
+```
+
+Avec le SDK épinglé déjà dans le PATH, exécuter depuis la racine.
 
 ```sh
 git fetch origin develop prepare/extraction-multidepots-p0-p8
@@ -19,13 +28,13 @@ python3 scripts/modules.py check-master
 
 Chaque module accepte aussi `python3 scripts/check.py check --feed /chemin/vers/local-feed` depuis une copie vierge de son seul dossier. Le maître prépare `artifacts/local-feed/`. NuGet.org fournit les paquets tiers. Le mapping `Alycia.*` réserve les identités internes au feed local. Une restauration qui reçoit d’autres octets pour une version connue doit échouer. Pour diagnostiquer un cache différent, définir `NUGET_PACKAGES` vers un nouveau répertoire dédié à cette recette.
 
-Sous PowerShell, utiliser `py -3` à la place de `python3`. La recette historique est accessible par `bash scripts/check.sh --integration` et `.\scripts\check.ps1 -Integration`. La recette maître conserve ses sorties dans `artifacts/acceptance/`. Les logs des copies isolées sont sous `artifacts/extraction/`.
+Sous PowerShell, utiliser `py -3` à la place de `python3`. La recette historique est accessible par `bash scripts/check.sh --integration` et `.\scripts\check.ps1 -Integration`. Le contrôle Windows natif est reporté. La recette maître conserve ses sorties dans `artifacts/acceptance/`. Définir `ALYCIA_ACCEPTANCE_OUTPUT` pour isoler une campagne. Les logs des copies isolées sont sous `artifacts/extraction/`.
 
 ## Recette PostgreSQL et ONNX
 
 Fournir une instance PostgreSQL 17 jetable avec pgvector, les clients `psql`, `createdb` et `dropdb`, et un rôle de recette avec CREATEDB. Définir `ALYCIA_CHAT_TEST_CONNECTION` ainsi que les variables libpq `PGHOST`, `PGPORT`, `PGUSER` et, si nécessaire, `PGPASSWORD` pour ce même serveur. La recette crée des bases nommées par UUID. La migration Workspaces précède Chat. Le catalogue SQL et les deux listes d’IDs EF sont comparés aux références signées.
 
-Définir `ALYCIA_RERANK_DIRECTORY` avec les deux fichiers du modèle Horizon à la révision `23139fec6f1f448cdf89a5ac2d2c6bf5e8c7b398`. Les empreintes et les commandes de récupération sont dans la [recette ONNX de référence](../decouplage/finition/D29-commandes.md). La suite de transport HTTP utilise un serveur Ollama contrôlé. Le contrôle de conteneurs requiert un moteur Docker et Docker Compose v2.24.4 ou ultérieur.
+Définir `ALYCIA_RERANK_DIRECTORY` avec les deux fichiers du modèle Horizon à la révision `23139fec6f1f448cdf89a5ac2d2c6bf5e8c7b398`. Les empreintes et les commandes de récupération sont dans la [recette ONNX de référence](../decouplage/finition/D29-commandes.md). La suite de transport HTTP utilise un serveur Ollama contrôlé. Le contrôle de conteneurs requiert un moteur Docker et Docker Compose v2.24.4 ou ultérieur. Pour un moteur dans une VM, transférer son port HTTP de boucle locale au même port sur le poste de recette et définir `ALYCIA_DOCKER_TEST_PORT`.
 
 ## Lancer l’application
 
@@ -69,3 +78,8 @@ python3 scripts/modules.py check-master
 ```
 
 Pour une tête signée par le mainteneur, renseigner sa clé de signature Git enregistrée sur GitHub. Exécuter `bash scripts/architecture/preparer-signature.sh BASE TETE ARBRE ../alycia-signee develop prepare/extraction-multidepots-p0-p8` avec les trois SHA de la PR. Le script crée une branche locale distincte et vérifie chaque arbre. Vérifier la signature auprès de GitHub après l’envoi fast-forward de cette nouvelle branche.
+
+
+## Licence des paquets
+
+Les sept archives 0.1.0 sont produites pour le feed local. Aucun fichier de licence générale ou expression de licence NuGet du projet ne fixe actuellement les droits de redistribution de ces archives. Avant toute diffusion, le mainteneur doit établir les droits sur le code et les fixtures puis inventorier les licences et avis des dépendances redistribuées. Les poids Horizon sont récupérés séparément, sous les conditions de leur source. Le numéro de version et les sommes de contrôle identifient les octets livrés.

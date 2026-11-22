@@ -48,9 +48,10 @@ def compare(args):
             raise ValueError(f"Multiple TRX for {assembly}: use an empty results directory for each run")
         counts[assembly] = {k: int(v) for k, v in tree.find(".//{*}Counters").attrib.items()
                             if k in {"total", "passed", "failed", "notExecuted"}}
-        definitions = {t.get("id"): t.find("{*}TestMethod").get("className") for t in tree.findall(".//{*}UnitTest")}
+        definitions = {t.get("id"): t.find("{*}TestMethod") for t in tree.findall(".//{*}UnitTest")}
         for result in tree.findall(".//{*}UnitTestResult"):
-            old, new = moves.get(definitions[result.get("testId")], (assembly, assembly))
+            method = definitions[result.get("testId")]
+            old, new = moves(method.get("className"), method.get("name"), assembly)
             if assembly != new:
                 raise ValueError("Unexpected destination assembly: " + assembly)
             key = (old, result.get("testName"))

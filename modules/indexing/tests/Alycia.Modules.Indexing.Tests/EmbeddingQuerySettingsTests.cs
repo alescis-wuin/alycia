@@ -1,6 +1,5 @@
-using Alycia.Contracts.Indexing;
-using Alycia.Modules.Chat.Application;
-using Alycia.Modules.Chat.Infrastructure;
+using Alycia.Contracts.Chat;
+using Alycia.Modules.Indexing;
 
 namespace Alycia.Modules.Chat.Tests;
 
@@ -13,7 +12,7 @@ public sealed class EmbeddingQuerySettingsTests
     {
         var fixture = new VectorLookup();
         var search = new IndexedEmbeddingSearch(fixture, fixture);
-        var settings = new ChatOptions
+        var settings = new ChatSettings
         {
             EmbeddingModel = "first",
             EmbeddingBatchSize = 2,

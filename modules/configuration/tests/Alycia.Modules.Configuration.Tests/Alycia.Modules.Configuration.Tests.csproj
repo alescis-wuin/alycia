@@ -11,6 +11,7 @@
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
     <Using Include="Xunit" />
+    <ProjectReference Include="../../testing/Alycia.Modules.Configuration.Mocks/Alycia.Modules.Configuration.Mocks.csproj" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <Using Include="Alycia.Contracts.Inference" />
     <Using Include="Alycia.Contracts.Indexing" />

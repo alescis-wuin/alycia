@@ -12,7 +12,7 @@ import tempfile
 from test_identity import reconcile
 
 ROOT = Path(__file__).resolve().parents[2]
-OUT = ROOT / "artifacts/acceptance"
+OUT = Path(os.environ.get("ALYCIA_ACCEPTANCE_OUTPUT", ROOT / "artifacts/acceptance")).resolve()
 OUT.mkdir(parents=True, exist_ok=True)
 if not os.getenv("ALYCIA_CHAT_TEST_CONNECTION") or not os.getenv("ALYCIA_RERANK_DIRECTORY"):
     sys.exit("ALYCIA_CHAT_TEST_CONNECTION et ALYCIA_RERANK_DIRECTORY sont requis pour la recette complète.")
@@ -49,6 +49,8 @@ with tempfile.TemporaryDirectory(prefix="run-", dir=OUT) as directory:
     capture = current / "capture"
     python("check-modules.py", "--all-projects", "--capture", capture)
     run("dotnet", "test", "Alycia.slnx", "--no-build", "--no-restore", "-m:1", "--logger", "trx", "--results-directory", trx)
+    for sub in ("trx", "capture"):
+        shutil.make_archive(str(OUT/sub), "zip", current/sub)
     print(reconcile(trx, OUT/"TESTS.tsv"), "passed")
     python("architecture/finition-audit.py", capture, trx, OUT, "--require-complete", "--schema", OUT/"schema.tsv")
     for case in ("all", "originals", "mock"):
@@ -56,6 +58,5 @@ with tempfile.TemporaryDirectory(prefix="run-", dir=OUT) as directory:
     python("architecture/capture-openapi.py", OUT/"openapi.raw")
     python("evaluate-context.py", "offline", "--pipeline-v2", "--output", OUT/"rag.json")
     python("architecture/verify-baseline.py", "--http", OUT/"http-all.json", "--rag", OUT/"rag.json", "--openapi", OUT/"openapi.raw", "--trx", trx, log="compatibility.json")
-    for sub in ("trx", "capture"):
-        shutil.make_archive(str(OUT/sub), "zip", current/sub)
 python("architecture/check-docker.py", log="docker.log")
+print("PASS check-master", flush=True)

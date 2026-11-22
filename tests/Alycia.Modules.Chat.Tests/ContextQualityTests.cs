@@ -11,42 +11,6 @@ namespace Alycia.Modules.Chat.Tests;
 public class ContextQualityTests
 {
     [Fact]
-    public void AnaphoraKeepsLiteralAndOnlyResolvesUnambiguousUserMentions()
-    {
-        var id = Guid.NewGuid(); var request = Guid.NewGuid();
-        var turns = new[] { new ChatMessage(id, 1, request, "user", "Ouvre src/A.cs"),
-            new ChatMessage(id, 2, request, "assistant", "Je propose B.cs.") };
-        var plan = QueryPlanning.Build("Et ce fichier ?", turns.Select(m => new QueryHistoryItem(m.ConversationId, m.Sequence, m.Role, m.Content)).ToArray(), [], 3);
-        Assert.Equal("Et ce fichier ?", plan.Original);
-        Assert.Contains(plan.Queries, q => q is { Kind: "exact", Text: "src/A.cs" });
-        Assert.StartsWith("H1:", Assert.Single(plan.Resolved).Reference);
-        Assert.True(QueryPlanning.Build("Et cette version ?", [new(id, 3, "user", "A.cs et B.cs")], [], 3).Ambiguous);
-        Assert.Empty(QueryPlanning.Build("Et avant ?", [], [], 3).Resolved);
-        Assert.Equal(2, QueryPlanning.Build("Compare A.cs et B.cs", [], [], 2).Queries.Length);
-    }
-
-    [Fact]
-    public void MmrKeepsBothPinsAndOriginalCoordinatesWithinFramedBudget()
-    {
-        var files = new[] { "a.md", "b.md", "interdit.md" }.Select((name, n) =>
-            new Attachment { Id = Guid.NewGuid(), Name = name, Text = new string('x', 1800), Sha256 = name, ContextMode = n < 2 ? "pinned" : "excluded" }).ToArray();
-        var chunks = files.Select(f => new SourceChunk(f.Id, f.Name, f.Sha256, "section", "text", 0, f.Text.Length, 1, 1, f.Text, [], true)).ToArray();
-        var options = new ChatOptions { EvidenceSelectionEnabled = true };
-        var packed = PassageContext.Pack(chunks, files.Select(f => f.ToTurnFile()).ToArray(), 750, options.Context());
-        Assert.Equal(2, packed.Sources.Count);
-        Assert.Equal(PromptTokens.Count(packed.Text, options.TokenCounter), packed.Assembly!.Used);
-        Assert.InRange(packed.Assembly.Used, 1, 750);
-        foreach (var source in packed.Sources)
-        {
-            Assert.True(source.Partial);
-            Assert.Equal(SourceCoordinates.Reference(source.Id, source.Sha256!, 0, source.End!.Value), source.Reference);
-            Assert.Equal(files.Single(f => f.Id == source.Id).Text[..source.End.Value], source.Content);
-        }
-        Assert.DoesNotContain("interdit", packed.Text);
-        Assert.Throws<ArgumentException>(() => PassageContext.Pack(chunks, files.Select(f => f.ToTurnFile()).ToArray(), 10, options.Context()));
-    }
-
-    [Fact]
     public void ParentIsSearchableButIsNeverAddedToTheOriginalQuote()
     {
         const string text = "# Atlas\n## Archives\n### Conservation\n37 jours\n";
@@ -61,19 +25,6 @@ public class ContextQualityTests
         var space = EmbeddingSettings.From(options);
         Assert.NotEqual(space.VectorSpace("m:digest", 256), space.VectorSpace("m:digest", 768));
         Assert.NotEqual(space.VectorSpace("m:digest", 256), (space with { DocumentPrefix = "passage: " }).VectorSpace("m:digest", 256));
-    }
-
-    [Theory]
-    [InlineData("La rétention Orion est de 17 jours [SABCDEF123456].", "contradicted")]
-    [InlineData("La rétention Orion est de 37 jours [SABCDEF123456].", "supported")]
-    [InlineData("La rétention Orion est de 37 jours [S000000000000].", "insufficient")]
-    [InlineData("Quelle est votre préférence ?", "not_verifiable")]
-    public void VerificationDistinguishesEvidenceAndContradictions(string answer, string status)
-    {
-        var evidence = new EvidenceText("SABCDEF123456", "La conservation Orion est de 37 jours.");
-        Assert.Equal(status, Assert.Single(SemanticClaimAudit.Check(answer, [], [evidence]).Findings).Status);
-        var proposal = new EvidenceText("H2:123456ABCDEF", "Vous avez choisi Atlas.", "assistant");
-        Assert.Equal("insufficient", Assert.Single(SemanticClaimAudit.Check("Vous avez choisi Atlas [H2:123456ABCDEF].", [], [proposal]).Findings).Status);
     }
 
     [Fact]
@@ -92,19 +43,6 @@ public class ContextQualityTests
         Assert.Equal("call_limit", result.Research!.StopReason);
         Assert.Equal(new[] { "not_found", "not_searched" }, result.Research.Goals.Select(g => g.State));
         Assert.Single(result.Tools!);
-    }
-
-    [Fact]
-    public void EffectiveWindowProtectsSchemasOutputAndSafety()
-    {
-        var options = new ChatOptions { ContextTokens = 8192, MaxOutputTokens = 300, SafetyTokens = 256, GenerateUntilStop = false, AdaptiveInferenceEnabled = true };
-        PromptMessage[] input = [new("user", "Bonjour")];
-        Assert.Equal(1024, InferenceWindow.ForCall(options.InferenceCall(), input, false).Generation.ContextTokens);
-        var tools = InferenceWindow.ForCall(options.InferenceCall(), input, true);
-        Assert.InRange(tools.Generation.ContextTokens, PromptTokens.InputCost(input, options.TokenCounter, true) + 556, 8192);
-        Assert.Throws<ArgumentException>(() => InferenceWindow.ForCall(options.InferenceCall(), [new("user", new string('a', 8000))], false));
-        options.GenerateUntilStop = true;
-        Assert.Equal(8192, InferenceWindow.ForCall(options.InferenceCall(), input, false).Generation.ContextTokens);
     }
 
     private sealed class FinalModel : IChatModel

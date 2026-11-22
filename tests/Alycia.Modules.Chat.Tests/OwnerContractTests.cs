@@ -13,23 +13,6 @@ namespace Alycia.Modules.Chat.Tests;
 public sealed class OwnerContractTests
 {
     [PostgresFact]
-    public Task Import_limits_preserve_defaults_overrides_and_cancellation_in_both_adapters() =>
-        ProjectCreationTests.WithDatabaseAsync(async (options, _) =>
-        {
-            await using var db = new ChatDbContext(options);
-            var store = new ImportSettingsStore(db);
-            foreach (var limits in new[] { new ImportLimits(), new ImportLimits(FileMiB: 2, BatchMiB: 4) })
-            {
-                if (limits != new ImportLimits()) await store.SaveAsync(limits, default);
-                foreach (var reader in new IImportLimitsReader[] { store, new FixedImportLimits(limits) })
-                {
-                    Assert.Equal(limits, await reader.LoadAsync(default));
-                    await Assert.ThrowsAnyAsync<OperationCanceledException>(() => reader.LoadAsync(new CancellationToken(true)));
-                }
-            }
-        });
-
-    [PostgresFact]
     public Task Conversation_pages_and_tool_policies_agree_on_scope_cursors_and_cancellation() =>
         ProjectCreationTests.WithDatabaseAsync(async (options, _) =>
         {

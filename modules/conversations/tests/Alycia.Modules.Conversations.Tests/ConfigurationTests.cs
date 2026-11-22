@@ -50,28 +50,4 @@ public sealed class ConfigurationTests
     [InlineData(2.1)]
     public void RejectsInvalidTemperature(double temperature) =>
         Assert.Throws<ArgumentException>(() => new ChatOptions { Temperature = temperature }.Validate());
-
-    [Fact]
-    public void PinnedFilesSurviveWindowAndExcludedFilesNeverEnterPrompt()
-    {
-        var files = new[]
-        {
-            new Attachment { Name = "old.txt", Text = "PINNED", AnchorSequence = 1, ContextMode = "pinned" },
-            new Attachment { Name = "secret.txt", Text = "EXCLUDED", AnchorSequence = 9, ContextMode = "excluded" },
-            new Attachment { Name = "expired.txt", Text = "EXPIRED", AnchorSequence = 1 }
-        };
-        var options = new ChatOptions { MaxHistoryTurns = 0 };
-        var window = FileContext.Build(new Alycia.Modules.Context.SlidingHistory(), "system", [], "question", options.Context(), files.Select(f => f.ToTurnFile()).ToArray(), 9);
-        Assert.Contains("PINNED", window.Messages.Last().Content);
-        Assert.DoesNotContain("EXCLUDED", window.Messages.Last().Content);
-        Assert.DoesNotContain("EXPIRED", window.Messages.Last().Content);
-        Assert.Equal(1, window.FilesIncluded);
-        Assert.True(window.Messages.Sum(m => SlidingContext.EstimateTokens(m.Content))
-            <= options.ContextTokens - options.MaxOutputTokens - options.SafetyTokens);
-    }
-
-    [Fact]
-    public void RejectsIncompleteHistoryBeforeConstructingPrompt() =>
-        Assert.Throws<InvalidOperationException>(() => SlidingContext.Build(new Alycia.Modules.Context.SlidingHistory(), "", [
-            new ChatMessage(Guid.NewGuid(), 1, Guid.NewGuid(), "user", "orphan").ToHistory()], "question", new ChatOptions().Context()));
 }

@@ -16,7 +16,11 @@ command = ["docker", "compose", "-p", name, "-f", str(ROOT / "compose.yaml")]
 
 with tempfile.TemporaryDirectory() as tmp:
     override = Path(tmp) / "ports.yaml"
-    override.write_text('services:\n  api:\n    ports: !override\n      - "127.0.0.1::8080"\n')
+    # A remote, isolated engine may forward a reserved loopback port to this runner.
+    requested = os.environ.get("ALYCIA_DOCKER_TEST_PORT", "")
+    if requested and (not requested.isdecimal() or not 1 <= int(requested) <= 65535):
+        raise ValueError("ALYCIA_DOCKER_TEST_PORT doit être un port TCP valide")
+    override.write_text(f'services:\n  api:\n    ports: !override\n      - "127.0.0.1:{requested}:8080"\n')
     command.extend(["-f", str(override)])
     subprocess.run(["docker", "info", "--format", "{{.ServerVersion}}"], check=True, env=env)
     subprocess.run(command + ["config", "--quiet"], check=True, env=env)
@@ -26,9 +30,10 @@ with tempfile.TemporaryDirectory() as tmp:
         for attempt in range(40):
             try:
                 with urllib.request.build_opener(urllib.request.ProxyHandler({})).open("http://" + port + "/healthz", timeout=4) as response:
-                    if response.status == 200:
-                        print("PASS Docker build, PostgreSQL dependency, API /healthz HTTP 200")
-                        break
+                    if response.status != 200:
+                        raise RuntimeError(f"Unexpected /healthz status {response.status}")
+                    print("PASS Docker build, PostgreSQL dependency, API /healthz HTTP 200")
+                    break
             except OSError:
                 if attempt == 39:
                     raise

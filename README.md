@@ -3,12 +3,12 @@
 
 ## Construire depuis un clone
 
-Installer le SDK .NET 10.0.404 et Python 3, puis exécuter à la racine.
+Sous Linux, utiliser Python 3 et les commandes suivantes depuis la racine. Le lanceur utilise le SDK .NET 10.0.404 installé ou le prépare dans un répertoire privé.
 
 ```sh
-python3 scripts/modules.py bootstrap-packages
-dotnet restore Alycia.slnx --locked-mode --configfile NuGet.Config
-dotnet build Alycia.slnx --no-restore -m:1
+bash scripts/with-sdk.sh python3 scripts/modules.py bootstrap-packages
+bash scripts/with-sdk.sh dotnet restore Alycia.slnx --locked-mode --configfile NuGet.Config
+bash scripts/with-sdk.sh dotnet build Alycia.slnx --no-restore -m:1
 ```
 
 Les commandes par domaine, les prérequis des intégrations et la procédure de retour figurent dans [le guide d’assemblage](docs/architecture/preparation-multidepots/ASSEMBLAGE.md).
@@ -59,7 +59,7 @@ The sections below document the inherited prototypes and earlier sprints.
 
 **Windows:** [one-command setup, PowerShell launchers and Docker Desktop](docs/Windows-Prototype.md).
 The Windows launcher installs/checks dependencies, initializes persistent services
-and opens the native Avalonia client; it does not require Bash, Python or Make.
+and opens the native Avalonia client. Preparing the local package feed for this revision requires Python 3 and the pinned .NET SDK.
 
 The base branch, `prototype/conversation-files`, adds file/folder/archive
 imports, attachment actions, a persistent Docker file volume and bounded file

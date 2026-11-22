@@ -84,6 +84,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("action", choices=("build", "test", "check"), nargs="?", default="check")
     parser.add_argument("--feed", type=Path, default=ROOT / "artifacts/local-feed")
+    parser.add_argument("--cases-out", type=Path, help="Écrire les identités des cas VSTest réussis")
     args = parser.parse_args()
     if not shutil.which("dotnet"):
         parser.error("SDK .NET 10 requis")
@@ -106,6 +107,11 @@ def main():
             cases = [c for trx in work.glob("*.trx") for c in ET.parse(trx).findall(".//{*}UnitTestResult")]
             if not cases or any(c.get("outcome") != "Passed" for c in cases):
                 raise RuntimeError("suite absente, en échec ou ignorée ; fournir les prérequis de la recette")
+            if args.cases_out:
+                ids = sorted(hashlib.sha256((c.attrib["testId"] + "\0" + c.attrib["testName"]).encode()).hexdigest() for c in cases)
+                if len(ids) != len(set(ids)):
+                    raise ValueError("identité VSTest dupliquée")
+                args.cases_out.write_text("\n".join(ids) + "\n")
             print(f"PASS {solution.stem}: {len(projects)} projects, {len(cases)} passed, 0 skipped", flush=True)
 
 

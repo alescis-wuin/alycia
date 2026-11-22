@@ -1,6 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <None Update="Fixtures/*.json" CopyToOutputDirectory="PreserveNewest" />
     <Using Include="Alycia.Modules.Documents" />
     <Using Include="Alycia.Contracts.Documents" />
     <Using Include="Alycia.Modules.Inference" />
