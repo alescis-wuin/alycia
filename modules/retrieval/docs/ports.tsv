@@ -1,10 +1,7 @@
 port	rôle dans ce domaine	statut	fixture du maître ou du domaine
-Alycia.Contracts.Retrieval.ITurnResponseAudit	adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/TurnOutputContractTests.cs
+Alycia.Contracts.Retrieval.ITurnResponseAudit	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/TurnOutputContractTests.cs
 Alycia.Contracts.Retrieval.IPassageReranker	propriété fonctionnelle, adaptateur, double	VALIDÉ	modules/retrieval/tests/Alycia.Modules.Retrieval.Tests/RerankerContractTests.cs
 Alycia.Contracts.Retrieval.IPassageScoring	propriété fonctionnelle, adaptateur, double	VALIDÉ	modules/retrieval/tests/Alycia.Modules.Retrieval.Tests/ScoringContractTests.cs
 Alycia.Contracts.Retrieval.IProjectRetrieval	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/RoutingContractTests.cs
-Alycia.Contracts.Retrieval.IQueryBriefRefiner	propriété fonctionnelle	VALIDÉ	modules/inference/tests/Alycia.Modules.Inference.Tests/BriefContractTests.cs
 Alycia.Contracts.Retrieval.IQueryPlanner	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/RoutingContractTests.cs
-Alycia.Contracts.Retrieval.IQuerySources	propriété fonctionnelle	VALIDÉ	tests/Alycia.Modules.Chat.Tests/TurnReadContractTests.cs
 Alycia.Contracts.Retrieval.IRetrievalPipeline	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/RoutingContractTests.cs
-Alycia.Contracts.Retrieval.ITurnRouter	propriété fonctionnelle	VALIDÉ	tests/Alycia.Modules.Chat.Tests/RoutingContractTests.cs

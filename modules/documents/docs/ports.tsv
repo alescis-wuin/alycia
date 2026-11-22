@@ -1,14 +1,9 @@
 port	rôle dans ce domaine	statut	fixture du maître ou du domaine
-Alycia.Contracts.Documents.IAnalysisConversation	propriété fonctionnelle	VALIDÉ	tests/Alycia.Modules.Chat.Tests/ArchiveAnalysisContractTests.cs
 Alycia.Contracts.Documents.IArchiveDocuments	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/ArchiveAnalysisContractTests.cs
 Alycia.Contracts.Documents.IAuthorizedToolSources	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/OwnerContractTests.cs
-Alycia.Contracts.Documents.IConversationFileChanges	propriété fonctionnelle	VALIDÉ	tests/Alycia.Modules.Chat.Tests/OriginalsContractTests.cs
-Alycia.Contracts.Documents.IConversationLease	propriété fonctionnelle	VALIDÉ	modules/conversations/tests/Alycia.Modules.Conversations.Tests/ExclusiveLeaseTests.cs
 Alycia.Contracts.Documents.IConversationOriginals	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/OriginalsContractTests.cs
-Alycia.Contracts.Documents.IConversationWorkspaceLookup	propriété fonctionnelle	VALIDÉ	tests/Alycia.Modules.Chat.Tests/OwnerContractTests.cs
-Alycia.Contracts.Documents.IDocumentFork	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/ArchiveAnalysisContractTests.cs
+Alycia.Contracts.Documents.IDocumentFork	propriété fonctionnelle, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/ArchiveAnalysisContractTests.cs
 Alycia.Contracts.Documents.IDocumentMembershipOverrides	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/OriginalsContractTests.cs
-Alycia.Contracts.Documents.IImportLimitsReader	propriété fonctionnelle	VALIDÉ	tests/Alycia.Modules.Chat.Tests/OwnerContractTests.cs
 Alycia.Contracts.Documents.ILiveIndexFileAccess	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/OwnerContractTests.cs
 Alycia.Contracts.Documents.ITurnDocuments	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/TurnReadContractTests.cs
-Alycia.Contracts.Indexing.IIndexSourceDocuments	adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/IndexDocumentContractTests.cs
+Alycia.Contracts.Indexing.IIndexSourceDocuments	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/IndexDocumentContractTests.cs

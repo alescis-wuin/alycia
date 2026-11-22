@@ -2,7 +2,5 @@ port	rôle dans ce domaine	statut	fixture du maître ou du domaine
 Alycia.Contracts.Indexing.IEmbeddingSimilarityReader	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/VectorPublicationConcurrencyTests.cs
 Alycia.Contracts.Indexing.IHistoryKnowledge	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/KnowledgePipelineTests.cs
 Alycia.Contracts.Indexing.IIndexMaintenance	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/TemporalMemoryIntegrationTests.cs
-Alycia.Contracts.Indexing.IIndexSourceDocuments	propriété fonctionnelle	VALIDÉ	tests/Alycia.Modules.Chat.Tests/IndexDocumentContractTests.cs
 Alycia.Contracts.Indexing.IIndexedEmbeddings	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/VectorPublicationConcurrencyTests.cs
-Alycia.Contracts.Indexing.IMemoryVectorEligibility	propriété fonctionnelle	VALIDÉ	modules/memory/tests/Alycia.Modules.Memory.Tests/EligibilityTests.cs
 Alycia.Contracts.Indexing.IProjectIndex	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/OwnerContractTests.cs

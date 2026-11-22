@@ -1,8 +1,6 @@
 port	rôle dans ce domaine	statut	fixture du maître ou du domaine
-Alycia.Contracts.Indexing.IMemoryVectorEligibility	adaptateur, double	VALIDÉ	modules/memory/tests/Alycia.Modules.Memory.Tests/EligibilityTests.cs
-Alycia.Contracts.Memory.IContextMemory	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/TurnOutputContractTests.cs
-Alycia.Contracts.Memory.ITemporalFactStorage	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/TemporalFactsContractTests.cs
-Alycia.Contracts.Memory.ITemporalHistorySources	propriété fonctionnelle	VALIDÉ	tests/Alycia.Modules.Chat.Tests/TurnReadContractTests.cs
+Alycia.Contracts.Indexing.IMemoryVectorEligibility	propriété fonctionnelle, adaptateur, double	VALIDÉ	modules/memory/tests/Alycia.Modules.Memory.Tests/EligibilityTests.cs
+Alycia.Contracts.Memory.IContextMemory	propriété fonctionnelle, adaptateur, double	VALIDÉ	modules/memory/tests/Alycia.Modules.Memory.Tests/TurnOutputContractTests.cs
+Alycia.Contracts.Memory.ITemporalFactStorage	propriété fonctionnelle, adaptateur, double	VALIDÉ	modules/memory/tests/Alycia.Modules.Memory.Tests/TemporalFactsContractTests.cs
 Alycia.Contracts.Memory.ITemporalMemory	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/TemporalMemoryIntegrationTests.cs
 Alycia.Contracts.Memory.ITemporalMemoryIndex	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/TemporalMemoryIntegrationTests.cs
-Alycia.Modules.Chat.Application.IConversationMemory	propriété fonctionnelle	VALIDÉ	tests/Alycia.Modules.Chat.Tests/ConversationPortsContractTests.cs

@@ -99,10 +99,14 @@ def main():
     if set(owners_by_port) != set(ports):
         raise ValueError("Public port inventory differs from the declared owners")
     implementations = defaultdict(lambda: defaultdict(set))
+    mock_owners = defaultdict(set)
     for r in rows:
         if r[0] == "M" and r[3] in ports and "/obj/" not in r[1]:
             group = implementation_group(r[1])
             implementations[r[3]][group].add(r[2])
+            if group == "double":
+                path = Path(r[1]).parts
+                mock_owners[r[3]].add(path[1] if path[0] == "modules" else "master")
     with (LOCATION / "D20-ports.tsv").open() as source:
         baseline = {r["port"].rsplit(".", 1)[-1]: r for r in csv.DictReader(source, delimiter="\t")}
     methods = successful_methods(args.trx)
@@ -126,6 +130,8 @@ def main():
         groups = implementations[port]
         if proof and (not ran or not groups["double"] or not groups["src"]):
             raise ValueError("Conformité non vérifiée: " + port + " (" + proof + ")")
+        if ran and mock_owners[port] != {owners_by_port[port]}:
+            raise ValueError(f"Propriétaire déclaré et doubles réels divergents pour {port}: {mock_owners[port]}")
         status = "VALIDÉ" if ran else ("EXCLU" if category != "comportemental" else "OUVERT")
         detail = initial["raison"] if status == "EXCLU" else (proof or "Suite commune et double à démontrer")
         module = owners_by_port[port].capitalize()

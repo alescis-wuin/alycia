@@ -1,10 +1,8 @@
+using Xunit.Abstractions;
 using System.Diagnostics;
 using System.Globalization;
 using System.Net;
 using System.Text;
-using Alycia.Modules.Chat.Application;
-using Alycia.Modules.Chat.Infrastructure;
-using Xunit.Abstractions;
 
 namespace Alycia.Modules.Chat.Tests;
 
@@ -33,7 +31,7 @@ public sealed class OllamaSchedulingTests(ITestOutputHelper output)
                 await embedding.InferenceStarted.Task.WaitAsync(ct);
                 // Each adapter call reaches its first incomplete await while the only model slot is occupied.
                 var queued = annotations.Select(a => a.RunAsync(ct)).ToArray();
-                using (ChatFixture.Foreground.PreferForeground())
+                using (InferenceTestProvider.Foreground.PreferForeground())
                 {
                     var interactive = chat.RunAsync(ct);
                     release.SetResult();
@@ -122,11 +120,11 @@ public sealed class OllamaSchedulingTests(ITestOutputHelper output)
         public async Task RunAsync(CancellationToken ct)
         {
             using var http = new HttpClient(this) { BaseAddress = new Uri("http://127.0.0.1:11434/") };
-            var model = ChatFixture.Ollama(http, new());
-            var settings = new ChatOptions { CallPurpose = name == "chat" ? "chat" : "annotation", TimeoutSeconds = 5 };
+            var model = InferenceTestProvider.Ollama(http, new());
+            var settings = new ProviderSettings { CallPurpose = name == "chat" ? "chat" : "annotation", TimeoutSeconds = 5 };
             Submission = Stopwatch.GetTimestamp();
             if (name == "embedding")
-                Assert.Equal(2, (await new OllamaEmbeddings(http, ChatFixture.Scheduler).EmbedAsync("vectors", ["a", "b"], ct)).Vectors.Length);
+                Assert.Equal(2, (await new OllamaEmbeddings(http, InferenceTestProvider.Scheduler).EmbedAsync("vectors", ["a", "b"], ct)).Vectors.Length);
             else if (name == "chat")
                 Assert.Equal("ok", (await model.StreamAsync("local", [], settings.InferenceCall(), delta =>
                 {

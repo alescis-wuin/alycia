@@ -68,6 +68,11 @@ def export(capture, ports_file):
                 raise ValueError("unowned mock: " + row["port"])
             port_rows.append([row[h] for h in headers]+[" | ".join(sorted(destinations)) or "—"])
     table("PORTS.tsv", headers+["sources physiques des doubles"], port_rows)
+    test_destinations = {}
+    with (DOC / "TEST-METHODES.tsv").open() as source:
+        for row in csv.DictReader(source, delimiter="\t"):
+            name = row["class"].rsplit(".", 1)[-1] + ".cs"
+            test_destinations.setdefault(name, set()).add(row["new"].removesuffix(".dll"))
     baseline = [entry.split("\t", 1) for entry in git("ls-tree", "-r", BASE).decode().splitlines()]
     by_filename = {}
     for p in tracked:
@@ -78,7 +83,13 @@ def export(capture, ports_file):
         path = Path(filename)
         old_asm = (path.parts[1] if len(path.parts) > 2 and path.parts[0] in {"src", "tests", "benchmarks"}
                    else "Inventory" if filename.startswith("scripts/architecture/capture/") else "—")
-        if path in tracked:
+        if old_asm == "Alycia.Modules.Chat.Tests" and path.name in test_destinations:
+            names = test_destinations[path.name]
+            found = sorted(p for p in by_filename.get(path.name, [])
+                           if p == path or assembly_of(p, parents).lower() in names)
+            if not found:
+                raise ValueError("Destinations de test absentes : " + filename)
+        elif path in tracked:
             found = [path]
         elif path.name == "Alycia.Modules.Testing.csproj":
             found = [d/(n+".csproj") for n, d in by_id.items() if n.endswith(".Mocks")]

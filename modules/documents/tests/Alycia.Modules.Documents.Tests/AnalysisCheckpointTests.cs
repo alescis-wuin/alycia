@@ -1,6 +1,3 @@
-using Alycia.Modules.Chat.Application;
-using Alycia.Modules.Chat.Infrastructure;
-
 namespace Alycia.Modules.Chat.Tests;
 
 public sealed class AnalysisCheckpointTests
@@ -15,7 +12,7 @@ public sealed class AnalysisCheckpointTests
             var store = new AnalysisCheckpoints(storage);
             var run = await store.StartAsync(id, null, "source", "model:digest", 1024, null, default);
             var profile = new Alycia.Contracts.Documents.AnalysisCacheProfile(
-                System.Text.Json.JsonSerializer.Serialize(new ChatOptions(), ProjectToolCatalog.Json));
+                System.Text.Json.JsonSerializer.Serialize(new ChatSettings(), ProjectToolCatalog.Json));
             var key = AnalysisCheckpoints.UnitKey(file, "sha", "code.cs", "complete", "model:digest", 1024, profile);
             await store.SaveUnitAsync(id, new(key, "résumé validé", true, "original", 100, 100), default);
             await store.SaveRunAsync(run with { State = "cancelled", CompletedUnits = 1 }, default);

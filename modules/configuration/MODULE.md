@@ -8,7 +8,7 @@ Profils de prompts et paramètres d’import persistants. La forme JSON v1 est d
 |---|---|---|
 | `Alycia.Modules.Configuration` | src | Alycia.Contracts [0.1.0] |
 | `Alycia.Modules.Configuration.Mocks` | testing | Alycia.Contracts [0.1.0] |
-| `Alycia.Modules.Configuration.Tests` | tests | Alycia.Modules.Configuration |
+| `Alycia.Modules.Configuration.Tests` | tests | Alycia.Modules.Configuration, Alycia.Modules.Configuration.Mocks |
 
 ## Persistance et contrats
 

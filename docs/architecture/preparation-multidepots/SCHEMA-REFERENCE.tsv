@@ -1,0 +1,149 @@
+schema	relation	kind	name	definition
+chat	__EFMigrationsHistory	column	MigrationId	1|character varying(150)|t||||default
+chat	__EFMigrationsHistory	column	ProductVersion	2|character varying(32)|t||||default
+chat	__EFMigrationsHistory	index	PK___EFMigrationsHistory	"CREATE UNIQUE INDEX ""PK___EFMigrationsHistory"" ON chat.""__EFMigrationsHistory"" USING btree (""MigrationId"")"
+chat	attachments	column	AnchorSequence	10|integer|t||||
+chat	attachments	column	ArchiveId	4|uuid|f||||
+chat	attachments	column	BatchId	3|uuid|t||||
+chat	attachments	column	ContextMode	12|character varying(16)|t|||'window'::character varying|default
+chat	attachments	column	ConversationId	2|uuid|f||||
+chat	attachments	column	CreatedAtUtc	11|timestamp with time zone|t||||
+chat	attachments	column	Id	1|uuid|t||||
+chat	attachments	column	MetadataSource	13|character varying(100)|t|||'unknown'::character varying|default
+chat	attachments	column	Name	5|character varying(1024)|t||||default
+chat	attachments	column	Sha256	7|character varying(64)|t||||default
+chat	attachments	column	Size	6|bigint|t||||
+chat	attachments	column	SourceCreatedAt	14|character varying(64)|t|||''::character varying|default
+chat	attachments	column	SourceModifiedAt	15|character varying(64)|t|||''::character varying|default
+chat	attachments	column	Status	8|character varying(100)|t||||default
+chat	attachments	column	Text	9|text|t||||default
+chat	attachments	column	WorkspaceId	16|uuid|f||||
+chat	attachments	index	IX_attachments_ConversationId_BatchId	"CREATE INDEX ""IX_attachments_ConversationId_BatchId"" ON chat.attachments USING btree (""ConversationId"", ""BatchId"")"
+chat	attachments	index	IX_attachments_WorkspaceId	"CREATE INDEX ""IX_attachments_WorkspaceId"" ON chat.attachments USING btree (""WorkspaceId"")"
+chat	attachments	index	PK_attachments	"CREATE UNIQUE INDEX ""PK_attachments"" ON chat.attachments USING btree (""Id"")"
+chat	conversations	column	ContextNotes	9|character varying(8000)|t|||''::character varying|default
+chat	conversations	column	CreatedAtUtc	5|timestamp with time zone|t||||
+chat	conversations	column	Id	1|uuid|t||||
+chat	conversations	column	MemoryLedgerJson	15|text|t|||'{}'::text|default
+chat	conversations	column	MemoryModel	11|character varying(200)|t|||''::character varying|default
+chat	conversations	column	MemorySourceHash	12|character varying(64)|t|||''::character varying|default
+chat	conversations	column	MemoryText	13|text|t|||''::text|default
+chat	conversations	column	MemoryThroughSequence	14|integer|t|||0|
+chat	conversations	column	MessageCount	8|integer|t||||
+chat	conversations	column	Model	3|character varying(200)|t||||default
+chat	conversations	column	Revision	7|integer|t||||
+chat	conversations	column	SettingsJson	10|text|t|||'{}'::text|default
+chat	conversations	column	SystemPrompt	4|character varying(4000)|t||||default
+chat	conversations	column	Title	2|character varying(100)|t||||default
+chat	conversations	column	UpdatedAtUtc	6|timestamp with time zone|t||||
+chat	conversations	column	WorkspaceId	16|uuid|f||||
+chat	conversations	index	IX_conversations_UpdatedAtUtc	"CREATE INDEX ""IX_conversations_UpdatedAtUtc"" ON chat.conversations USING btree (""UpdatedAtUtc"")"
+chat	conversations	index	IX_conversations_WorkspaceId	"CREATE INDEX ""IX_conversations_WorkspaceId"" ON chat.conversations USING btree (""WorkspaceId"")"
+chat	conversations	index	PK_conversations	"CREATE UNIQUE INDEX ""PK_conversations"" ON chat.conversations USING btree (""Id"")"
+chat	document_analyses	column	ConversationId	2|uuid|t||||
+chat	document_analyses	column	CreatedAtUtc	6|timestamp with time zone|t||||
+chat	document_analyses	column	FileCount	11|integer|t||||
+chat	document_analyses	column	Id	1|uuid|t||||
+chat	document_analyses	column	ManifestJson	10|text|t||||default
+chat	document_analyses	column	Model	5|character varying(200)|t||||default
+chat	document_analyses	column	ScopeBatchId	3|uuid|f||||
+chat	document_analyses	column	SourceFingerprint	7|character varying(64)|t||||default
+chat	document_analyses	column	SummaryCalls	12|integer|t||||
+chat	document_analyses	column	SummaryText	9|text|t||||default
+chat	document_analyses	column	Title	4|character varying(100)|t||||default
+chat	document_analyses	column	TreeText	8|text|t||||default
+chat	document_analyses	column	UseInContext	13|boolean|t||||
+chat	document_analyses	index	IX_document_analyses_ConversationId_CreatedAtUtc	"CREATE INDEX ""IX_document_analyses_ConversationId_CreatedAtUtc"" ON chat.document_analyses USING btree (""ConversationId"", ""CreatedAtUtc"")"
+chat	document_analyses	index	PK_document_analyses	"CREATE UNIQUE INDEX ""PK_document_analyses"" ON chat.document_analyses USING btree (""Id"")"
+chat	embedding_jobs	column	completed	6|integer|t|||0|
+chat	embedding_jobs	column	cycle_calls	12|integer|t|||0|
+chat	embedding_jobs	column	detail	8|text|t|||''::text|default
+chat	embedding_jobs	column	fingerprint	9|text|t|||''::text|default
+chat	embedding_jobs	column	is_project	2|boolean|t||||
+chat	embedding_jobs	column	options_json	3|text|t||||default
+chat	embedding_jobs	column	owner_id	1|uuid|t||||
+chat	embedding_jobs	column	retry_at	11|timestamp with time zone|f||||
+chat	embedding_jobs	column	revision	4|integer|t|||0|
+chat	embedding_jobs	column	state	5|text|t|||'queued'::text|default
+chat	embedding_jobs	column	total	7|integer|t|||0|
+chat	embedding_jobs	column	updated_at	10|timestamp with time zone|t|||now()|
+chat	embedding_jobs	column	vector_digest	13|text|f||||default
+chat	embedding_jobs	column	vector_dimensions	14|integer|f||||
+chat	embedding_jobs	index	embedding_jobs_pkey	CREATE UNIQUE INDEX embedding_jobs_pkey ON chat.embedding_jobs USING btree (owner_id, is_project)
+chat	embedding_vectors	column	content_hash	8|character varying(64)|t||||default
+chat	embedding_vectors	column	conversation_id	4|uuid|f||||
+chat	embedding_vectors	column	embedding	9|real[]|t||||
+chat	embedding_vectors	column	end_offset	7|integer|t||||
+chat	embedding_vectors	column	file_id	3|uuid|f||||
+chat	embedding_vectors	column	identity	1|text|t||||default
+chat	embedding_vectors	column	key	2|character varying(64)|t||||default
+chat	embedding_vectors	column	sequence	5|integer|t|||0|
+chat	embedding_vectors	column	start_offset	6|integer|t||||
+chat	embedding_vectors	index	embedding_vectors_pkey	CREATE UNIQUE INDEX embedding_vectors_pkey ON chat.embedding_vectors USING btree (identity, key)
+chat	embedding_vectors	index	ix_embedding_file	CREATE INDEX ix_embedding_file ON chat.embedding_vectors USING btree (file_id)
+chat	embedding_vectors	index	ix_embedding_history	CREATE INDEX ix_embedding_history ON chat.embedding_vectors USING btree (conversation_id, sequence)
+chat	import_settings	column	id	1|integer|t||||
+chat	import_settings	column	settings_json	2|text|t||||default
+chat	import_settings	index	import_settings_pkey	CREATE UNIQUE INDEX import_settings_pkey ON chat.import_settings USING btree (id)
+chat	knowledge_units	column	cache_key	2|text|t||||default
+chat	knowledge_units	column	conversation_id	4|uuid|f||||
+chat	knowledge_units	column	file_id	3|uuid|f||||
+chat	knowledge_units	column	first_unit	8|integer|t||||
+chat	knowledge_units	column	indexed_at	12|timestamp with time zone|t|||now()|
+chat	knowledge_units	column	key	1|text|t||||default
+chat	knowledge_units	column	last_unit	9|integer|t||||
+chat	knowledge_units	column	level	7|text|t||||default
+chat	knowledge_units	column	observed	10|timestamp with time zone|f||||
+chat	knowledge_units	column	payload	11|jsonb|t||||
+chat	knowledge_units	column	profile	5|text|t||||default
+chat	knowledge_units	column	search_terms	13|tsvector|f||s|to_tsvector('simple'::regconfig, ((((((((COALESCE((payload #>> '{labels,summary}'::text[]), ''::text) || ' '::text) || COALESCE((payload #>> '{labels,keywords}'::text[]), ''::text)) || ' '::text) || COALESCE((payload #>> '{labels,topics}'::text[]), ''::text)) || ' '::text) || COALESCE((payload #>> '{labels,entities}'::text[]), ''::text)) || ' '::text) || COALESCE((payload #>> '{labels,technicalSymbols}'::text[]), ''::text)))|
+chat	knowledge_units	column	source_hash	6|text|t||||default
+chat	knowledge_units	index	ix_knowledge_cache	CREATE INDEX ix_knowledge_cache ON chat.knowledge_units USING btree (cache_key, indexed_at DESC)
+chat	knowledge_units	index	ix_knowledge_files	CREATE INDEX ix_knowledge_files ON chat.knowledge_units USING btree (file_id, profile, source_hash, level)
+chat	knowledge_units	index	ix_knowledge_history	CREATE INDEX ix_knowledge_history ON chat.knowledge_units USING btree (conversation_id, profile, level, last_unit)
+chat	knowledge_units	index	ix_knowledge_history_terms	CREATE INDEX ix_knowledge_history_terms ON chat.knowledge_units USING gin (search_terms) WHERE (level = 'history-group'::text)
+chat	knowledge_units	index	knowledge_units_pkey	CREATE UNIQUE INDEX knowledge_units_pkey ON chat.knowledge_units USING btree (key)
+chat	messages	column	Content	5|text|t||||default
+chat	messages	column	ConversationId	1|uuid|t||||
+chat	messages	column	CreatedAtUtc	6|timestamp with time zone|t||||
+chat	messages	column	DiagnosticsJson	8|text|t|||'{}'::text|default
+chat	messages	column	RequestId	3|uuid|t||||
+chat	messages	column	Role	4|character varying(16)|t||||default
+chat	messages	column	Sequence	2|integer|t||||
+chat	messages	column	ToolTraceJson	7|text|t|||'[]'::text|default
+chat	messages	index	IX_messages_ConversationId_RequestId_Role	"CREATE UNIQUE INDEX ""IX_messages_ConversationId_RequestId_Role"" ON chat.messages USING btree (""ConversationId"", ""RequestId"", ""Role"")"
+chat	messages	index	PK_messages	"CREATE UNIQUE INDEX ""PK_messages"" ON chat.messages USING btree (""ConversationId"", ""Sequence"")"
+chat	prompt_profiles	column	Id	1|uuid|t||||
+chat	prompt_profiles	column	Name	2|character varying(100)|t||||default
+chat	prompt_profiles	column	SystemPrompt	3|character varying(4000)|t||||default
+chat	prompt_profiles	index	PK_prompt_profiles	"CREATE UNIQUE INDEX ""PK_prompt_profiles"" ON chat.prompt_profiles USING btree (""Id"")"
+chat	temporal_memory	column	facts	5|jsonb|t||||
+chat	temporal_memory	column	observed	3|timestamp with time zone|t||||
+chat	temporal_memory	column	owner	1|uuid|t||||
+chat	temporal_memory	column	search	6|tsvector|t||||
+chat	temporal_memory	column	sequence	2|integer|t||||
+chat	temporal_memory	column	topics	4|text[]|t||||default
+chat	temporal_memory	column	version	7|smallint|t||||
+chat	temporal_memory	index	ix_temporal_search	CREATE INDEX ix_temporal_search ON chat.temporal_memory USING gin (search)
+chat	temporal_memory	index	ix_temporal_topics	CREATE INDEX ix_temporal_topics ON chat.temporal_memory USING gin (topics)
+chat	temporal_memory	index	temporal_memory_pkey	CREATE UNIQUE INDEX temporal_memory_pkey ON chat.temporal_memory USING btree (owner, sequence)
+chat	workspace_file_overrides	column	ConversationId	1|uuid|t||||
+chat	workspace_file_overrides	column	FileId	2|uuid|t||||
+chat	workspace_file_overrides	column	Mode	3|character varying(16)|t||||default
+chat	workspace_file_overrides	index	IX_workspace_file_overrides_FileId	"CREATE INDEX ""IX_workspace_file_overrides_FileId"" ON chat.workspace_file_overrides USING btree (""FileId"")"
+chat	workspace_file_overrides	index	PK_workspace_file_overrides	"CREATE UNIQUE INDEX ""PK_workspace_file_overrides"" ON chat.workspace_file_overrides USING btree (""ConversationId"", ""FileId"")"
+chat	workspace_profiles	column	Archived	5|boolean|t||||
+chat	workspace_profiles	column	DefaultModel	3|character varying(200)|t||||default
+chat	workspace_profiles	column	Id	1|uuid|t||||
+chat	workspace_profiles	column	Instructions	2|character varying(4000)|t||||default
+chat	workspace_profiles	column	NotesJson	4|text|t||||default
+chat	workspace_profiles	column	Revision	6|integer|t||||
+chat	workspace_profiles	index	PK_workspace_profiles	"CREATE UNIQUE INDEX ""PK_workspace_profiles"" ON chat.workspace_profiles USING btree (""Id"")"
+workspaces	__EFMigrationsHistory	column	MigrationId	1|character varying(150)|t||||default
+workspaces	__EFMigrationsHistory	column	ProductVersion	2|character varying(32)|t||||default
+workspaces	__EFMigrationsHistory	index	PK___EFMigrationsHistory	"CREATE UNIQUE INDEX ""PK___EFMigrationsHistory"" ON workspaces.""__EFMigrationsHistory"" USING btree (""MigrationId"")"
+workspaces	workspaces	column	created_at_utc	3|timestamp with time zone|t||||
+workspaces	workspaces	column	id	1|uuid|t||||
+workspaces	workspaces	column	name	2|citext|t||||default
+workspaces	workspaces	index	PK_workspaces	"CREATE UNIQUE INDEX ""PK_workspaces"" ON workspaces.workspaces USING btree (id)"
+workspaces	workspaces	index	ux_workspaces_name	CREATE UNIQUE INDEX ux_workspaces_name ON workspaces.workspaces USING btree (name)

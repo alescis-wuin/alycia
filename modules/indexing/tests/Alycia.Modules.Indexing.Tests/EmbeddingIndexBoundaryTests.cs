@@ -1,6 +1,5 @@
-using Alycia.Contracts.Indexing;
-using Alycia.Modules.Chat.Application;
-using Alycia.Modules.Chat.Infrastructure;
+using Alycia.Contracts.Chat;
+using Alycia.Modules.Indexing;
 
 namespace Alycia.Modules.Chat.Tests;
 
@@ -16,7 +15,7 @@ public sealed class EmbeddingIndexBoundaryTests
         var chunk = new SourceChunk(Guid.NewGuid(), "corpus.txt", "hash", "", "text",
             0, 14, 1, 1, "private corpus", [], true);
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => search.SearchAsync(Guid.NewGuid(), "question",
-            EmbeddingQuery.Capture(new ChatOptions { EmbeddingModel = "fixture" }), [chunk], cancel.Token));
+            EmbeddingQuery.Capture(new ChatSettings { EmbeddingModel = "fixture" }), [chunk], cancel.Token));
 
         Assert.Equal(["question"], encoder.Inputs);
         Assert.Equal([EmbeddingChunks.Key(chunk)], store.Keys);

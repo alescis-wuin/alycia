@@ -229,6 +229,12 @@
           "Microsoft.EntityFrameworkCore.Relational": "[10.0.14, )",
           "Npgsql": "[10.0.3, )"
         }
+      },
+      "alycia.modules.configuration.mocks": {
+        "type": "Project",
+        "dependencies": {
+          "Alycia.Contracts": "[0.1.0, 0.1.0]"
+        }
       }
     }
   }

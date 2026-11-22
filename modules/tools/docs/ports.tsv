@@ -2,5 +2,4 @@ port	rôle dans ce domaine	statut	fixture du maître ou du domaine
 Alycia.Contracts.Tools.IProjectTools	propriété fonctionnelle, adaptateur, double	VALIDÉ	modules/tools/tests/Alycia.Modules.Tools.Tests/ToolPortContractTests.cs
 Alycia.Contracts.Tools.ISnapshotProjectTools	propriété fonctionnelle, adaptateur, double	VALIDÉ	modules/tools/tests/Alycia.Modules.Tools.Tests/ToolPortContractTests.cs
 Alycia.Contracts.Tools.ISourceCommands	propriété fonctionnelle, adaptateur, double	VALIDÉ	modules/tools/tests/Alycia.Modules.Tools.Tests/ToolPortContractTests.cs
-Alycia.Contracts.Tools.IToolHistoryReader	propriété fonctionnelle	VALIDÉ	tests/Alycia.Modules.Chat.Tests/TurnReadContractTests.cs
 Alycia.Contracts.Tools.ITurnTools	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/TurnOutputContractTests.cs

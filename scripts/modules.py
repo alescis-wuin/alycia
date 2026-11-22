@@ -60,8 +60,8 @@ def bootstrap():
             os.replace(package, FEED / package.name)
 
 
-def module_run(name, action, base, feed, **kwargs):
-    run(sys.executable, base / "scripts/check.py", action, "--feed", feed, cwd=base, **kwargs)
+def module_run(name, action, base, feed, *args, **kwargs):
+    run(sys.executable, base / "scripts/check.py", action, "--feed", feed, *args, cwd=base, **kwargs)
 
 
 def extract(names, action="check"):
@@ -92,7 +92,8 @@ def extract(names, action="check"):
                 log = logs / (name + ".log")
                 with log.open("w") as out:
                     try:
-                        module_run(name, action, base, feed, env=env, stdout=out, stderr=subprocess.STDOUT)
+                        module_run(name, action, base, feed, "--cases-out", logs / (name + ".cases"),
+                                   env=env, stdout=out, stderr=subprocess.STDOUT)
                         for project in base.glob("*/*/*.csproj"):
                             if project.stem not in MANIFEST["packages"]:
                                 continue

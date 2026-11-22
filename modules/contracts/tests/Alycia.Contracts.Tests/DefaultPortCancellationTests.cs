@@ -1,3 +1,5 @@
+using Alycia.Contracts.Indexing;
+using Alycia.Contracts.Inference;
 using Alycia.Contracts.Retrieval;
 
 namespace Alycia.Modules.Chat.Tests;

@@ -9,45 +9,6 @@ namespace Alycia.Modules.Chat.Tests;
 public sealed class ToolCallingTests
 {
     [Fact]
-    public void DefaultWindowReservesAllNineToolsAndStillFitsTheProtectedQuestion()
-    {
-        var options = TurnContextBudget.WithToolReserve(new ChatOptions().Context());
-        var context = SlidingContext.Build(new Alycia.Modules.Context.SlidingHistory(), "Réponds brièvement en français.", [], "Cherche le symbole ReadAsync puis lis son implémentation.", options);
-        Assert.True(context.EstimatedInputTokens + options.MaxOutputTokens + options.SafetyTokens <= options.ContextTokens);
-    }
-
-    [Fact]
-    public async Task NativeToolOnlyTurnPreservesThinkingAndStructuredArguments()
-    {
-        using var http = Http("""
-            {"message":{"role":"assistant","thinking":"Lire le code","content":""},"done":false}
-            {"message":{"role":"assistant","content":"","tool_calls":[{"function":{"name":"project_list","arguments":{"codeOnly":true}}}]},"done":true,"done_reason":"stop"}
-            """);
-        var model = ChatFixture.Ollama(http, new());
-        Assert.True(await model.SupportsToolsAsync("demo", default));
-        var reply = await model.StreamWithToolsAsync("demo", [new("user", "Analyse")], new ChatOptions().InferenceCall(), _ => Task.CompletedTask, default);
-        Assert.Equal("", reply.Content);
-        Assert.Equal("Lire le code", reply.Thinking);
-        Assert.True(reply.ToolCalls!.Single().Function.Arguments.GetProperty("codeOnly").GetBoolean());
-    }
-
-    [Theory]
-    [InlineData("{\"message\":{\"tool_calls\":[{\"function\":{\"name\":\"project_read\",\"arguments\":\"invalid\"}}]},\"done\":true,\"done_reason\":\"stop\"}")]
-    [InlineData("{\"message\":{\"tool_calls\":[{\"function\":{\"name\":\"project_list\",\"arguments\":{}}}]},\"done\":false}")]
-    public async Task IncompleteOrMalformedCallsNeverBecomeExecutable(string response)
-    {
-        using var http = Http(response);
-        await Assert.ThrowsAsync<ChatModelException>(() => ChatFixture.Ollama(http, new()).StreamWithToolsAsync("demo", [], new ChatOptions().InferenceCall(), _ => Task.CompletedTask, default));
-    }
-
-    [Fact]
-    public async Task UnsupportedModelCannotReceiveToolPayload()
-    {
-        using var http = Http("unused", supports: false);
-        await Assert.ThrowsAsync<ChatModelException>(() => ChatFixture.Ollama(http, new()).StreamWithToolsAsync("demo", [], new ChatOptions().InferenceCall(), _ => Task.CompletedTask, default));
-    }
-
-    [Fact]
     public async Task AgentKeepsSmallToolRoundsWithoutSummaryAndPreservesConversation()
     {
         var model = new AgentModel();
@@ -124,25 +85,6 @@ public sealed class ToolCallingTests
 
     private static ContextWindow Context() => new([new("system", "SYSTEM"), new("user", "u1"), new("assistant", "a1"),
         new("user", "u2"), new("assistant", "a2"), new("user", "QUESTION")], 4, 128);
-    private static HttpClient Http(string reply, bool supports = true) => new(new Handler(reply, supports)) { BaseAddress = new("http://127.0.0.1:11434") };
-    private sealed class Handler(string reply, bool supports) : HttpMessageHandler
-    {
-        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
-        {
-            string text;
-            if (request.RequestUri!.AbsolutePath == "/api/tags") text = "{\"models\":[{\"name\":\"demo\"}]}";
-            else if (request.RequestUri.AbsolutePath == "/api/show") text = supports ? "{\"capabilities\":[\"completion\",\"tools\"]}" : "{\"capabilities\":[\"completion\"]}";
-            else
-            {
-                Assert.True(supports);
-                using var body = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(ct));
-                Assert.Equal(ProjectToolCatalog.All.Select(t => t.Name).Order(), body.RootElement.GetProperty("tools")
-                    .EnumerateArray().Select(t => t.GetProperty("function").GetProperty("name").GetString()).Order());
-                text = reply;
-            }
-            return new(HttpStatusCode.OK) { Content = new StringContent(text, Encoding.UTF8, "application/json") };
-        }
-    }
     private sealed class Sources(int resultSize = 0) : IProjectTools
     {
         public int Calls;
