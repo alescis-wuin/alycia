@@ -21,8 +21,8 @@
       "mrr": 1,
       "emptyNegative": 2,
       "contextTokens": 3385,
-      "p50Ms": 0.4978,
-      "p95Ms": 56.2071,
+      "p50Ms": 0.5957,
+      "p95Ms": 56.2742,
       "runtime": "10.0.15",
       "rows": [
         {
@@ -35,7 +35,7 @@
           "tokens": 0,
           "route": null,
           "rerank": null,
-          "allocatedBytes": 147008,
+          "allocatedBytes": 180088,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": null
@@ -55,7 +55,7 @@
           "tokens": 479,
           "route": null,
           "rerank": null,
-          "allocatedBytes": 81488,
+          "allocatedBytes": 81512,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": null
@@ -74,7 +74,7 @@
           "tokens": 273,
           "route": null,
           "rerank": null,
-          "allocatedBytes": 65344,
+          "allocatedBytes": 57400,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": null
@@ -110,7 +110,7 @@
           "tokens": 280,
           "route": null,
           "rerank": null,
-          "allocatedBytes": 65344,
+          "allocatedBytes": 73288,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": null
@@ -132,7 +132,7 @@
           "tokens": 752,
           "route": null,
           "rerank": null,
-          "allocatedBytes": 138888,
+          "allocatedBytes": 130688,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": null
@@ -147,7 +147,7 @@
           "tokens": 0,
           "route": null,
           "rerank": null,
-          "allocatedBytes": 49200,
+          "allocatedBytes": 41000,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": null
@@ -166,7 +166,7 @@
           "tokens": 752,
           "route": null,
           "rerank": null,
-          "allocatedBytes": 130688,
+          "allocatedBytes": 138888,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": null
@@ -224,8 +224,8 @@
       "mrr": 1,
       "emptyNegative": 4,
       "contextTokens": 2353,
-      "p50Ms": 0.4281,
-      "p95Ms": 54.6155,
+      "p50Ms": 0.2739,
+      "p95Ms": 43.2396,
       "runtime": "10.0.15",
       "rows": [
         {
@@ -238,7 +238,7 @@
           "tokens": 0,
           "route": "direct",
           "rerank": null,
-          "allocatedBytes": 122432,
+          "allocatedBytes": 147056,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": null
@@ -258,7 +258,7 @@
           "tokens": 479,
           "route": "retrieval",
           "rerank": null,
-          "allocatedBytes": 179864,
+          "allocatedBytes": 179608,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": null
@@ -311,7 +311,7 @@
           "tokens": 0,
           "route": "memory",
           "rerank": null,
-          "allocatedBytes": 24344,
+          "allocatedBytes": 24600,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": null
@@ -363,7 +363,7 @@
           "tokens": 0,
           "route": "unavailable",
           "rerank": null,
-          "allocatedBytes": 24600,
+          "allocatedBytes": 16400,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": null
@@ -421,8 +421,8 @@
       "mrr": 1,
       "emptyNegative": 2,
       "contextTokens": 3849,
-      "p50Ms": 0.6275,
-      "p95Ms": 73.2177,
+      "p50Ms": 0.431,
+      "p95Ms": 56.8989,
       "runtime": "10.0.15",
       "rows": [
         {
@@ -435,7 +435,7 @@
           "tokens": 0,
           "route": null,
           "rerank": null,
-          "allocatedBytes": 204152,
+          "allocatedBytes": 195952,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": null
@@ -474,7 +474,7 @@
           "tokens": 273,
           "route": null,
           "rerank": null,
-          "allocatedBytes": 81488,
+          "allocatedBytes": 89688,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": null
@@ -512,7 +512,7 @@
           "tokens": 280,
           "route": null,
           "rerank": null,
-          "allocatedBytes": 73544,
+          "allocatedBytes": 65344,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": null
@@ -587,7 +587,7 @@
           "tokens": 273,
           "route": null,
           "rerank": null,
-          "allocatedBytes": 81488,
+          "allocatedBytes": 73544,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": null
@@ -606,7 +606,7 @@
           "tokens": 288,
           "route": null,
           "rerank": null,
-          "allocatedBytes": 81744,
+          "allocatedBytes": 73544,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": null
@@ -626,8 +626,8 @@
       "mrr": 1,
       "emptyNegative": 2,
       "contextTokens": 2753,
-      "p50Ms": 0.2838,
-      "p95Ms": 59.3242,
+      "p50Ms": 0.3192,
+      "p95Ms": 54.5615,
       "runtime": "10.0.15",
       "rows": [
         {
@@ -640,7 +640,7 @@
           "tokens": 0,
           "route": null,
           "rerank": null,
-          "allocatedBytes": 179856,
+          "allocatedBytes": 155232,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": null
@@ -679,7 +679,7 @@
           "tokens": 206,
           "route": null,
           "rerank": null,
-          "allocatedBytes": 65344,
+          "allocatedBytes": 73544,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": null
@@ -698,7 +698,7 @@
           "tokens": 221,
           "route": null,
           "rerank": null,
-          "allocatedBytes": 73544,
+          "allocatedBytes": 65344,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": null
@@ -715,7 +715,7 @@
           "tokens": 213,
           "route": null,
           "rerank": null,
-          "allocatedBytes": 73544,
+          "allocatedBytes": 65344,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": null
@@ -737,7 +737,7 @@
           "tokens": 645,
           "route": null,
           "rerank": null,
-          "allocatedBytes": 155288,
+          "allocatedBytes": 163488,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": null
@@ -752,7 +752,7 @@
           "tokens": 0,
           "route": null,
           "rerank": null,
-          "allocatedBytes": 48944,
+          "allocatedBytes": 40744,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": null
@@ -771,7 +771,7 @@
           "tokens": 645,
           "route": null,
           "rerank": null,
-          "allocatedBytes": 155032,
+          "allocatedBytes": 155288,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": null
@@ -790,7 +790,7 @@
           "tokens": 206,
           "route": null,
           "rerank": null,
-          "allocatedBytes": 73544,
+          "allocatedBytes": 65344,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": null
@@ -829,8 +829,8 @@
       "mrr": 1,
       "emptyNegative": 2,
       "contextTokens": 3385,
-      "p50Ms": 0.2751,
-      "p95Ms": 80.4361,
+      "p50Ms": 0.4955,
+      "p95Ms": 63.568,
       "runtime": "10.0.15",
       "rows": [
         {
@@ -843,7 +843,7 @@
           "tokens": 0,
           "route": null,
           "rerank": null,
-          "allocatedBytes": 187728,
+          "allocatedBytes": 179528,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": null
@@ -863,7 +863,7 @@
           "tokens": 479,
           "route": null,
           "rerank": null,
-          "allocatedBytes": 89944,
+          "allocatedBytes": 81744,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": null
@@ -918,7 +918,7 @@
           "tokens": 280,
           "route": null,
           "rerank": null,
-          "allocatedBytes": 73544,
+          "allocatedBytes": 65344,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": null
@@ -940,7 +940,7 @@
           "tokens": 752,
           "route": null,
           "rerank": null,
-          "allocatedBytes": 138888,
+          "allocatedBytes": 147088,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": null
@@ -1032,8 +1032,8 @@
       "mrr": 1,
       "emptyNegative": 2,
       "contextTokens": 3849,
-      "p50Ms": 0.8668,
-      "p95Ms": 79.1684,
+      "p50Ms": 1.2144,
+      "p95Ms": 76.9524,
       "runtime": "10.0.15",
       "rows": [
         {
@@ -1046,7 +1046,7 @@
           "tokens": 0,
           "route": null,
           "rerank": null,
-          "allocatedBytes": 416632,
+          "allocatedBytes": 392008,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": null
@@ -1145,7 +1145,7 @@
           "tokens": 752,
           "route": null,
           "rerank": null,
-          "allocatedBytes": 348256,
+          "allocatedBytes": 367720,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": null
@@ -1160,7 +1160,7 @@
           "tokens": 0,
           "route": null,
           "rerank": null,
-          "allocatedBytes": 114776,
+          "allocatedBytes": 94936,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": null
@@ -1217,7 +1217,7 @@
           "tokens": 288,
           "route": null,
           "rerank": null,
-          "allocatedBytes": 180400,
+          "allocatedBytes": 172200,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": null
@@ -1237,8 +1237,8 @@
       "mrr": 1,
       "emptyNegative": 2,
       "contextTokens": 2526,
-      "p50Ms": 2.0777,
-      "p95Ms": 89.8306,
+      "p50Ms": 2.7631,
+      "p95Ms": 77.8574,
       "runtime": "10.0.15",
       "rows": [
         {
@@ -1251,7 +1251,7 @@
           "tokens": 0,
           "route": null,
           "rerank": null,
-          "allocatedBytes": 294096,
+          "allocatedBytes": 326688,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": 0
@@ -1271,7 +1271,7 @@
           "tokens": 396,
           "route": null,
           "rerank": null,
-          "allocatedBytes": 155032,
+          "allocatedBytes": 155288,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": 3
@@ -1309,7 +1309,7 @@
           "tokens": 221,
           "route": null,
           "rerank": null,
-          "allocatedBytes": 106088,
+          "allocatedBytes": 97888,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": 1
@@ -1348,7 +1348,7 @@
           "tokens": 645,
           "route": null,
           "rerank": null,
-          "allocatedBytes": 269576,
+          "allocatedBytes": 277520,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": 6
@@ -1401,7 +1401,7 @@
           "tokens": 206,
           "route": null,
           "rerank": null,
-          "allocatedBytes": 97888,
+          "allocatedBytes": 98144,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": 1
@@ -1420,7 +1420,7 @@
           "tokens": 221,
           "route": null,
           "rerank": null,
-          "allocatedBytes": 73440,
+          "allocatedBytes": 73280,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": 1
@@ -1440,8 +1440,8 @@
       "mrr": 1,
       "emptyNegative": 4,
       "contextTokens": 2092,
-      "p50Ms": 0.7089,
-      "p95Ms": 69.3489,
+      "p50Ms": 0.7796,
+      "p95Ms": 69.5233,
       "runtime": "10.0.15",
       "rows": [
         {
@@ -1493,7 +1493,7 @@
           "tokens": 206,
           "route": "retrieval",
           "rerank": null,
-          "allocatedBytes": 180008,
+          "allocatedBytes": 130688,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": 1
@@ -1514,7 +1514,7 @@
           "tokens": 418,
           "route": "retrieval",
           "rerank": null,
-          "allocatedBytes": 342864,
+          "allocatedBytes": 343120,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": 6
@@ -1551,7 +1551,7 @@
           "tokens": 645,
           "route": "explore",
           "rerank": null,
-          "allocatedBytes": 483736,
+          "allocatedBytes": 487760,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": 6
@@ -1566,7 +1566,7 @@
           "tokens": 0,
           "route": "retrieval",
           "rerank": null,
-          "allocatedBytes": 123000,
+          "allocatedBytes": 114800,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": 0
@@ -1600,7 +1600,7 @@
           "tokens": 206,
           "route": "retrieval",
           "rerank": null,
-          "allocatedBytes": 303400,
+          "allocatedBytes": 311600,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": 1
@@ -1945,8 +1945,8 @@
       "mrr": 1,
       "emptyNegative": 1,
       "contextTokens": 7338,
-      "p50Ms": 0.6466,
-      "p95Ms": 65.8,
+      "p50Ms": 0.4771,
+      "p95Ms": 59.8948,
       "runtime": "10.0.15",
       "rows": [
         {
@@ -1965,7 +1965,7 @@
           "tokens": 1775,
           "route": null,
           "rerank": null,
-          "allocatedBytes": 863344,
+          "allocatedBytes": 863272,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": null
@@ -1986,7 +1986,7 @@
           "tokens": 1729,
           "route": null,
           "rerank": null,
-          "allocatedBytes": 293920,
+          "allocatedBytes": 285696,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": null
@@ -2008,7 +2008,7 @@
           "tokens": 1753,
           "route": null,
           "rerank": null,
-          "allocatedBytes": 360856,
+          "allocatedBytes": 366664,
           "facetsExpected": 2,
           "facetsCovered": 2,
           "classifications": null
@@ -2046,7 +2046,7 @@
           "tokens": 1729,
           "route": null,
           "rerank": null,
-          "allocatedBytes": 347944,
+          "allocatedBytes": 347568,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": null
@@ -2080,8 +2080,8 @@
       "mrr": 1,
       "emptyNegative": 2,
       "contextTokens": 3293,
-      "p50Ms": 1.5581,
-      "p95Ms": 112.3604,
+      "p50Ms": 1.1451,
+      "p95Ms": 115.9657,
       "runtime": "10.0.15",
       "rows": [
         {
@@ -2100,7 +2100,7 @@
           "tokens": 982,
           "route": "retrieval",
           "rerank": null,
-          "allocatedBytes": 1345096,
+          "allocatedBytes": 1345120,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": 13
@@ -2121,7 +2121,7 @@
           "tokens": 1018,
           "route": "retrieval",
           "rerank": null,
-          "allocatedBytes": 490608,
+          "allocatedBytes": 487240,
           "facetsExpected": null,
           "facetsCovered": null,
           "classifications": 11

@@ -1,26 +1,26 @@
-dotnet restore /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/conversations-olgbgtg2/conversations/Conversations.slnx --locked-mode --configfile /workspace/scratch/d996445e2691/tooling/tmp/alycia-module-run-e8a24w7j/NuGet.Config -m:1
+dotnet restore /tmp/alycia-extraction-ozkcrko7/conversations-ropvyzyb/conversations/Conversations.slnx --locked-mode --configfile /tmp/alycia-module-run-j9nxeuql/NuGet.Config -m:1
   Determining projects to restore...
-  Restored /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/conversations-olgbgtg2/conversations/src/Alycia.Modules.Chat.Domain/Alycia.Modules.Chat.Domain.csproj (in 79 ms).
-  Restored /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/conversations-olgbgtg2/conversations/testing/Alycia.Modules.Conversations.Mocks/Alycia.Modules.Conversations.Mocks.csproj (in 171 ms).
-  Restored /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/conversations-olgbgtg2/conversations/src/Alycia.Modules.Chat.Application/Alycia.Modules.Chat.Application.csproj (in 171 ms).
-  Restored /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/conversations-olgbgtg2/conversations/testing/Alycia.Modules.Conversations.RepositoryFixtures/Alycia.Modules.Conversations.RepositoryFixtures.csproj (in 62 ms).
-  Restored /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/conversations-olgbgtg2/conversations/tests/Alycia.Modules.Conversations.Tests/Alycia.Modules.Conversations.Tests.csproj (in 177 ms).
-  Restored /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/conversations-olgbgtg2/conversations/src/Alycia.Modules.Chat.Infrastructure/Alycia.Modules.Chat.Infrastructure.csproj (in 725 ms).
-dotnet build /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/conversations-olgbgtg2/conversations/Conversations.slnx -c Release --no-restore -m:1 -v:q
+  Restored /tmp/alycia-extraction-ozkcrko7/conversations-ropvyzyb/conversations/testing/Alycia.Modules.Conversations.Mocks/Alycia.Modules.Conversations.Mocks.csproj (in 307 ms).
+  Restored /tmp/alycia-extraction-ozkcrko7/conversations-ropvyzyb/conversations/testing/Alycia.Modules.Conversations.RepositoryFixtures/Alycia.Modules.Conversations.RepositoryFixtures.csproj (in 310 ms).
+  Restored /tmp/alycia-extraction-ozkcrko7/conversations-ropvyzyb/conversations/src/Alycia.Modules.Chat.Application/Alycia.Modules.Chat.Application.csproj (in 310 ms).
+  Restored /tmp/alycia-extraction-ozkcrko7/conversations-ropvyzyb/conversations/src/Alycia.Modules.Chat.Domain/Alycia.Modules.Chat.Domain.csproj (in 2 ms).
+  Restored /tmp/alycia-extraction-ozkcrko7/conversations-ropvyzyb/conversations/tests/Alycia.Modules.Conversations.Tests/Alycia.Modules.Conversations.Tests.csproj (in 117 ms).
+  Restored /tmp/alycia-extraction-ozkcrko7/conversations-ropvyzyb/conversations/src/Alycia.Modules.Chat.Infrastructure/Alycia.Modules.Chat.Infrastructure.csproj (in 925 ms).
+dotnet build /tmp/alycia-extraction-ozkcrko7/conversations-ropvyzyb/conversations/Conversations.slnx -c Release --no-restore -m:1 -v:q
 
 
     0 Warning(s)
     0 Error(s)
 
-Time Elapsed 00:00:10.50
-dotnet test /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/conversations-olgbgtg2/conversations/Conversations.slnx -c Release --no-build --no-restore -m:1 --logger trx --results-directory /workspace/scratch/d996445e2691/tooling/tmp/alycia-module-run-e8a24w7j
-Test run for /workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/conversations-olgbgtg2/conversations/tests/Alycia.Modules.Conversations.Tests/bin/Release/net10.0/Alycia.Modules.Conversations.Tests.dll (.NETCoreApp,Version=v10.0)
+Time Elapsed 00:00:11.35
+dotnet test /tmp/alycia-extraction-ozkcrko7/conversations-ropvyzyb/conversations/Conversations.slnx -c Release --no-build --no-restore -m:1 --logger trx --results-directory /tmp/alycia-module-run-j9nxeuql
+Test run for /tmp/alycia-extraction-ozkcrko7/conversations-ropvyzyb/conversations/tests/Alycia.Modules.Conversations.Tests/bin/Release/net10.0/Alycia.Modules.Conversations.Tests.dll (.NETCoreApp,Version=v10.0)
 A total of 1 test files matched the specified pattern.
-Results File: /workspace/scratch/d996445e2691/tooling/tmp/alycia-module-run-e8a24w7j/_c9ce3e8ec5f9_2026-11-22_23_14_50_net10.0.trx
+Results File: /tmp/alycia-module-run-j9nxeuql/_c9ce3e8ec5f9_2026-11-23_00_38_47_net10.0.trx
 
-Passed!  - Failed:     0, Passed:    21, Skipped:     0, Total:    21, Duration: 133 ms - Alycia.Modules.Conversations.Tests.dll (net10.0)
+Passed!  - Failed:     0, Passed:    31, Skipped:     0, Total:    31, Duration: 146 ms - Alycia.Modules.Conversations.Tests.dll (net10.0)
 VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.
-PASS Conversations: 6 projects, 21 passed, 0 skipped
+PASS Conversations: 6 projects, 31 passed, 0 skipped
   The package Alycia.Modules.Conversations.Mocks.0.1.0 is missing a readme. Go to https://aka.ms/nuget/authoring-best-practices/readme to learn why package readmes are important.
-  Successfully created package '/workspace/scratch/d996445e2691/tooling/tmp/alycia-extraction-rgiz7_qw/repacked/Alycia.Modules.Conversations.Mocks.0.1.0.nupkg'.
+  Successfully created package '/tmp/alycia-extraction-ozkcrko7/repacked/Alycia.Modules.Conversations.Mocks.0.1.0.nupkg'.
 PASS independent package Alycia.Modules.Conversations.Mocks.0.1.0.nupkg

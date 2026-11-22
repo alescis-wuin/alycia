@@ -1,0 +1,225 @@
+waiting for server to start.... done
+server started
+PostgreSQL 17.11 (Debian 17.11-0+deb13u1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+vector|0.8.0
+89f2ba67439c5c78c2817e277c261c64a8a413b5
+6cd494b4e756f947f58bf22da04dd8deeb91733a
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3 $CHECKOUT/scripts/architecture/accept-master.py
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3 $CHECKOUT/modules/retrieval/scripts/verify-weights.py
+tokenizer.json 7925f638b5444897efe3b4608eed56c1652f0ed39c2662c8302de1bc264c6088
+onnx/model_quantized.onnx f913154682468bfe92d6a7e02ed4e994e548c112fddc74452b573b17c949046e
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3 $CHECKOUT/scripts/modules.py bootstrap-packages
+dotnet restore $CHECKOUT/modules/contracts/src/Alycia.Contracts/Alycia.Contracts.csproj --configfile $CHECKOUT/artifacts/bootstrap-pw57xaod/NuGet.Config --locked-mode -m:1 -v:q
+dotnet pack $CHECKOUT/modules/contracts/src/Alycia.Contracts/Alycia.Contracts.csproj --no-restore -c Release -m:1 -o $CHECKOUT/artifacts/bootstrap-pw57xaod -v:q
+dotnet restore $CHECKOUT/modules/platform/src/Alycia.Platform.Persistence/Alycia.Platform.Persistence.csproj --configfile $CHECKOUT/artifacts/bootstrap-pw57xaod/NuGet.Config --locked-mode -m:1 -v:q
+dotnet pack $CHECKOUT/modules/platform/src/Alycia.Platform.Persistence/Alycia.Platform.Persistence.csproj --no-restore -c Release -m:1 -o $CHECKOUT/artifacts/bootstrap-pw57xaod -v:q
+dotnet restore $CHECKOUT/modules/conversations/testing/Alycia.Modules.Conversations.Mocks/Alycia.Modules.Conversations.Mocks.csproj --configfile $CHECKOUT/artifacts/bootstrap-pw57xaod/NuGet.Config --locked-mode -m:1 -v:q
+dotnet pack $CHECKOUT/modules/conversations/testing/Alycia.Modules.Conversations.Mocks/Alycia.Modules.Conversations.Mocks.csproj --no-restore -c Release -m:1 -o $CHECKOUT/artifacts/bootstrap-pw57xaod -v:q
+dotnet restore $CHECKOUT/modules/documents/testing/Alycia.Modules.Documents.Mocks/Alycia.Modules.Documents.Mocks.csproj --configfile $CHECKOUT/artifacts/bootstrap-pw57xaod/NuGet.Config --locked-mode -m:1 -v:q
+dotnet pack $CHECKOUT/modules/documents/testing/Alycia.Modules.Documents.Mocks/Alycia.Modules.Documents.Mocks.csproj --no-restore -c Release -m:1 -o $CHECKOUT/artifacts/bootstrap-pw57xaod -v:q
+dotnet restore $CHECKOUT/modules/indexing/testing/Alycia.Modules.Indexing.Mocks/Alycia.Modules.Indexing.Mocks.csproj --configfile $CHECKOUT/artifacts/bootstrap-pw57xaod/NuGet.Config --locked-mode -m:1 -v:q
+dotnet pack $CHECKOUT/modules/indexing/testing/Alycia.Modules.Indexing.Mocks/Alycia.Modules.Indexing.Mocks.csproj --no-restore -c Release -m:1 -o $CHECKOUT/artifacts/bootstrap-pw57xaod -v:q
+dotnet restore $CHECKOUT/modules/inference/testing/Alycia.Modules.Inference.Mocks/Alycia.Modules.Inference.Mocks.csproj --configfile $CHECKOUT/artifacts/bootstrap-pw57xaod/NuGet.Config --locked-mode -m:1 -v:q
+dotnet pack $CHECKOUT/modules/inference/testing/Alycia.Modules.Inference.Mocks/Alycia.Modules.Inference.Mocks.csproj --no-restore -c Release -m:1 -o $CHECKOUT/artifacts/bootstrap-pw57xaod -v:q
+dotnet restore $CHECKOUT/modules/retrieval/testing/Alycia.Modules.Retrieval.Mocks/Alycia.Modules.Retrieval.Mocks.csproj --configfile $CHECKOUT/artifacts/bootstrap-pw57xaod/NuGet.Config --locked-mode -m:1 -v:q
+dotnet pack $CHECKOUT/modules/retrieval/testing/Alycia.Modules.Retrieval.Mocks/Alycia.Modules.Retrieval.Mocks.csproj --no-restore -c Release -m:1 -o $CHECKOUT/artifacts/bootstrap-pw57xaod -v:q
+dotnet tool restore
+Tool 'dotnet-ef' (version '10.0.14') was restored. Available commands: dotnet-ef
+
+Restore was successful.
+dotnet restore Alycia.slnx --locked-mode --configfile NuGet.Config -m:1
+  Determining projects to restore...
+  Restored $CHECKOUT/modules/tools/src/Alycia.Modules.Tools/Alycia.Modules.Tools.csproj (in 261 ms).
+  Restored $CHECKOUT/modules/workspaces/tests/Alycia.Modules.Workspaces.Tests/Alycia.Modules.Workspaces.Tests.csproj (in 265 ms).
+  Restored $CHECKOUT/modules/workspaces/testing/Alycia.Modules.Workspaces.Mocks/Alycia.Modules.Workspaces.Mocks.csproj (in 3 ms).
+  Restored $CHECKOUT/modules/workspaces/src/Alycia.Modules.Workspaces.Domain/Alycia.Modules.Workspaces.Domain.csproj (in 1 ms).
+  Restored $CHECKOUT/modules/workspaces/src/Alycia.Modules.Workspaces.Application/Alycia.Modules.Workspaces.Application.csproj (in 1 ms).
+  Restored $CHECKOUT/modules/tools/tests/Alycia.Modules.Tools.Tests/Alycia.Modules.Tools.Tests.csproj (in 9 ms).
+  Restored $CHECKOUT/modules/workspaces/src/Alycia.Modules.Workspaces.Infrastructure/Alycia.Modules.Workspaces.Infrastructure.csproj (in 44 ms).
+  Restored $CHECKOUT/modules/conversations/src/Alycia.Modules.Chat.Infrastructure/Alycia.Modules.Chat.Infrastructure.csproj (in 331 ms).
+  Restored $CHECKOUT/modules/tools/testing/Alycia.Modules.Tools.Mocks/Alycia.Modules.Tools.Mocks.csproj (in 2 ms).
+  Restored $CHECKOUT/modules/platform/testing/Alycia.Platform.Fixtures/Alycia.Platform.Fixtures.csproj (in 1 ms).
+  Restored $CHECKOUT/modules/memory/testing/Alycia.Modules.Memory.Mocks/Alycia.Modules.Memory.Mocks.csproj (in 1 ms).
+  Restored $CHECKOUT/modules/memory/src/Alycia.Modules.Memory/Alycia.Modules.Memory.csproj (in 2 ms).
+  Restored $CHECKOUT/modules/memory/tests/Alycia.Modules.Memory.Tests/Alycia.Modules.Memory.Tests.csproj (in 9 ms).
+  Restored $CHECKOUT/modules/inference/tests/Alycia.Modules.Inference.Tests/Alycia.Modules.Inference.Tests.csproj (in 4 ms).
+  Restored $CHECKOUT/src/Alycia.Api/Alycia.Api.csproj (in 339 ms).
+  Restored $CHECKOUT/modules/platform/src/Alycia.Platform.Persistence/Alycia.Platform.Persistence.csproj (in 11 ms).
+  Restored $CHECKOUT/modules/inference/testing/Alycia.Modules.Inference.Mocks/Alycia.Modules.Inference.Mocks.csproj (in 3 ms).
+  Restored $CHECKOUT/src/Alycia.Persistence.Migrations/Alycia.Persistence.Migrations.csproj (in 12 ms).
+  Restored $CHECKOUT/src/Alycia.DevHost/Alycia.DevHost.csproj (in 30 ms).
+  Restored $CHECKOUT/modules/retrieval/tests/Alycia.Modules.Retrieval.Tests/Alycia.Modules.Retrieval.Tests.csproj (in 4 ms).
+  Restored $CHECKOUT/modules/retrieval/testing/Alycia.Modules.Retrieval.Mocks/Alycia.Modules.Retrieval.Mocks.csproj (in 2 ms).
+  Restored $CHECKOUT/tests/Alycia.Modules.Chat.Tests/Alycia.Modules.Chat.Tests.csproj (in 38 ms).
+  Restored $CHECKOUT/modules/retrieval/src/Alycia.Modules.Retrieval/Alycia.Modules.Retrieval.csproj (in 1 ms).
+  Restored $CHECKOUT/modules/retrieval/src/Alycia.Modules.Retrieval.Onnx/Alycia.Modules.Retrieval.Onnx.csproj (in 3 ms).
+  Restored $CHECKOUT/src/Alycia.Client.Avalonia/Alycia.Client.Avalonia.csproj (in 45 ms).
+  Restored $CHECKOUT/modules/inference/src/Alycia.Modules.Inference/Alycia.Modules.Inference.csproj (in 1 ms).
+  Restored $CHECKOUT/modules/platform/tests/Alycia.Platform.Tests/Alycia.Platform.Tests.csproj (in 3 ms).
+  Restored $CHECKOUT/tests/Alycia.Client.Avalonia.Tests/Alycia.Client.Avalonia.Tests.csproj (in 64 ms).
+  Restored $CHECKOUT/modules/indexing/testing/Alycia.Modules.Indexing.Mocks/Alycia.Modules.Indexing.Mocks.csproj (in 6 ms).
+  Restored $CHECKOUT/modules/indexing/src/Alycia.Modules.Indexing/Alycia.Modules.Indexing.csproj (in 6 ms).
+  Restored $CHECKOUT/modules/documents/tests/Alycia.Modules.Documents.Tests/Alycia.Modules.Documents.Tests.csproj (in 7 ms).
+  Restored $CHECKOUT/modules/indexing/tests/Alycia.Modules.Indexing.Tests/Alycia.Modules.Indexing.Tests.csproj (in 11 ms).
+  Restored $CHECKOUT/modules/documents/testing/Alycia.Modules.Documents.Mocks/Alycia.Modules.Documents.Mocks.csproj (in 2 ms).
+  Restored $CHECKOUT/modules/documents/src/Alycia.Modules.Documents/Alycia.Modules.Documents.csproj (in 4 ms).
+  Restored $CHECKOUT/modules/conversations/testing/Alycia.Modules.Conversations.RepositoryFixtures/Alycia.Modules.Conversations.RepositoryFixtures.csproj (in 2 ms).
+  Restored $CHECKOUT/modules/conversations/testing/Alycia.Modules.Conversations.Mocks/Alycia.Modules.Conversations.Mocks.csproj (in 2 ms).
+  Restored $CHECKOUT/modules/conversations/src/Alycia.Modules.Chat.Domain/Alycia.Modules.Chat.Domain.csproj (in 1 ms).
+  Restored $CHECKOUT/modules/documents/src/Alycia.Modules.Documents.Infrastructure/Alycia.Modules.Documents.Infrastructure.csproj (in 3 ms).
+  Restored $CHECKOUT/modules/conversations/tests/Alycia.Modules.Conversations.Tests/Alycia.Modules.Conversations.Tests.csproj (in 4 ms).
+  Restored $CHECKOUT/modules/conversations/src/Alycia.Modules.Chat.Application/Alycia.Modules.Chat.Application.csproj (in 2 ms).
+  Restored $CHECKOUT/modules/contracts/testing/Alycia.Contracts.Fixtures/Alycia.Contracts.Fixtures.csproj (in 1 ms).
+  Restored $CHECKOUT/modules/contracts/src/Alycia.Contracts/Alycia.Contracts.csproj (in 2 ms).
+  Restored $CHECKOUT/modules/context/testing/Alycia.Modules.Context.Mocks/Alycia.Modules.Context.Mocks.csproj (in 1 ms).
+  Restored $CHECKOUT/modules/context/src/Alycia.Modules.Context/Alycia.Modules.Context.csproj (in 1 ms).
+  Restored $CHECKOUT/modules/context/tests/Alycia.Modules.Context.Tests/Alycia.Modules.Context.Tests.csproj (in 3 ms).
+  Restored $CHECKOUT/modules/contracts/tests/Alycia.Contracts.Tests/Alycia.Contracts.Tests.csproj (in 2 ms).
+  Restored $CHECKOUT/modules/configuration/testing/Alycia.Modules.Configuration.Mocks/Alycia.Modules.Configuration.Mocks.csproj (in 1 ms).
+  Restored $CHECKOUT/modules/configuration/tests/Alycia.Modules.Configuration.Tests/Alycia.Modules.Configuration.Tests.csproj (in 4 ms).
+  Restored $CHECKOUT/modules/configuration/src/Alycia.Modules.Configuration/Alycia.Modules.Configuration.csproj (in 4 ms).
+  Restored $CHECKOUT/benchmarks/Alycia.ContextBenchmarks/Alycia.ContextBenchmarks.csproj (in 12 ms).
+dotnet build Alycia.slnx --no-restore -c Debug -m:1 -v:q
+dotnet build Alycia.slnx --no-restore -c Release -m:1 -v:q
+dotnet publish src/Alycia.Api/Alycia.Api.csproj -c Release --no-build --no-restore -m:1 -o $CHECKOUT/artifacts/acceptance/Alycia.Api
+dotnet publish src/Alycia.Client.Avalonia/Alycia.Client.Avalonia.csproj -c Release --no-build --no-restore -m:1 -o $CHECKOUT/artifacts/acceptance/Alycia.Client.Avalonia
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3 $CHECKOUT/scripts/test-mock-api.py --published $CHECKOUT/artifacts/acceptance/Alycia.Api
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3 -m unittest discover -s scripts/tests -p *_tests.py
+......................................
+----------------------------------------------------------------------
+Ran 38 tests in 83.584s
+
+OK
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3 $CHECKOUT/scripts/architecture/check-schema.py $CHECKOUT/artifacts/acceptance
+PASS both EF models, both histories, catalogue SHA-256 8effd5b93f0ac18907d9d958e550f4c69a444a3f52bbb69b66fbe20965609333
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3 $CHECKOUT/scripts/check-modules.py --all-projects --capture $CHECKOUT/artifacts/acceptance/run-cfg1u9ph/capture
+Architecture OK (50 projects; 6 database owners).
+dotnet test Alycia.slnx --no-build --no-restore -m:1 --logger trx --results-directory $CHECKOUT/artifacts/acceptance/run-cfg1u9ph/trx
+Test run for $CHECKOUT/modules/configuration/tests/Alycia.Modules.Configuration.Tests/bin/Debug/net10.0/Alycia.Modules.Configuration.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+Results File: $CHECKOUT/artifacts/acceptance/run-cfg1u9ph/trx/_c9ce3e8ec5f9_2026-11-23_00_44_16_net10.0.trx
+
+Passed!  - Failed:     0, Passed:     3, Skipped:     0, Total:     3, Duration: 545 ms - Alycia.Modules.Configuration.Tests.dll (net10.0)
+VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.
+Test run for $CHECKOUT/modules/context/tests/Alycia.Modules.Context.Tests/bin/Debug/net10.0/Alycia.Modules.Context.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+Results File: $CHECKOUT/artifacts/acceptance/run-cfg1u9ph/trx/_c9ce3e8ec5f9_2026-11-23_00_44_17_net10.0.trx
+
+Passed!  - Failed:     0, Passed:    23, Skipped:     0, Total:    23, Duration: 108 ms - Alycia.Modules.Context.Tests.dll (net10.0)
+VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.
+Test run for $CHECKOUT/modules/contracts/tests/Alycia.Contracts.Tests/bin/Debug/net10.0/Alycia.Contracts.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+Results File: $CHECKOUT/artifacts/acceptance/run-cfg1u9ph/trx/_c9ce3e8ec5f9_2026-11-23_00_44_18_net10.0.trx
+
+Passed!  - Failed:     0, Passed:    12, Skipped:     0, Total:    12, Duration: 119 ms - Alycia.Contracts.Tests.dll (net10.0)
+VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.
+Test run for $CHECKOUT/modules/conversations/tests/Alycia.Modules.Conversations.Tests/bin/Debug/net10.0/Alycia.Modules.Conversations.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+Results File: $CHECKOUT/artifacts/acceptance/run-cfg1u9ph/trx/_c9ce3e8ec5f9_2026-11-23_00_44_20_net10.0.trx
+
+Passed!  - Failed:     0, Passed:    31, Skipped:     0, Total:    31, Duration: 157 ms - Alycia.Modules.Conversations.Tests.dll (net10.0)
+VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.
+Test run for $CHECKOUT/modules/documents/tests/Alycia.Modules.Documents.Tests/bin/Debug/net10.0/Alycia.Modules.Documents.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+Results File: $CHECKOUT/artifacts/acceptance/run-cfg1u9ph/trx/_c9ce3e8ec5f9_2026-11-23_00_44_21_net10.0.trx
+
+Passed!  - Failed:     0, Passed:    29, Skipped:     0, Total:    29, Duration: 446 ms - Alycia.Modules.Documents.Tests.dll (net10.0)
+VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.
+Test run for $CHECKOUT/modules/indexing/tests/Alycia.Modules.Indexing.Tests/bin/Debug/net10.0/Alycia.Modules.Indexing.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+Results File: $CHECKOUT/artifacts/acceptance/run-cfg1u9ph/trx/_c9ce3e8ec5f9_2026-11-23_00_44_22_net10.0.trx
+
+Passed!  - Failed:     0, Passed:    12, Skipped:     0, Total:    12, Duration: 91 ms - Alycia.Modules.Indexing.Tests.dll (net10.0)
+VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.
+Test run for $CHECKOUT/modules/inference/tests/Alycia.Modules.Inference.Tests/bin/Debug/net10.0/Alycia.Modules.Inference.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+Results File: $CHECKOUT/artifacts/acceptance/run-cfg1u9ph/trx/_c9ce3e8ec5f9_2026-11-23_00_44_23_net10.0.trx
+
+Passed!  - Failed:     0, Passed:    59, Skipped:     0, Total:    59, Duration: 6 s - Alycia.Modules.Inference.Tests.dll (net10.0)
+VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.
+Test run for $CHECKOUT/tests/Alycia.Client.Avalonia.Tests/bin/Debug/net10.0/Alycia.Client.Avalonia.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+Results File: $CHECKOUT/artifacts/acceptance/run-cfg1u9ph/trx/_c9ce3e8ec5f9_2026-11-23_00_44_30_net10.0.trx
+
+Passed!  - Failed:     0, Passed:    63, Skipped:     0, Total:    63, Duration: 2 s - Alycia.Client.Avalonia.Tests.dll (net10.0)
+VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.
+Test run for $CHECKOUT/tests/Alycia.Modules.Chat.Tests/bin/Debug/net10.0/Alycia.Modules.Chat.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+Results File: $CHECKOUT/artifacts/acceptance/run-cfg1u9ph/trx/_c9ce3e8ec5f9_2026-11-23_00_44_34_net10.0.trx
+
+Passed!  - Failed:     0, Passed:   105, Skipped:     0, Total:   105, Duration: 21 s - Alycia.Modules.Chat.Tests.dll (net10.0)
+VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.
+Test run for $CHECKOUT/modules/memory/tests/Alycia.Modules.Memory.Tests/bin/Debug/net10.0/Alycia.Modules.Memory.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+Results File: $CHECKOUT/artifacts/acceptance/run-cfg1u9ph/trx/_c9ce3e8ec5f9_2026-11-23_00_44_57_net10.0.trx
+
+Passed!  - Failed:     0, Passed:     7, Skipped:     0, Total:     7, Duration: 844 ms - Alycia.Modules.Memory.Tests.dll (net10.0)
+VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.
+Test run for $CHECKOUT/modules/platform/tests/Alycia.Platform.Tests/bin/Debug/net10.0/Alycia.Platform.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+Results File: $CHECKOUT/artifacts/acceptance/run-cfg1u9ph/trx/_c9ce3e8ec5f9_2026-11-23_00_44_58_net10.0.trx
+
+Passed!  - Failed:     0, Passed:     1, Skipped:     0, Total:     1, Duration: 10 ms - Alycia.Platform.Tests.dll (net10.0)
+VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.
+Test run for $CHECKOUT/modules/retrieval/tests/Alycia.Modules.Retrieval.Tests/bin/Debug/net10.0/Alycia.Modules.Retrieval.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+Results File: $CHECKOUT/artifacts/acceptance/run-cfg1u9ph/trx/_c9ce3e8ec5f9_2026-11-23_00_44_59_net10.0.trx
+
+Passed!  - Failed:     0, Passed:    31, Skipped:     0, Total:    31, Duration: 6 s - Alycia.Modules.Retrieval.Tests.dll (net10.0)
+VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.
+Test run for $CHECKOUT/modules/tools/tests/Alycia.Modules.Tools.Tests/bin/Debug/net10.0/Alycia.Modules.Tools.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+Results File: $CHECKOUT/artifacts/acceptance/run-cfg1u9ph/trx/_c9ce3e8ec5f9_2026-11-23_00_45_07_net10.0.trx
+
+Passed!  - Failed:     0, Passed:    13, Skipped:     0, Total:    13, Duration: 98 ms - Alycia.Modules.Tools.Tests.dll (net10.0)
+VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.
+Test run for $CHECKOUT/modules/workspaces/tests/Alycia.Modules.Workspaces.Tests/bin/Debug/net10.0/Alycia.Modules.Workspaces.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+Results File: $CHECKOUT/artifacts/acceptance/run-cfg1u9ph/trx/_c9ce3e8ec5f9_2026-11-23_00_45_07_net10.0[1].trx
+
+Passed!  - Failed:     0, Passed:    13, Skipped:     0, Total:    13, Duration: 1 s - Alycia.Modules.Workspaces.Tests.dll (net10.0)
+VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.
+402 passed
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3 $CHECKOUT/scripts/architecture/finition-audit.py $CHECKOUT/artifacts/acceptance/run-cfg1u9ph/capture $CHECKOUT/artifacts/acceptance/run-cfg1u9ph/trx $CHECKOUT/artifacts/acceptance --require-complete --schema $CHECKOUT/artifacts/acceptance/schema.tsv
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3 $CHECKOUT/scripts/tests/http-integration.py --case all
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3 $CHECKOUT/scripts/tests/http-integration.py --case originals
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3 $CHECKOUT/scripts/tests/http-integration.py --case mock
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3 $CHECKOUT/scripts/architecture/capture-openapi.py $CHECKOUT/artifacts/acceptance/openapi.raw
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3 $CHECKOUT/scripts/evaluate-context.py offline --pipeline-v2 --output $CHECKOUT/artifacts/acceptance/rag.json
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3 $CHECKOUT/scripts/architecture/verify-baseline.py --http $CHECKOUT/artifacts/acceptance/http-all.json --rag $CHECKOUT/artifacts/acceptance/rag.json --openapi $CHECKOUT/artifacts/acceptance/openapi.raw --trx $CHECKOUT/artifacts/acceptance/run-cfg1u9ph/trx
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3 $CHECKOUT/scripts/architecture/check-docker.py
+ Network alycia-accept-b997b321436841d48bbda5dd2c3b0e2a_default  Creating
+ Network alycia-accept-b997b321436841d48bbda5dd2c3b0e2a_default  Created
+ Volume "alycia-accept-b997b321436841d48bbda5dd2c3b0e2a_postgres_data"  Creating
+ Volume "alycia-accept-b997b321436841d48bbda5dd2c3b0e2a_postgres_data"  Created
+ Volume "alycia-accept-b997b321436841d48bbda5dd2c3b0e2a_api_logs"  Creating
+ Volume "alycia-accept-b997b321436841d48bbda5dd2c3b0e2a_api_logs"  Created
+ Container alycia-accept-b997b321436841d48bbda5dd2c3b0e2a-postgres-1  Creating
+ Container alycia-accept-b997b321436841d48bbda5dd2c3b0e2a-postgres-1  Created
+ Container alycia-accept-b997b321436841d48bbda5dd2c3b0e2a-api-1  Creating
+ Container alycia-accept-b997b321436841d48bbda5dd2c3b0e2a-api-1  Created
+ Container alycia-accept-b997b321436841d48bbda5dd2c3b0e2a-postgres-1  Starting
+ Container alycia-accept-b997b321436841d48bbda5dd2c3b0e2a-postgres-1  Started
+ Container alycia-accept-b997b321436841d48bbda5dd2c3b0e2a-postgres-1  Waiting
+ Container alycia-accept-b997b321436841d48bbda5dd2c3b0e2a-postgres-1  Healthy
+ Container alycia-accept-b997b321436841d48bbda5dd2c3b0e2a-api-1  Starting
+ Container alycia-accept-b997b321436841d48bbda5dd2c3b0e2a-api-1  Started
+ Container alycia-accept-b997b321436841d48bbda5dd2c3b0e2a-postgres-1  Waiting
+ Container alycia-accept-b997b321436841d48bbda5dd2c3b0e2a-api-1  Waiting
+ Container alycia-accept-b997b321436841d48bbda5dd2c3b0e2a-postgres-1  Healthy
+ Container alycia-accept-b997b321436841d48bbda5dd2c3b0e2a-api-1  Healthy
+ Container alycia-accept-b997b321436841d48bbda5dd2c3b0e2a-api-1  Stopping
+ Container alycia-accept-b997b321436841d48bbda5dd2c3b0e2a-api-1  Stopped
+ Container alycia-accept-b997b321436841d48bbda5dd2c3b0e2a-api-1  Removing
+ Container alycia-accept-b997b321436841d48bbda5dd2c3b0e2a-api-1  Removed
+ Container alycia-accept-b997b321436841d48bbda5dd2c3b0e2a-postgres-1  Stopping
+ Container alycia-accept-b997b321436841d48bbda5dd2c3b0e2a-postgres-1  Stopped
+ Container alycia-accept-b997b321436841d48bbda5dd2c3b0e2a-postgres-1  Removing
+ Container alycia-accept-b997b321436841d48bbda5dd2c3b0e2a-postgres-1  Removed
+ Volume alycia-accept-b997b321436841d48bbda5dd2c3b0e2a_postgres_data  Removing
+ Volume alycia-accept-b997b321436841d48bbda5dd2c3b0e2a_api_logs  Removing
+ Network alycia-accept-b997b321436841d48bbda5dd2c3b0e2a_default  Removing
+ Network alycia-accept-b997b321436841d48bbda5dd2c3b0e2a_default  Removed
+ Volume alycia-accept-b997b321436841d48bbda5dd2c3b0e2a_postgres_data  Removed
+ Volume alycia-accept-b997b321436841d48bbda5dd2c3b0e2a_api_logs  Removed
+PASS check-master

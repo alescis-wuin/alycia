@@ -1,44 +1,44 @@
 {
   "tests": {
     "alycia.modules.configuration.tests.dll": {
-      "total": 2,
-      "passed": 2,
-      "failed": 0,
-      "notExecuted": 0
-    },
-    "alycia.modules.context.tests.dll": {
       "total": 3,
       "passed": 3,
       "failed": 0,
       "notExecuted": 0
     },
+    "alycia.modules.context.tests.dll": {
+      "total": 23,
+      "passed": 23,
+      "failed": 0,
+      "notExecuted": 0
+    },
     "alycia.contracts.tests.dll": {
-      "total": 2,
-      "passed": 2,
+      "total": 12,
+      "passed": 12,
       "failed": 0,
       "notExecuted": 0
     },
     "alycia.modules.conversations.tests.dll": {
-      "total": 21,
-      "passed": 21,
+      "total": 31,
+      "passed": 31,
       "failed": 0,
       "notExecuted": 0
     },
     "alycia.modules.documents.tests.dll": {
-      "total": 13,
-      "passed": 13,
+      "total": 29,
+      "passed": 29,
       "failed": 0,
       "notExecuted": 0
     },
     "alycia.modules.indexing.tests.dll": {
-      "total": 1,
-      "passed": 1,
+      "total": 12,
+      "passed": 12,
       "failed": 0,
       "notExecuted": 0
     },
     "alycia.modules.inference.tests.dll": {
-      "total": 15,
-      "passed": 15,
+      "total": 59,
+      "passed": 59,
       "failed": 0,
       "notExecuted": 0
     },
@@ -49,14 +49,14 @@
       "notExecuted": 0
     },
     "alycia.modules.chat.tests.dll": {
-      "total": 256,
-      "passed": 256,
+      "total": 105,
+      "passed": 105,
       "failed": 0,
       "notExecuted": 0
     },
     "alycia.modules.memory.tests.dll": {
-      "total": 1,
-      "passed": 1,
+      "total": 7,
+      "passed": 7,
       "failed": 0,
       "notExecuted": 0
     },
@@ -67,14 +67,14 @@
       "notExecuted": 0
     },
     "alycia.modules.retrieval.tests.dll": {
-      "total": 9,
-      "passed": 9,
+      "total": 31,
+      "passed": 31,
       "failed": 0,
       "notExecuted": 0
     },
     "alycia.modules.tools.tests.dll": {
-      "total": 2,
-      "passed": 2,
+      "total": 13,
+      "passed": 13,
       "failed": 0,
       "notExecuted": 0
     },

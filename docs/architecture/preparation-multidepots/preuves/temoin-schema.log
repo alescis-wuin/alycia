@@ -1,0 +1,9 @@
+waiting for server to start.... done
+server started
+PostgreSQL 17.11 (Debian 17.11-0+deb13u1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+vector|0.8.0
+090726665ad061e2e03059de70b3fb07a7eb1e75c434defdf7772f0940f52098  $RECETTE/schema-temoin-avant.tsv
+3322392b9d6541f9488ac9f609ef01b310f5501c199e94e274c213014dc0e750  $RECETTE/schema-temoin-apres.tsv
+chat	conversations	column	revue_catalogue	17|integer|f||||
+chat	conversations	index	ix_revue_catalogue	CREATE INDEX ix_revue_catalogue ON chat.conversations USING btree (revue_catalogue)
+PASS le catalogue détecte la colonne et l’index ajoutés dans la base jetable.
