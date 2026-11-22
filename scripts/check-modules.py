@@ -9,7 +9,7 @@ import sys
 import tempfile
 import xml.etree.ElementTree as ET
 
-from architecture.module_rules import ALLOWED, CHAT_PROJECTS, CONTRACT_AREAS, NARROW_EDGES, OWNER_INPUT_TYPES, SNAPSHOT_CONSUMERS, module_owner, owner
+from architecture.module_rules import ALLOWED, CHAT_PROJECTS, CONTRACT_AREAS, LOGICAL_CONTRACT_AREAS, NARROW_EDGES, OWNER_INPUT_TYPES, SNAPSHOT_CONSUMERS, module_owner, owner
 
 ROOT = Path(__file__).resolve().parents[1]
 CAPTURE = ROOT / "scripts/architecture/capture"
@@ -217,10 +217,12 @@ def check_records(rows, root):
             consumer = owner(path, source_type) if project == "Alycia.Modules.Chat.Application" else project.removeprefix("Alycia.Modules.")
             if consumer in SNAPSHOT_CONSUMERS and type_id in OWNER_INPUT_TYPES:
                 problems.add(f"{location}: specialized input: {consumer} -> {target_type}")
-            if assembly == "Alycia.Contracts" and project in CONTRACT_AREAS:
+            if assembly == "Alycia.Contracts":
+                logical = owner(path, source_type) if project in CHAT_PROJECTS and "/Migrations/" not in path else None
+                areas = LOGICAL_CONTRACT_AREAS[logical] if logical else CONTRACT_AREAS.get(project)
                 area = type_id.removeprefix("T:Alycia.Contracts.").split(".", 1)[0]
-                if area not in CONTRACT_AREAS[project]:
-                    problems.add(f"{location}: contract boundary: {project} -> {type_id}")
+                if areas is not None and area not in areas:
+                    problems.add(f"{location}: contract boundary: {logical or project} -> {type_id}")
             target = declared.get((assembly, type_id))
             if target is None:
                 if forbidden(project, assembly):
