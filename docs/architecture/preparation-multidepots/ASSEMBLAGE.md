@@ -47,4 +47,25 @@ Pour changer un package, modifier la version chez son propriétaire, documenter 
 
 Lors de la future subdivision, exporter l’historique propre à chaque chemin en conservant la table de déplacements pour les anciens chemins. Substituer une révision Git immuable à chacun des douze dossiers dans un seul commit du maître. Documenter alors les URL et SHA réels. Pour la mise à jour suivante, choisir une révision revue, mettre à jour sa référence et ses packages ensemble, puis lancer les deux recettes avant la PR. Un retrait avant intégration consiste à revenir à `develop`. Après intégration, une PR de retour rétablit ensemble les sources, les références et leurs verrous (`git revert` du commit d’intégration, ou `git revert -m 1` si c’est un commit de fusion). Aucune migration inverse n’est nécessaire pour ce lot.
 
+Pour obtenir dès maintenant un instantané de la seule révision d’Inference et de son entrée de compilation, exécuter depuis le maître après le bootstrap. Le répertoire affiché contient aussi les résultats locaux du contrôle.
+
+```sh
+export_domaine=$(mktemp -d)
+git archive HEAD:modules/inference | tar -x -C "$export_domaine"
+python3 "$export_domaine/scripts/check.py" check --feed "$PWD/artifacts/local-feed"
+printf '%s\n' "$export_domaine"
+```
+
+Après la subdivision future et l’enregistrement des douze gitlinks dans le maître, les opérations locales ci-dessous récupèrent les révisions épinglées puis préparent un changement pour Inference. Définir `REVISION_MODULE` sur le SHA complet déjà revu dans son futur dépôt. Inclure dans la même PR les mises à jour de version, de verrous et de manifeste qui s’appliquent à ce changement.
+
+```sh
+git submodule update --init --recursive
+git -C modules/inference fetch origin "$REVISION_MODULE"
+git -C modules/inference switch --detach "$REVISION_MODULE"
+git add modules/inference
+python3 scripts/modules.py bootstrap-packages
+python3 scripts/modules.py check-extraction
+python3 scripts/modules.py check-master
+```
+
 Pour une tête signée par le mainteneur, renseigner sa clé de signature Git enregistrée sur GitHub. Exécuter `bash scripts/architecture/preparer-signature.sh BASE TETE ARBRE ../alycia-signee develop prepare/extraction-multidepots-p0-p8` avec les trois SHA de la PR. Le script crée une branche locale distincte et vérifie chaque arbre. Vérifier la signature auprès de GitHub après l’envoi fast-forward de cette nouvelle branche.
