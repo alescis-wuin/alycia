@@ -10,6 +10,7 @@ import sys
 import tempfile
 import xml.etree.ElementTree as ET
 
+from architecture.layout import assembly, layer, projects
 from architecture.module_rules import CHAT_PROJECTS, contract_permissions, OWNER_INPUT_TYPES, SNAPSHOT_CONSUMERS, module_owner, owner
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -35,7 +36,7 @@ ISOLATED = {
     "Alycia.Modules.Memory": {"Alycia.Contracts"},
     "Alycia.Modules.Retrieval": {"Alycia.Contracts"},
     "Alycia.Modules.Retrieval.Onnx": {"Alycia.Contracts"},
-    "Alycia.Modules.Testing": {"Alycia.Contracts"},
+    "Alycia.Modules.Conversations.RepositoryFixtures": {"Alycia.Contracts", "Alycia.Modules.Chat.Application", "Alycia.Modules.Chat.Domain"},
     "Alycia.Platform.Persistence": set(),
     "Alycia.Modules.Chat.Domain": set(),
     "Alycia.Modules.Workspaces.Domain": set(),
@@ -46,8 +47,13 @@ ISOLATED = {
 
 
 def forbidden(project, dependency):
-    if project == "Alycia.Api" and dependency in {"Alycia.Modules.Testing", "Alycia.DevHost"}:
+    if project == "Alycia.Api" and (dependency.endswith((".Mocks", "Fixtures")) or dependency in {"Alycia.Modules.Testing", "Alycia.DevHost"}):
         return True
+    if project.endswith(".Mocks") and dependency.startswith("Alycia.") and dependency != project:
+        allowed = {"Alycia.Contracts"}
+        if project == "Alycia.Modules.Workspaces.Mocks":
+            allowed.update({"Alycia.Modules.Workspaces.Application", "Alycia.Modules.Workspaces.Domain"})
+        return dependency not in allowed
     if project in ISOLATED and dependency.startswith("Alycia.") and dependency != project:
         return dependency not in ISOLATED[project]
 
@@ -65,11 +71,11 @@ def forbidden(project, dependency):
 
 
 def check_project_graph(root):
-    paths = sorted(p for group in ("src", "tests", "benchmarks") for p in (root / group).glob("*/*.csproj"))
+    paths = projects(root)
     graph = {p: [] for p in paths}
     errors = []
     listed = {(root / p.get("Path").replace("\\", "/")).resolve() for p in ET.parse(root / "Alycia.slnx").iter("Project")}
-    required = {p for p in graph if p.relative_to(root).parts[0] in {"src", "tests"}}
+    required = {p for p in graph if p.relative_to(root).parts[0] in {"src", "tests", "modules"}}
     for missing in sorted(required - listed):
         errors.append(f"not in solution: {missing.relative_to(root)}")
     for missing in sorted(listed - graph.keys()):
@@ -84,7 +90,7 @@ def check_project_graph(root):
             if target not in graph:
                 errors.append(f"{project.stem}: unknown project {target.name}")
             elif project.stem == "Alycia.Contracts" or forbidden(project.stem, target.stem) or (
-                    project.parent.parent.name == "src" and target.parent.parent.name != "src"):
+                    project.parent.parent.name == "src" and target.parent.parent.name != "src" and project.stem != "Alycia.DevHost"):
                 errors.append(f"project layer: {project.stem} -> {target.stem}")
 
     done = set()
@@ -114,11 +120,14 @@ def check_project_graph(root):
     transition = root / "scripts/architecture/transition.tsv"
     if transition.exists() and any(row.strip() for row in transition.read_text().splitlines()[1:]):
         errors.append("transitional exceptions are prohibited")
+    if root == ROOT or (root / "modules").exists():
+        from architecture.extraction import validate_layout
+        errors.extend(validate_layout(root))
     return len(graph), errors
 
 
 def business(project):
-    return project in {"Alycia.Contracts", "Alycia.Modules.Retrieval", "Alycia.Modules.Testing"} or project.endswith((".Application", ".Domain"))
+    return project in {"Alycia.Contracts", "Alycia.Modules.Retrieval", "Alycia.Modules.Testing"} or project.endswith((".Application", ".Domain", ".Mocks"))
 
 
 def check_namespace(project, location, name):
@@ -163,26 +172,26 @@ def capture(root, directory, all_projects=False):
         if proc.returncode:
             raise RuntimeError(proc.stdout + proc.stderr)
     build(project)
-    projects = sorted(p for group in (("src", "tests", "benchmarks") if all_projects else ("src",))
-                      for p in (root / group).glob("*/*.csproj"))
-    if not projects:
+    selected = [p for p in projects(root) if all_projects or layer(p.relative_to(root)) in {"src", "testing"}]
+    if not selected:
         raise ValueError("no product projects found")
     solution = ET.Element("Solution")
-    for file in projects:
+    for file in selected:
         ET.SubElement(solution, "Project", Path=file.as_posix())
     entry = directory / "Product.slnx"
     ET.ElementTree(solution).write(entry)
     # A forced compilation for symbol capture must never clean a running API or
     # the Debug binaries used by another acceptance command.
-    build(entry, "-t:Rebuild", "-p:OutputPath=bin/architecture-capture/",
+    config = [f"-p:RestoreConfigFile={root / 'NuGet.Config'}", "-p:RestoreLockedMode=true"] if (root / "modules.lock.json").is_file() else []
+    build(entry, *config, "-t:Rebuild", "-p:OutputPath=bin/architecture-capture/",
           "-p:IntermediateOutputPath=obj/architecture-capture/", "-warnaserror:AD0001", "-p:RunAnalyzers=true",
           f"-p:CustomAfterMicrosoftCommonTargets={CAPTURE / 'Capture.targets'}",
           f"-p:AlyciaArchitectureAnalyzer={CAPTURE / 'bin/Debug/net10.0/Inventory.dll'}",
           f"-p:AlyciaArchitectureRoot={root}", f"-p:AlyciaArchitectureOutput={directory}")
     rows = [line.split("\t") for file in sorted(directory.glob("*.tsv")) for line in file.read_text().splitlines()]
     compiled = {root / path for kind, path, *_ in rows if kind == "A"}
-    if set(projects) != compiled:
-        raise RuntimeError(f"missing/unexpected compiler output: {sorted(set(projects) ^ compiled)}")
+    if set(selected) != compiled:
+        raise RuntimeError(f"missing/unexpected compiler output: {sorted(set(selected) ^ compiled)}")
     return rows
 
 
@@ -217,26 +226,32 @@ MIGRATION_HASHES = dict(line.split("\t", 1) for line in
 
 
 def historic_migration(path):
-    return path in MIGRATION_HASHES
+    return path in MIGRATION_HASHES or (path.startswith("modules/workspaces/") and path.removeprefix("modules/workspaces/") in MIGRATION_HASHES)
 
 
 def check_records(rows, root):
-    declared = {(r[1].split("/")[1], r[5]): r[1] for r in rows if r[0] == "D" and r[3] == "NamedType"
-                and r[1].startswith("src/") and "/obj/" not in r[1]}
+    declared = {(assembly(r[1]), r[5]): r[1] for r in rows if r[0] == "D" and r[3] == "NamedType"
+                and layer(r[1]) in {"src", "testing"} and "/obj/" not in r[1]}
     permissions = contract_permissions()
     problems = set()
     matrix = defaultdict(set)
+    if root == ROOT or (root / "modules.lock.json").is_file():
+        from architecture.extraction import port_errors
+        ports = {r[2] for r in rows if r[0] == "I" and layer(r[1]) == "src" and "/obj/" not in r[1]}
+        problems.update(port_errors(root, ports))
     for fields in rows:
         if len(fields) < 2:  # SDK build messages
             continue
         kind, path = fields[:2]
-        if not path.startswith("src/") or "/obj/" in path:
+        if layer(path) not in {"src", "testing"} or "/obj/" in path:
             continue
-        project = Path(path).parts[1]
+        project = assembly(path)
         if kind == "F":
             if project in CHAT_PROJECTS and not historic_migration(path) and owner(path) is None:
                 problems.add(f"{path}: missing logical owner (use a feature directory or register the file)")
             continue
+        if kind == "B" and forbidden(project, fields[2]):
+            problems.add(f"{project}: forbidden compiled assembly {fields[2]}")
         if kind in {"A", "B", "D", "C"}:
             continue
         location = f"{path}:{fields[2]}"
@@ -257,25 +272,25 @@ def check_records(rows, root):
                 continue
             problems.add(f"{location}: unreviewed {kind}: {area} -> {resource}")
         elif kind == "R":
-            source_type, assembly, type_id, target_type = fields[3:]
+            source_type, target_assembly, type_id, target_type = fields[3:]
             consumer = owner(path, source_type) if project == "Alycia.Modules.Chat.Application" else project.removeprefix("Alycia.Modules.")
             if consumer in SNAPSHOT_CONSUMERS and type_id in OWNER_INPUT_TYPES:
                 problems.add(f"{location}: specialized input: {consumer} -> {target_type}")
-            if assembly == "Alycia.Contracts":
+            if target_assembly == "Alycia.Contracts":
                 logical = owner(path, source_type) if project in CHAT_PROJECTS and not historic_migration(path) else None
                 if project.startswith("Alycia.Modules.") and type_id not in permissions.get(project, set()):
                     problems.add(f"{location}: contract boundary: {logical or project} -> {type_id}")
-            target = declared.get((assembly, type_id))
+            target = declared.get((target_assembly, type_id))
             if target is None:
-                if forbidden(project, assembly):
-                    problems.add(f"{location}: project layer: {project} -> {assembly}")
+                if forbidden(project, target_assembly):
+                    problems.add(f"{location}: project layer: {project} -> {target_assembly}")
                 continue
-            target_project = Path(target).parts[1]
+            target_project = assembly(target)
             if forbidden(project, target_project):
                 problems.add(f"{location}: project layer: {project} -> {target_project}")
             if not historic_migration(path) and not historic_migration(target):
-                source_owner = module_owner(path, source_type)
-                target_owner = module_owner(target, target_type)
+                source_owner = module_owner(path, source_type) if layer(path) == "src" else None
+                target_owner = module_owner(target, target_type) if layer(target) == "src" else None
                 if source_owner and target_owner and source_owner != target_owner:
                     matrix[source_owner, target_owner].add(target_type)
                     problems.add(f"{location}: logical boundary: {source_owner} -> {target_owner} ({target_type})")
@@ -298,6 +313,19 @@ def check_records(rows, root):
     return sorted(problems), matrix
 
 
+def migration_errors(root, hashes):
+    problems = []
+    for path, digest in hashes.items():
+        migrated = root / path
+        if path.startswith("src/Alycia.Modules.Workspaces.") and (root / "modules").exists():
+            migrated = root / "modules/workspaces" / path
+        if not migrated.is_file() and (root == ROOT or (root / "modules").exists()):
+            problems.append("missing historical migration: " + path)
+        elif migrated.is_file() and hashlib.sha256(migrated.read_bytes().replace(b"\r\n", b"\n")).hexdigest() != digest:
+            problems.append("historical migration changed: " + path)
+    return problems
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=ROOT, help="source tree to inspect")
@@ -307,10 +335,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     root = args.root.resolve()
     count, problems = check_project_graph(root)
-    for path, digest in MIGRATION_HASHES.items():
-        migrated = root / path
-        if migrated.is_file() and hashlib.sha256(migrated.read_bytes().replace(b"\r\n", b"\n")).hexdigest() != digest:
-            problems.append("historical migration changed: " + path)
+    problems.extend(migration_errors(root, MIGRATION_HASHES))
     if not any(p.startswith(("cycle:", "unknown solution project", "not in solution:")) for p in problems):
         try:
             symbols, matrix = inspect_symbols(root, args.capture, args.all_projects)

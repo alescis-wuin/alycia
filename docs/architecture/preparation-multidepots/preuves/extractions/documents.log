@@ -1,0 +1,24 @@
+dotnet restore /tmp/alycia-extraction-ozkcrko7/documents-l01rpvpk/documents/Documents.slnx --locked-mode --configfile /tmp/alycia-module-run-i50uaj3m/NuGet.Config -m:1
+  Determining projects to restore...
+  Restored /tmp/alycia-extraction-ozkcrko7/documents-l01rpvpk/documents/testing/Alycia.Modules.Documents.Mocks/Alycia.Modules.Documents.Mocks.csproj (in 207 ms).
+  Restored /tmp/alycia-extraction-ozkcrko7/documents-l01rpvpk/documents/src/Alycia.Modules.Documents/Alycia.Modules.Documents.csproj (in 482 ms).
+  Restored /tmp/alycia-extraction-ozkcrko7/documents-l01rpvpk/documents/tests/Alycia.Modules.Documents.Tests/Alycia.Modules.Documents.Tests.csproj (in 487 ms).
+  Restored /tmp/alycia-extraction-ozkcrko7/documents-l01rpvpk/documents/src/Alycia.Modules.Documents.Infrastructure/Alycia.Modules.Documents.Infrastructure.csproj (in 484 ms).
+dotnet build /tmp/alycia-extraction-ozkcrko7/documents-l01rpvpk/documents/Documents.slnx -c Release --no-restore -m:1 -v:q
+
+
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:08.78
+dotnet test /tmp/alycia-extraction-ozkcrko7/documents-l01rpvpk/documents/Documents.slnx -c Release --no-build --no-restore -m:1 --logger trx --results-directory /tmp/alycia-module-run-i50uaj3m
+Test run for /tmp/alycia-extraction-ozkcrko7/documents-l01rpvpk/documents/tests/Alycia.Modules.Documents.Tests/bin/Release/net10.0/Alycia.Modules.Documents.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+Results File: /tmp/alycia-module-run-i50uaj3m/_c9ce3e8ec5f9_2026-11-23_00_39_04_net10.0.trx
+
+Passed!  - Failed:     0, Passed:    29, Skipped:     0, Total:    29, Duration: 495 ms - Alycia.Modules.Documents.Tests.dll (net10.0)
+VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.
+PASS Documents: 4 projects, 29 passed, 0 skipped
+  The package Alycia.Modules.Documents.Mocks.0.1.0 is missing a readme. Go to https://aka.ms/nuget/authoring-best-practices/readme to learn why package readmes are important.
+  Successfully created package '/tmp/alycia-extraction-ozkcrko7/repacked/Alycia.Modules.Documents.Mocks.0.1.0.nupkg'.
+PASS independent package Alycia.Modules.Documents.Mocks.0.1.0.nupkg

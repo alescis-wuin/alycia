@@ -73,18 +73,6 @@ public sealed class ToolSummaryRecoveryTests
         Assert.DoesNotContain(events, e => e.Status == ToolMemoryFallback.Warning);
     }
 
-    [Fact]
-    public void ExtractiveFallbackIsBoundedUnicodeAndExplicitAboutOmissions()
-    {
-        var text = string.Concat(Enumerable.Repeat("é🙂漢字", 100));
-        var extract = ToolMemoryFallback.Extract([new("Mémoire", text), new("src/A.cs", text)], 512);
-        Assert.InRange(Encoding.UTF8.GetByteCount(extract), 1, 512);
-        Assert.StartsWith("REPLI EXTRACTIF : portions omises", extract);
-        Assert.Contains("[src/A.cs]", extract);
-        Assert.Contains("é🙂漢字", extract);
-        Assert.DoesNotContain("\uFFFD", extract);
-    }
-
     private static ContextWindow Context() => new([new("system", "SYSTEM"), new("user", "u1"), new("assistant", "a1"),
         new("user", "u2"), new("assistant", "a2"), new("user", "QUESTION")], 4, 128);
     private static HttpClient Client(HttpMessageHandler handler) => new(handler) { BaseAddress = new("http://127.0.0.1:11434/") };

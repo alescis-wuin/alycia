@@ -1,0 +1,109 @@
+{
+  "tests": {
+    "alycia.modules.configuration.tests.dll": {
+      "total": 3,
+      "passed": 3,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    "alycia.modules.context.tests.dll": {
+      "total": 23,
+      "passed": 23,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    "alycia.contracts.tests.dll": {
+      "total": 12,
+      "passed": 12,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    "alycia.modules.conversations.tests.dll": {
+      "total": 31,
+      "passed": 31,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    "alycia.modules.documents.tests.dll": {
+      "total": 29,
+      "passed": 29,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    "alycia.modules.indexing.tests.dll": {
+      "total": 12,
+      "passed": 12,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    "alycia.modules.inference.tests.dll": {
+      "total": 59,
+      "passed": 59,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    "alycia.client.avalonia.tests.dll": {
+      "total": 63,
+      "passed": 63,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    "alycia.modules.chat.tests.dll": {
+      "total": 105,
+      "passed": 105,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    "alycia.modules.memory.tests.dll": {
+      "total": 7,
+      "passed": 7,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    "alycia.platform.tests.dll": {
+      "total": 1,
+      "passed": 1,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    "alycia.modules.retrieval.tests.dll": {
+      "total": 31,
+      "passed": 31,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    "alycia.modules.tools.tests.dll": {
+      "total": 13,
+      "passed": 13,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    "alycia.modules.workspaces.tests.dll": {
+      "total": 13,
+      "passed": 13,
+      "failed": 0,
+      "notExecuted": 0
+    }
+  },
+  "baselineTestsPresent": 316,
+  "newTestCases": 86,
+  "httpScenarios": 35,
+  "openApiPaths": 47,
+  "openApiSha256": "d4ff9cb794dca7ccd775a9923d3732c1bf08cbd747c808d4359771426cd53b49",
+  "ragCanonicalSha256": "0811f60b9dd1b5f42b9249e9876172c3a6b716f311fcc403da21e0f5407a4990",
+  "ragOrderedRows": 92,
+  "ragClaims": 16,
+  "ragClassifications": 20,
+  "settingsV1": {
+    "bytes": 2074,
+    "sha256": "b1d22617099059db98ec9a44cefa109927067d1a1ed25182f601e77135a2751b"
+  },
+  "controls": {
+    "baselineTests": true,
+    "allDotnetCasesPassed": true,
+    "orderedHttpScenarios": true,
+    "openApiBytes": true,
+    "orderedRag": true,
+    "configurationV1Bytes": true
+  }
+}

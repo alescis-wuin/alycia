@@ -215,40 +215,6 @@ public sealed class KnowledgePipelineTests
     }
 
     [Fact]
-    public void FacetsPreserveConstraintsAndAnUnexaminedCandidateKeepsItsRank()
-    {
-        const string question = "Compare Atlas 2.1 puis cherche QuaiMax sans réseau.";
-        var plan = QueryPlanning.Build(question, [], [], 4, true);
-        var brief = plan.Brief!;
-        Assert.Equal(question, brief.Original);
-        Assert.Equal(2, brief.Facets.Length);
-        Assert.All(brief.Facets, f => { Assert.Contains("sans réseau", f.Semantic); Assert.Contains("sans réseau", f.Lexical); });
-        Assert.Contains("2.1", brief.Literals);
-        SourceChunk Chunk(string content) => new(Guid.NewGuid(), "", StructuredMemory.Hash(content), "", "text", 0, content.Length, 1, 1, content, [], true);
-        var examined = Chunk("Aucune donnée exploitable.");
-        var next = Chunk("Atlas version 2.1");
-        var classified = PassageClassifier.Classify(question, brief, [examined, next], PassageRankingSettings.Capture(new ChatOptions { ClassificationBudget = 4 }, null));
-        Assert.Equal(4, classified.Report.Pairs);
-        Assert.Equal(1, classified.Report.Unexamined);
-        Assert.Equal("irrelevant", Assert.Single(classified.Report.Candidates).Relevance);
-        Assert.Same(next, Assert.Single(classified.Ranked));
-    }
-
-    [Fact]
-    public void AnnotationValidationRejectsForeignReferencesAndOverBudgetSummaries()
-    {
-        var options = new ChatOptions();
-        string[] refs = ["SABCDEF123456"];
-        var original = IndexedKnowledge.Extract("test", "Fait daté 2025-02-16 🧭.", "document", refs, 128, options.TokenCounter);
-        Assert.Contains("2025-02-16", original.DateMentions);
-        string Encode(UnitLabels note) => JsonSerializer.Serialize(note, ProjectToolCatalog.Json);
-        Assert.NotNull(IndexedKnowledge.Validate(Encode(original), refs, 128, options.TokenCounter));
-        Assert.Null(IndexedKnowledge.Validate(Encode(original with { SourceUnitIds = ["H99:FOREIGN"] }), refs, 128, options.TokenCounter));
-        Assert.Null(IndexedKnowledge.Validate(Encode(original with { Summary = new string('a', 800) }), refs, 64, options.TokenCounter));
-        Assert.Null(IndexedKnowledge.Validate("{\"unsupported\":true}", refs, 128, options.TokenCounter));
-    }
-
-    [Fact]
     public async Task InteractiveReductionUsesTheEntireSelectedOriginalOrKeepsOnlyTheExcerpt()
     {
         var text = new string('a', 1400) + "milieu" + new string('z', 1590) + "fin";
@@ -276,29 +242,6 @@ public sealed class KnowledgePipelineTests
         Assert.Equal(text, string.Concat(model.Inputs.SkipLast(1)));
         Assert.InRange(model.Inputs.Count, 3, 8);
         Assert.InRange(guide.Tokens, 1, 512);
-    }
-
-    [Fact]
-    public async Task RecursiveAnalysisCheckpointsInsideOneLargeFile()
-    {
-        var model = new SummaryModel();
-        var options = new ChatOptions { ContextTokens = 2048, MaxOutputTokens = 256, SafetyTokens = 256, SummaryMaxCalls = 8, ModelIdentity = "fixture" };
-        var cache = new Dictionary<string, string>();
-        RecursiveSummarizer Reducer() => new(model, "fixture", options.Summary(), null, new(options.SummaryMaxCalls),
-            (key, _) => Task.FromResult(cache.GetValueOrDefault(key)), (key, value, _) => { cache.Add(key, value); return Task.CompletedTask; });
-        var source = new SummarySource("grand.md", string.Join('\n', Enumerable.Range(0, 430).Select(n => $"Ligne {n:D3} avec des valeurs distinctes pour les contrôles.")));
-        await Assert.ThrowsAsync<ChatModelException>(() => Reducer().ReduceAsync([source], 512, default));
-        Assert.Equal(8, cache.Count);
-        string? final = null;
-        for (var cycle = 0; cycle < 12 && final is null; cycle++)
-        {
-            var count = cache.Count;
-            try { final = await Reducer().ReduceAsync([source], 512, default); }
-            catch (ChatModelException error) { Assert.Contains("Budget d’appels", error.Message); }
-            Assert.InRange(cache.Count - count, 1, options.SummaryMaxCalls);
-        }
-        Assert.NotNull(final);
-        Assert.Equal(model.Inputs.Count, model.Inputs.Distinct().Count());
     }
 
     private sealed class SummaryModel : IChatModel

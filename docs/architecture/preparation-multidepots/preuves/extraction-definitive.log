@@ -1,0 +1,51 @@
+waiting for server to start.... done
+server started
+PostgreSQL 17.11 (Debian 17.11-0+deb13u1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+vector|0.8.0
+89f2ba67439c5c78c2817e277c261c64a8a413b5
+6cd494b4e756f947f58bf22da04dd8deeb91733a
+dotnet restore $CHECKOUT/modules/contracts/src/Alycia.Contracts/Alycia.Contracts.csproj --configfile $CHECKOUT/artifacts/bootstrap-foef76di/NuGet.Config --locked-mode -m:1 -v:q
+dotnet pack $CHECKOUT/modules/contracts/src/Alycia.Contracts/Alycia.Contracts.csproj --no-restore -c Release -m:1 -o $CHECKOUT/artifacts/bootstrap-foef76di -v:q
+dotnet restore $CHECKOUT/modules/platform/src/Alycia.Platform.Persistence/Alycia.Platform.Persistence.csproj --configfile $CHECKOUT/artifacts/bootstrap-foef76di/NuGet.Config --locked-mode -m:1 -v:q
+dotnet pack $CHECKOUT/modules/platform/src/Alycia.Platform.Persistence/Alycia.Platform.Persistence.csproj --no-restore -c Release -m:1 -o $CHECKOUT/artifacts/bootstrap-foef76di -v:q
+dotnet restore $CHECKOUT/modules/conversations/testing/Alycia.Modules.Conversations.Mocks/Alycia.Modules.Conversations.Mocks.csproj --configfile $CHECKOUT/artifacts/bootstrap-foef76di/NuGet.Config --locked-mode -m:1 -v:q
+dotnet pack $CHECKOUT/modules/conversations/testing/Alycia.Modules.Conversations.Mocks/Alycia.Modules.Conversations.Mocks.csproj --no-restore -c Release -m:1 -o $CHECKOUT/artifacts/bootstrap-foef76di -v:q
+dotnet restore $CHECKOUT/modules/documents/testing/Alycia.Modules.Documents.Mocks/Alycia.Modules.Documents.Mocks.csproj --configfile $CHECKOUT/artifacts/bootstrap-foef76di/NuGet.Config --locked-mode -m:1 -v:q
+dotnet pack $CHECKOUT/modules/documents/testing/Alycia.Modules.Documents.Mocks/Alycia.Modules.Documents.Mocks.csproj --no-restore -c Release -m:1 -o $CHECKOUT/artifacts/bootstrap-foef76di -v:q
+dotnet restore $CHECKOUT/modules/indexing/testing/Alycia.Modules.Indexing.Mocks/Alycia.Modules.Indexing.Mocks.csproj --configfile $CHECKOUT/artifacts/bootstrap-foef76di/NuGet.Config --locked-mode -m:1 -v:q
+dotnet pack $CHECKOUT/modules/indexing/testing/Alycia.Modules.Indexing.Mocks/Alycia.Modules.Indexing.Mocks.csproj --no-restore -c Release -m:1 -o $CHECKOUT/artifacts/bootstrap-foef76di -v:q
+dotnet restore $CHECKOUT/modules/inference/testing/Alycia.Modules.Inference.Mocks/Alycia.Modules.Inference.Mocks.csproj --configfile $CHECKOUT/artifacts/bootstrap-foef76di/NuGet.Config --locked-mode -m:1 -v:q
+dotnet pack $CHECKOUT/modules/inference/testing/Alycia.Modules.Inference.Mocks/Alycia.Modules.Inference.Mocks.csproj --no-restore -c Release -m:1 -o $CHECKOUT/artifacts/bootstrap-foef76di -v:q
+dotnet restore $CHECKOUT/modules/retrieval/testing/Alycia.Modules.Retrieval.Mocks/Alycia.Modules.Retrieval.Mocks.csproj --configfile $CHECKOUT/artifacts/bootstrap-foef76di/NuGet.Config --locked-mode -m:1 -v:q
+dotnet pack $CHECKOUT/modules/retrieval/testing/Alycia.Modules.Retrieval.Mocks/Alycia.Modules.Retrieval.Mocks.csproj --no-restore -c Release -m:1 -o $CHECKOUT/artifacts/bootstrap-foef76di -v:q
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3 /tmp/alycia-extraction-ozkcrko7/configuration-fuqv77sj/configuration/scripts/check.py check --feed /tmp/alycia-extraction-ozkcrko7/feed --cases-out $CHECKOUT/artifacts/extraction/configuration.cases
+PASS Configuration: 3 projects, 3 passed, 0 skipped
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3 /tmp/alycia-extraction-ozkcrko7/context-jctf3ojz/context/scripts/check.py check --feed /tmp/alycia-extraction-ozkcrko7/feed --cases-out $CHECKOUT/artifacts/extraction/context.cases
+PASS Context: 3 projects, 23 passed, 0 skipped
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3 /tmp/alycia-extraction-ozkcrko7/contracts-tz33tlyw/contracts/scripts/check.py check --feed /tmp/alycia-extraction-ozkcrko7/feed --cases-out $CHECKOUT/artifacts/extraction/contracts.cases
+dotnet pack /tmp/alycia-extraction-ozkcrko7/contracts-tz33tlyw/contracts/src/Alycia.Contracts/Alycia.Contracts.csproj -c Release --no-build --no-restore -m:1 -o /tmp/alycia-extraction-ozkcrko7/repacked
+PASS Contracts: 3 projects, 12 passed, 0 skipped
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3 /tmp/alycia-extraction-ozkcrko7/conversations-ropvyzyb/conversations/scripts/check.py check --feed /tmp/alycia-extraction-ozkcrko7/feed --cases-out $CHECKOUT/artifacts/extraction/conversations.cases
+dotnet pack /tmp/alycia-extraction-ozkcrko7/conversations-ropvyzyb/conversations/testing/Alycia.Modules.Conversations.Mocks/Alycia.Modules.Conversations.Mocks.csproj -c Release --no-build --no-restore -m:1 -o /tmp/alycia-extraction-ozkcrko7/repacked
+PASS Conversations: 6 projects, 31 passed, 0 skipped
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3 /tmp/alycia-extraction-ozkcrko7/documents-l01rpvpk/documents/scripts/check.py check --feed /tmp/alycia-extraction-ozkcrko7/feed --cases-out $CHECKOUT/artifacts/extraction/documents.cases
+dotnet pack /tmp/alycia-extraction-ozkcrko7/documents-l01rpvpk/documents/testing/Alycia.Modules.Documents.Mocks/Alycia.Modules.Documents.Mocks.csproj -c Release --no-build --no-restore -m:1 -o /tmp/alycia-extraction-ozkcrko7/repacked
+PASS Documents: 4 projects, 29 passed, 0 skipped
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3 /tmp/alycia-extraction-ozkcrko7/indexing-3vjfy42g/indexing/scripts/check.py check --feed /tmp/alycia-extraction-ozkcrko7/feed --cases-out $CHECKOUT/artifacts/extraction/indexing.cases
+dotnet pack /tmp/alycia-extraction-ozkcrko7/indexing-3vjfy42g/indexing/testing/Alycia.Modules.Indexing.Mocks/Alycia.Modules.Indexing.Mocks.csproj -c Release --no-build --no-restore -m:1 -o /tmp/alycia-extraction-ozkcrko7/repacked
+PASS Indexing: 3 projects, 12 passed, 0 skipped
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3 /tmp/alycia-extraction-ozkcrko7/inference-s366nmbv/inference/scripts/check.py check --feed /tmp/alycia-extraction-ozkcrko7/feed --cases-out $CHECKOUT/artifacts/extraction/inference.cases
+dotnet pack /tmp/alycia-extraction-ozkcrko7/inference-s366nmbv/inference/testing/Alycia.Modules.Inference.Mocks/Alycia.Modules.Inference.Mocks.csproj -c Release --no-build --no-restore -m:1 -o /tmp/alycia-extraction-ozkcrko7/repacked
+PASS Inference: 3 projects, 59 passed, 0 skipped
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3 /tmp/alycia-extraction-ozkcrko7/memory-2g93c6f9/memory/scripts/check.py check --feed /tmp/alycia-extraction-ozkcrko7/feed --cases-out $CHECKOUT/artifacts/extraction/memory.cases
+PASS Memory: 3 projects, 7 passed, 0 skipped
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3 /tmp/alycia-extraction-ozkcrko7/platform-lsecfaab/platform/scripts/check.py check --feed /tmp/alycia-extraction-ozkcrko7/feed --cases-out $CHECKOUT/artifacts/extraction/platform.cases
+dotnet pack /tmp/alycia-extraction-ozkcrko7/platform-lsecfaab/platform/src/Alycia.Platform.Persistence/Alycia.Platform.Persistence.csproj -c Release --no-build --no-restore -m:1 -o /tmp/alycia-extraction-ozkcrko7/repacked
+PASS Platform: 3 projects, 1 passed, 0 skipped
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3 /tmp/alycia-extraction-ozkcrko7/retrieval-l5kfrb9b/retrieval/scripts/check.py check --feed /tmp/alycia-extraction-ozkcrko7/feed --cases-out $CHECKOUT/artifacts/extraction/retrieval.cases
+dotnet pack /tmp/alycia-extraction-ozkcrko7/retrieval-l5kfrb9b/retrieval/testing/Alycia.Modules.Retrieval.Mocks/Alycia.Modules.Retrieval.Mocks.csproj -c Release --no-build --no-restore -m:1 -o /tmp/alycia-extraction-ozkcrko7/repacked
+PASS Retrieval: 4 projects, 31 passed, 0 skipped
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3 /tmp/alycia-extraction-ozkcrko7/tools-rz0u4fhd/tools/scripts/check.py check --feed /tmp/alycia-extraction-ozkcrko7/feed --cases-out $CHECKOUT/artifacts/extraction/tools.cases
+PASS Tools: 3 projects, 13 passed, 0 skipped
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3 /tmp/alycia-extraction-ozkcrko7/workspaces-htre4frc/workspaces/scripts/check.py check --feed /tmp/alycia-extraction-ozkcrko7/feed --cases-out $CHECKOUT/artifacts/extraction/workspaces.cases
+PASS Workspaces: 5 projects, 13 passed, 0 skipped

@@ -1,0 +1,20 @@
+port	rôle dans ce domaine	statut	fixture du maître ou du domaine
+Alycia.Contracts.Chat.IGenerationSettings	adaptateur	EXCLU	modules/conversations/tests/Alycia.Modules.Conversations.Tests/ConversationSettingsTransferTests.cs
+Alycia.Contracts.Chat.IIndexSettings	adaptateur	EXCLU	modules/conversations/tests/Alycia.Modules.Conversations.Tests/TurnSnapshotTests.cs
+Alycia.Contracts.Chat.IToolWindowSettings	adaptateur	EXCLU	modules/context/tests/Alycia.Modules.Context.Tests/ToolCallingTests.cs
+Alycia.Contracts.Context.ITurnHistory	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/TurnReadContractTests.cs
+Alycia.Contracts.Context.IConversationContextReader	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/TurnReadContractTests.cs
+Alycia.Contracts.Documents.IToolConversationPolicy	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/OwnerContractTests.cs
+Alycia.Contracts.Indexing.IConversationIndexOwners	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/OwnerContractTests.cs
+Alycia.Modules.Chat.Application.IChatRepository	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/ConversationPortsContractTests.cs
+Alycia.Modules.Chat.Application.IChatTurnScope	propriété fonctionnelle, double	EXCLU	tests/Alycia.Modules.Chat.Tests/ConversationPortsContractTests.cs
+Alycia.Contracts.Documents.IAnalysisConversation	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/ArchiveAnalysisContractTests.cs
+Alycia.Contracts.Documents.IConversationFileChanges	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/OriginalsContractTests.cs
+Alycia.Contracts.Documents.IConversationLease	propriété fonctionnelle, adaptateur, double	VALIDÉ	modules/conversations/tests/Alycia.Modules.Conversations.Tests/ExclusiveLeaseTests.cs
+Alycia.Contracts.Documents.IConversationWorkspaceLookup	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/OwnerContractTests.cs
+Alycia.Contracts.Memory.ITemporalHistorySources	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/TurnReadContractTests.cs
+Alycia.Modules.Chat.Application.IConversationMemory	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/ConversationPortsContractTests.cs
+Alycia.Contracts.Retrieval.IQuerySources	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/TurnReadContractTests.cs
+Alycia.Contracts.Retrieval.ITurnRouter	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/RoutingContractTests.cs
+Alycia.Contracts.Tools.IToolHistoryReader	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/TurnReadContractTests.cs
+Alycia.Contracts.Workspaces.IProjectNoteOrigins	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/ProjectProfileContractTests.cs

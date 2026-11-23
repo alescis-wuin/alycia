@@ -1,0 +1,15 @@
+{
+  "passed": 2,
+  "checks": [
+    "devhost_mock_full_chat_stream",
+    "devhost_mock_idempotent_replay"
+  ],
+  "provider": "mock",
+  "database": "isolated PostgreSQL",
+  "test_data_cleaned": true,
+  "continuous_chat_calls": 0,
+  "tool_rounds": 0,
+  "bounded_summary_calls": 0,
+  "pressure_tool_rounds": 0,
+  "empty_tool_summaries": 0
+}

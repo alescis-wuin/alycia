@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Alycia.Modules.Tools/Alycia.Modules.Tools.csproj" />
+
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+    <Using Include="Xunit" />
+    <Using Include="Alycia.Contracts.Inference" />
+    <Using Include="Alycia.Contracts.Indexing" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Alycia.Modules.Conversations.Mocks" Version="[0.1.0]" />
+    <PackageReference Include="Alycia.Modules.Documents.Mocks" Version="[0.1.0]" />
+    <PackageReference Include="Alycia.Modules.Indexing.Mocks" Version="[0.1.0]" />
+    <PackageReference Include="Alycia.Modules.Retrieval.Mocks" Version="[0.1.0]" />
+    <ProjectReference Include="../../testing/Alycia.Modules.Tools.Mocks/Alycia.Modules.Tools.Mocks.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,11 @@
+waiting for server to start.... done
+server started
+PostgreSQL 17.11 (Debian 17.11-0+deb13u1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+vector|0.8.0
+[xUnit.net 00:00:00.41]     Alycia.Modules.Chat.Tests.TurnOutputContractTests.Context_memory_reports_only_verbatim_quotes_and_provenance_with_bounded_recall [FAIL]
+  Failed Alycia.Modules.Chat.Tests.TurnOutputContractTests.Context_memory_reports_only_verbatim_quotes_and_provenance_with_bounded_recall [4 ms]
+Expected: "memory-v2"
+Actual:   "version-de-revue"
+     at Alycia.Modules.Chat.Tests.TurnOutputContractTests.Context_memory_reports_only_verbatim_quotes_and_provenance_with_bounded_recall() in $RECETTE/memory-mutante-CbDO/tests/Alycia.Modules.Memory.Tests/TurnOutputContractTests.cs:line 20
+Failed!  - Failed:     1, Passed:     6, Skipped:     0, Total:     7, Duration: 1 s - Alycia.Modules.Memory.Tests.dll (net10.0)
+PASS la suite Memory exportée détecte la mutation.

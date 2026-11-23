@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net10.0": {
+      "Alycia.Contracts": {
+        "type": "Transitive",
+        "resolved": "0.1.0",
+        "contentHash": "hr5Zs7hyVTOL8SxkdAMhgVNKoUyRwGxbF0n5PyfGhv00A43rgNbrMAkrufhL37Ept06JPk1+KzvBBs59W9Nqdw=="
+      },
+      "alycia.modules.chat.application": {
+        "type": "Project",
+        "dependencies": {
+          "Alycia.Contracts": "[0.1.0, 0.1.0]",
+          "Alycia.Modules.Chat.Domain": "[1.0.0, )"
+        }
+      },
+      "alycia.modules.chat.domain": {
+        "type": "Project"
+      }
+    }
+  }
+}

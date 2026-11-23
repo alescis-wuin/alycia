@@ -1,0 +1,23 @@
+dotnet restore /tmp/alycia-extraction-ozkcrko7/indexing-3vjfy42g/indexing/Indexing.slnx --locked-mode --configfile /tmp/alycia-module-run-5gj9taur/NuGet.Config -m:1
+  Determining projects to restore...
+  Restored /tmp/alycia-extraction-ozkcrko7/indexing-3vjfy42g/indexing/tests/Alycia.Modules.Indexing.Tests/Alycia.Modules.Indexing.Tests.csproj (in 215 ms).
+  Restored /tmp/alycia-extraction-ozkcrko7/indexing-3vjfy42g/indexing/testing/Alycia.Modules.Indexing.Mocks/Alycia.Modules.Indexing.Mocks.csproj (in 215 ms).
+  Restored /tmp/alycia-extraction-ozkcrko7/indexing-3vjfy42g/indexing/src/Alycia.Modules.Indexing/Alycia.Modules.Indexing.csproj (in 213 ms).
+dotnet build /tmp/alycia-extraction-ozkcrko7/indexing-3vjfy42g/indexing/Indexing.slnx -c Release --no-restore -m:1 -v:q
+
+
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:06.64
+dotnet test /tmp/alycia-extraction-ozkcrko7/indexing-3vjfy42g/indexing/Indexing.slnx -c Release --no-build --no-restore -m:1 --logger trx --results-directory /tmp/alycia-module-run-5gj9taur
+Test run for /tmp/alycia-extraction-ozkcrko7/indexing-3vjfy42g/indexing/tests/Alycia.Modules.Indexing.Tests/bin/Release/net10.0/Alycia.Modules.Indexing.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+Results File: /tmp/alycia-module-run-5gj9taur/_c9ce3e8ec5f9_2026-11-23_00_39_18_net10.0.trx
+
+Passed!  - Failed:     0, Passed:    12, Skipped:     0, Total:    12, Duration: 142 ms - Alycia.Modules.Indexing.Tests.dll (net10.0)
+VSTEST_ARTIFACTS_DIRECTORY environment variable was not found, falling back to a user-private temporary directory. This is most likely caused by an outdated Microsoft.NET.Test.Sdk package reference in the test project.
+PASS Indexing: 3 projects, 12 passed, 0 skipped
+  The package Alycia.Modules.Indexing.Mocks.0.1.0 is missing a readme. Go to https://aka.ms/nuget/authoring-best-practices/readme to learn why package readmes are important.
+  Successfully created package '/tmp/alycia-extraction-ozkcrko7/repacked/Alycia.Modules.Indexing.Mocks.0.1.0.nupkg'.
+PASS independent package Alycia.Modules.Indexing.Mocks.0.1.0.nupkg

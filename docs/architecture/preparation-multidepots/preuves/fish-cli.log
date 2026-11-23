@@ -1,0 +1,13 @@
+usage: modules.py [-h]
+                  {bootstrap-packages,build-module,test-module,check-module,check-extraction,check-master}
+                  [{configuration,context,contracts,conversations,documents,indexing,inference,memory,platform,retrieval,tools,workspaces}]
+
+Build the local feed, test an exported module, or assemble the complete
+product.
+
+positional arguments:
+  {bootstrap-packages,build-module,test-module,check-module,check-extraction,check-master}
+  {configuration,context,contracts,conversations,documents,indexing,inference,memory,platform,retrieval,tools,workspaces}
+
+options:
+  -h, --help            show this help message and exit

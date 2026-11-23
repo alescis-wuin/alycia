@@ -1,0 +1,12 @@
+{
+  "commit": "89f2ba67439c5c78c2817e277c261c64a8a413b5",
+  "arbre": "6cd494b4e756f947f58bf22da04dd8deeb91733a",
+  "parents": [
+    "a898c60887c8c60bcc572abb262bf449d7105573"
+  ],
+  "verification": {
+    "verified": false,
+    "reason": "unsigned",
+    "verified_at": null
+  }
+}

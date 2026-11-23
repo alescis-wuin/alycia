@@ -1,0 +1,20 @@
+waiting for server to start.... done
+server started
+PostgreSQL 17.11 (Debian 17.11-0+deb13u1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+vector|0.8.0
+89f2ba67439c5c78c2817e277c261c64a8a413b5
+6cd494b4e756f947f58bf22da04dd8deeb91733a
+dotnet restore $CHECKOUT/modules/contracts/src/Alycia.Contracts/Alycia.Contracts.csproj --configfile $CHECKOUT/artifacts/bootstrap-foef76di/NuGet.Config --locked-mode -m:1 -v:q
+dotnet pack $CHECKOUT/modules/contracts/src/Alycia.Contracts/Alycia.Contracts.csproj --no-restore -c Release -m:1 -o $CHECKOUT/artifacts/bootstrap-foef76di -v:q
+dotnet restore $CHECKOUT/modules/platform/src/Alycia.Platform.Persistence/Alycia.Platform.Persistence.csproj --configfile $CHECKOUT/artifacts/bootstrap-foef76di/NuGet.Config --locked-mode -m:1 -v:q
+dotnet pack $CHECKOUT/modules/platform/src/Alycia.Platform.Persistence/Alycia.Platform.Persistence.csproj --no-restore -c Release -m:1 -o $CHECKOUT/artifacts/bootstrap-foef76di -v:q
+dotnet restore $CHECKOUT/modules/conversations/testing/Alycia.Modules.Conversations.Mocks/Alycia.Modules.Conversations.Mocks.csproj --configfile $CHECKOUT/artifacts/bootstrap-foef76di/NuGet.Config --locked-mode -m:1 -v:q
+dotnet pack $CHECKOUT/modules/conversations/testing/Alycia.Modules.Conversations.Mocks/Alycia.Modules.Conversations.Mocks.csproj --no-restore -c Release -m:1 -o $CHECKOUT/artifacts/bootstrap-foef76di -v:q
+dotnet restore $CHECKOUT/modules/documents/testing/Alycia.Modules.Documents.Mocks/Alycia.Modules.Documents.Mocks.csproj --configfile $CHECKOUT/artifacts/bootstrap-foef76di/NuGet.Config --locked-mode -m:1 -v:q
+dotnet pack $CHECKOUT/modules/documents/testing/Alycia.Modules.Documents.Mocks/Alycia.Modules.Documents.Mocks.csproj --no-restore -c Release -m:1 -o $CHECKOUT/artifacts/bootstrap-foef76di -v:q
+dotnet restore $CHECKOUT/modules/indexing/testing/Alycia.Modules.Indexing.Mocks/Alycia.Modules.Indexing.Mocks.csproj --configfile $CHECKOUT/artifacts/bootstrap-foef76di/NuGet.Config --locked-mode -m:1 -v:q
+dotnet pack $CHECKOUT/modules/indexing/testing/Alycia.Modules.Indexing.Mocks/Alycia.Modules.Indexing.Mocks.csproj --no-restore -c Release -m:1 -o $CHECKOUT/artifacts/bootstrap-foef76di -v:q
+dotnet restore $CHECKOUT/modules/inference/testing/Alycia.Modules.Inference.Mocks/Alycia.Modules.Inference.Mocks.csproj --configfile $CHECKOUT/artifacts/bootstrap-foef76di/NuGet.Config --locked-mode -m:1 -v:q
+dotnet pack $CHECKOUT/modules/inference/testing/Alycia.Modules.Inference.Mocks/Alycia.Modules.Inference.Mocks.csproj --no-restore -c Release -m:1 -o $CHECKOUT/artifacts/bootstrap-foef76di -v:q
+dotnet restore $CHECKOUT/modules/retrieval/testing/Alycia.Modules.Retrieval.Mocks/Alycia.Modules.Retrieval.Mocks.csproj --configfile $CHECKOUT/artifacts/bootstrap-foef76di/NuGet.Config --locked-mode -m:1 -v:q
+dotnet pack $CHECKOUT/modules/retrieval/testing/Alycia.Modules.Retrieval.Mocks/Alycia.Modules.Retrieval.Mocks.csproj --no-restore -c Release -m:1 -o $CHECKOUT/artifacts/bootstrap-foef76di -v:q

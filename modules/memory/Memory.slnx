@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="src/Alycia.Modules.Memory/Alycia.Modules.Memory.csproj" />
+  <Project Path="testing/Alycia.Modules.Memory.Mocks/Alycia.Modules.Memory.Mocks.csproj" />
+  <Project Path="tests/Alycia.Modules.Memory.Tests/Alycia.Modules.Memory.Tests.csproj" />
+</Solution>

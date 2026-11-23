@@ -1,0 +1,9 @@
+port	rôle dans ce domaine	statut	fixture du maître ou du domaine
+Alycia.Contracts.Inference.IChatModel	propriété fonctionnelle, adaptateur, double	VALIDÉ	modules/inference/tests/Alycia.Modules.Inference.Tests/TextGenerationContractTests.cs
+Alycia.Contracts.Inference.IForegroundActivity	propriété fonctionnelle, adaptateur	EXCLU	tests/Alycia.Modules.Chat.Tests/KnowledgePipelineTests.cs
+Alycia.Contracts.Inference.ILocalEmbeddings	propriété fonctionnelle, adaptateur, double	VALIDÉ	modules/inference/tests/Alycia.Modules.Inference.Tests/TextGenerationContractTests.cs
+Alycia.Contracts.Inference.IModelMeter	propriété fonctionnelle, adaptateur, double	VALIDÉ	modules/inference/tests/Alycia.Modules.Inference.Tests/TextGenerationContractTests.cs
+Alycia.Contracts.Inference.IModelMeterFactory	propriété fonctionnelle, adaptateur, double	VALIDÉ	modules/inference/tests/Alycia.Modules.Inference.Tests/TextGenerationContractTests.cs
+Alycia.Contracts.Inference.ITextGeneration	propriété fonctionnelle, adaptateur, double	VALIDÉ	modules/inference/tests/Alycia.Modules.Inference.Tests/TextGenerationContractTests.cs
+Alycia.Contracts.Inference.ITextTokenCounter	propriété fonctionnelle, adaptateur	EXCLU	modules/inference/tests/Alycia.Modules.Inference.Tests/TokenBudgetTests.cs
+Alycia.Contracts.Retrieval.IQueryBriefRefiner	propriété fonctionnelle, adaptateur, double	VALIDÉ	modules/inference/tests/Alycia.Modules.Inference.Tests/BriefContractTests.cs

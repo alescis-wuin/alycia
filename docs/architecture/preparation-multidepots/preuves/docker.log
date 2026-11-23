@@ -1,0 +1,116 @@
+28.3.3
+#0 building with "default" instance using docker driver
+
+#1 [api internal] load build definition from Dockerfile
+#1 transferring dockerfile: 1.25kB 0.0s done
+#1 DONE 0.1s
+
+#2 [api internal] load metadata for mcr.microsoft.com/dotnet/aspnet:10.0
+#2 ...
+
+#3 [api internal] load metadata for mcr.microsoft.com/dotnet/sdk:10.0.404
+#3 DONE 0.0s
+
+#2 [api internal] load metadata for mcr.microsoft.com/dotnet/aspnet:10.0
+#2 DONE 9.3s
+
+#4 [api internal] load .dockerignore
+#4 transferring context: 160B 0.0s done
+#4 DONE 0.1s
+
+#5 [api stage-1 1/4] FROM mcr.microsoft.com/dotnet/aspnet:10.0@sha256:12b1135f5f8b3c0a214f2a680ff2033dff4f684f445d6c697d9524ceeb303586
+#5 DONE 0.0s
+
+#6 [api build 1/7] FROM mcr.microsoft.com/dotnet/sdk:10.0.404
+#6 DONE 0.0s
+
+#7 [api internal] load build context
+#7 ...
+
+#8 [api build 2/7] WORKDIR /src
+#8 DONE 0.1s
+
+#7 [api internal] load build context
+#7 transferring context: 4.64MB 1.0s done
+#7 DONE 1.1s
+
+#9 [api build 3/7] COPY global.json NuGet.Config Directory.Build.props Directory.Build.targets ./
+#9 DONE 0.3s
+
+#10 [api build 4/7] COPY modules/ modules/
+#10 DONE 0.9s
+
+#11 [api build 5/7] COPY src/ src/
+#11 DONE 0.2s
+
+#12 [api build 6/7] COPY docs/architecture/preparation-multidepots/PACKAGES.tsv /tmp/alycia-packages.tsv
+#12 DONE 0.1s
+
+#13 [api build 7/7] RUN set -eu; mkdir -p artifacts/local-feed;     for p in modules/contracts/src/Alycia.Contracts modules/platform/src/Alycia.Platform.Persistence; do         dotnet restore "$p" --configfile /src/NuGet.Config --locked-mode;         dotnet pack "$p" --no-restore -c Release -o /src/artifacts/local-feed;     done;     awk '$1 == "Alycia.Contracts" || $1 == "Alycia.Platform.Persistence" {print $3 "  artifacts/local-feed/" $1 "." $2 ".nupkg"}' /tmp/alycia-packages.tsv | sha256sum -c -;     dotnet restore src/Alycia.Api/Alycia.Api.csproj --configfile /src/NuGet.Config --locked-mode;     dotnet publish src/Alycia.Api/Alycia.Api.csproj -c Release -o /out --no-restore
+#13 13.96   Determining projects to restore...
+#13 20.42   Restored /src/modules/contracts/src/Alycia.Contracts/Alycia.Contracts.csproj (in 1.22 sec).
+#13 78.15   Alycia.Contracts -> /src/modules/contracts/src/Alycia.Contracts/bin/Release/net10.0/Alycia.Contracts.dll
+#13 84.23   The package Alycia.Contracts.0.1.0 is missing a readme. Go to https://aka.ms/nuget/authoring-best-practices/readme to learn why package readmes are important.
+#13 84.24   Successfully created package '/src/artifacts/local-feed/Alycia.Contracts.0.1.0.nupkg'.
+#13 96.27   Determining projects to restore...
+#13 128.0   Restored /src/modules/platform/src/Alycia.Platform.Persistence/Alycia.Platform.Persistence.csproj (in 26.75 sec).
+#13 149.6   Alycia.Platform.Persistence -> /src/modules/platform/src/Alycia.Platform.Persistence/bin/Release/net10.0/Alycia.Platform.Persistence.dll
+#13 155.6   The package Alycia.Platform.Persistence.0.1.0 is missing a readme. Go to https://aka.ms/nuget/authoring-best-practices/readme to learn why package readmes are important.
+#13 155.6   Successfully created package '/src/artifacts/local-feed/Alycia.Platform.Persistence.0.1.0.nupkg'.
+#13 156.0 artifacts/local-feed/Alycia.Contracts.0.1.0.nupkg: OK
+#13 156.0 artifacts/local-feed/Alycia.Platform.Persistence.0.1.0.nupkg: OK
+#13 170.6   Determining projects to restore...
+#13 211.1   Restored /src/modules/workspaces/src/Alycia.Modules.Workspaces.Domain/Alycia.Modules.Workspaces.Domain.csproj (in 2.66 sec).
+#13 212.2   Restored /src/modules/workspaces/src/Alycia.Modules.Workspaces.Application/Alycia.Modules.Workspaces.Application.csproj (in 655 ms).
+#13 229.9   Restored /src/modules/indexing/src/Alycia.Modules.Indexing/Alycia.Modules.Indexing.csproj (in 17.47 sec).
+#13 230.0   Restored /src/modules/conversations/src/Alycia.Modules.Chat.Domain/Alycia.Modules.Chat.Domain.csproj (in 38 ms).
+#13 230.2   Restored /src/modules/conversations/src/Alycia.Modules.Chat.Application/Alycia.Modules.Chat.Application.csproj (in 155 ms).
+#13 232.3   Restored /src/modules/context/src/Alycia.Modules.Context/Alycia.Modules.Context.csproj (in 94 ms).
+#13 232.4   Restored /src/modules/configuration/src/Alycia.Modules.Configuration/Alycia.Modules.Configuration.csproj (in 64 ms).
+#13 232.5   Restored /src/modules/tools/src/Alycia.Modules.Tools/Alycia.Modules.Tools.csproj (in 29 ms).
+#13 234.9   Restored /src/modules/documents/src/Alycia.Modules.Documents/Alycia.Modules.Documents.csproj (in 2.33 sec).
+#13 235.1   Restored /src/modules/documents/src/Alycia.Modules.Documents.Infrastructure/Alycia.Modules.Documents.Infrastructure.csproj (in 128 ms).
+#13 246.8   Restored /src/modules/conversations/src/Alycia.Modules.Chat.Infrastructure/Alycia.Modules.Chat.Infrastructure.csproj (in 11.6 sec).
+#13 246.9   Restored /src/modules/workspaces/src/Alycia.Modules.Workspaces.Infrastructure/Alycia.Modules.Workspaces.Infrastructure.csproj (in 39.07 sec).
+#13 246.9   Restored /src/src/Alycia.Persistence.Migrations/Alycia.Persistence.Migrations.csproj (in 39.07 sec).
+#13 246.9   Restored /src/modules/retrieval/src/Alycia.Modules.Retrieval/Alycia.Modules.Retrieval.csproj (in 33 ms).
+#13 247.0   Restored /src/modules/inference/src/Alycia.Modules.Inference/Alycia.Modules.Inference.csproj (in 25 ms).
+#13 247.0   Restored /src/modules/memory/src/Alycia.Modules.Memory/Alycia.Modules.Memory.csproj (in 48 ms).
+#13 260.6   Restored /src/modules/retrieval/src/Alycia.Modules.Retrieval.Onnx/Alycia.Modules.Retrieval.Onnx.csproj (in 13.62 sec).
+#13 260.8   Restored /src/src/Alycia.Api/Alycia.Api.csproj (in 53 sec).
+#13 304.1   Alycia.Modules.Tools -> /src/modules/tools/src/Alycia.Modules.Tools/bin/Release/net10.0/Alycia.Modules.Tools.dll
+#13 305.0   Alycia.Modules.Memory -> /src/modules/memory/src/Alycia.Modules.Memory/bin/Release/net10.0/Alycia.Modules.Memory.dll
+#13 305.4   Alycia.Modules.Inference -> /src/modules/inference/src/Alycia.Modules.Inference/bin/Release/net10.0/Alycia.Modules.Inference.dll
+#13 306.1   Alycia.Modules.Context -> /src/modules/context/src/Alycia.Modules.Context/bin/Release/net10.0/Alycia.Modules.Context.dll
+#13 311.7   Alycia.Modules.Retrieval.Onnx -> /src/modules/retrieval/src/Alycia.Modules.Retrieval.Onnx/bin/Release/net10.0/Alycia.Modules.Retrieval.Onnx.dll
+#13 320.0   Alycia.Modules.Chat.Domain -> /src/modules/conversations/src/Alycia.Modules.Chat.Domain/bin/Release/net10.0/Alycia.Modules.Chat.Domain.dll
+#13 321.8   Alycia.Modules.Retrieval -> /src/modules/retrieval/src/Alycia.Modules.Retrieval/bin/Release/net10.0/Alycia.Modules.Retrieval.dll
+#13 322.3   Alycia.Modules.Workspaces.Domain -> /src/modules/workspaces/src/Alycia.Modules.Workspaces.Domain/bin/Release/net10.0/Alycia.Modules.Workspaces.Domain.dll
+#13 328.2   Alycia.Modules.Configuration -> /src/modules/configuration/src/Alycia.Modules.Configuration/bin/Release/net10.0/Alycia.Modules.Configuration.dll
+#13 336.2   Alycia.Modules.Indexing -> /src/modules/indexing/src/Alycia.Modules.Indexing/bin/Release/net10.0/Alycia.Modules.Indexing.dll
+#13 337.5   Alycia.Modules.Documents -> /src/modules/documents/src/Alycia.Modules.Documents/bin/Release/net10.0/Alycia.Modules.Documents.dll
+#13 348.0   Alycia.Modules.Chat.Application -> /src/modules/conversations/src/Alycia.Modules.Chat.Application/bin/Release/net10.0/Alycia.Modules.Chat.Application.dll
+#13 351.7   Alycia.Modules.Documents.Infrastructure -> /src/modules/documents/src/Alycia.Modules.Documents.Infrastructure/bin/Release/net10.0/Alycia.Modules.Documents.Infrastructure.dll
+#13 351.8   Alycia.Modules.Workspaces.Application -> /src/modules/workspaces/src/Alycia.Modules.Workspaces.Application/bin/Release/net10.0/Alycia.Modules.Workspaces.Application.dll
+#13 362.1   Alycia.Modules.Chat.Infrastructure -> /src/modules/conversations/src/Alycia.Modules.Chat.Infrastructure/bin/Release/net10.0/Alycia.Modules.Chat.Infrastructure.dll
+#13 363.0   Alycia.Modules.Workspaces.Infrastructure -> /src/modules/workspaces/src/Alycia.Modules.Workspaces.Infrastructure/bin/Release/net10.0/Alycia.Modules.Workspaces.Infrastructure.dll
+#13 363.8   Alycia.Persistence.Migrations -> /src/src/Alycia.Persistence.Migrations/bin/Release/net10.0/Alycia.Persistence.Migrations.dll
+#13 391.7   Alycia.Api -> /src/src/Alycia.Api/bin/Release/net10.0/Alycia.Api.dll
+#13 394.8   Alycia.Api -> /out/
+#13 DONE 395.7s
+
+#14 [api stage-1 2/4] WORKDIR /app
+#14 CACHED
+
+#15 [api stage-1 3/4] COPY --from=build /out ./
+#15 CACHED
+
+#16 [api stage-1 4/4] RUN mkdir -p /app/logs /app/files && chown "1654" /app/logs /app/files
+#16 CACHED
+
+#17 [api] exporting to image
+#17 exporting layers done
+#17 writing image sha256:65399e535a3b8b56023e176c74237298349c0e530804936dc6833cae006b4ca4 0.0s done
+#17 naming to docker.io/library/alycia-accept-b997b321436841d48bbda5dd2c3b0e2a-api 0.0s done
+#17 DONE 0.1s
+PASS Docker build, PostgreSQL dependency, API /healthz HTTP 200

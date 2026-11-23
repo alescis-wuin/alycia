@@ -1,0 +1,5 @@
+port	rôle dans ce domaine	statut	fixture du maître ou du domaine
+Alycia.Contracts.Chat.IGenerationSettings	propriété fonctionnelle	EXCLU	modules/conversations/tests/Alycia.Modules.Conversations.Tests/ConversationSettingsTransferTests.cs
+Alycia.Contracts.Chat.IIndexSettings	propriété fonctionnelle	EXCLU	modules/conversations/tests/Alycia.Modules.Conversations.Tests/TurnSnapshotTests.cs
+Alycia.Contracts.Chat.IToolWindowSettings	propriété fonctionnelle	EXCLU	modules/context/tests/Alycia.Modules.Context.Tests/ToolCallingTests.cs
+Alycia.Contracts.Documents.IImportLimitsReader	propriété fonctionnelle, adaptateur, double	VALIDÉ	modules/configuration/tests/Alycia.Modules.Configuration.Tests/OwnerContractTests.cs

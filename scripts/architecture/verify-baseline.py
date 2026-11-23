@@ -30,12 +30,14 @@ def compare(args):
     http = json.loads(args.http.read_text())
     rag = json.loads(args.rag.read_text())
     api = args.openapi.read_bytes()
-    fixture = (ROOT / "tests/Alycia.Modules.Chat.Tests/Fixtures/conversation-settings-v1.json").read_bytes()
+    fixture = (ROOT / "modules/conversations/tests/Alycia.Modules.Conversations.Tests/Fixtures/conversation-settings-v1.json").read_bytes()
     # The tracked text fixture adds exactly one LF. The functional xUnit case compares
     # the preceding bytes directly to the production serializer's output.
     exported_fixture = fixture.removesuffix(b"\n")
     serializer_case = ("alycia.modules.chat.tests.dll",
                        "Alycia.Modules.Chat.Tests.ConversationSettingsTransferTests.ReadsAndReproducesTheFileExportedByTheFunctionalBaseline")
+    from test_identity import move_map
+    moves = move_map()
     runs = Counter()
     outcomes = Counter()
     counts = {}
@@ -46,8 +48,13 @@ def compare(args):
             raise ValueError(f"Multiple TRX for {assembly}: use an empty results directory for each run")
         counts[assembly] = {k: int(v) for k, v in tree.find(".//{*}Counters").attrib.items()
                             if k in {"total", "passed", "failed", "notExecuted"}}
+        definitions = {t.get("id"): t.find("{*}TestMethod") for t in tree.findall(".//{*}UnitTest")}
         for result in tree.findall(".//{*}UnitTestResult"):
-            key = (assembly, result.get("testName"))
+            method = definitions[result.get("testId")]
+            old, new = moves(method.get("className"), method.get("name"), assembly)
+            if assembly != new:
+                raise ValueError("Unexpected destination assembly: " + assembly)
+            key = (old, result.get("testName"))
             runs[key] += 1
             outcomes[result.get("outcome")] += 1
     with (DOCS / "D00-tests.tsv").open() as stream:

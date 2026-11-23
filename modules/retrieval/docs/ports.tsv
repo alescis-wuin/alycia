@@ -1,0 +1,7 @@
+port	rôle dans ce domaine	statut	fixture du maître ou du domaine
+Alycia.Contracts.Retrieval.ITurnResponseAudit	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/TurnOutputContractTests.cs
+Alycia.Contracts.Retrieval.IPassageReranker	propriété fonctionnelle, adaptateur, double	VALIDÉ	modules/retrieval/tests/Alycia.Modules.Retrieval.Tests/RerankerContractTests.cs
+Alycia.Contracts.Retrieval.IPassageScoring	propriété fonctionnelle, adaptateur, double	VALIDÉ	modules/retrieval/tests/Alycia.Modules.Retrieval.Tests/ScoringContractTests.cs
+Alycia.Contracts.Retrieval.IProjectRetrieval	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/RoutingContractTests.cs
+Alycia.Contracts.Retrieval.IQueryPlanner	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/RoutingContractTests.cs
+Alycia.Contracts.Retrieval.IRetrievalPipeline	propriété fonctionnelle, adaptateur, double	VALIDÉ	tests/Alycia.Modules.Chat.Tests/RoutingContractTests.cs

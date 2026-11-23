@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net10.0": {
+      "Alycia.Contracts": {
+        "type": "Direct",
+        "requested": "[0.1.0, 0.1.0]",
+        "resolved": "0.1.0",
+        "contentHash": "hr5Zs7hyVTOL8SxkdAMhgVNKoUyRwGxbF0n5PyfGhv00A43rgNbrMAkrufhL37Ept06JPk1+KzvBBs59W9Nqdw=="
+      }
+    }
+  }
+}

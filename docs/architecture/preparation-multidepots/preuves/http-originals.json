@@ -1,0 +1,19 @@
+{
+  "passed": 6,
+  "checks": [
+    "private_original_survives_context_exclusion",
+    "shared_original_after_membership_revocation",
+    "original_range_bytes",
+    "original_owner_scope",
+    "original_same_size_hash_mismatch",
+    "original_range_after_revocation"
+  ],
+  "provider": "mock",
+  "database": "isolated PostgreSQL",
+  "test_data_cleaned": true,
+  "continuous_chat_calls": 0,
+  "tool_rounds": 0,
+  "bounded_summary_calls": 0,
+  "pressure_tool_rounds": 0,
+  "empty_tool_summaries": 0
+}

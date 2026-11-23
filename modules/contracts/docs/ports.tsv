@@ -1,0 +1,4 @@
+port	rôle dans ce domaine	statut	fixture du maître ou du domaine
+Alycia.Contracts.Chat.IGenerationSettings	adaptateur	EXCLU	modules/conversations/tests/Alycia.Modules.Conversations.Tests/ConversationSettingsTransferTests.cs
+Alycia.Contracts.Chat.IIndexSettings	adaptateur	EXCLU	modules/conversations/tests/Alycia.Modules.Conversations.Tests/TurnSnapshotTests.cs
+Alycia.Contracts.Chat.IToolWindowSettings	adaptateur	EXCLU	modules/context/tests/Alycia.Modules.Context.Tests/ToolCallingTests.cs

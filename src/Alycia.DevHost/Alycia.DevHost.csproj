@@ -6,6 +6,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../Alycia.Api/Alycia.Api.csproj" />
-    <ProjectReference Include="../Alycia.Modules.Testing/Alycia.Modules.Testing.csproj" />
+    <ProjectReference Include="../../modules/inference/testing/Alycia.Modules.Inference.Mocks/Alycia.Modules.Inference.Mocks.csproj" />
   </ItemGroup>
 </Project>
